@@ -28,7 +28,10 @@ jobs:
         run: |
           set -euo pipefail
           bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh
-          python3 -m py_compile scripts/phase0/http_probe.py
+          python3 -m py_compile scripts/phase0/http_probe.py scripts/phase0/rss_monitor.py scripts/phase0/gate_report.py scripts/phase0/paired_bootstrap.py scripts/phase0/hash_artifacts.py
+      - name: Verify Phase 0 gate and HTTP harness tests
+        shell: bash
+        run: make test
       - name: Check internal skill metadata
         shell: bash
         run: |

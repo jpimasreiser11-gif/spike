@@ -56,26 +56,36 @@ Los scripts bajo `scripts/phase0/` funcionan con **Bash + Python 3 estándar**, 
 cd /ruta/local/spike
 bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh
 bash scripts/phase0/preflight.sh
+# Pruebas reproducibles Python stdlib; simulan HTTP SOLO dentro de TEST.
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests/phase0 -p 'test_*.py' -v
 ```
 
-Tras arrancar **por separado** un `llama-server` real con un modelo local legítimo y verificado, la prueba HTTP requiere endpoints `GET /health`, `GET /v1/models` y SSE en `POST /v1/chat/completions`. Comprueba que hay **un modelo real declarado por el servidor** y mide **TTFT = instante del primer delta SSE de texto o razonamiento menos instante del POST**, más duración total. No cuenta la conexión TCP ni el primer byte HTTP como token. Use un `--expected-model` igual al ID real publicado por `/v1/models` cuando se busque validar un artefacto concreto.
+Tras arrancar **por separado** un `llama-server` real con un modelo local legítimo y verificado, la prueba HTTP requiere endpoints `GET /health`, `GET /v1/models` y SSE en `POST /v1/chat/completions`. Comprueba que hay **un modelo declarado por el servidor** y mide **TTFT = instante del primer delta SSE de texto o razonamiento menos instante del POST**, más duración total. No cuenta la conexión TCP ni el primer byte HTTP como token. Use un `--expected-model` igual al ID real publicado por `/v1/models` cuando se busque validar un artefacto concreto. La API no prueba la autenticidad de los pesos: es imprescindible comprobar hashes/procedencia por separado.
+
+**Medición RSS/pico real:** identifica primero el PID que corresponde exactamente a tu `llama-server` ya iniciado (`pgrep -fl llama-server` en Mac o Linux) y pasa `--pid`. El script verifica el nombre del proceso y muestrea cada 100 ms por defecto (`--rss-interval 0.1`). En Linux captura `VmRSS` y `VmHWM` de `/proc/PID/status`; `VmHWM` representa el máximo desde que arrancó el proceso, **incluida** la carga del modelo. En macOS usa `ps -p PID -o rss=`, y el máximo es **solo el pico observado entre muestras**, no un máximo certificado por el kernel. Ambas plataformas excluyen memoria de otros procesos, picos entre muestras y consumo global de GPU/sistema; una carga de 16 GB exige medir **el equipo objetivo**, no el Mac de 36 GB. Sin `--pid`, el JSON deja `memory: null` y no acredita uso de RAM.
 
 ```bash
 # Servidor REAL ya iniciado en 127.0.0.1:8080, no lo inicia este script.
+# Sustituir 12345 por el PID inspeccionado de ESE servidor.
 bash scripts/phase0/smoke_http.sh --url http://127.0.0.1:8080 \
+  --pid 12345 --rss-interval 0.1 \
   --output reports/phase0/mac-baseline.json
 
 # En la máquina CPU 16 GB, con el servidor de esa máquina ya iniciado:
 bash scripts/phase0/preflight.sh
 bash scripts/phase0/smoke_http.sh --url http://127.0.0.1:8080 \
+  --pid 12345 --rss-interval 0.1 \
   --expected-model 'ID_EXACTO_DEVUELTO_POR_V1_MODELS' \
   --output reports/phase0/cpu16-baseline.json
 
-# S3: con LoRAs REALES previamente cargados y autorizados, un ID por petición.
-# Ejecutar A, B y A en orden y comparar manualmente los JSON y respuestas.
-bash scripts/phase0/smoke_http.sh --lora-id 0 --output reports/phase0/lora-a1.json
-bash scripts/phase0/smoke_http.sh --lora-id 1 --output reports/phase0/lora-b.json
-bash scripts/phase0/smoke_http.sh --lora-id 0 --output reports/phase0/lora-a2.json
+# S3: LoRAs REALES ya cargados en llama-server, diferenciables con
+# sentinelas predefinidas por su propia evaluación y mismo prompt A/B/A.
+# NO usar ALPHA/BETA salvo que esos LoRAs concretos deban producirlas.
+bash scripts/phase0/smoke_http.sh --url http://127.0.0.1:8080 \
+  --pid 12345 --isolation-a 0 --isolation-b 1 \
+  --isolation-prompt 'Contesta con la etiqueta aprendida en tu adaptador.' \
+  --expect-a 'ETIQUETA_ESPERADA_A' --expect-b 'ETIQUETA_ESPERADA_B' \
+  --output reports/phase0/lora-real-aba.json
 
 # Para confirmar que la prueba falla con servidor AUSENTE:
 bash scripts/phase0/smoke_http.sh --url http://127.0.0.1:65534 \
@@ -83,9 +93,13 @@ bash scripts/phase0/smoke_http.sh --url http://127.0.0.1:65534 \
 # Salida esperada: exit code 1 y status FAIL / ttft_ms null en JSON.
 ```
 
-**Alcance de la evidencia JSON:** guarda fecha UTC, commit Git real (o `null` cuando no existe), dirty state, SO/arquitectura/CPU/RAM, `model_id` realmente devuelto por HTTP, parámetros de petición, TTFT real, duración, recuento de deltas, vista previa truncada de la respuesta visible, hashes SHA-256 de respuesta visible y de razonamiento, y error verificable. Los resultados anteriores se escriben con apertura exclusiva: **no se sobrescriben archivos existentes**, así que cada repetición requiere otro `--output` (o dejar que genere nombre único en `reports/phase0/`). Si el servidor no existe o la generación no envía un delta y el marcador `[DONE]`, el script sale con **código 1**, guarda `status: "FAIL"` y `ttft_ms: null`; jamás calcula tiempos ficticios.
+**A/B/A real:** el harness consulta `GET /lora-adapters`, exige los IDs A/B presentes, envía **tres POST secuenciales reales** sobre el mismo servidor con `lora:[{id,scale:1}]` y `cache_prompt:false`, guarda respuestas, hashes y tiempos por paso, y comprueba las sentinelas exclusivas A/B y la igualdad exacta A1=A2. Un fallo deja `status: "FAIL"` y `error` con la causa; un éxito da **`PASS_ABA_SENTINELS_ONLY`**, evidencia limitada a este prompt/seed/servidor y **NO una certificación de aislamiento frente a otros prompts o usuarios**. El entorno también puede rechazar el soporte per-request LoRA; es fallo/incompatibilidad real a documentar. Nunca usa `POST /lora-adapters` global ni cambia adaptadores persistentes.
 
-El resultado `PASS_HTTP_SMOKE_ONLY` solo prueba que se recibió una respuesta SSE real; **no certifica** calidad, rendimiento estadístico, memoria pico, aislamiento multi-LoRA ni compatibilidad 16 GB. Para S3 la opción `--lora-id` solicita un adaptador por petición, pero no demuestra que se aplicara ni que no hubiera contaminación: comparar A/B/A exige adaptadores reales, respuesta y evaluación controlada adicional. Para S4 el preflight solo detecta paquetes instalados. Las métricas publicables siguen requiriendo `make eval` / `make bench`, `reports/` y commit fechado según `AGENTS.md`.
+**Alcance de la evidencia JSON:** guarda fecha UTC, commit Git real (o `null` cuando no existe), dirty state, SO/arquitectura/CPU/RAM, `model_id` reportado por HTTP, parámetros de petición, TTFT real, duración, deltas, RSS sampled peak y `VmHWM` cuando está disponible, vista previa truncada de respuesta, hashes SHA-256 y errores verificables. Los resultados se escriben con apertura exclusiva: **no sobrescribe archivos existentes**, cada repetición usa otro `--output` o un nombre único automático. Si el servidor falta, la respuesta SSE falla, el PID es incorrecto o las sentinelas A/B/A fallan, el comando devuelve **código 1** y estado `FAIL`; sin generación, `ttft_ms` es `null` (nunca se fabrica). En A/B/A los resultados se almacenan en `isolation.steps[*].measurement`.
+
+**TEST vs pruebas reales:** `tests/phase0/test_http_probe.py` levanta un servidor HTTP falso **solo dentro del runner TEST**, en `127.0.0.1`, y escribe resultados exclusivamente en directorios temporales. El CLI pasa `--test-harness`: todo JSON se marca `evidence_kind: "TEST_FAKE_HARNESS_NOT_BENCHMARK"`, los estados comienzan con `TEST_FAKE_` y se prohíbe escribir bajo `reports/`. Las cifras del fake jamás son benchmarks ni justifican un gate. La versión actual de `.github/workflows/ci.yml` incorpora `bash -n`, `py_compile` y `make test` (que ejecuta también esta batería): estas comprobaciones se pueden replicar localmente con `make test` o con el comando `unittest` anterior. No se modificaron el CI ni el Makefile en este encargo. El resultado `PASS_HTTP_SMOKE_ONLY` tampoco acredita calidad, aislamiento global ni 16 GB. S4 se limita a inspección de dependencias; cualquier métrica publicable necesita `make eval` / `make bench`, evidencia en `reports/` y commit fechado según `AGENTS.md`.
+
+**Registro de validación local (2026-10-16):** desde la raíz de Spike, `bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh` → exit 0; `PYTHONDONTWRITEBYTECODE=1 make test` → **10 tests de gates + 13 tests del harness PASS**, incluidos datos HTTP malformados, contaminación A/B/A TEST y fallo sin servidor. `bash scripts/phase0/preflight.sh` → **PASS de herramientas** en Mac Studio arm64 (14 CPU lógicas, 36 GiB RAM, `llama-server` 9430 `d48a56eff`); no demuestra CPU de 16 GB. En prueba negativa de puerto local sin servidor, salida real **exit 1 / FAIL / TTFT null / modelo null**. **Bloqueos pendientes:** ejecución de RSS de `llama-server` auténtico y A/B/A con LoRAs reales, máquina CPU 16 GB, comprobación de hashes y plan íntegro. Estos tests de protocolo no se registran como benchmark ni certificación de S2–S4.
 
 ## S1 · Identidad, licencia, arquitectura y procedencia
 

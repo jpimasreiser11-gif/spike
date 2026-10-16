@@ -1,0 +1,37 @@
+{
+  "schema": "spike.phase0.http-smoke.v1",
+  "status": "FAIL",
+  "timestamp_utc": "2026-10-16T08:58:57.057455+00:00",
+  "git_commit": "d3703931e86be40123d346ab54032b942bbe2991",
+  "git_dirty": true,
+  "client": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "architecture": "arm64",
+    "logical_cpus": 14,
+    "ram_bytes": 38654705664
+  },
+  "server": {
+    "url": "http://127.0.0.1:65534",
+    "health": null,
+    "model_id": null
+  },
+  "request": {
+    "prompt": "Reply with exactly one word: READY",
+    "max_tokens": 32,
+    "seed": 42,
+    "temperature": 0,
+    "cache_prompt": false,
+    "requested_lora_id": null
+  },
+  "measurement": {
+    "ttft_ms": null,
+    "total_ms": null,
+    "nonempty_delta_chunks": 0,
+    "stream_done": false,
+    "first_delta_field": null,
+    "visible_response_preview": null,
+    "visible_response_sha256": null,
+    "reasoning_sha256": null
+  },
+  "error": "URLError: <urlopen error [Errno 61] Connection refused>"
+}

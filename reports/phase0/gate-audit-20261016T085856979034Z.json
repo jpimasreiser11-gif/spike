@@ -1,0 +1,50 @@
+{
+  "schema": "spike.phase0.gate-audit.v1",
+  "timestamp_utc": "2026-10-16T08:58:56.979034+00:00",
+  "commit": "d3703931e86be40123d346ab54032b942bbe2991",
+  "system": "macOS-27.0-arm64-arm-64bit",
+  "purpose": "evidence_inventory_only_no_model_evaluation",
+  "gates": {
+    "plan_full": {
+      "status": "BLOCKED_MISSING_SOURCE",
+      "criterion": "PLAN.md completo y legible"
+    },
+    "http_smoke": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Inferencia real y SSE verificable sobre modelo congelado"
+    },
+    "cpu16": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Bench real en CPU de 16 GB sin GPU dedicada"
+    },
+    "lora_isolation": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Prueba A/B/A con LoRAs reales y estado KV aislado"
+    },
+    "draft": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Speculative decoding CPU con comparación frente a baseline"
+    },
+    "training": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Entrenamiento MLX/Unsloth real y exportación GGUF"
+    },
+    "tier1": {
+      "status": "NOT_VERIFIED",
+      "criterion": "8 especialistas cuantizados con eval/IC 95%"
+    },
+    "s1_s7": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Todos los gates textuales S1–S7 del PLAN.md íntegro"
+    }
+  },
+  "phase0_reports": [
+    {
+      "path": "reports/phase0/prime-no-server.json",
+      "status": "FAIL",
+      "commit": "c18a263efe3a0062dec52fc9bed6acf92cb72232",
+      "model_id": null
+    }
+  ],
+  "phase0_approved": false
+}
