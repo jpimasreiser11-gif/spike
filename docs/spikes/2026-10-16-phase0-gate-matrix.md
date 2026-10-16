@@ -1,33 +1,40 @@
-# Fase 0 — matriz de gates preliminar
+# Spike — matriz de gates §14 del Plan Maestro v3 (Fase 0)
 
-**Fecha:** 2026-10-16. **Carácter:** preparatorio, no sustituye los criterios específicos S1–S7 que faltan en `PLAN.md`.
+**Fecha:** 2026-10-16. **Fuente de verdad ya recuperada y comprobada:** [`PLAN.md`](../../PLAN.md) íntegro, §14 líneas 281–305; reglas, métricas y clean-room en §§0, 1, 5 y 13. El bloqueo anterior de **fuente ausente** está **RESUELTO**, pero **ningún spike se declara PASS**. El gate F0 exige demostrar base, serving, entrenamiento y datos; F1 requiere además autorización explícita de Joan.
 
-| Elemento del plan conocido | Evidencia exigible para PASS | Estado actual |
+## Mapeo correcto §14 y pruebas exigibles
+
+| Spike §14 comunicado | Pregunta técnica vinculante | Ensayo/requisitos de evidencia futura | Estado observado |
+| --- | --- | --- | --- |
+| **S1 — Qwen3.5-4B vs Gemma 4 E4B** | ¿Cuál cumple mejor calidad, tokens/s y memoria **en CPU de 16 GB sin GPU**? | Identificar licencia y hash del **modelo y GGUF exactos**, ejecutar evaluación comparativa con prompts y configuración equivalentes; medir respuestas correctas, tool/JSON, tokens/s, TTFT, RAM pico y errores/OOM, con modelos por separado en CPU 16 GB. No equiparar E4B con 4B de RAM ni extrapolar de Mac 36 GB. | **NOT RUN**. Metadatos y licencias Qwen revisados; Gemma 4 E4B candidato documental en ADR 0003, sin comparación real. |
+| **S2 — multi-LoRA `llama.cpp`** | ¿Puede alternar LoRAs con **cambio ≤500 ms** y **cero contaminación** de estado? | Dos LoRAs realmente cargables, commit de `llama.cpp` fijo; secuencias A/B/A y base/A/base, caché on/off, concurrencia, cambios repetidos y latencia de cambio medida con definición de inicio/fin preaprobada; logs de adaptador/cache/KV. **Cualquier contaminación reproducible = FAIL** aunque la latencia cumpla. | **NOT RUN**. API y flags locales reconocidos, issues upstream de contaminación; harness de humo con fakes no certifica LoRAs. |
+| **S3 — entrenamiento LoRA 4B MLX-LM** | ¿Se puede entrenar con aproximadamente **200 ejemplos lícitos**, convertir **LoRA→GGUF** y **cargarlo** con fidelidad? | Corpus autorizado, revisión MLX-LM, semillas, adaptador real y sus hashes; prueba ~200 ejemplos (§14, distinta de la receta final de 5k–20k por rol de §5.2), exportación a GGUF LoRA para `llama.cpp`, inferencia con LoRA y comparación antes/después, RAM/tiempo, arquitectura híbrida. | **NOT RUN**. Guías y riesgos GatedDeltaNet/conversión documentados; no checkpoint. |
+| **S4 — coste 0 €, derechos, profesor local, descontaminación** | ¿Es legal y realizable un conjunto de datos/etiquetado **sin servicios de pago**, con **teacher/profesor local** y pruebas sin fuga? | Tabla por muestra de licencias/atribución/derechos de pesos y datos, auditoría de generador local y salidas (sin ChatGPT/Claude/Gemini prohibidos), filtrado de PII/menores/armas/CBRN/malware, train/test sellados y hashes + near-duplicates; contador de gastos demostrablemente 0 €. | **DOCUMENTADO PARCIAL / GATE PENDING**. `DATA_LICENSES.md` cataloga candidatos, **no autoriza ingestión**; ningún corpus/profesor local probado ni proceso de descontaminación ejecutado. |
+| **S5 — UX con REA, objetivos permitidos** | ¿Puede documentarse y evaluar interacción UX mediante **REA** dentro del clean-room de §13? | Objetivos propios/open source con licencia verificada; si son propietarios y prohíben RE, **solo observación visible como usuario y documentación pública**. Separar observador/implementador, revisar con `nexus-clean-room` y producir `docs/spec/ux-spec.md` y `docs/spec/harness-spec.md` **con evidencia**. Auditar REA, scripts, MCP, motores, licencia y costes antes de ejecutarlo. | **DOCUMENTOS BASE CREADOS / S5 NOT RUN**. Ya existen specs originales de requisitos; **no** incluyen observación REA de target autorizado ni validación, y MCP no está activado. |
+| **S6 — nombre/marca** | El plan original contemplaba **cinco candidatos**, pero Joan **eligió definitivamente Spike**. | Conservar ADR 0001; revisar disponibilidad de uso del nombre en GitHub, Hugging Face, npm, PyPI y dominio gratuito tal como pide §14 y marcas en clases/territorios antes de distribución. No reabrir elección de cinco candidatos. | **NOMBRE DECIDIDO / DISPONIBILIDAD Y MARCA PENDING**. No equivale a gate integral PASS. |
+| **S7 — speculative draft y routing** | ¿Sirve **Qwen3.5-0.8B draft especulativo** y un **router por embeddings en CPU** frente al baseline en el hardware objetivo? | Medir CPU 16 GB con 4B **sin draft** vs **4B+0.8B**, igualdad de respuesta, tokens/s end-to-end, TTFT, tasa de aceptación, RSS, cold start y coste de dos contextos. Routing con ≥300 prompts etiquetados y embeddings CPU licenciados/fijados: **≥90% acierto** con especialistas nuevos sin reentrenar el orquestador; planes **≥95% JSON válido** (§1). Medir exactitud/abstención/latencia/RSS. | **HERRAMIENTAS PREPARADAS / S7 NOT RUN**. `s7_readiness.py` y tests de fake disponibles; **sin** modelos, embeddings ni routing productivo medidos. |
+
+**Fuente documental y discrepancias anteriores:** [compatibilidad técnica](2026-10-16-model-compatibility.md) utiliza epígrafes de trabajo denominados "S1 licencia", "S2 GGUF", "S3 multi-LoRA", "S4 MLX-LM"; **esas cabeceras describían agrupaciones de investigación y no corresponden al §14 real**. No se reescribe aquel archivo por límite de esta asignación. La tabla superior **sí** corresponde a la copia local de [`PLAN.md §14`](../../PLAN.md) ahora comprobada.
+
+## Contratos operativos que aún no son resultados
+
+- **S1 y S7:** ensayo **en CPU real 16 GB sin GPU**, con SHA-256 de pesos y adaptadores, hash de runtime, `ctx`, plantilla, batch, seeds y prompts constantes, tiempos de calentamiento y metodología de muestreo RAM. Registrar TTFT p50/p95, tokens/s, RSS/working set, errors/OOM y calidad. La preflight sobre Mac M4 Max con **36 GiB** no satisface el hardware objetivo.
+- **S2:** medir el cambio LoRA en tiempo de pared, separando solicitud de cambio, confirmación de adapter y primera inferencia: informar ambas métricas para impedir optimizar artificialmente un cambio de estado que deja contexto contaminado. El umbral comunicado de `≤500 ms` **no se aplica** a una simulación o a una interfaz sin modelos reales. Caches distintas y prompts con prefijos compartidos permiten detectar regresiones; comparar contra proceso fresco. Si falla, ADR 0002 contempla **Plan B propuesto** por procesos aislados, condicionado a aprobación.
+- **S3:** evaluar que el LoRA convertido afecte realmente a respuestas y no solo "se cargue" sin errores; comparar salida MLX y GGUF con ejemplos autorizados y los tensores de Qwen3.5 (GatedDeltaNet). Si falla conversión, detener y documentar; no sustituir Qwen por otra base sin ADR aprobado.
+- **S4 y S5:** mantener un manifiesto de **uso permitido**, derechos por artefacto, licencia de REA/engines, lectura previa de scripts y acciones, privacidad y clean-room. No descargar ni ejecutar targets de ingeniería inversa a partir de un instalador `npx @latest`. No almacenar datos de terceros sin permiso; S4 incluye excluir contenido de menores, armas, CBRN, malware/exploits operativos y salidas de modelos sujetos a restricciones.
+- **Tier 1 transversal:** los ocho especialistas necesitan LoRA **realmente entrenado**, evaluación sobre versión cuantizada final y mejora pareada con bootstrap IC95% frente a base cuantizada; regresión general `≤2 pp`, control de seguridad y contaminación (véase [specialist-feasibility](2026-10-16-specialist-feasibility.md)). Un harness de CI que da PASS a un mock no acredita estos requisitos.
+
+## Evidencia local existente y límites
+
+| Recurso | Comprobación documental / efecto | Estado del gate |
 | --- | --- | --- |
-| S1, elección de base Qwen3.5-4B | Modelo y revisión fijos, licencia comprobada, GGUF disponible, generación real con formato de tools y thinking/non-thinking, memoria medida en 16 GB CPU | OPEN: licencia y familia confirmadas, resto pendiente |
-| S2–S4, herramientas/inferencia/entrenamiento | Probar scripts exactos de la versión íntegra del plan y guardar logs, commits/hashes, tiempos y picos de memoria; distinguir Mac 36 GB de CPU 16 GB | OPEN: recuperar descripción exacta S2–S4 |
-| S5 | Descripción y criterios íntegros desde PLAN.md | BLOCKED: sección ausente |
-| S6, nombre y marca | Nombre y formato por decisión expresa; realizar comprobación de marca y riesgos de distribución | OPEN: nombre Spike aprobado, marca pendiente |
-| S7 | Descripción y criterios íntegros desde PLAN.md | BLOCKED: sección ausente |
-| Auditoría de modelos | Licencia exacta de cada artefacto, hash/revisión y derecho de redistribución | IN PROGRESS |
-| LoRA por petición | Prueba con dos adaptadores reales, selección A/B/A, cachés habilitadas/deshabilitadas, ausencia de mezcla de contexto y concurrencia | NOT RUN |
-| Draft 0.8B | Verificar compatibilidad de tokenizer/arquitectura, aceptación y tokens/s comparados con base sola en CPU | NOT RUN |
-| Entrenamiento MLX-LM | LoRA en arquitectura híbrida real, conversión GGUF, salida reproducible con hash y prueba sobre cuantización final | NOT RUN |
-| Hardware objetivo | RSS/working set total del servidor+UI+modelo ≤10 GB; modelos+adaptadores ≤6 GB; primer token <5 s, usando 16 GB sin GPU | NOT RUN |
-| Skills/MCP externos | Pinned commit, inspección de licencia, SKILL.md, scripts y efecto de instalación | IN PROGRESS |
-| Coste del flujo | Registro de infraestructura y artefactos sin servicios de pago | OPEN |
+| [`model-compatibility`](2026-10-16-model-compatibility.md), [ADR 0002](../adr/0002-proposed-lora-isolation-fallback.md), [ADR 0003](../adr/0003-proposed-model-fallback.md) | Licencias Qwen y alternativas, CLI `llama-server` 9430, issues upstream KV, riesgos MLX, conversión y draft; **sin pesos ni pruebas de S1–S3/S7**. | **PENDING** |
+| [`supply-chain-audit`](../skills/2026-10-16-supply-chain-audit.md) y [`THIRD_PARTY.md`](../../THIRD_PARTY.md) | REA `morluto/rea` con revisión Git anotada, licencia MIT y avisos de terceros; **MCP/engine no instalado ni certificado**. | **S5 PENDING** |
+| [`DATA_LICENSES.md`](../../DATA_LICENSES.md) | Derechos declarados/candidatos de Tier 1 y benchmarks; no se han auditado derechos de cada muestra para entrenamiento real. | **S4 PENDING** |
+| `make test`, `make preflight`, `scripts/phase0/`, [S7 readiness](2026-10-16-s7-readiness.md) y [specs S5](../spec/ux-spec.md) / [harness](../spec/harness-spec.md) | Hay ensayos sintéticos de contratos y borradores de UX propios; el [consolidado](2026-10-16-phase0-consolidated.md) informa preflight 36 GiB, `make eval` histórico bloqueado y `make bench` negativo sin servidor. | **HERRAMIENTAS/DOCUMENTOS DE FASE 0**, no PASS de S1–S7 |
 
-## Riesgo conocido del aislamiento entre LoRAs
+## Reglas del gate global
 
-`llama.cpp` documenta `--lora-init-without-apply`, el campo LoRA por petición y `--cache-ram`, pero existen reportes públicos recientes de contaminación por reutilización de KV entre adaptadores (véase [issue #26207](https://github.com/ggml-org/llama.cpp/issues/26207) y [issue #30129](https://github.com/ggml-org/llama.cpp/issues/30129)). Antes de habilitar múltiples especialistas deben comprobarse estos casos sobre un commit determinado de llama.cpp. Una mitigación candidata es desactivar temporalmente la caché RAM, pero su efecto sobre latencia y calidad debe medirse en el equipo objetivo. **No se declara resuelto el problema.**
+La preparación puede continuar en Fase 0 mientras sean lícitas las comprobaciones. Cada número público debe provenir de `make eval`/`make bench`, con informe en `reports/`, fecha y commit. Ante fallo de gate: documentarlo en `docs/spikes/`, proponer Plan B y detener el avance correspondiente. Los **umbrales vinculantes de §1** son **≤6 GB** modelos/adaptadores activos, **≤10 GB** total daemon+UI+modelos, **primer token <5 s**, orquestador **≥95%** planes JSON válidos, **≥90%** routing en ≥300 prompts, regresión general **≤2 pp**, rechazo de sensibles legítimos **<3%**. Requieren mediciones futuras; actualmente **ninguno está demostrado**.
 
-## Protocolo previsto de evidencias futuras
-
-1. Registrar hash del modelo base, GGUF y cada adaptador, commit de Spike y versión de llama.cpp.
-2. Ejecutar el mismo conjunto congelado con base cuantizada y cada especialista cuantizado, con seeds, temperatura, decodificación y hardware iguales.
-3. Para gates de mejora, bootstrap pareado con IC del 95 %; para regresión, MMLU o equivalente con techo de dos puntos.
-4. Reservar 300+ prompts etiquetados para routing: medir precisión con especialistas añadidos sin reentrenar; JSON válido en ejecución, no solo en tests sintácticos.
-5. Evaluar rechazos sensibles legítimos (<3 %) por separado de solicitudes peligrosas, que deben seguir bloqueadas según la política.
-6. Registrar resultados en `reports/` por fecha y commit con `make eval` y `make bench` cuando ambos se hayan implementado.
-
-Estas son **especificaciones de pruebas**, no resultados experimentales. La Fase 0 continúa en FAIL/OPEN hasta incorporar el plan y ejecutar las verificaciones.
+**Resultado: S1/S2/S3/S4/S5/S7 pendientes de evidencia; S6 nombre resuelto y marca pendiente; gate global Fase 0 `NO GO`. Fase 1 sin aprobación.**

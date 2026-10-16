@@ -19,6 +19,9 @@ jobs:
           set -euo pipefail
           test -s AGENTS.md
           test -s GEMINI.md
+          test -s PLAN.md
+          test -s PLAN.sha256
+          sha256sum --check PLAN.sha256
           test -s docs/spikes/2026-10-16-plan-source-gate.md
           grep -q 'Plan Maestro v3' AGENTS.md
           grep -q 'Fase 0' GEMINI.md
@@ -28,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh
-          python3 -m py_compile scripts/phase0/http_probe.py scripts/phase0/rss_monitor.py scripts/phase0/gate_report.py scripts/phase0/paired_bootstrap.py scripts/phase0/hash_artifacts.py
+          python3 -m py_compile scripts/phase0/http_probe.py scripts/phase0/rss_monitor.py scripts/phase0/gate_report.py scripts/phase0/paired_bootstrap.py scripts/phase0/hash_artifacts.py scripts/phase0/decontam_check.py scripts/phase0/s7_readiness.py
       - name: Verify Phase 0 gate and HTTP harness tests
         shell: bash
         run: make test

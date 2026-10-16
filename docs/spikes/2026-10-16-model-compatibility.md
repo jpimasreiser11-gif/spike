@@ -1,19 +1,19 @@
-# Spike — auditoría de compatibilidad de modelos, inferencia y LoRA (S1–S4)
+# Spike — auditoría de compatibilidad de modelos, inferencia y LoRA (temas relevantes para S1–S4 y S7)
 
 **Fecha de corte:** 2026-10-16 · **Fase:** 0 / preparación · **Dictamen global:** **FAIL / NO GO** para Fase 1.
 
-> **Alcance documental:** esta auditoría agrupa como S1–S4 las cuatro líneas de investigación asignadas (licencia/arquitectura, GGUF/inferencia, multi-LoRA/aislamiento y entrenamiento/memoria). **No certifica la correspondencia con S1–S4 del Plan Maestro v3**, que no está disponible completo. El texto recibido del plan termina en §5.2; consultar [gate de fuente](2026-10-16-plan-source-gate.md). Las comprobaciones locales son solo lectura. **No se descargaron pesos, instalaron dependencias, entrenaron adaptadores, iniciaron servidores ni generaron benchmarks.**
+> **Actualización documental:** el Plan Maestro íntegro está ahora versionado como [PLAN.md](../../PLAN.md), con S1–S7 definidos literalmente en §14. La tabla inmediatamente inferior conserva las **agrupaciones técnicas históricas**, que no equivalen a los IDs normativos de los spikes: S1 = comparación Qwen3.5-4B/Gemma4 E4B; S2 = multi-LoRA y cambio ≤500 ms; S3 = MLX ~200 ejemplos → GGUF LoRA → serving; S4 = licencia, profesor local y descontaminación; S5 = UX/REA; S6 = nombre y marca; S7 = speculative 0.8B y routing embeddings CPU. Usar [matriz corregida](2026-10-16-phase0-gate-matrix.md) como gate. Esta auditoría inicial fue de solo lectura; no descargó pesos ni entrenó adaptadores.
 
 ## Resumen ejecutivo y gates
 
 | Área | Evidencia positiva confirmada | Bloqueo para dar PASS de implementación | Gate |
 | --- | --- | --- | --- |
-| **S1 · Licencia y arquitectura** | Los repositorios **Qwen/Qwen3.5-4B** y **Qwen/Qwen3.5-0.8B** publican **Apache-2.0** y configuración `qwen3_5`; son VLM densos con atención híbrida. | Fijar SHA completos de modelos y archivos distribuidos; revisar también licencia de cuantizaciones, atribución y el Plan Maestro íntegro. | **PASS documental parcial / FAIL de liberación** |
-| **S2 · GGUF y runtime** | Hay GGUF Q4_K_M de Unsloth de 2,74 GB (4B) y 533 MB (0,8B), y `llama-server` local declara funciones adecuadas. | No existe prueba de carga, calidad, latencia, estabilidad ni consumo de la **máquina CPU de 16 GB**; imágenes requieren projector apropiado. | **FAIL** |
-| **S3 · Multi-LoRA y aislamiento** | `llama-server` documenta varios adaptadores, escalas por petición y `GET/POST /lora-adapters`. | Incidencias de reutilización de KV/cache entre configuraciones LoRA; falta ensayo reproducible de aislamiento y de compatibilidad PEFT→GGUF para Qwen3.5. | **FAIL (riesgo crítico)** |
-| **S4 · Fine-tuning y memoria** | MLX-LM tiene `qwen3_5.py`; Unsloth documenta LoRA bf16 para ambos tamaños. | No hay MLX-LM/Unsloth instalados en el Python inspeccionado, LoRAs entrenados ni métricas; problemas conocidos de entrenamiento GatedDeltaNet; entrenamiento CPU 16 GB no demostrado. | **FAIL** |
+| **Investigación A · Licencia y arquitectura** | Los repositorios **Qwen/Qwen3.5-4B** y **Qwen/Qwen3.5-0.8B** publican **Apache-2.0** y configuración `qwen3_5`; son VLM densos con atención híbrida. | Fijar SHA de pesos y GGUF finales; comparar con Gemma 4 E4B según S1. | **PARCIAL DOCUMENTAL** |
+| **Investigación B · GGUF y runtime** | Hay GGUF Q4_K_M de Unsloth de 2,74 GB (4B) y 533 MB (0,8B), y `llama-server` local declara funciones adecuadas. | No existe prueba de carga, calidad, latencia, estabilidad ni consumo de la **máquina CPU de 16 GB**. | **NOT RUN** |
+| **Investigación C · Multi-LoRA y aislamiento** | `llama-server` documenta varios adaptadores, escalas por petición y `GET/POST /lora-adapters`. | Incidencias KV/cache; S2 exige cero contaminación y cambio ≤500 ms con LoRAs reales. | **NOT RUN (riesgo crítico)** |
+| **Investigación D · Fine-tuning y memoria** | MLX-LM tiene `qwen3_5.py`; Unsloth documenta LoRA bf16 para ambos tamaños. | Falta S3 entrenamiento ~200 ejemplos, exportación y recarga real. | **NOT RUN** |
 
-**Decisión de Fase 0:** **GO para seguir investigando, diseñando ensayos y preparando gates; NO GO para pasar a Fase 1**, publicar especialistas o declarar requisitos satisfechos. La aprobación explícita de Joan y el `PLAN.md` completo son bloqueos independientes de cualquier éxito técnico.
+**Decisión de Fase 0:** **GO para seguir investigando, diseñando ensayos y preparando gates; NO GO para pasar a Fase 1**, publicar especialistas o declarar requisitos satisfechos. La fuente íntegra ya está disponible; la aprobación explícita de Joan y las mediciones reales siguen pendientes.
 
 ## Evidencia local reproducible: Mac de desarrollo
 
@@ -101,7 +101,7 @@ bash scripts/phase0/smoke_http.sh --url http://127.0.0.1:65534 \
 
 **Registro de validación local (2026-10-16):** desde la raíz de Spike, `bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh` → exit 0; `PYTHONDONTWRITEBYTECODE=1 make test` → **10 tests de gates + 13 tests del harness PASS**, incluidos datos HTTP malformados, contaminación A/B/A TEST y fallo sin servidor. `bash scripts/phase0/preflight.sh` → **PASS de herramientas** en Mac Studio arm64 (14 CPU lógicas, 36 GiB RAM, `llama-server` 9430 `d48a56eff`); no demuestra CPU de 16 GB. En prueba negativa de puerto local sin servidor, salida real **exit 1 / FAIL / TTFT null / modelo null**. **Bloqueos pendientes:** ejecución de RSS de `llama-server` auténtico y A/B/A con LoRAs reales, máquina CPU 16 GB, comprobación de hashes y plan íntegro. Estos tests de protocolo no se registran como benchmark ni certificación de S2–S4.
 
-## S1 · Identidad, licencia, arquitectura y procedencia
+## Compatibilidad de modelos para S1 · Identidad, licencia, arquitectura y procedencia
 
 Fuentes primarias:
 
@@ -127,7 +127,7 @@ Ambas fichas declaran **Apache License 2.0** (derechos de copia, modificación y
 
 **Proveniencia pendiente:** congelar revisión completa (no `main` mutable), verificar hashes SHA-256 después de cualquier descarga aprobada, licencia de quantizer y referencia al original. Los nombres de los GGUF de Unsloth indican el origen, pero todavía no constituyen un control de cadena de suministro end-to-end.
 
-## S2 · GGUF, `llama-server` y speculative decoding
+## GGUF, `llama-server` y speculative decoding (S1, S2 y S7)
 
 Fuentes del distribuidor: [Unsloth GGUF 4B (árbol)](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/tree/main), [Unsloth GGUF 0.8B (árbol)](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/tree/main), [documentación servidor llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md), [decodificación especulativa](https://github.com/ggml-org/llama.cpp/blob/master/docs/speculative.md).
 
@@ -170,7 +170,7 @@ llama-server -m /ruta/local/Qwen3.5-4B-Q4_K_M.gguf \
 
 Antes de ejecutar, cotejar cada flag con `llama-server --help` del **binario concreto**, registrar SHA del ejecutable y de ambos GGUF y dejar en `reports/` la salida y los parámetros. En Linux de 16 GB se exige medición de **RSS/pico**, estado `oom-killer`, tokens/s y TTFT de un prompt fijo repetido; ejecutar baseline y draft con mismo contexto, límites y hardware. Pueden medirse con `/usr/bin/time -v` en Linux y `/usr/bin/time -l` en macOS, anotando las diferencias en métricas expuestas. No activar contextos masivos sin medir. La prueba de CPU no se sustituye por una cifra del Mac.
 
-## S3 · Multi-LoRA, conversiones y riesgo de contaminación entre roles
+## Multi-LoRA, conversiones y riesgo de contaminación entre roles (S2 y S3)
 
 La [API oficial del servidor](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) documenta la carga de varios adaptadores mediante `--lora`, el endpoint `GET /lora-adapters`, `POST /lora-adapters` y un campo `lora` por petición con `id` y `scale`. **Esto verifica la existencia de interfaz**, pero no la corrección ni el aislamiento para Spike.
 
@@ -187,7 +187,7 @@ La **conversión de LoRA PEFT/Unsloth a GGUF** requiere revisar específicamente
 
 Prueba de aceptación futura para S3 (requiere **dos LoRAs reales autorizados y verificados**, inexistentes hoy): fijar prompts y seeds, comparar salida de rol A después de B contra A en proceso nuevo; repetir 30 alternancias de roles, con y sin `cache_prompt: false`, con claves/IDs explícitos y contexto idéntico. Registrar identificador de proceso, adaptador activo, respuesta y hashes de prefijo; **cualquier salida influida por el adaptador previo o mezcla imprevista → FAIL**. Además comparar baseline sin adaptador y errores de tipo de LoRA. Prohibido usar adaptadores ficticios como prueba de éxito.
 
-## S4 · MLX-LM, Unsloth y entrenamiento con recursos finitos
+## MLX-LM, Unsloth y entrenamiento con recursos finitos (S3; datos S4)
 
 - **MLX-LM:** el repositorio oficial incorpora [`mlx_lm/models/qwen3_5.py`](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen3_5.py) y [guía LoRA/QLoRA](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/LORA.md). Esto avala soporte de código para la arquitectura en versiones actuales, **sin validar** el entorno instalado ni `load()`/gradientes con estos pesos concretos.
 - **Riesgo del entrenamiento Mac:** [issue MLX-LM #1956 del 2026-10-08](https://github.com/ml-explore/mlx-lm/issues/1956) describe que entrenar GatedDeltaNet usa una ruta secuencial de operaciones porque el kernel de inferencia no implementa backward (VJP). Muestra degradación significativa con más capas entrenadas y problemas prácticos de tiempos. Son medidas de terceros, no de Spike.

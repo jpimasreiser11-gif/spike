@@ -1,0 +1,27 @@
+{
+  "schema": "spike.phase0.s7-readiness.v1",
+  "evidence_kind": "LOCAL_HTTP_OBSERVATION",
+  "status": "FAIL",
+  "timestamp_utc": "2026-10-16T10:10:04.840655+00:00",
+  "git_commit": "c65284087b5940adcb49b21628728cabe441629c",
+  "git_dirty": true,
+  "host": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "architecture": "arm64",
+    "ram_bytes": 38654705664,
+    "logical_cpus": 14
+  },
+  "action": "compare",
+  "server": null,
+  "servers": null,
+  "process_evidence": {
+    "baseline": null,
+    "draft": null
+  },
+  "embedding_process_evidence": null,
+  "samples": [],
+  "summary": null,
+  "dataset": null,
+  "result": null,
+  "error": "URLError: <urlopen error [Errno 61] Connection refused>"
+}

@@ -2,6 +2,8 @@
 
 **Fecha de lectura:** 2026-10-16 (Europe/Madrid). **Alcance:** preparación y Fase 0. **Conclusión:** hay una skill externa documental copiada a `/skills` y seis skills propias sin scripts; los demás proveedores quedan pendientes de habilitación. Esta revisión estática **no** certifica la seguridad de sus dependencias ni la posibilidad de ejecutar MCP.
 
+**Actualización de fuente:** el Plan Maestro v3 completo se incorporó posteriormente como [PLAN.md](../../PLAN.md) (§§0–17). Las referencias de esta auditoría a su ausencia describen el estado **en el momento de la lectura**, ya resuelto. La auditoría de hooks y cadenas transitivas y la aprobación de Fase 1 continúan pendientes.
+
 ## Método y evidencia verificable
 
 1. Se leyeron `/downloads/spike/AGENTS.md` y `GEMINI.md` antes de escribir. `PLAN.md` completo no existe en el checkout; el extracto de la petición termina en 5.2. No se inventaron las secciones siguientes ni se autorizó Fase 1.
@@ -93,4 +95,4 @@ find .agent/skills -name SKILL.md -type f -print
 | Creación de seis skills propias sin scripts | **PASS (estructura)** | Seis `SKILL.md` originales; requisitos definitivos pendientes de §3.3 íntegro |
 | Auditoría integral de hooks/MCP y árbol transitivo | **PENDING** | Lectura estática selectiva, sin pruebas de ejecución ni análisis completo de dependencias |
 | Coste cero garantizado para HF Jobs, AWS, REA y APIs | **PENDING/NO AUTORIZADO** | Servicios y motores externos podrían generar cargos |
-| Aprobación del gate del Plan Maestro v3 | **FAIL/PENDING** | `PLAN.md` completo ausente; no pasar a Fase 1 |
+| Aprobación del gate del Plan Maestro v3 | **FAIL/PENDING** | `PLAN.md` completo ya incorporado; faltan pruebas físicas S1–S4/S7, cierre S5 y aprobación expresa para Fase 1 |

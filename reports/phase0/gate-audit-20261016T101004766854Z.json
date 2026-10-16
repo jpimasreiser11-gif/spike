@@ -1,0 +1,66 @@
+{
+  "schema": "spike.phase0.gate-audit.v1",
+  "timestamp_utc": "2026-10-16T10:10:04.766854+00:00",
+  "commit": "c65284087b5940adcb49b21628728cabe441629c",
+  "system": "macOS-27.0-arm64-arm-64bit",
+  "purpose": "evidence_inventory_only_no_model_evaluation",
+  "gates": {
+    "plan_full": {
+      "status": "SOURCE_PRESENT_HASH_VERIFIED",
+      "criterion": "PLAN.md completo y legible"
+    },
+    "s1": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Qwen3.5-4B vs Gemma 4 E4B: evals, tok/s, RAM en CPU 16 GB"
+    },
+    "s2": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Multi-LoRA real en llama.cpp: cambio <=500 ms y cero contaminación"
+    },
+    "s3": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Entrenar 4B con MLX-LM ~200 ejemplos, exportar GGUF LoRA y servir"
+    },
+    "s4": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Inventario datos/licencias 0€, profesor local, descontaminación"
+    },
+    "s5": {
+      "status": "NOT_VERIFIED",
+      "criterion": "UX mediante REA sobre objetivos autorizados y specs clean-room"
+    },
+    "s6": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Spike decidido; disponibilidad y marca verificadas"
+    },
+    "s7": {
+      "status": "NOT_VERIFIED",
+      "criterion": "Speculative Qwen3.5-0.8B y routing embeddings CPU"
+    },
+    "tier1": {
+      "status": "NOT_VERIFIED",
+      "criterion": "8 especialistas cuantizados con eval/IC 95%"
+    }
+  },
+  "phase0_reports": [
+    {
+      "path": "reports/phase0/gate-audit-20261016T085856979034Z.json",
+      "status": null,
+      "commit": null,
+      "model_id": null
+    },
+    {
+      "path": "reports/phase0/http-smoke-20261016T085857057455Z-25380.json",
+      "status": "FAIL",
+      "commit": "d3703931e86be40123d346ab54032b942bbe2991",
+      "model_id": null
+    },
+    {
+      "path": "reports/phase0/prime-no-server.json",
+      "status": "FAIL",
+      "commit": "c18a263efe3a0062dec52fc9bed6acf92cb72232",
+      "model_id": null
+    }
+  ],
+  "phase0_approved": false
+}

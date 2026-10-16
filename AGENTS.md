@@ -4,7 +4,7 @@ Proyecto de Joan. El nombre aprobado del sistema es **Spike** y sus modelos se d
 
 ## Fuente de verdad y límites
 
-`PLAN.md` completo es la fuente de verdad. **Actualmente falta en este checkout**: el texto recibido termina dentro del apartado 5.2 del Plan Maestro v3. No reconstruir ni inventar las secciones restantes; solicitar la fuente íntegra. No avanzar a Fase 1 sin el visto bueno explícito de Joan, conforme a su instrucción más reciente. Los cambios de arquitectura deben documentarse en `docs/adr/` y confirmarse si alteran decisiones vinculantes.
+`PLAN.md` completo (§§0–17) está versionado en este checkout y es la fuente de verdad. **Leerlo antes de modificar código o evaluar fases.** La denominación definitiva elegida por Joan es Spike + especialidad (ADR 0001), que prevalece sobre los nombres históricos `nexus` del plan. No avanzar a Fase 1 sin el visto bueno explícito de Joan. Los cambios de arquitectura deben documentarse en `docs/adr/` y confirmarse si alteran decisiones vinculantes.
 
 ## Reglas de §0 del Plan Maestro v3
 

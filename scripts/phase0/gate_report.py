@@ -4,6 +4,7 @@
 Uses only standard library; reports are informational and cannot approve Phase 1.
 """
 import json
+import hashlib
 import os
 from pathlib import Path
 import platform
@@ -14,13 +15,14 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[2]
 CHECKS = {
     "plan_full": "PLAN.md completo y legible",
-    "http_smoke": "Inferencia real y SSE verificable sobre modelo congelado",
-    "cpu16": "Bench real en CPU de 16 GB sin GPU dedicada",
-    "lora_isolation": "Prueba A/B/A con LoRAs reales y estado KV aislado",
-    "draft": "Speculative decoding CPU con comparación frente a baseline",
-    "training": "Entrenamiento MLX/Unsloth real y exportación GGUF",
+    "s1": "Qwen3.5-4B vs Gemma 4 E4B: evals, tok/s, RAM en CPU 16 GB",
+    "s2": "Multi-LoRA real en llama.cpp: cambio <=500 ms y cero contaminación",
+    "s3": "Entrenar 4B con MLX-LM ~200 ejemplos, exportar GGUF LoRA y servir",
+    "s4": "Inventario datos/licencias 0€, profesor local, descontaminación",
+    "s5": "UX mediante REA sobre objetivos autorizados y specs clean-room",
+    "s6": "Spike decidido; disponibilidad y marca verificadas",
+    "s7": "Speculative Qwen3.5-0.8B y routing embeddings CPU",
     "tier1": "8 especialistas cuantizados con eval/IC 95%",
-    "s1_s7": "Todos los gates textuales S1–S7 del PLAN.md íntegro",
 }
 
 
@@ -55,7 +57,14 @@ def inspect(root):
     # actual model inference, LoRA isolation or RAM from that alone.
     plan = root / "PLAN.md"
     if plan.is_file() and plan.stat().st_size:
-        gates["plan_full"]["status"] = "MANUAL_REVIEW_REQUIRED"
+        checksum_file = root / "PLAN.sha256"
+        expected = checksum_file.read_text(encoding="utf-8").split()[0] if checksum_file.is_file() else None
+        content = plan.read_bytes()
+        required = all(f"## {n}. ".encode() in content for n in range(18))
+        if expected == hashlib.sha256(content).hexdigest() and required:
+            gates["plan_full"]["status"] = "SOURCE_PRESENT_HASH_VERIFIED"
+        else:
+            gates["plan_full"]["status"] = "MANUAL_REVIEW_REQUIRED"
     else:
         gates["plan_full"]["status"] = "BLOCKED_MISSING_SOURCE"
     return {"gates": gates, "phase0_reports": records}
