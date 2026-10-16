@@ -58,6 +58,17 @@ def stop_process(proc):
         proc.wait(timeout=5)
 
 
+def redact_command(command):
+    """Keep reproducible flag values but never retain private local model paths."""
+    redacted = list(command)
+    for index, arg in enumerate(command[:-1]):
+        if arg == "--model":
+            redacted[index + 1] = "<verified-base-gguf>"
+        elif arg == "--spec-draft-model":
+            redacted[index + 1] = "<verified-draft-gguf>"
+    return redacted
+
+
 def run(args, record):
     model = args.model.resolve()
     if model.is_symlink() or not model.is_file() or model.suffix != ".gguf":
@@ -65,7 +76,7 @@ def run(args, record):
     if model.stat().st_size < 1024:
         raise ValueError("Archivo GGUF inválido/demasiado pequeño")
     model_hash = sha256(model)
-    record["model"] = {"path": str(model), "sha256": model_hash,
+    record["model"] = {"filename": model.name, "sha256": model_hash,
                        "size_bytes": model.stat().st_size,
                        "upstream_repository": args.upstream_repository,
                        "revision": args.upstream_revision}
@@ -98,8 +109,8 @@ def run(args, record):
         if draft_hash != args.draft_sha256:
             raise ValueError("Hash de modelo draft no coincide")
         command.extend(["--spec-draft-model", str(draft), "--spec-draft-ngl", "0"])
-        record["draft"] = {"path": str(draft), "sha256": draft_hash, "size_bytes": draft.stat().st_size}
-    record["command_redacted"] = command
+        record["draft"] = {"filename": draft.name, "sha256": draft_hash, "size_bytes": draft.stat().st_size}
+    record["command_redacted"] = redact_command(command)
     record["cpu_only_configured"] = True
     record["model_cpu16_verified"] = False
     record["runtime_start_ms"] = None
@@ -118,7 +129,7 @@ def run(args, record):
             monitor.start()
             while time.perf_counter() - started_at <= args.startup_timeout:
                 if proc.poll() is not None:
-                    raise RuntimeError(f"llama-server salió con código {proc.returncode}; revisar {log_path}")
+                    raise RuntimeError(f"llama-server salió con código {proc.returncode}; revisar log local {log_path.name}")
                 try:
                     health = fetch_json(opener, base + "/health", 3)
                     if isinstance(health, dict) and health.get("status") == "ok":
@@ -134,7 +145,8 @@ def run(args, record):
             if not isinstance(all_models, list) or len(all_models) != 1 or not all_models[0].get("id"):
                 raise RuntimeError("ID modelo no encontrado o ambiguo")
             model_id = all_models[0]["id"]
-            record["served_model_id"] = model_id
+            # llama-server often uses the operator's absolute file path as its ID.
+            record["served_model_id_sha256"] = hashlib.sha256(model_id.encode()).hexdigest()
             from types import SimpleNamespace
             request_args = SimpleNamespace(timeout=args.timeout, max_tokens=args.max_tokens)
             for run_idx in range(args.runs):
@@ -153,7 +165,7 @@ def run(args, record):
             record["memory"] = monitor.finish()
         stop_process(proc)
         if log_path.is_file():
-            record["llama_log_path"] = str(log_path)
+            record["llama_log_filename"] = log_path.name
             # Never write full server logs inside JSON: may contain prompts.
             record["llama_log_size_bytes"] = log_path.stat().st_size
 

@@ -124,7 +124,7 @@ def main():
             start = time.perf_counter()
             while time.perf_counter() - start < args.timeout:
                 if proc.poll() is not None:
-                    raise RuntimeError(f"llama-server exit {proc.returncode}; log {logfile}")
+                    raise RuntimeError(f"llama-server exit {proc.returncode}; inspect local log {logfile.name}")
                 try:
                     ready = fetch_json(opener, url + "/health", 3)
                     if ready.get("status") == "ok":
@@ -147,7 +147,7 @@ def main():
                 "vectors_count": len(vectors), "dimension": len(vectors[0]),
                 "same_domain_cosine": round(similarity(vectors[0], vectors[1]), 8),
                 "cross_domain_cosine": round(similarity(vectors[0], vectors[2]), 8),
-                "server_model_id": model_id,
+                "server_model_id_sha256": hashlib.sha256(model_id.encode()).hexdigest(),
                 "cpu_layers_requested": 0,
             }
             record["status"] = "OBSERVED_REAL_LOCAL_EMBEDDINGS_NO_ROUTING_GATE"

@@ -12,6 +12,15 @@ import run_cpu_benchmark
 
 
 class CPUBenchmarkContractTests(unittest.TestCase):
+    def test_model_paths_never_persist_in_report_command(self):
+        args = ["llama-server", "--model", "/Users/secret/private.gguf",
+                "--spec-draft-model", "/Users/secret/secret-draft.gguf", "--n-gpu-layers", "0"]
+        safe = run_cpu_benchmark.redact_command(args)
+        self.assertEqual(safe[2], "<verified-base-gguf>")
+        self.assertEqual(safe[4], "<verified-draft-gguf>")
+        self.assertNotIn("/Users/secret", str(safe))
+        self.assertEqual(safe[-2:], ["--n-gpu-layers", "0"])
+
     def test_hash_exact_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "fixture.gguf"
