@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh
-          python3 -m py_compile scripts/phase0/http_probe.py scripts/phase0/rss_monitor.py scripts/phase0/gate_report.py scripts/phase0/paired_bootstrap.py scripts/phase0/hash_artifacts.py scripts/phase0/decontam_check.py scripts/phase0/s7_readiness.py
+          python3 -m py_compile scripts/phase0/http_probe.py scripts/phase0/rss_monitor.py scripts/phase0/gate_report.py scripts/phase0/paired_bootstrap.py scripts/phase0/hash_artifacts.py scripts/phase0/decontam_check.py scripts/phase0/s7_readiness.py scripts/phase0/run_cpu_benchmark.py scripts/phase0/create_s3_pilot.py scripts/phase0/embedding_smoke.py
       - name: Verify Phase 0 gate and HTTP harness tests
         shell: bash
         run: make test

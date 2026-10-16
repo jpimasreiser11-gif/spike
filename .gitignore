@@ -10,6 +10,7 @@ models/
 weights/
 *.safetensors
 *.gguf
+reports/phase0/*.llama.log
 *.bin
 *.pyc
 __pycache__/
