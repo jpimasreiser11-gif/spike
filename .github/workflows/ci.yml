@@ -1,0 +1,25 @@
+name: Preparation checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  preparation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (pinned)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check preparation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s AGENTS.md
+          test -s GEMINI.md
+          test -s docs/spikes/2026-10-16-plan-source-gate.md
+          grep -q 'Plan Maestro v3' AGENTS.md
+          grep -q 'Fase 0' GEMINI.md
+          echo 'Preparation checks passed; this is not the v1.0 product CI.'
