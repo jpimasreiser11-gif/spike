@@ -23,3 +23,26 @@ jobs:
           grep -q 'Plan Maestro v3' AGENTS.md
           grep -q 'Fase 0' GEMINI.md
           echo 'Preparation checks passed; this is not the v1.0 product CI.'
+      - name: Validate Phase 0 diagnostic scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh
+          python3 -m py_compile scripts/phase0/http_probe.py
+      - name: Check internal skill metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          names = (
+              'honest-claims', 'eval-gate', 'data-license-audit',
+              'specialist-factory', 'clean-room', 'release-checklist',
+          )
+          for name in names:
+              path = Path('.agent/skills') / name / 'SKILL.md'
+              source = path.read_text(encoding='utf-8')
+              assert source.startswith('---\n') and f'\nname: {name}\n' in source, path
+              assert '\ndescription: ' in source, path
+          print(f'Validated {len(names)} internal skills.')
+          PY

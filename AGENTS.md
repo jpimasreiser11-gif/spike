@@ -1,6 +1,6 @@
 # Spike — instrucciones obligatorias para agentes
 
-Proyecto de Joan. El nombre aprobado del sistema es **Spike** y sus modelos se denominan `Spike <especialidad>` (por ejemplo, `Spike Finance`).
+Proyecto de Joan. El nombre aprobado del sistema es **Spike** y sus modelos se denominan `Spike <especialidad>` (por ejemplo, `Spike finance`).
 
 ## Fuente de verdad y límites
 
