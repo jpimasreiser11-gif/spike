@@ -1,0 +1,74 @@
+{
+  "schema": "spike.phase0.model-pins.v1",
+  "date_utc": "2026-10-16",
+  "hardware_target": "16GiB RAM, CPU inference, no dedicated GPU",
+  "source": "Hugging Face official API /revision/{sha}?blobs=true (LFS sha256)",
+  "status": "local model bytes verified only; inference and quality gates independent",
+  "artifacts": [
+    {
+      "role": "s1_primary",
+      "repo": "unsloth/Qwen3.5-4B-GGUF",
+      "git_revision": "e87f176479d0855a907a41277aca2f8ee7a09523",
+      "filename": "Qwen3.5-4B-Q4_K_M.gguf",
+      "lfs_sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+      "bytes": 2740937888,
+      "card_license": "apache-2.0",
+      "downloaded_and_local_sha256_verified": true
+    },
+    {
+      "role": "s7_draft",
+      "repo": "unsloth/Qwen3.5-0.8B-GGUF",
+      "git_revision": "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0",
+      "filename": "Qwen3.5-0.8B-Q4_K_M.gguf",
+      "lfs_sha256": "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
+      "bytes": 532517120,
+      "card_license": "apache-2.0",
+      "downloaded_and_local_sha256_verified": true
+    },
+    {
+      "role": "s1_alternative_base_not_instruction_tuned",
+      "repo": "mradermacher/gemma-4-E4B-GGUF",
+      "git_revision": "712b177e561b537a217d1f73799a15e7bb99eb66",
+      "filename": "gemma-4-E4B.Q4_K_M.gguf",
+      "lfs_sha256": "17434a48d7b466313d2f7249500448074138856faecf1c03cd83ad13ca63aa52",
+      "bytes": 5335273984,
+      "card_license": "apache-2.0",
+      "downloaded_and_local_sha256_verified": false,
+      "historical_sha256_verified_and_benchmarked": true,
+      "note": "Historical S1 control only. Deleted local copy after discovering instruction-tuning mismatch; benchmark JSON retained."
+    },
+    {
+      "role": "s1_alternative_instruction_tuned",
+      "repo": "mradermacher/gemma-4-E4B-it-GGUF",
+      "git_revision": "0c4da2b7f0f73effb8c8dd194da2f8d58680125a",
+      "filename": "gemma-4-E4B-it.Q4_K_M.gguf",
+      "lfs_sha256": "e5555564868766605415f0e1401feac79c9327333c051521934c90aea67df897",
+      "bytes": 5335290304,
+      "card_license": "apache-2.0",
+      "downloaded_and_local_sha256_verified": true
+    },
+    {
+      "role": "s7_embedding_candidate_failed_runtime_load",
+      "repo": "cstr/multilingual-e5-small-GGUF",
+      "git_revision": "178420da727e544c2689e89b6648b205ad176eda",
+      "filename": "multilingual-e5-small-q8_0.gguf",
+      "lfs_sha256": "0a34067a40f25d3149b36885faa62bee0e5284d0f9edc102acfc00e115d953e8",
+      "bytes": 131624960,
+      "card_license": "mit",
+      "downloaded_and_local_sha256_verified": true,
+      "runtime_load_result": "FAIL: bert model needs to define token type count, llama.cpp 0.7.0"
+    },
+    {
+      "role": "s7_embedding_candidate_smoke_only",
+      "repo": "nomic-ai/nomic-embed-text-v1.5-GGUF",
+      "git_revision": "0188c9bf409793f810680a5a431e7b899c46104c",
+      "filename": "nomic-embed-text-v1.5.Q4_K_M.gguf",
+      "lfs_sha256": "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac",
+      "bytes": 84106624,
+      "card_license": "apache-2.0",
+      "downloaded_and_local_sha256_verified": true,
+      "runtime_load_result": "OBSERVED real CPU embeddings; 3-vector smoke only, no es/ca/en routing accuracy gate"
+    }
+  ],
+  "disclaimer": "LFS hash and card license do not by themselves prove model training data rights, LoRA compatibility, quality or support for the 16GB CPU target. Actual weights are .gitignored and remain local."
+}

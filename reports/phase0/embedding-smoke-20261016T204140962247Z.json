@@ -1,0 +1,40 @@
+{
+  "schema": "spike.phase0.embedding-smoke.v1",
+  "timestamp_utc": "2026-10-16T20:41:40.962247+00:00",
+  "git_commit": "41a1d89afc13d64155b9d65d1a39b03912ec9961",
+  "git_dirty": true,
+  "system": "macOS-27.0-arm64-arm-64bit",
+  "host_ram_bytes": 38654705664,
+  "status": "OBSERVED_REAL_LOCAL_EMBEDDINGS_NO_ROUTING_GATE",
+  "gate_passed": false,
+  "error": null,
+  "limitations": "3 original English smoke prompts, not licensed labeled 300+ prompts; does not test routing/Planner. Mac 36GB not 16GB CPU target.",
+  "model": {
+    "filename": "nomic-embed-text-v1.5.Q4_K_M.gguf",
+    "sha256": "d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac",
+    "repo_revision_declared": "0188c9bf409793f810680a5a431e7b899c46104c",
+    "bytes": 84106624
+  },
+  "runtime_version": "version: 0.7.0 (build 11669, commit 620d2225c)\nbuilt with AppleClang 21.0.0.21000334 for Darwin arm64",
+  "observation": {
+    "vectors_count": 3,
+    "dimension": 768,
+    "same_domain_cosine": 0.65113762,
+    "cross_domain_cosine": 0.50384195,
+    "server_model_id": "/Users/jpima/Downloads/spike/models/embeddings/nomic-embed-text-v1.5.Q4_K_M.gguf",
+    "cpu_layers_requested": 0
+  },
+  "memory": {
+    "pid": 76971,
+    "process_name": "llama-server",
+    "method": "ps_rss_KiB",
+    "interval_seconds": 0.1,
+    "sample_count": 4,
+    "rss_initial_bytes": 1196032,
+    "rss_final_bytes": 261799936,
+    "rss_peak_sampled_bytes": 261799936,
+    "kernel_vmhwm_bytes_since_process_start": null,
+    "limitations": "Sampled peak may miss bursts; Linux VmHWM covers whole PID lifetime. Excludes subprocesses, GPU allocations, mmap not resident and host pressure.",
+    "errors": []
+  }
+}

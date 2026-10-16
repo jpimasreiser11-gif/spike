@@ -1,0 +1,178 @@
+{
+  "schema": "spike.phase0.local-cpu-bench.v1",
+  "timestamp_utc": "2026-10-16T20:21:49.932148+00:00",
+  "git_commit": "41a1d89afc13d64155b9d65d1a39b03912ec9961",
+  "git_dirty": true,
+  "hardware": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "architecture": "arm64",
+    "ram_bytes": 38654705664,
+    "logical_cpus": 14,
+    "gpu_layers_requested": 0
+  },
+  "test_parameters": {
+    "runs": 5,
+    "ctx": 2048,
+    "threads": 8,
+    "max_tokens": 48,
+    "disable_fit": false,
+    "reasoning": "off"
+  },
+  "status": "OBSERVED_LOCAL_CPU_ONLY_NOT_16GB_GATE",
+  "f0_gate_passed": false,
+  "samples": [
+    {
+      "run": 1,
+      "prompt_id": 1,
+      "measurement": {
+        "ttft_ms": 50.224,
+        "total_ms": 59.139,
+        "nonempty_delta_chunks": 1,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "READY",
+        "visible_response_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": null,
+        "completion_tokens_source": null,
+        "end_to_end_completion_tokens_per_second": null
+      },
+      "response_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "run": 2,
+      "prompt_id": 2,
+      "measurement": {
+        "ttft_ms": 63.073,
+        "total_ms": 156.494,
+        "nonempty_delta_chunks": 13,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "17 multiplied by 23 is 391.",
+        "visible_response_sha256": "c7334c3fe4d9675741efae3cda0b52e1fda09526b5028b3c4b5cf0c8c6365477",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": null,
+        "completion_tokens_source": null,
+        "end_to_end_completion_tokens_per_second": null
+      },
+      "response_sha256": "c7334c3fe4d9675741efae3cda0b52e1fda09526b5028b3c4b5cf0c8c6365477"
+    },
+    {
+      "run": 3,
+      "prompt_id": 3,
+      "measurement": {
+        "ttft_ms": 54.929,
+        "total_ms": 253.005,
+        "nonempty_delta_chunks": 28,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "An offline local language model is a neural network trained exclusively on data stored on a single device, without requiring any internet connection or cloud services.",
+        "visible_response_sha256": "73c5fb2ce93e11e0697ad39ea2bf183e18d39b5738c9b726ab1ae10ed8417524",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": null,
+        "completion_tokens_source": null,
+        "end_to_end_completion_tokens_per_second": null
+      },
+      "response_sha256": "73c5fb2ce93e11e0697ad39ea2bf183e18d39b5738c9b726ab1ae10ed8417524"
+    },
+    {
+      "run": 4,
+      "prompt_id": 4,
+      "measurement": {
+        "ttft_ms": 57.594,
+        "total_ms": 154.628,
+        "nonempty_delta_chunks": 14,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "```json\n{\n  \"success\": true\n}\n```",
+        "visible_response_sha256": "4229800d00efb442e99a3f14f4fefd51983c94a6562f86b73c9441c1993e0103",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": null,
+        "completion_tokens_source": null,
+        "end_to_end_completion_tokens_per_second": null
+      },
+      "response_sha256": "4229800d00efb442e99a3f14f4fefd51983c94a6562f86b73c9441c1993e0103"
+    },
+    {
+      "run": 5,
+      "prompt_id": 5,
+      "measurement": {
+        "ttft_ms": 55.562,
+        "total_ms": 136.15,
+        "nonempty_delta_chunks": 9,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "Buen dia, com pot ajudar-me?",
+        "visible_response_sha256": "bd4441316b3d0d8b2d3a7dd87c64c886f5a4a650bc68f570052dc46be8648600",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": null,
+        "completion_tokens_source": null,
+        "end_to_end_completion_tokens_per_second": null
+      },
+      "response_sha256": "bd4441316b3d0d8b2d3a7dd87c64c886f5a4a650bc68f570052dc46be8648600"
+    }
+  ],
+  "memory": {
+    "pid": 72020,
+    "process_name": "llama-server",
+    "method": "ps_rss_KiB",
+    "interval_seconds": 0.1,
+    "sample_count": 17,
+    "rss_initial_bytes": 1212416,
+    "rss_final_bytes": 1324580864,
+    "rss_peak_sampled_bytes": 1324580864,
+    "kernel_vmhwm_bytes_since_process_start": null,
+    "limitations": "Sampled peak may miss bursts; Linux VmHWM covers whole PID lifetime. Excludes subprocesses, GPU allocations, mmap not resident and host pressure.",
+    "errors": []
+  },
+  "error": null,
+  "warnings": [
+    "Mac 36GiB no acredita 16GB; RSS proceso no equivale a RAM total.",
+    "TTFT primera parte SSE; la velocidad tokens/s no se afirma sin contador preciso.",
+    "No es evaluación de calidad, comparativa Gemma ni gate de especialista."
+  ],
+  "model": {
+    "path": "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+    "sha256": "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
+    "size_bytes": 532517120,
+    "upstream_repository": "unsloth/Qwen3.5-0.8B-GGUF",
+    "revision": "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
+  },
+  "llama_server": {
+    "path": "/opt/homebrew/bin/llama-server",
+    "version": "version: 0.7.0 (build 11669, commit 620d2225c)\nbuilt with AppleClang 21.0.0.21000334 for Darwin arm64"
+  },
+  "command_redacted": [
+    "/opt/homebrew/bin/llama-server",
+    "--model",
+    "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "53497",
+    "--n-gpu-layers",
+    "0",
+    "--no-mmproj",
+    "--ctx-size",
+    "2048",
+    "--parallel",
+    "1",
+    "--threads",
+    "8",
+    "--no-webui",
+    "--cache-ram",
+    "0",
+    "--reasoning",
+    "off"
+  ],
+  "cpu_only_configured": true,
+  "model_cpu16_verified": false,
+  "runtime_start_ms": 930.142,
+  "server_pid": 72020,
+  "served_model_id": "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+  "ttft_ms_median": 55.562,
+  "ttft_ms_max": 63.073,
+  "total_ms_median": 154.628,
+  "llama_log_path": "/Users/jpima/Downloads/spike/reports/phase0/cpu-bench-20261016T202149932148Z.llama.log",
+  "llama_log_size_bytes": 5631
+}

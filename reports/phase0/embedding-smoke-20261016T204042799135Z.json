@@ -1,0 +1,34 @@
+{
+  "schema": "spike.phase0.embedding-smoke.v1",
+  "timestamp_utc": "2026-10-16T20:40:42.799135+00:00",
+  "git_commit": "41a1d89afc13d64155b9d65d1a39b03912ec9961",
+  "git_dirty": true,
+  "system": "macOS-27.0-arm64-arm-64bit",
+  "host_ram_bytes": 38654705664,
+  "status": "FAIL",
+  "gate_passed": false,
+  "error": "RuntimeError: llama-server exit 1; log /Users/jpima/Downloads/spike/reports/phase0/embedding-smoke-20261016T204042799135Z.llama.log",
+  "limitations": "3 original English smoke prompts, not licensed labeled 300+ prompts; does not test routing/Planner. Mac 36GB not 16GB CPU target.",
+  "model": {
+    "filename": "multilingual-e5-small-q8_0.gguf",
+    "sha256": "0a34067a40f25d3149b36885faa62bee0e5284d0f9edc102acfc00e115d953e8",
+    "repo_revision_declared": "178420da727e544c2689e89b6648b205ad176eda",
+    "bytes": 131624960
+  },
+  "runtime_version": "version: 0.7.0 (build 11669, commit 620d2225c)\nbuilt with AppleClang 21.0.0.21000334 for Darwin arm64",
+  "memory": {
+    "pid": 76844,
+    "process_name": "llama-server",
+    "method": "ps_rss_KiB",
+    "interval_seconds": 0.1,
+    "sample_count": 6,
+    "rss_initial_bytes": 1196032,
+    "rss_final_bytes": 0,
+    "rss_peak_sampled_bytes": 146276352,
+    "kernel_vmhwm_bytes_since_process_start": null,
+    "limitations": "Sampled peak may miss bursts; Linux VmHWM covers whole PID lifetime. Excludes subprocesses, GPU allocations, mmap not resident and host pressure.",
+    "errors": [
+      "Command '['ps', '-p', '76844', '-o', 'rss=']' returned non-zero exit status 1."
+    ]
+  }
+}

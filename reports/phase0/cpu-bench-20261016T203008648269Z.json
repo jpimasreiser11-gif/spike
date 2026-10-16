@@ -1,0 +1,187 @@
+{
+  "schema": "spike.phase0.local-cpu-bench.v1",
+  "timestamp_utc": "2026-10-16T20:30:08.648269+00:00",
+  "git_commit": "41a1d89afc13d64155b9d65d1a39b03912ec9961",
+  "git_dirty": true,
+  "hardware": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "architecture": "arm64",
+    "ram_bytes": 38654705664,
+    "logical_cpus": 14,
+    "gpu_layers_requested": 0
+  },
+  "test_parameters": {
+    "runs": 5,
+    "ctx": 2048,
+    "threads": 8,
+    "max_tokens": 64,
+    "disable_fit": false,
+    "reasoning": "off"
+  },
+  "status": "OBSERVED_LOCAL_CPU_ONLY_NOT_16GB_GATE",
+  "f0_gate_passed": false,
+  "samples": [
+    {
+      "run": 1,
+      "prompt_id": 1,
+      "measurement": {
+        "ttft_ms": 264.993,
+        "total_ms": 291.849,
+        "nonempty_delta_chunks": 1,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "READY",
+        "visible_response_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": 2,
+        "completion_tokens_source": "server_sse_usage",
+        "end_to_end_completion_tokens_per_second": 6.8529
+      },
+      "response_sha256": "c2e3ac47f4a325469c1a2d5f117e463ec943c721986d5d9f09ac4540b7d80526"
+    },
+    {
+      "run": 2,
+      "prompt_id": 2,
+      "measurement": {
+        "ttft_ms": 316.772,
+        "total_ms": 394.086,
+        "nonempty_delta_chunks": 3,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "391",
+        "visible_response_sha256": "a934c244755c66aebb0d6f9f5687038ffae8f00b00b28b4e17521016393f38b9",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": 4,
+        "completion_tokens_source": "server_sse_usage",
+        "end_to_end_completion_tokens_per_second": 10.1501
+      },
+      "response_sha256": "a934c244755c66aebb0d6f9f5687038ffae8f00b00b28b4e17521016393f38b9"
+    },
+    {
+      "run": 3,
+      "prompt_id": 3,
+      "measurement": {
+        "ttft_ms": 286.84,
+        "total_ms": 1306.61,
+        "nonempty_delta_chunks": 38,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "An offline local language model is a pre-trained artificial intelligence system that runs entirely on a user's own device without needing an internet connection, allowing for private, real-time text generation and analysis.",
+        "visible_response_sha256": "cbc6890af41e30cb06a8271b25a2ed98ebd942fc500da0fee989c9737079c8f8",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": 39,
+        "completion_tokens_source": "server_sse_usage",
+        "end_to_end_completion_tokens_per_second": 29.8482
+      },
+      "response_sha256": "cbc6890af41e30cb06a8271b25a2ed98ebd942fc500da0fee989c9737079c8f8"
+    },
+    {
+      "run": 4,
+      "prompt_id": 4,
+      "measurement": {
+        "ttft_ms": 303.856,
+        "total_ms": 727.28,
+        "nonempty_delta_chunks": 14,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "```json\n{\n  \"success\": true\n}\n```",
+        "visible_response_sha256": "4229800d00efb442e99a3f14f4fefd51983c94a6562f86b73c9441c1993e0103",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": 15,
+        "completion_tokens_source": "server_sse_usage",
+        "end_to_end_completion_tokens_per_second": 20.6248
+      },
+      "response_sha256": "4229800d00efb442e99a3f14f4fefd51983c94a6562f86b73c9441c1993e0103"
+    },
+    {
+      "run": 5,
+      "prompt_id": 5,
+      "measurement": {
+        "ttft_ms": 288.674,
+        "total_ms": 600.485,
+        "nonempty_delta_chunks": 11,
+        "stream_done": true,
+        "first_delta_field": "content",
+        "visible_response_preview": "Bona tarda, com puc ajudar-vos?",
+        "visible_response_sha256": "b4d9151babcc80f8717b36779b3e8c1c45cdba1d09bc63a58aee786e7504863c",
+        "reasoning_sha256": null,
+        "completion_tokens_reported": 12,
+        "completion_tokens_source": "server_sse_usage",
+        "end_to_end_completion_tokens_per_second": 19.9838
+      },
+      "response_sha256": "b4d9151babcc80f8717b36779b3e8c1c45cdba1d09bc63a58aee786e7504863c"
+    }
+  ],
+  "memory": {
+    "pid": 74517,
+    "process_name": "llama-server",
+    "method": "ps_rss_KiB",
+    "interval_seconds": 0.1,
+    "sample_count": 145,
+    "rss_initial_bytes": 3555328,
+    "rss_final_bytes": 3357540352,
+    "rss_peak_sampled_bytes": 4053237760,
+    "kernel_vmhwm_bytes_since_process_start": null,
+    "limitations": "Sampled peak may miss bursts; Linux VmHWM covers whole PID lifetime. Excludes subprocesses, GPU allocations, mmap not resident and host pressure.",
+    "errors": []
+  },
+  "error": null,
+  "warnings": [
+    "Mac 36GiB no acredita 16GB; RSS proceso no equivale a RAM total.",
+    "TTFT primera parte SSE; la velocidad tokens/s no se afirma sin contador preciso.",
+    "No es evaluación de calidad, comparativa Gemma ni gate de especialista."
+  ],
+  "model": {
+    "path": "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-4B-Q4_K_M.gguf",
+    "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+    "size_bytes": 2740937888,
+    "upstream_repository": "unsloth/Qwen3.5-4B-GGUF",
+    "revision": "e87f176479d0855a907a41277aca2f8ee7a09523"
+  },
+  "llama_server": {
+    "path": "/opt/homebrew/bin/llama-server",
+    "version": "version: 0.7.0 (build 11669, commit 620d2225c)\nbuilt with AppleClang 21.0.0.21000334 for Darwin arm64"
+  },
+  "draft": {
+    "path": "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+    "sha256": "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
+    "size_bytes": 532517120
+  },
+  "command_redacted": [
+    "/opt/homebrew/bin/llama-server",
+    "--model",
+    "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-4B-Q4_K_M.gguf",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "55344",
+    "--n-gpu-layers",
+    "0",
+    "--no-mmproj",
+    "--ctx-size",
+    "2048",
+    "--parallel",
+    "1",
+    "--threads",
+    "8",
+    "--no-webui",
+    "--cache-ram",
+    "0",
+    "--reasoning",
+    "off",
+    "--spec-draft-model",
+    "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+    "--spec-draft-ngl",
+    "0"
+  ],
+  "cpu_only_configured": true,
+  "model_cpu16_verified": false,
+  "runtime_start_ms": 13416.872,
+  "server_pid": 74517,
+  "served_model_id": "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-4B-Q4_K_M.gguf",
+  "ttft_ms_median": 288.674,
+  "ttft_ms_max": 316.772,
+  "total_ms_median": 600.485,
+  "llama_log_path": "/Users/jpima/Downloads/spike/reports/phase0/cpu-bench-20261016T203008648269Z.llama.log",
+  "llama_log_size_bytes": 5766
+}

@@ -14,6 +14,7 @@ Todo especialista que alcance distribución futura deberá superar su gate sobre
 - [Auditoría de Qwen3.5, LoRA, entrenamiento y ensayos](docs/spikes/2026-10-16-model-compatibility.md)
 - [Ocho especialistas: licencias y evaluación futura](docs/spikes/2026-10-16-specialist-feasibility.md)
 - [S7: ensayo de speculative decoding y routing por embeddings](docs/spikes/2026-10-16-s7-readiness.md)
+- [F0: evidencia real de Qwen/Gemma y embeddings en CPU](docs/spikes/2026-10-16-real-inference-evidence.md)
 - [S5: especificaciones UX y harness originales](docs/spec/ux-spec.md)
 
 En macOS o Linux con Bash, Python 3 y `llama-server` ya instalado:

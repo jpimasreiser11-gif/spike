@@ -1,0 +1,81 @@
+{
+  "schema": "spike.phase0.local-cpu-bench.v1",
+  "timestamp_utc": "2026-10-16T20:16:32.890388+00:00",
+  "git_commit": "41a1d89afc13d64155b9d65d1a39b03912ec9961",
+  "git_dirty": true,
+  "hardware": {
+    "os": "macOS-27.0-arm64-arm-64bit",
+    "architecture": "arm64",
+    "ram_bytes": 38654705664,
+    "logical_cpus": 14,
+    "gpu_layers_requested": 0
+  },
+  "test_parameters": {
+    "runs": 5,
+    "ctx": 2048,
+    "threads": 8,
+    "max_tokens": 48
+  },
+  "status": "FAIL",
+  "f0_gate_passed": false,
+  "samples": [],
+  "memory": {
+    "pid": 67588,
+    "process_name": "llama-server",
+    "method": "ps_rss_KiB",
+    "interval_seconds": 0.1,
+    "sample_count": 3,
+    "rss_initial_bytes": 1228800,
+    "rss_final_bytes": 129318912,
+    "rss_peak_sampled_bytes": 129318912,
+    "kernel_vmhwm_bytes_since_process_start": null,
+    "limitations": "Sampled peak may miss bursts; Linux VmHWM covers whole PID lifetime. Excludes subprocesses, GPU allocations, mmap not resident and host pressure.",
+    "errors": [
+      "Command '['ps', '-p', '67588', '-o', 'rss=']' returned non-zero exit status 1."
+    ]
+  },
+  "error": "RuntimeError: llama-server salió con código -6; revisar /Users/jpima/Downloads/spike/reports/phase0/cpu-bench-20261016T201632890388Z.llama.log",
+  "warnings": [
+    "Mac 36GiB no acredita 16GB; RSS proceso no equivale a RAM total.",
+    "TTFT primera parte SSE; la velocidad tokens/s no se afirma sin contador preciso.",
+    "No es evaluación de calidad, comparativa Gemma ni gate de especialista."
+  ],
+  "model": {
+    "path": "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+    "sha256": "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
+    "size_bytes": 532517120,
+    "upstream_repository": "unsloth/Qwen3.5-0.8B-GGUF",
+    "revision": "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
+  },
+  "llama_server": {
+    "path": "/opt/homebrew/bin/llama-server",
+    "version": "version: 9430 (d48a56eff)\nbuilt with AppleClang 21.0.0.21000099 for Darwin arm64"
+  },
+  "command_redacted": [
+    "/opt/homebrew/bin/llama-server",
+    "--model",
+    "/Users/jpima/Downloads/spike/models/qwen35/Qwen3.5-0.8B-Q4_K_M.gguf",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "52535",
+    "--n-gpu-layers",
+    "0",
+    "--no-mmproj",
+    "--ctx-size",
+    "2048",
+    "--parallel",
+    "1",
+    "--threads",
+    "8",
+    "--no-webui",
+    "--cache-ram",
+    "0"
+  ],
+  "cpu_only_configured": true,
+  "model_cpu16_verified": false,
+  "runtime_start_ms": null,
+  "server_pid": 67588,
+  "llama_log_path": "/Users/jpima/Downloads/spike/reports/phase0/cpu-bench-20261016T201632890388Z.llama.log",
+  "llama_log_size_bytes": 4256
+}
