@@ -57,7 +57,7 @@
   license: Apache-2.0
   source: https://github.com/microsoft/playwright-mcp
   requires: Node.js 18+ (npx); downloads a browser on first use
-  note: Not a security boundary (upstream README). One of its tools runs arbitrary code in the page; keep "Ask".
+  note: Not a security boundary (upstream README). SPIKE asks before opening a new domain and every time a page would get a form, a file or code.
 
 - id: github
   name: GitHub

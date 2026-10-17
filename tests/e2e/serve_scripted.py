@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import uvicorn  # noqa: E402
 
+from spike.connectors.manager import Connection, McpTool  # noqa: E402
+from spike.connectors.mcp import CallResult  # noqa: E402
 from spike.core.types import Capabilities, StreamEvent, ToolCall  # noqa: E402
 from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
@@ -66,6 +68,11 @@ class DemoProvider(Provider):
                 "path": "informes/informe.docx", "content": "# Informe\n\n- Ventas: **+12 %**\n"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "boe" in last.content.lower() and "mcp__playwright__browser_navigate" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c4", name="mcp__playwright__browser_navigate",
+                              arguments={"url": "https://www.boe.es/buscar"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "factura" in last.content.lower() and "ask_user" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c3", name="ask_user", arguments={
                 "question": "¿Para qué país es la factura?", "options": ["España", "Francia"]}))
@@ -97,6 +104,14 @@ class DemoProvider(Provider):
         yield StreamEvent(kind="done", finish_reason="stop")
 
 
+class ScriptedBrowser:
+    """Stands in for the Playwright MCP server, so the browser guard's questions can be seen in the UI (the real
+    browser is exercised in tests/test_browser.py)."""
+
+    async def call_tool(self, name, args):
+        return CallResult(text=f"Page URL: {args.get('url')}\nPage Title: BOE", is_error=False)
+
+
 async def scripted_tuner(model, quick=False):
     """Stands in for spike.tune in UI tests (the real one is tested against llama-server in tests/test_tune.py)."""
     yield {"type": "tune_start", "threads": [4, 2], "gpu_layers": 0, "prompt": 256, "gen": 32}
@@ -119,6 +134,10 @@ def main() -> None:
     model.parent.mkdir(parents=True, exist_ok=True)
     model.write_bytes(b"GGUF")
     state.update_settings({"local_runtime": {**state.settings()["local_runtime"], "model": str(model)}})
+    playwright = state.connectors.get("playwright")
+    state.connectors.connections["playwright"] = Connection(status="running", tools=[McpTool(
+        playwright, ScriptedBrowser(), {"name": "browser_navigate", "inputSchema": {"type": "object"}},
+        "mcp__playwright__browser_navigate", "ask", state.connectors._guard(playwright))])
     app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
     app.state.tuner = scripted_tuner
     uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")

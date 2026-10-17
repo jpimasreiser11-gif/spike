@@ -11,6 +11,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from spike.connectors import browser
 from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message
@@ -61,6 +62,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # Evolution: learn from corrections, route corrections and failures on this computer; a learned router is used
     # only after it passes its gate, and every version can be rolled back
     "evolution": {"enabled": True, "auto_router": True},
+    # the browser connector's domains ("allow" | "deny") and what other domains do ("ask" | "allow")
+    "browser": {"domains": {}, "unknown": "ask"},
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
 }
@@ -88,6 +91,7 @@ class AppState:
         self.runtime: LlamaServer | None = None
         self.broker = PermissionBroker(self.settings()["tool_policies"])
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
+        self.broker.on_domain = lambda domain, rule: self.connectors.set_domain(domain, rule)
         self.memory = MemoryService(MemoryStore(self.home / "memory.db"), self._embedder)
         self.embed_server: LlamaServer | None = None
         self.embed_error: str | None = None
@@ -117,6 +121,8 @@ class AppState:
         unknown = set(patch) - SETTING_KEYS
         if unknown:
             raise ValueError(f"unknown settings: {sorted(unknown)}")
+        if "browser" in patch:
+            patch = {**patch, "browser": browser.clean(patch["browser"])}
         for key, value in patch.items():
             self.store.set_setting(key, value)
         if "tool_policies" in patch:

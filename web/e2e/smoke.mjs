@@ -330,6 +330,28 @@ const docBytes = fs.readFileSync(await doc_dl.path());
 if (docBytes.subarray(0, 2).toString() !== "PK") fail("downloaded .docx is not a zip package");
 await page.screenshot({ path: `${out}/07d-document.png` });
 
+// browser (Spike View): a new site asks with its domain; "always" saves the domain, which Settings lists and removes
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Law" }).click();
+await page.locator("#composer-input").fill("Busca en el BOE la ley del IVA");
+await page.keyboard.press("Enter");
+const browserCard = page.locator(".permission").filter({ hasText: "Abrirá boe.es." });
+await browserCard.waitFor({ timeout: 10000 });
+if (await browserCard.getByRole("button", { name: "Permitir en esta sesión" }).count()) fail("a page must offer its domain, not the whole tool");
+await browserCard.getByRole("button", { name: "Bloquear boe.es" }).waitFor();
+await page.screenshot({ path: `${out}/07e-browser-permission.png` });
+await browserCard.getByRole("button", { name: "Permitir siempre boe.es" }).click();
+await page.locator(".permission.done").filter({ hasText: "Permitido" }).waitFor({ timeout: 10000 });
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Conectores" }).click();
+const domains = page.getByRole("dialog").locator('[data-connector="playwright"] .browser-domains');
+await domains.locator("li", { hasText: "boe.es" }).getByText("permitido").waitFor({ timeout: 5000 });
+await domains.scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}/07f-browser-domains.png` });
+await domains.getByRole("button", { name: "Eliminar boe.es" }).click();
+await domains.getByText("Aún no hay dominios con regla.").waitFor();
+await page.keyboard.press("Escape");
+
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
 const dp = await dark.newPage();

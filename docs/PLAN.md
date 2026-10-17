@@ -159,7 +159,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | B4 | `spike tune` / "Optimizar mi equipo": measure threads and KV cache on the user's machine, save the fastest (context estimated, labelled) | ✅ (🟡 not yet run with Qwen3.5-4B on a real machine) |
 | B5 | SPIKE as an MCP server | ✅ (protocol tested with the official SDK; not tried in Claude Code, Cursor or Codex) |
 | B6 | Evolution level 1: a user's correction becomes a memory rule applied in later chats | ✅ (fixed patterns; corrections need the user's OK) |
-| C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ⬜ |
+| C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ✅ tested with Playwright MCP 0.0.83 and Chromium (local install, not the `npx` download) |
 | C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace | ⬜ |
 | C3–C6 | `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
 | C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ⬜ |

@@ -8,16 +8,18 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from spike.connectors import browser
 from spike.connectors.mcp import HttpTransport, McpClient, McpError, StdioTransport
 from spike.store.db import Store
 from spike.store.secrets import SecretStore
-from spike.tools.base import Tool, ToolResult
+from spike.tools.base import Review, Tool, ToolResult
 
 CATALOG = Path(__file__).with_name("catalog.yaml")
 POLICIES = ("allow", "ask", "deny")
@@ -67,12 +69,17 @@ def tool_name(connector_id: str, remote: str) -> str:
 class McpTool(Tool):
     risk = "network"
 
-    def __init__(self, connector: ConnectorDef, client: McpClient, spec: dict[str, Any], name: str, policy: str):
+    def __init__(self, connector: ConnectorDef, client: McpClient, spec: dict[str, Any], name: str, policy: str,
+                 guard: Callable[[str, dict[str, Any]], Review | None] | None = None):
         self.connector, self.client, self.remote_name = connector, client, spec["name"]
         self.name = name
         self.description = f"[{connector.name}] {spec.get('description') or spec['name']}"[:1024]
         self.parameters = spec.get("inputSchema") or {"type": "object", "properties": {}}
         self.default_policy = policy  # type: ignore[assignment]
+        self.guard = guard
+
+    def review(self, args: dict[str, Any]) -> Review | None:
+        return self.guard(self.remote_name, args) if self.guard else None
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
         try:
@@ -109,6 +116,29 @@ class ConnectorManager:
 
     def config(self, cid: str) -> dict[str, Any]:
         return {"enabled": False, "policy": "ask", **self.store.get_setting("connectors", {}).get(cid, {})}
+
+    def browser_settings(self) -> dict[str, Any]:
+        return {**browser.DEFAULT, **self.store.get_setting("browser", {})}
+
+    def update_browser(self, patch: dict[str, Any]) -> dict[str, Any]:
+        cfg = browser.clean({**self.browser_settings(), **patch})
+        self.store.set_setting("browser", cfg)
+        return cfg
+
+    def set_domain(self, domain: str, rule: str | None) -> dict[str, Any]:
+        """Allow or block a browser domain (None removes its rule); blocked ones reach the browser at its next start."""
+        domains = dict(self.browser_settings()["domains"])
+        name = browser.site_of(domain.strip().lower().rstrip("."))
+        if rule is None:
+            domains.pop(name, None)
+        else:
+            domains[name] = rule
+        return self.update_browser({"domains": domains})
+
+    def _guard(self, definition: ConnectorDef) -> Callable[[str, dict[str, Any]], Review | None] | None:
+        if definition.id != browser.CONNECTOR or definition.custom:
+            return None
+        return lambda remote, args: browser.review(remote, args, self.browser_settings())
 
     def _save_config(self, cid: str, **fields: Any) -> None:
         all_configs = self.store.get_setting("connectors", {})
@@ -173,8 +203,10 @@ class ConnectorManager:
             return McpClient(HttpTransport(self._fill(definition.url, values), headers))
         env = {k: self._fill(v, values) for k, v in definition.env.items()}
         env |= {s["name"]: values[s["name"]] for s in definition.secrets if s["name"] in values}
-        return McpClient(StdioTransport(definition.command, [self._fill(a, values) for a in definition.args], env=env,
-                                        cwd=str(self.workspace)))
+        args = [self._fill(a, values) for a in definition.args]
+        if self._guard(definition) and (blocked := browser.blocked_origins(self.browser_settings())):
+            args += ["--blocked-origins", ";".join(blocked)]
+        return McpClient(StdioTransport(definition.command, args, env=env, cwd=str(self.workspace)))
 
     async def start(self, cid: str) -> Connection:
         definition = self.get(cid)
@@ -202,7 +234,7 @@ class ConnectorManager:
             while name in names:
                 name = name[:60] + f"_{len(names)}"
             names.add(name)
-            conn.tools.append(McpTool(definition, conn.client, spec, name, policy))
+            conn.tools.append(McpTool(definition, conn.client, spec, name, policy, self._guard(definition)))
         conn.status, conn.error = "running", None
         return conn
 

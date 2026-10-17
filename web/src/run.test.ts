@@ -39,6 +39,11 @@ describe("applyEvent", () => {
     expect(run.subtasks.t1.done).toBe(true);
     expect(run.tools[0]).toMatchObject({ name: "calculator", result: "2", ok: true });
   });
+  it("keeps why the browser asks and the domain it can allow", () => {
+    const run = applyEvent(emptyRun(), { type: "permission_request", id: "p2", tool: "mcp__playwright__browser_navigate", risk: "network",
+      arguments: { url: "https://boe.es" }, reason: "opens boe.es", code: "open", once: false, domain: "boe.es" });
+    expect(run.permissions[0]).toMatchObject({ reason: "opens boe.es", code: "open", once: false, domain: "boe.es", status: "pending" });
+  });
   it("tracks permission requests and errors", () => {
     let run = applyEvent(emptyRun(), { type: "permission_request", id: "p1", tool: "python", risk: "execute", arguments: {} });
     expect(run.permissions[0].status).toBe("pending");

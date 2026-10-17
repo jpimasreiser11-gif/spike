@@ -42,6 +42,13 @@ acknowledge reports within 7 days.
   command first; catalog entries pin a reviewed version). Their tools ask for permission by default. A server
   process receives only the variables it needs to start plus its own secrets, never SPIKE's token or provider
   keys. Connector secrets are stored like provider keys and never returned by the API.
+- The browser connector (Playwright) is checked call by call, whatever its permission setting: a domain you have
+  not allowed asks before it opens, a blocked one is refused, and submitting a form, accepting a dialog,
+  uploading files or running code in a page asks every time; nobody can approve those for the `/v1` API or the
+  MCP server, so they are refused there. Your domain rules live in SPIKE's settings. Blocked domains are also
+  passed to the browser when it starts, which Playwright MCP says is not a security boundary, and the browser
+  runs with an isolated profile (no saved logins); the page snapshots it saves go to the workspace folder
+  `.playwright-mcp/`.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
   and size before anything is written.

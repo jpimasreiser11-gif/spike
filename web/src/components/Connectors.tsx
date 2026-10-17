@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
-import type { ConnectorInfo } from "../types";
+import type { BrowserSettings, ConnectorInfo } from "../types";
 import { IconTrash } from "./Icons";
 
 const C = lang === "es"
@@ -12,6 +12,10 @@ const C = lang === "es"
       deny: "Bloquear", saveSecrets: "Guardar", saved: "guardada", tools: "herramientas", running: "Activo", error: "Error", stopped: "Parado", starting: "Iniciando…",
       custom: "Añadir un servidor MCP propio", id: "Identificador (minúsculas)", name: "Nombre", transport: "Transporte", command: "Comando", args: "Argumentos (uno por línea)",
       url: "URL", add: "Añadir", remove: "Eliminar", getKey: "Obtener",
+      domains: "Dominios", domainsIntro: "Enviar formularios, subir archivos o ejecutar código en una página siempre pide confirmación, sea cual sea el dominio.",
+      unknown: "Dominios sin regla", unknownAsk: "Preguntar antes de abrirlos", unknownAllow: "Abrirlos sin preguntar", allowed: "permitido", blocked: "bloqueado",
+      domain: "Dominio", allowIt: "Permitir", blockIt: "Bloquear", noDomains: "Aún no hay dominios con regla.",
+      restartNote: "Un bloqueo nuevo también frena las peticiones dentro de las páginas cuando el navegador se reinicia (Reintentar).",
     }
   : {
       intro: "Connectors are MCP servers. Their tools go through the same permissions as SPIKE's own: by default SPIKE asks you before each use.",
@@ -20,6 +24,10 @@ const C = lang === "es"
       deny: "Block", saveSecrets: "Save", saved: "saved", tools: "tools", running: "Running", error: "Error", stopped: "Stopped", starting: "Starting…",
       custom: "Add your own MCP server", id: "Id (lowercase)", name: "Name", transport: "Transport", command: "Command", args: "Arguments (one per line)",
       url: "URL", add: "Add", remove: "Remove", getKey: "Get",
+      domains: "Domains", domainsIntro: "Submitting forms, uploading files or running code in a page always asks, whatever the domain.",
+      unknown: "Domains without a rule", unknownAsk: "Ask before opening them", unknownAllow: "Open them without asking", allowed: "allowed", blocked: "blocked",
+      domain: "Domain", allowIt: "Allow", blockIt: "Block", noDomains: "No domains have a rule yet.",
+      restartNote: "A new block also stops requests inside pages once the browser restarts (Retry).",
     };
 
 export function Connectors() {
@@ -90,8 +98,54 @@ function ConnectorCard({ c, onChange, onRemoved }: { c: ConnectorInfo; onChange:
         </select>
       </label>
       {(err || c.error) && <div className="error-box small-pre" role="alert">{err || c.error}</div>}
+      {c.id === "playwright" && !c.custom && <BrowserDomains />}
       {c.tools.length > 0 && <p className="small muted">{c.tools.length} {C.tools}: {c.tools.map((t) => t.remote_name).join(", ")}</p>}
       {c.custom && <div className="row end"><div className="spacer" /><button className="btn danger" onClick={() => api.del(`/api/connectors/${c.id}`).then(onRemoved)}><IconTrash size={14} /> {C.remove}</button></div>}
+    </div>
+  );
+}
+
+/** The browser connector's domain rules: allowed ones open without asking, blocked ones are refused. */
+function BrowserDomains() {
+  const [cfg, setCfg] = useState<BrowserSettings | null>(null);
+  const [domain, setDomain] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => { api.get<BrowserSettings>("/api/browser").then(setCfg).catch((e) => setErr(String(e.message))); }, []);
+  const call = async (p: Promise<BrowserSettings>) => {
+    setErr("");
+    try { setCfg(await p); return true; } catch (e) { setErr(String((e as Error).message)); return false; }
+  };
+  const rule = (name: string, value: "allow" | "deny" | null) => call(api.put<BrowserSettings>(`/api/browser/domains/${encodeURIComponent(name)}`, { rule: value }));
+  const add = async (value: "allow" | "deny") => { if (await rule(domain.trim(), value)) setDomain(""); };
+  if (!cfg) return err ? <div className="error-box" role="alert">{err}</div> : null;
+  const rows = Object.entries(cfg.domains).sort(([a], [b]) => a.localeCompare(b));
+  return (
+    <div className="browser-domains" aria-label={C.domains}>
+      <b className="small">{C.domains}</b>
+      <p className="small muted">{C.domainsIntro}</p>
+      <label className="field inline"><span>{C.unknown}</span>
+        <select value={cfg.unknown} onChange={(e) => call(api.put<BrowserSettings>("/api/browser", { unknown: e.target.value }))}>
+          <option value="ask">{C.unknownAsk}</option><option value="allow">{C.unknownAllow}</option>
+        </select>
+      </label>
+      {rows.length === 0 ? <p className="small muted">{C.noDomains}</p> : (
+        <ul className="domain-list">
+          {rows.map(([name, value]) => (
+            <li key={name}>
+              <code>{name}</code> <span className={`badge ${value === "allow" ? "ok" : "warn"}`}>{value === "allow" ? C.allowed : C.blocked}</span>
+              <div className="spacer" />
+              <button className="btn small" aria-label={`${C.remove} ${name}`} title={C.remove} onClick={() => rule(name, null)}><IconTrash size={14} /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="row" onSubmit={(e) => { e.preventDefault(); add("allow"); }}>
+        <label className="field"><span>{C.domain}</span><input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="boe.es" /></label>
+        <button className="btn align-end" type="submit" disabled={!domain.trim()}>{C.allowIt}</button>
+        <button className="btn danger align-end" type="button" disabled={!domain.trim()} onClick={() => add("deny")}>{C.blockIt}</button>
+      </form>
+      {rows.some(([, value]) => value === "deny") && <p className="small muted">{C.restartNote}</p>}
+      {err && <div className="error-box" role="alert">{err}</div>}
     </div>
   );
 }

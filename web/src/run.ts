@@ -74,7 +74,7 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
         ...state,
         permissions: [
           ...state.permissions,
-          { id: ev.id, tool: ev.tool, risk: ev.risk, arguments: ev.arguments, status: "pending" },
+          { id: ev.id, tool: ev.tool, risk: ev.risk, arguments: ev.arguments, status: "pending", reason: ev.reason, code: ev.code, once: ev.once, domain: ev.domain },
         ],
       };
     case "permission_resolved":

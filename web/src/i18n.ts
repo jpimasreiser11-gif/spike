@@ -102,6 +102,10 @@ const es = {
   nextStep: "Paso siguiente",
   play: "Reproducir",
   pause: "Pausa",
+  allowDomain: "Permitir siempre",
+  blockDomain: "Bloquear",
+  askEveryTime: "Esto se confirma cada vez.",
+  review: { open: "Abrirá {domain}.", type_submit: "Escribirá y enviará un formulario.", enter: "Pulsará Intro, lo que puede enviar un formulario.", click_submit: "Pulsará «{element}», lo que puede enviar un formulario.", click_unnamed: "Pulsará un elemento que no ha descrito, lo que puede enviar un formulario.", dialog: "Aceptará un diálogo de la página.", file_upload: "Enviará archivos de tu ordenador a la página.", drop: "Soltará archivos o datos en la página.", evaluate: "Ejecutará código en la página.", run_code_unsafe: "Ejecutará código en el navegador." } as Record<string, string>,
   ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", memory_saved: "Guarda en memoria", question: "Te pregunta", contract: "Comprueba el formato", answered: "Respondes", correction: "Propone una regla", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
 };
 
@@ -211,6 +215,10 @@ const en: Dict = {
   nextStep: "Next step",
   play: "Play",
   pause: "Pause",
+  allowDomain: "Always allow",
+  blockDomain: "Block",
+  askEveryTime: "This is confirmed every time.",
+  review: { open: "It will open {domain}.", type_submit: "It will type and submit a form.", enter: "It will press Enter, which may submit a form.", click_submit: "It will click “{element}”, which may submit a form.", click_unnamed: "It will click an element it did not describe, which may submit a form.", dialog: "It will accept a dialog of the page.", file_upload: "It will send files from your computer to the page.", drop: "It will drop files or data into the page.", evaluate: "It will run code in the page.", run_code_unsafe: "It will run code in the browser." } as Record<string, string>,
   ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", memory_saved: "Saves to memory", question: "Asks you", contract: "Checks the format", answered: "You answer", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
 };
 

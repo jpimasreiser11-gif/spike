@@ -89,6 +89,10 @@ export type PermissionState = {
   risk: string;
   arguments: Record<string, unknown>;
   status: "pending" | "allow_once" | "allow_always" | "deny" | "sending";
+  reason?: string; // why SPIKE asks about this call (a browser page or form), in English
+  code?: string; // the reason's name, to show it in the user's language
+  once?: boolean; // decided for this call only: no "always"
+  domain?: string; // the page's domain, which can be allowed or blocked for good
 };
 
 /** A question a specialist asked the user (`ask_user`); the run waits for the answer. */
@@ -127,6 +131,8 @@ export type Learn = {
   saved?: { id: string; kind: string; text: string; scope: string; existing?: boolean; undone?: boolean }[];
   correction?: { text: string; status: "proposed" | "saved" | "dismissed"; memory?: string; existing?: boolean };
 };
+
+export type BrowserSettings = { domains: Record<string, "allow" | "deny">; unknown: "ask" | "allow" };
 
 export type ChatEvent = { type: string; [key: string]: any };
 

@@ -124,17 +124,20 @@ async def run_agent(
                         ("The user did not answer in time; continue with your best assumption and say what you "
                          "assumed.", False)
             else:
-                policy = broker.policy_for(tool)
+                policy, review = broker.policy_for_call(tool, call.arguments)
                 if policy == "deny":
-                    result_text, ok = f"error: the user has disabled the '{call.name}' tool", False
+                    result_text, ok = (f"error: refused: {review.reason}" if review and review.policy == "deny"
+                                       else f"error: the user has disabled the '{call.name}' tool"), False
                 elif policy == "ask" and not broker.interactive:
                     result_text, ok = (f"error: '{call.name}' needs the user's approval, which can only be given in "
                                        "the SPIKE app; it is not available to this caller"), False
                 elif policy == "ask":
                     # Yield the request first: the consumer forwards it to the UI before we block on it.
-                    req = broker.open(tool, call.arguments)
+                    req = broker.open(tool, call.arguments, review)
                     yield {"type": "permission_request", "id": req.id, "tool": tool.name, "risk": tool.risk,
-                           "arguments": call.arguments, "call_id": call.id, **tag}
+                           "arguments": call.arguments, "call_id": call.id, **tag,
+                           **({"reason": review.reason, "code": review.code, "once": review.once, "domain": review.domain}
+                              if review and review.policy == "ask" else {})}
                     decision = await broker.wait(req)
                     yield {"type": "permission_resolved", "id": req.id, "decision": decision, **tag}
                     if decision == "deny":

@@ -88,6 +88,11 @@ curated catalog (`catalog.yaml`, pinned versions, licenses in [THIRD_PARTY](../T
 An enabled connector's tools are named `mcp__<connector>__<tool>`, offered to every specialist and gated by the
 same broker: the connector's policy (ask by default) applies to each tool, and a per-tool policy overrides it.
 Secrets go to the keychain and reach the server only as its environment (stdio) or headers (HTTP).
+A tool can also review each call (`Tool.review` → `Review`): `PermissionBroker.policy_for_call` lets a deny win,
+then the review's own allow/ask/deny. The catalog Playwright connector uses `connectors/browser.py` for this
+(Spike View): domain rules from the `browser` setting, questions that are never "always" (`once`) for form
+submissions, uploads and code, and `--blocked-origins` at start; the permission event carries the reason, its
+code (translated in the app) and the domain, which `allow_domain` / `block_domain` save.
 
 **Skills.** `spike/skills/engine.py` loads Agent Skills folders (`SKILL.md`) from `spike/skills/bundled/` and
 `$SPIKE_HOME/skills/`. For local models a lexical router picks at most one skill per specialist run from its

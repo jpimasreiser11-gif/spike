@@ -148,8 +148,16 @@ function Question({ q, readOnly }: { q: QuestionState; readOnly?: boolean }) {
   );
 }
 
+/** Why SPIKE asks about this call, in the user's language (the server's English text when there is no translation). */
+function reviewText(p: PermissionState) {
+  const template = p.code ? t.review[p.code] : undefined;
+  if (!template) return p.reason ?? "";
+  const element = String(p.arguments.element || p.arguments.target || "").slice(0, 80);
+  return template.replace("{domain}", p.domain ?? "").replace("{element}", element);
+}
+
 function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean }) {
-  const decide = async (decision: "allow_once" | "allow_always" | "deny") => {
+  const decide = async (decision: "allow_once" | "allow_always" | "allow_domain" | "block_domain" | "deny") => {
     onDecided(p.id, "sending");
     try {
       await api.post(`/api/permissions/${p.id}`, { decision });
@@ -170,10 +178,14 @@ function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided:
         <IconTool size={16} /> SPIKE {t.permissionAsk}: <code>{p.tool}</code>
         <span className={`risk risk-${p.risk}`}>{p.risk}</span>
       </div>
+      {p.reason && <p className="permission-reason">{reviewText(p)}{p.once && ` ${t.askEveryTime}`}</p>}
       <pre className="permission-args">{JSON.stringify(p.arguments, null, 2)}</pre>
       <div className="permission-actions">
         <button className="btn primary" disabled={p.status === "sending"} onClick={() => decide("allow_once")}>{t.allowOnce}</button>
-        <button className="btn" disabled={p.status === "sending"} onClick={() => decide("allow_always")}>{t.allowAlways}</button>
+        {p.domain
+          ? <button className="btn" disabled={p.status === "sending"} onClick={() => decide("allow_domain")}>{t.allowDomain} {p.domain}</button>
+          : !p.once && <button className="btn" disabled={p.status === "sending"} onClick={() => decide("allow_always")}>{t.allowAlways}</button>}
+        {p.domain && <button className="btn danger" disabled={p.status === "sending"} onClick={() => decide("block_domain")}>{t.blockDomain} {p.domain}</button>}
         <button className="btn danger" disabled={p.status === "sending"} onClick={() => decide("deny")}>{t.deny}</button>
       </div>
     </div>

@@ -146,6 +146,14 @@ class EvolutionItemPatch(BaseModel):
     verified: bool | None = None
 
 
+class BrowserIn(BaseModel):
+    unknown: Literal["ask", "allow"]
+
+
+class DomainIn(BaseModel):
+    rule: Literal["allow", "deny"] | None  # None removes the domain's rule
+
+
 class CheckIn(BaseModel):
     replay: bool = False  # also answer the accepted eval candidates again (runs the model)
 
@@ -395,6 +403,23 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         return {"ok": True}
 
     # ---------------------------------------------------------------- providers
+    @app.get("/api/browser")
+    async def browser_settings() -> dict:
+        return st().connectors.browser_settings()
+
+    @app.put("/api/browser")
+    async def put_browser(body: BrowserIn) -> dict:
+        """What the browser does on a domain without a rule: ask first, or open it."""
+        return st().connectors.update_browser({"unknown": body.unknown})
+
+    @app.put("/api/browser/domains/{domain}")
+    async def browser_domain(domain: str, body: DomainIn) -> dict:
+        """Allow or block a domain for the browser connector, or remove its rule."""
+        try:
+            return st().connectors.set_domain(domain, body.rule)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
     @app.get("/api/presets")
     async def presets() -> list[dict]:
         return [asdict(p) for p in PRESETS]
