@@ -6,11 +6,12 @@ import { Composer } from "./components/Composer";
 import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
+import { Replay } from "./components/Replay";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
-import { applyEvent, emptyRun, runFromStored } from "./run";
-import type { Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
+import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
+import type { ChatEvent, Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
 type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
 
@@ -83,6 +84,7 @@ export default function App() {
   const [projectDialog, setProjectDialog] = useState<Project | "new" | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<ArtifactDoc | null>(null);
+  const [replay, setReplay] = useState<ChatEvent[] | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("auto");
@@ -182,6 +184,7 @@ export default function App() {
     stick.current = true;
     const controller = new AbortController();
     abortRef.current = controller;
+    const started = performance.now();
     try {
       await streamChat({ message: text, conversation_id: activeId, mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null }, (ev) => {
@@ -189,7 +192,10 @@ export default function App() {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
           loadConversations();
-        } else updateLast((r) => applyEvent(r, ev));
+        } else {
+          const at = Math.round(performance.now() - started) / 1000;
+          updateLast((r) => ({ ...applyEvent(r, ev), events: recordEvent(r.events, ev, at) }));
+        }
       }, controller.signal);
     } catch (e) {
       const aborted = (e as Error).name === "AbortError";
@@ -305,7 +311,7 @@ export default function App() {
                     <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined} />
                   ) : (
                     <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id}
-                      providers={providers}
+                      providers={providers} onReplay={() => setReplay(it.run.events ?? null)}
                       onRetry={!busy && i === items.length - 1 && lastUser === i - 1 && items[lastUser].kind === "user"
                         ? (pid) => send((items[lastUser] as { text: string }).text, lastUser, pid ?? providerId) : undefined} />
                   ),
@@ -318,6 +324,8 @@ export default function App() {
       </main>
 
       {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
+
+      {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}
 
       {projectDialog && (
         <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} onClose={() => setProjectDialog(null)}

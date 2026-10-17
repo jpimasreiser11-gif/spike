@@ -79,6 +79,8 @@ export type ToolState = {
   result?: string;
   ok?: boolean;
   file?: string; // workspace path of a file the tool wrote
+  checkpoint?: string; // copy kept before the tool changed files: the step can be undone
+  undone?: boolean;
 };
 
 export type PermissionState = {
@@ -105,6 +107,7 @@ export type RunState = {
   skills?: string[];
   memory?: MemoryUse;
   privacy?: Record<string, number>; // provider name -> file passages withheld from it
+  events?: ChatEvent[]; // the run as it happened, for the step-by-step view (each with `t`, seconds from the start)
 };
 
 export type ChatEvent = { type: string; [key: string]: any };

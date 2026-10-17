@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from spike.agent.loop import AgentRun, Event, run_agent
+from spike.agent.loop import AgentRun, Checkpointer, Event, run_agent
 from spike.core.types import Message
 from spike.memory.service import Recall, memory_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
@@ -53,6 +53,7 @@ class OrchestratorOptions:
     skill_mode: str = "auto"  # auto (router for local models, model's choice for APIs) | router | model | off
     disabled_skills: list[str] = field(default_factory=list)
     memory: Recall | None = None  # rules and notes recalled for this message (Neural Memory)
+    checkpoints: Checkpointer | None = None  # copies of files before tools change them (undo), for app chats
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -209,7 +210,7 @@ class Orchestrator:
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
-            tag={"specialist": spec.id},
+            tag={"specialist": spec.id}, checkpoints=opts.checkpoints,
         ):
             yield ev
 
@@ -247,7 +248,7 @@ class Orchestrator:
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=run,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
-            tag={"subtask": task.id, "specialist": spec.id},
+            tag={"subtask": task.id, "specialist": spec.id}, checkpoints=opts.checkpoints,
         ):
             yield ev
         results[task.id] = run.text if not run.error else f"(failed: {run.error})\n{run.text}"

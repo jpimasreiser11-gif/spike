@@ -161,6 +161,12 @@ class WriteFile(Tool):
     def __init__(self, workspace: Workspace):
         self.workspace = workspace
 
+    def targets(self, args: dict[str, Any]) -> list[Path]:
+        try:
+            return [self.workspace.resolve(str(args["path"]))]
+        except (PermissionError, KeyError):
+            return []
+
     async def run(self, args: dict[str, Any]) -> ToolResult:
         try:
             path = self.workspace.resolve(str(args["path"]))

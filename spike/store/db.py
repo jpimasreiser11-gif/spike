@@ -34,6 +34,11 @@ CREATE TABLE IF NOT EXISTS calls (
   detail TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS calls_by_provider ON calls(provider_id, ts);
+CREATE TABLE IF NOT EXISTS checkpoints (
+  id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, call_id TEXT NOT NULL, tool TEXT NOT NULL, created REAL NOT NULL,
+  undone REAL, files TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS checkpoints_by_conv ON checkpoints(conversation_id, created);
 """
 CALL_LOG_DAYS = 400  # older entries of the call log are dropped when SPIKE starts
 PROJECT_FIELDS = {"name", "instructions", "mode"}
@@ -112,6 +117,9 @@ class Store:
         self._exec("DELETE FROM messages WHERE conversation_id=? AND created>=?", (cid, rows[0]["created"]))
         return True
 
+    def update_message_meta(self, mid: str, meta: dict) -> None:
+        self._exec("UPDATE messages SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), mid))
+
     def messages(self, cid: str) -> list[dict]:
         rows = self._exec("SELECT * FROM messages WHERE conversation_id=? ORDER BY created", (cid,))
         return [{**dict(r), "meta": json.loads(r["meta"])} for r in rows]
@@ -160,6 +168,43 @@ class Store:
 
     def clear_calls(self) -> None:
         self._exec("DELETE FROM calls")
+
+    # -------------------------------------------------------------- checkpoints (copies of files before a tool changed them)
+    @staticmethod
+    def _checkpoint(row: sqlite3.Row) -> dict:
+        return {**dict(row), "files": json.loads(row["files"])}
+
+    def save_checkpoint(self, cp: dict) -> None:
+        self._exec("INSERT INTO checkpoints VALUES (?,?,?,?,?,?,?)",
+                   (cp["id"], cp["conversation_id"], cp["call_id"], cp["tool"], cp["created"], cp["undone"],
+                    json.dumps(cp["files"], ensure_ascii=False)))
+
+    def get_checkpoint(self, cp_id: str) -> dict | None:
+        rows = self._exec("SELECT * FROM checkpoints WHERE id=?", (cp_id,))
+        return self._checkpoint(rows[0]) if rows else None
+
+    def update_checkpoint(self, cp_id: str, **fields: Any) -> None:
+        if "files" in fields:
+            fields["files"] = json.dumps(fields["files"], ensure_ascii=False)
+        allowed = {k: v for k, v in fields.items() if k in {"files", "undone"}}
+        if allowed:
+            sets = ", ".join(f"{k}=?" for k in allowed)
+            self._exec(f"UPDATE checkpoints SET {sets} WHERE id=?", (*allowed.values(), cp_id))
+
+    def list_checkpoints(self, conversation_id: str) -> list[dict]:
+        rows = self._exec("SELECT * FROM checkpoints WHERE conversation_id=? ORDER BY created", (conversation_id,))
+        return [self._checkpoint(r) for r in rows]
+
+    def stale_checkpoints(self, before: float) -> list[dict]:
+        rows = self._exec("SELECT * FROM checkpoints WHERE created < ? OR conversation_id NOT IN "
+                          "(SELECT id FROM conversations)", (before,))
+        return [self._checkpoint(r) for r in rows]
+
+    def delete_checkpoint(self, cp_id: str) -> None:
+        self._exec("DELETE FROM checkpoints WHERE id=?", (cp_id,))
+
+    def delete_checkpoints(self, conversation_id: str) -> None:
+        self._exec("DELETE FROM checkpoints WHERE conversation_id=?", (conversation_id,))
 
     # -------------------------------------------------------------- projects
     def create_project(self, name: str, instructions: str = "", mode: str = "auto") -> dict:

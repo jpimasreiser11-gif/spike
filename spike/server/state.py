@@ -28,6 +28,7 @@ from spike.runtime.models import EMBEDDING_MODEL, MODELS
 from spike.runtime.paths import adapters_dir, models_dir, spike_home, workspace_dir
 from spike.skills.engine import BUNDLED, SkillLibrary
 from spike.specialists.catalog import Catalog, Specialist, load_catalog
+from spike.store.checkpoints import Checkpoints
 from spike.store.db import Store
 from spike.store.secrets import SecretStore
 from spike.tools.base import PermissionBroker, ToolRegistry
@@ -69,6 +70,7 @@ class AppState:
     def __init__(self, home: Path | None = None, provider_factory=create_provider):
         self.home = home or spike_home()
         self.store = Store(self.home / "spike.db")
+        self.checkpoints = Checkpoints(self.store, self.home / "checkpoints")
         self.secrets = SecretStore(self.home / "secrets.json")
         self.provider_factory = provider_factory
         self._providers: dict[str, Provider] = {}
@@ -153,6 +155,7 @@ class AppState:
                 for c in self.provider_configs()]
 
     def forget_project(self, project_id: str) -> None:
+        self.checkpoints.prune()  # the project's chats are gone: so are the copies kept to undo their steps
         self._project_tools.pop(project_id, None)
         self.project_files.remove(project_id)
         self.memory.store.delete_scope(f"project:{project_id}")

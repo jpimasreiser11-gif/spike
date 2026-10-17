@@ -66,6 +66,12 @@ scales reset to 0 at startup). See [ADR 0004](adr/0004-adapter-serving.md).
 
 ## Tools
 
+- Write tools declare `targets(args)`; before running them the agent loop asks the run's checkpointer
+  (`spike/store/checkpoints.py`) to copy those files, records their hashes after the call, and puts the checkpoint
+  id on the `tool_result` event. `POST /api/checkpoints/{id}/undo` restores them (409 if a file changed since,
+  unless `force`). The chat route stores the run's events (text pieces merged, `t` = seconds from the start) in the
+  answer's meta for the step-by-step view.
+
 | Tool | Default policy | Limits |
 |---|---|---|
 | calculator | allow | AST-restricted arithmetic, exponent cap |

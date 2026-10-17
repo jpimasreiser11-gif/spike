@@ -7,6 +7,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Literal
 
 from spike.core.types import ToolSpec
@@ -35,6 +36,10 @@ class Tool(ABC):
 
     @abstractmethod
     async def run(self, args: dict[str, Any]) -> ToolResult: ...
+
+    def targets(self, args: dict[str, Any]) -> list[Path]:
+        """Files this call would change, so a copy can be kept to undo it (write tools override this)."""
+        return []
 
 
 class ToolRegistry:

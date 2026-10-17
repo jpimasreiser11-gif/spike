@@ -66,6 +66,26 @@ await page.screenshot({ path: `${out}/03-permission.png` });
 await page.getByRole("button", { name: "Permitir una vez" }).click();
 await page.getByText("He creado el archivo").waitFor({ timeout: 10000 });
 
+// 3b. undo that write, then replay the answer step by step
+const lastAnswer = page.locator(".msg.assistant").last();
+await lastAnswer.locator(".trace-head", { hasText: "write_file" }).click();
+await lastAnswer.getByRole("button", { name: "Deshacer" }).click();
+await lastAnswer.getByText("Deshecho: el archivo volvió a como estaba").waitFor({ timeout: 5000 });
+const notes = await page.request.get(`${base}/api/workspace/files/notas.md`);
+if (notes.status() !== 404) fail("undo should remove the file the answer created, got " + notes.status());
+await lastAnswer.getByRole("button", { name: "Ver paso a paso" }).click();
+const replay = page.getByRole("dialog", { name: "Paso a paso" });
+await replay.waitFor();
+await replay.locator(".replay-steps button").first().click();
+if (await replay.locator(".replay-view .markdown").count()) fail("step 1 should show no answer text yet");
+await replay.locator(".replay-steps button", { hasText: "Usa write_file" }).click();
+await replay.locator(".replay-view .trace-item", { hasText: "write_file" }).waitFor();
+await replay.locator(".replay-steps button").last().click();
+await replay.locator(".replay-view", { hasText: "He creado el archivo" }).waitFor();
+if (await replay.getByRole("button", { name: "Permitir una vez" }).count()) fail("the replay must not offer live permission buttons");
+await page.screenshot({ path: `${out}/03b-replay.png` });
+await page.keyboard.press("Escape");
+
 // 4. reload restores history
 await page.reload();
 await page.locator(".conv-title").first().click();

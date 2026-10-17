@@ -67,7 +67,7 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
     case "tool_result":
       return {
         ...state,
-        tools: state.tools.map((t) => (t.id === ev.id ? { ...t, result: ev.content, ok: ev.ok, file: ev.file } : t)),
+        tools: state.tools.map((t) => (t.id === ev.id ? { ...t, result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone } : t)),
       };
     case "permission_request":
       return {
@@ -119,6 +119,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.skills?.length) run.skills = meta.skills;
   if (meta.memory) run.memory = { rules: meta.memory.rules, semantic: meta.memory.semantic, notes: meta.memory.notes };
   if (meta.privacy) run.privacy = meta.privacy;
+  if (meta.events?.length) run.events = meta.events;
   for (const [id, st] of Object.entries<any>(meta.subtasks || {})) {
     const planned = meta.plan?.subtasks?.find((t: any) => t.id === id);
     run.order.push(id);
@@ -136,8 +137,22 @@ export function runFromStored(m: StoredMessage): RunState {
     if (ev.type === "tool_call") run.tools.push({ id: ev.id, name: ev.name, arguments: ev.arguments, specialist: ev.specialist });
     if (ev.type === "tool_result") {
       const t = run.tools.find((x) => x.id === ev.id);
-      if (t) Object.assign(t, { result: ev.content, ok: ev.ok, file: ev.file });
+      if (t) Object.assign(t, { result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone });
     }
   }
   return run;
+}
+
+/** The run rebuilt from its first `n` events, for the step-by-step view. */
+export function runAt(events: ChatEvent[], n: number): RunState {
+  return events.slice(0, n).reduce(applyEvent, emptyRun());
+}
+
+/** Append an event to a run's recording, merging consecutive text pieces as the server does. */
+export function recordEvent(events: ChatEvent[] = [], ev: ChatEvent, t: number): ChatEvent[] {
+  const last = events[events.length - 1];
+  if ((ev.type === "delta" || ev.type === "reasoning") && last?.type === ev.type && last.subtask === ev.subtask) {
+    return [...events.slice(0, -1), { ...last, text: last.text + ev.text }];
+  }
+  return [...events, { ...ev, t }];
 }

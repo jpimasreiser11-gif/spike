@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import Any, Protocol
 
 from spike.core.context import fit_messages
 from spike.core.types import ChatRequest, Message, ToolCall
@@ -12,6 +13,13 @@ from spike.providers.base import Provider
 from spike.tools.base import PermissionBroker, Tool
 
 Event = dict[str, Any]
+
+
+class Checkpointer(Protocol):
+    """Keeps a copy of the files a tool is about to change (see spike/store/checkpoints.py)."""
+
+    def before(self, call_id: str, tool: str, paths: list[Path]) -> str | None: ...
+    def after(self, checkpoint_id: str) -> None: ...
 
 
 @dataclass
@@ -43,6 +51,7 @@ async def run_agent(
     max_steps: int = 8,
     reasoning: bool | None = None,
     tag: dict[str, Any] | None = None,
+    checkpoints: Checkpointer | None = None,
 ) -> AsyncIterator[Event]:
     """Stream UI events. `tag` is merged into every event (e.g. {"subtask": "t1"})."""
     tag = tag or {}
@@ -93,7 +102,8 @@ async def run_agent(
         for call in calls:
             yield {"type": "tool_call", "id": call.id, "name": call.name, "arguments": call.arguments, **tag}
             tool = by_name.get(call.name)
-            file, private = None, []  # a workspace file the tool wrote; parts of the result that are file contents
+            # a workspace file the tool wrote; parts of the result that are file contents; the copy kept to undo it
+            file, private, checkpoint = None, [], None
             if tool is None:
                 result_text, ok = f"error: tool '{call.name}' is not available to this specialist", False
             else:
@@ -113,11 +123,12 @@ async def run_agent(
                     if decision == "deny":
                         result_text, ok = "error: the user denied this tool call", False
                     else:
-                        result_text, ok, file, private = await _execute(tool, call)
+                        result_text, ok, file, private, checkpoint = await _execute(tool, call, checkpoints)
                 else:
-                    result_text, ok, file, private = await _execute(tool, call)
+                    result_text, ok, file, private, checkpoint = await _execute(tool, call, checkpoints)
             yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000],
-                   **({"file": file} if file else {}), **tag}
+                   **({"file": file} if file else {}), **({"checkpoint": checkpoint} if checkpoint and ok else {}),
+                   **tag}
             tool_msg = Message(role="tool", content=result_text, tool_call_id=call.id, name=call.name, private=private)
             history.append(tool_msg)
             run.messages.append(tool_msg)
@@ -126,10 +137,16 @@ async def run_agent(
     yield {"type": "error", "message": run.error, **tag}
 
 
-async def _execute(tool: Tool, call: ToolCall) -> tuple[str, bool, str | None, list[str]]:
+async def _execute(tool: Tool, call: ToolCall,
+                   checkpoints: Checkpointer | None) -> tuple[str, bool, str | None, list[str], str | None]:
+    checkpoint = checkpoints.before(call.id, tool.name, tool.targets(call.arguments)) if checkpoints else None
     try:
         result = await tool.run(call.arguments)
     except Exception as exc:  # a tool bug must not kill the conversation
-        return f"error: {exc.__class__.__name__}: {exc}", False, None, []
+        return f"error: {exc.__class__.__name__}: {exc}", False, None, [], None
+    finally:
+        if checkpoint and checkpoints:
+            checkpoints.after(checkpoint)
     file = result.data.get("file") if result.ok else None
-    return result.content, result.ok, file if isinstance(file, str) else None, [p for p in result.private if p]
+    return (result.content, result.ok, file if isinstance(file, str) else None, [p for p in result.private if p],
+            checkpoint)

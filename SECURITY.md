@@ -47,6 +47,10 @@ acknowledge reports within 7 days.
   `data:`/`blob:` media (`connect-src 'none'`), and the server refuses requests with `Origin: null` when it runs with
   its host allow-list (`spike serve`). Document tools ask before writing, stay inside the workspace, and refuse
   spreadsheet formulas that reach outside the file (DDE, `WEBSERVICE`, `CALL`, …).
+- Before `write_file` or a document tool changes a file, SPIKE keeps a copy in `$SPIKE_HOME/checkpoints` (files up to
+  100 MB, kept 30 days, deleted with their chat) so the step can be undone; those copies are your files' contents,
+  stored unencrypted like the rest of `$SPIKE_HOME`. Undo never overwrites a file you edited afterwards without a
+  second confirmation. Changes made by the `python` tool or by connectors are not copied.
 - Memory lives in `$SPIKE_HOME/memory.db` on your computer. Deleting a memory removes its text, word index and
   vectors, and SQLite's `secure_delete` overwrites the freed pages. The `remember` tool asks before saving, so a
   page the model read cannot plant a note silently; notes are given to the model as information, and only rules

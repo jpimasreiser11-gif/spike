@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SSEParser } from "./api";
-import { applyEvent, emptyRun, runFromStored } from "./run";
+import { applyEvent, emptyRun, recordEvent, runAt, runFromStored } from "./run";
 
 describe("SSEParser", () => {
   it("handles events split across chunks and CRLF", () => {
@@ -98,5 +98,19 @@ describe("privacy", () => {
     run = applyEvent(run, { type: "privacy", provider: "OpenAI", withheld: 2 });
     expect(run.privacy).toEqual({ OpenAI: 3 });
     expect(runFromStored({ role: "assistant", content: "ok", meta: { privacy: { DeepSeek: 1 } } } as any).privacy).toEqual({ DeepSeek: 1 });
+  });
+});
+
+describe("step by step", () => {
+  it("records merged text pieces and rebuilds the run at any step", () => {
+    let events = recordEvent([], { type: "route", mode: "direct", method: "lexical", confidence: 1, specialists: [] }, 0);
+    events = recordEvent(events, { type: "delta", text: "Ho" }, 0.1);
+    events = recordEvent(events, { type: "delta", text: "la" }, 0.2);
+    events = recordEvent(events, { type: "done", text: "Hola", elapsed_s: 0.3 }, 0.3);
+    expect(events.map((e) => e.type)).toEqual(["route", "delta", "done"]);
+    expect(events[1]).toMatchObject({ text: "Hola", t: 0.1 });
+    expect(runAt(events, 1).text).toBe("");
+    expect(runAt(events, 2).text).toBe("Hola");
+    expect(runAt(events, 3).status).toBe("done");
   });
 });

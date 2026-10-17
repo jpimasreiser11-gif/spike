@@ -121,6 +121,13 @@ class DocumentTool(Tool):
     def __init__(self, workspace: Workspace):
         self.workspace = workspace
 
+    def targets(self, args: dict[str, Any]) -> list[Path]:
+        try:
+            path = self.workspace.resolve(str(args.get("path", "")))
+        except PermissionError:
+            return []
+        return [path] if path.suffix.lower() == self.extension else []
+
     async def run(self, args: dict[str, Any]) -> ToolResult:
         try:
             path = self.workspace.resolve(str(args.get("path", "")))

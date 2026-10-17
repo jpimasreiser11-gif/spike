@@ -6,6 +6,7 @@ import asyncio
 import json
 import re
 import shutil
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -28,6 +29,7 @@ from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.openai_api import create_router
 from spike.server.state import AppState
+from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
 
 
@@ -111,6 +113,10 @@ class SkillPatch(BaseModel):
     enabled: bool
 
 
+class UndoIn(BaseModel):
+    force: bool = False  # also overwrite files that changed after the step
+
+
 class DecisionIn(BaseModel):
     decision: str
 
@@ -119,6 +125,9 @@ class ConversationPatch(BaseModel):
     title: str | None = None
     mode: str | None = None
     provider_id: str | None = None
+
+
+MAX_RUN_EVENTS = 3000  # events kept per answer for the step-by-step view
 
 
 def _sse(event: dict[str, Any]) -> bytes:
@@ -567,7 +576,25 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.delete("/api/conversations/{cid}")
     async def delete_conversation(cid: str) -> dict:
         st().store.delete_conversation(cid)
+        st().checkpoints.delete_conversation(cid)
         return {"ok": True}
+
+    @app.post("/api/checkpoints/{cp_id}/undo")
+    async def undo_step(cp_id: str, body: UndoIn) -> dict:
+        """Put back the files one tool call changed, and mark that step as undone in its chat."""
+        state = st()
+        try:
+            cp = state.checkpoints.undo(cp_id, force=body.force)
+        except CheckpointError as exc:
+            raise HTTPException(exc.status, {"message": str(exc), "changed": exc.changed}) from exc
+        for m in state.store.messages(cp["conversation_id"]):
+            events = m["meta"].get("tools") or []
+            hit = [ev for ev in events if ev.get("type") == "tool_result" and ev.get("checkpoint") == cp_id]
+            for ev in hit + [ev for ev in m["meta"].get("events") or [] if ev.get("checkpoint") == cp_id]:
+                ev["undone"] = True
+            if hit:
+                state.store.update_message_meta(m["id"], m["meta"])
+        return {"ok": True, "files": [f["path"] for f in cp["files"]]}
 
     # ---------------------------------------------------------------- memory
     def check_scope(scope: str) -> str:
@@ -719,11 +746,24 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             final_text, error, cancelled = "", None, True
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
             options = state.options(mode, project)
+            options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
+            started = time.perf_counter()
+
+            def record(ev: dict[str, Any]) -> None:
+                """The run's events, for the step-by-step view; consecutive text pieces are merged."""
+                events = meta.setdefault("events", [])
+                last = events[-1] if events else None
+                if (ev["type"] in ("delta", "reasoning") and last and last["type"] == ev["type"]
+                        and last.get("subtask") == ev.get("subtask")):
+                    last["text"] += ev["text"]
+                elif len(events) < MAX_RUN_EVENTS:
+                    events.append({**ev, "t": round(time.perf_counter() - started, 3)})
             try:
                 if state.memory_settings()["enabled"]:
                     options.memory = await state.memory.recall(body.message, project["id"] if project else None)
                     if (memory_event := options.memory.event()) is not None:
                         meta["memory"] = memory_event
+                        record(memory_event)
                         yield _sse(memory_event)
                 async for ev in orchestrator.run(history, body.message, options):
                     kind = ev["type"]
@@ -749,6 +789,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         if ev.get("private"):
                             meta["private"] = True
                         cancelled = False
+                    record(ev)
                     yield _sse(ev)
             except Exception as exc:  # never leave the client hanging without a reason
                 error, cancelled = f"{exc.__class__.__name__}: {exc}", False

@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
-import { api } from "../api";
+import { ApiError, api } from "../api";
 import { t } from "../i18n";
-import type { PermissionState, ProviderInfo, RunState, Specialist } from "../types";
+import type { PermissionState, ProviderInfo, RunState, Specialist, ToolState } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
@@ -26,7 +26,37 @@ function Collapsible({ title, children, defaultOpen = false, live = false }: {
   );
 }
 
-function Permission({ p, onDecided }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void }) {
+/** Put back the files one tool call changed. A file edited again since then is only overwritten on a second click. */
+function Undo({ tool }: { tool: ToolState }) {
+  const [state, setState] = useState<"idle" | "busy" | "done" | "conflict">(tool.undone ? "done" : "idle");
+  const [error, setError] = useState("");
+  const undo = async (force: boolean) => {
+    setState("busy"); setError("");
+    try {
+      await api.post(`/api/checkpoints/${tool.checkpoint}/undo`, { force });
+      setState("done");
+    } catch (e) {
+      const err = e as ApiError;
+      if (err.status === 409) setState("conflict");
+      else if (err.status === 400 && err.message.includes("already undone")) setState("done");
+      else { setState("idle"); setError(err.message); }
+    }
+  };
+  if (state === "done") return <div className="undo small muted">{t.undone}</div>;
+  return (
+    <div className="undo">
+      {state === "conflict" ? (
+        <><span className="small warn-text">{t.undoConflict}</span>
+          <button className="btn small danger" onClick={() => undo(true)}>{t.undoAnyway}</button></>
+      ) : (
+        <button className="btn small" disabled={state === "busy"} onClick={() => undo(false)}>{t.undo}</button>
+      )}
+      {error && <span className="bad small">{error}</span>}
+    </div>
+  );
+}
+
+function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean }) {
   const decide = async (decision: "allow_once" | "allow_always" | "deny") => {
     onDecided(p.id, "sending");
     try {
@@ -35,10 +65,10 @@ function Permission({ p, onDecided }: { p: PermissionState; onDecided: (id: stri
       onDecided(p.id, "pending");
     }
   };
-  if (p.status !== "pending" && p.status !== "sending") {
+  if (readOnly || (p.status !== "pending" && p.status !== "sending")) {
     return (
       <div className="permission done">
-        <IconTool size={14} /> <code>{p.tool}</code> · {p.status === "deny" ? t.denied : t.allowed}
+        <IconTool size={14} /> <code>{p.tool}</code>{p.status === "pending" ? ` · ${t.permissionAsk}` : ` · ${p.status === "deny" ? t.denied : t.allowed}`}
       </div>
     );
   }
@@ -108,13 +138,15 @@ function Retry({ providers, onRetry, failed }: { providers: ProviderInfo[]; onRe
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry }: {
+export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
   projectId?: string;
   providers?: ProviderInfo[];
   onRetry?: (providerId: string | null) => void; // only on the chat's last answer
+  onReplay?: () => void;
+  replay?: boolean; // shown inside the step-by-step view: nothing in it acts
 }) {
   const [copied, setCopied] = useState(false);
   const live = run.status === "running" || run.status === "planning" || run.status === "synthesizing";
@@ -175,6 +207,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
                 <div className="label">{t.tool}</div>
                 <pre>{JSON.stringify(tool.arguments, null, 2)}</pre>
                 {tool.result !== undefined && (<><div className="label">{t.result}</div><pre>{tool.result}</pre></>)}
+                {tool.ok && tool.checkpoint && !replay && <Undo tool={tool} />}
               </div>
             </Collapsible>
           ))}
@@ -182,7 +215,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       )}
 
       {run.permissions.map((p) => (
-        <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} />
+        <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} />
       ))}
 
       {run.trimmed ? <div className="notice">{run.trimmed} {t.contextTrimmed}</div> : null}
@@ -196,17 +229,18 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
         </div>
       ) : null}
 
-      {files.length > 0 && <Files files={files} projectId={projectId} />}
+      {files.length > 0 && !replay && <Files files={files} projectId={projectId} />}
 
       {run.error && <div className="error-box" role="alert">{t.error}: {run.error}</div>}
       {run.status === "stopped" && <div className="notice">{t.stopped}</div>}
 
-      {!live && (run.text || onRetry) && (
+      {!live && !replay && (run.text || onRetry) && (
         <div className="msg-actions">
           {run.text && <button className="icon-btn" onClick={() => { navigator.clipboard?.writeText(run.text); setCopied(true); setTimeout(() => setCopied(false), 1500); }} title={t.copy} aria-label={t.copy}>
             <IconCopy size={15} />
           </button>}
           {onRetry && <Retry providers={providers} onRetry={onRetry} failed={run.status === "error"} />}
+          {onReplay && run.events?.length ? <button className="link-btn small" onClick={onReplay}>{t.replay}</button> : null}
           {copied && <span className="muted small">{t.copied}</span>}
           {run.elapsed !== undefined && <span className="muted small">{run.elapsed.toFixed(1)} s</span>}
           {sensitive && <span className="muted small disclaimer">{t.disclaimerSensitive}</span>}

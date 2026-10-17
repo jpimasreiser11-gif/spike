@@ -58,6 +58,18 @@ const es = {
   edit: "Editar",
   resend: "Enviar",
   cancel: "Cancelar",
+  undo: "Deshacer",
+  undone: "Deshecho: el archivo volvió a como estaba",
+  undoConflict: "El archivo cambió después de este paso.",
+  undoAnyway: "Deshacer igualmente",
+  replay: "Ver paso a paso",
+  replayTitle: "Paso a paso",
+  step: "Paso",
+  prevStep: "Paso anterior",
+  nextStep: "Paso siguiente",
+  play: "Reproducir",
+  pause: "Pausa",
+  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
 };
 
 type Dict = typeof es;
@@ -122,6 +134,18 @@ const en: Dict = {
   edit: "Edit",
   resend: "Send",
   cancel: "Cancel",
+  undo: "Undo",
+  undone: "Undone: the file is back as it was",
+  undoConflict: "The file changed after this step.",
+  undoAnyway: "Undo anyway",
+  replay: "Step by step",
+  replayTitle: "Step by step",
+  step: "Step",
+  prevStep: "Previous step",
+  nextStep: "Next step",
+  play: "Play",
+  pause: "Pause",
+  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";
