@@ -125,3 +125,9 @@ export const IconLock = ({ size }: P) => (
     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   </svg>
 );
+export const IconTimer = ({ size }: P) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="13" r="8" strokeDasharray="3 2.2" />
+    <path d="M12 9v4l2.5 2M10 2h4" />
+  </svg>
+);

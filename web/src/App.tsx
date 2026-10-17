@@ -3,7 +3,7 @@ import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
-import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload } from "./components/Icons";
+import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { Replay } from "./components/Replay";
@@ -88,6 +88,7 @@ export default function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("auto");
+  const [temporary, setTemporary] = useState(false); // a chat kept in memory only, without SPIKE's memory
   const [providerId, setProviderId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -131,6 +132,7 @@ export default function App() {
     setActiveId(id);
     setArtifact(null);
     setMode(conv.mode || "auto");
+    setTemporary(Boolean((conv as { temporary?: boolean }).temporary));
     setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content, id: m.id } : { kind: "assistant", run: runFromStored(m) })));
     if (window.innerWidth <= 860) setSidebar(false);
   };
@@ -140,6 +142,7 @@ export default function App() {
     setActiveId(null);
     setItems([]);
     setArtifact(null);
+    setTemporary(false);
     if (project) setMode(project.mode);
   };
 
@@ -187,7 +190,7 @@ export default function App() {
     const started = performance.now();
     try {
       await streamChat({ message: text, conversation_id: activeId, mode, provider_id: provider, project_id: project?.id ?? null,
-                         replace_from: replaceFrom ?? null }, (ev) => {
+                         replace_from: replaceFrom ?? null, temporary: temporary && !activeId }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
@@ -274,6 +277,10 @@ export default function App() {
           {!sidebar && <button className="icon-btn" onClick={newChat} aria-label={t.newChat}><IconPlus /></button>}
           {project && <span className="crumb"><IconFolder size={15} /> {project.name}</span>}
           <div className="spacer" />
+          {(empty || temporary) && (
+            <button className={`btn small temp-toggle ${temporary ? "on" : ""}`} aria-pressed={temporary} disabled={!empty}
+              onClick={() => setTemporary(!temporary)} title={t.temporaryHint}><IconTimer size={15} /> {t.temporaryChat}</button>
+          )}
           <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle theme">{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
         </header>
 
@@ -286,8 +293,8 @@ export default function App() {
             ) : (
               <>
                 {!fatal && <img className="welcome-mark" src="/states/empty-chat.webp" alt="" width={220} height={144} />}
-                <h1>{t.greeting}</h1>
-                <p className="muted">{t.greetingSub}</p>
+                <h1>{temporary ? t.temporaryChat : t.greeting}</h1>
+                <p className="muted">{temporary ? t.temporaryHint : t.greetingSub}</p>
               </>
             )}
             <div className="welcome-composer">{composer}</div>
@@ -306,6 +313,7 @@ export default function App() {
               stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
             }}>
               <div className="thread-inner">
+                {temporary && <div className="notice temp-notice"><IconTimer size={14} /> {t.temporaryHint}</div>}
                 {items.map((it, i) =>
                   it.kind === "user" ? (
                     <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined} />

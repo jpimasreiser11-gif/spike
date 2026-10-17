@@ -206,6 +206,18 @@ await page.keyboard.press("Escape");
 await learnedRule.getByRole("button", { name: "Deshacer" }).click();
 await page.locator(".learned-line", { hasText: "Quitado de la memoria" }).waitFor();
 
+// temporary chat: not listed in the sidebar, no memory used
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.getByRole("button", { name: "Chat temporal" }).click();
+await page.getByRole("heading", { name: "Chat temporal" }).waitFor();
+await page.locator("#composer-input").fill("Pregunta temporal sobre el cliente Norte");
+await page.keyboard.press("Enter");
+await page.locator(".temp-notice").waitFor();
+await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
+if (await page.locator(".conv-title", { hasText: "Pregunta temporal" }).count()) fail("temporary chat listed in the sidebar");
+if (await page.locator(".memory-chip").count()) fail("temporary chat used memory");
+await page.screenshot({ path: `${out}/07g-temporary.png` });
+
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();

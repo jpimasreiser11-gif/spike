@@ -73,6 +73,7 @@ class AppState:
     def __init__(self, home: Path | None = None, provider_factory=create_provider):
         self.home = home or spike_home()
         self.store = Store(self.home / "spike.db")
+        self.temp = Store(Path(":memory:"))  # temporary chats: never on disk, gone when SPIKE stops
         self.checkpoints = Checkpoints(self.store, self.home / "checkpoints")
         self.secrets = SecretStore(self.home / "secrets.json")
         self.provider_factory = provider_factory
@@ -242,6 +243,10 @@ class AppState:
         for pid in self.providers_for_run(override_provider):
             if pid not in self.installed_adapters and self.provider_config(pid):
                 await self.refresh_adapters(pid)
+
+    def store_for(self, conversation_id: str | None) -> Store:
+        """The store holding this chat: the temporary one for temporary chats, the database otherwise."""
+        return self.temp if conversation_id and self.temp.get_conversation(conversation_id) else self.store
 
     # ------------------------------------------------------------------ learning from the user (Evolution 1)
     def learn_from(self, message: str, conversation: dict[str, Any], user_message_id: str,

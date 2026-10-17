@@ -62,6 +62,9 @@ acknowledge reports within 7 days.
   "a partir de ahora…" saves at once (shown on the answer, with undo), and a correction only becomes a rule when
   you press "Guardar regla"; file contents, tool results and web pages never create one. Chat summaries are only
   made with a local model, and the `/v1` API and the MCP server never receive your memory.
+- Temporary chats live in an in-memory database: their messages are never written to disk and vanish when SPIKE
+  stops. They neither read nor write memory. The spending log still records each call's token counts (no text),
+  and files a tool writes are ordinary files.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

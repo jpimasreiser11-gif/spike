@@ -386,6 +386,9 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .bubble-edit { width: 100%; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: 14px; padding: 10px 14px; font: inherit; resize: vertical; }
 
 /* undo and step-by-step view */
+.temp-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.temp-toggle.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.temp-notice { display: flex; align-items: center; gap: 6px; justify-content: center; margin-bottom: 12px; }
 .learned { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .learned-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; color: var(--text-2); }
 .learn-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--border);

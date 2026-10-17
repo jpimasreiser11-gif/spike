@@ -65,6 +65,7 @@ class ChatIn(BaseModel):
     provider_id: str | None = None
     project_id: str | None = None  # for a new chat; an existing chat keeps its own project
     replace_from: str | None = None  # a user message of this chat: it and everything after it are replaced (edit, retry)
+    temporary: bool = False  # for a new chat: kept in memory only, no SPIKE memory read or written, gone on restart
 
 
 class MemoryIn(BaseModel):
@@ -616,21 +617,22 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     @app.get("/api/conversations/{cid}")
     async def get_conversation(cid: str) -> dict:
-        conv = st().store.get_conversation(cid)
+        store = st().store_for(cid)
+        conv = store.get_conversation(cid)
         if not conv:
             raise HTTPException(404, "conversation not found")
-        return {**conv, "messages": st().store.messages(cid)}
+        return {**conv, "messages": store.messages(cid), "temporary": store is st().temp}
 
     @app.patch("/api/conversations/{cid}")
     async def patch_conversation(cid: str, body: ConversationPatch) -> dict:
-        conv = st().store.update_conversation(cid, **body.model_dump(exclude_none=True))
+        conv = st().store_for(cid).update_conversation(cid, **body.model_dump(exclude_none=True))
         if not conv:
             raise HTTPException(404, "conversation not found")
         return conv
 
     @app.delete("/api/conversations/{cid}")
     async def delete_conversation(cid: str) -> dict:
-        st().store.delete_conversation(cid)
+        st().store_for(cid).delete_conversation(cid)
         st().checkpoints.delete_conversation(cid)
         return {"ok": True}
 
@@ -642,13 +644,14 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             cp = state.checkpoints.undo(cp_id, force=body.force)
         except CheckpointError as exc:
             raise HTTPException(exc.status, {"message": str(exc), "changed": exc.changed}) from exc
-        for m in state.store.messages(cp["conversation_id"]):
+        store = state.store_for(cp["conversation_id"])
+        for m in store.messages(cp["conversation_id"]):
             events = m["meta"].get("tools") or []
             hit = [ev for ev in events if ev.get("type") == "tool_result" and ev.get("checkpoint") == cp_id]
             for ev in hit + [ev for ev in m["meta"].get("events") or [] if ev.get("checkpoint") == cp_id]:
                 ev["undone"] = True
             if hit:
-                state.store.update_message_meta(m["id"], m["meta"])
+                store.update_message_meta(m["id"], m["meta"])
         return {"ok": True, "files": [f["path"] for f in cp["files"]]}
 
     @app.post("/api/messages/{mid}/learn")
@@ -781,7 +784,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, f"unknown provider '{body.provider_id}'")
         if body.project_id and not state.store.get_project(body.project_id):
             raise HTTPException(400, f"unknown project '{body.project_id}'")
-        conv = state.store.get_conversation(body.conversation_id) if body.conversation_id else None
+        store = state.store_for(body.conversation_id) if body.conversation_id else \
+            state.temp if body.temporary else state.store
+        temporary = store is state.temp
+        conv = store.get_conversation(body.conversation_id) if body.conversation_id else None
         if body.replace_from and conv is None:
             raise HTTPException(400, "replace_from needs an existing conversation")
         mode = body.mode
@@ -789,24 +795,24 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             project = state.store.get_project(body.project_id) if body.project_id else None
             if project and mode == "auto":
                 mode = project["mode"]
-            conv = state.store.create_conversation(title=_title_from(body.message), mode=mode,
+            conv = store.create_conversation(title=_title_from(body.message), mode=mode,
                                                    provider_id=body.provider_id, project_id=body.project_id)
         project = state.store.get_project(conv["project_id"]) if conv.get("project_id") else None
         if body.replace_from:
-            target = next((m for m in state.store.messages(conv["id"]) if m["id"] == body.replace_from), None)
+            target = next((m for m in store.messages(conv["id"]) if m["id"] == body.replace_from), None)
             if target is None or target["role"] != "user":
                 raise HTTPException(400, "replace_from must be a user message of this conversation")
-            state.store.delete_messages_from(conv["id"], body.replace_from)
+            store.delete_messages_from(conv["id"], body.replace_from)
         history = [Message(role=m["role"], content=m["content"],
                            private=[m["content"]] if m["meta"].get("private") else [])  # answers that quote files
-                   for m in state.store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
-        user_message = state.store.add_message(conv["id"], "user", body.message)
+                   for m in store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
+        user_message = store.add_message(conv["id"], "user", body.message)
         await state.ensure_adapters(body.provider_id)
         await state.connectors.ensure_started()
 
         async def stream() -> AsyncIterator[bytes]:
             yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"],
-                        "user_message_id": user_message["id"]})
+                        "user_message_id": user_message["id"], **({"temporary": True} if temporary else {})})
             meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
             final_text, error, cancelled = "", None, True
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
@@ -824,15 +830,15 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 elif len(events) < MAX_RUN_EVENTS:
                     events.append({**ev, "t": round(time.perf_counter() - started, 3)})
             try:
-                learned, saved = state.learn_from(body.message, conv, user_message["id"],
-                                                  any(m.role == "assistant" for m in history))
+                learned, saved = ({}, []) if temporary else state.learn_from(
+                    body.message, conv, user_message["id"], any(m.role == "assistant" for m in history))
                 if learned:
                     meta["learn"] = learned
                     for ev in ([{"type": "memory_saved", "saved": learned["saved"]}] if "saved" in learned else
                                [{"type": "correction", "text": learned["correction"]["text"]}]):
                         record(ev)
                         yield _sse(ev)
-                if state.memory_settings()["enabled"]:
+                if state.memory_settings()["enabled"] and not temporary:
                     options.memory = await state.memory.recall(body.message, project["id"] if project else None)
                     options.memory.saved = saved
                     if (memory_event := options.memory.event()) is not None:
@@ -871,8 +877,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             finally:
                 meta["error"] = error
                 meta["cancelled"] = cancelled
-                state.store.add_message(conv["id"], "assistant", final_text, meta)
-                if not error and not cancelled:
+                store.add_message(conv["id"], "assistant", final_text, meta)
+                if not error and not cancelled and not temporary:
                     state.background(state.maybe_summarize(conv["id"], body.provider_id))
 
         return StreamingResponse(stream(), media_type="text/event-stream",

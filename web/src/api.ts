@@ -67,6 +67,7 @@ export async function streamChat(
   body: {
     message: string; conversation_id?: string | null; mode: string; provider_id?: string | null; project_id?: string | null;
     replace_from?: string | null; // a user message: it and everything after it are replaced (edit, retry)
+    temporary?: boolean; // a new chat kept in memory only, without SPIKE's memory
   },
   onEvent: (ev: ChatEvent) => void,
   signal: AbortSignal,
