@@ -1,0 +1,127 @@
+{
+  "meta": {
+    "run_id": "20261017-172047",
+    "model": "/Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf",
+    "adapters": {},
+    "server_url": "http://127.0.0.1:51868",
+    "parallel": 4,
+    "kv_cache_type": "q8_0",
+    "max_tokens": 512,
+    "seed": 0,
+    "decoding": "greedy",
+    "thinking": false,
+    "host": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64",
+    "props": "b11669-620d2225c",
+    "rescored": {
+      "date_utc": "2026-10-17T17:35:05Z",
+      "git_commit": "c30fa1b",
+      "rows": 3118,
+      "parsed_changed": 403,
+      "correct_changed": 289
+    }
+  },
+  "variants": [
+    "base"
+  ],
+  "tasks": {
+    "medmcqa-val": {
+      "accuracy": {
+        "base": {
+          "n": 1000,
+          "correct": 242,
+          "accuracy": 0.242,
+          "ci95": [
+            0.2165,
+            0.2695
+          ],
+          "unparsed": 440,
+          "truncated": 194
+        }
+      },
+      "vs_base": {}
+    },
+    "mmlu-pro-general": {
+      "accuracy": {
+        "base": {
+          "n": 800,
+          "correct": 446,
+          "accuracy": 0.5575,
+          "ci95": [
+            0.5229,
+            0.5916
+          ],
+          "unparsed": 105,
+          "truncated": 166
+        }
+      },
+      "vs_base": {}
+    },
+    "mmlu-pro-health": {
+      "accuracy": {
+        "base": {
+          "n": 818,
+          "correct": 203,
+          "accuracy": 0.2482,
+          "ci95": [
+            0.2198,
+            0.2789
+          ],
+          "unparsed": 298,
+          "truncated": 314
+        }
+      },
+      "vs_base": {}
+    },
+    "pubmedqa-labeled": {
+      "accuracy": {
+        "base": {
+          "n": 500,
+          "correct": 213,
+          "accuracy": 0.426,
+          "ci95": [
+            0.3834,
+            0.4697
+          ],
+          "unparsed": 0,
+          "truncated": 470
+        }
+      },
+      "vs_base": {}
+    }
+  },
+  "suites": {
+    "general": {
+      "accuracy": {
+        "base": {
+          "n": 800,
+          "correct": 446,
+          "accuracy": 0.5575,
+          "ci95": [
+            0.5229,
+            0.5916
+          ],
+          "unparsed": 105,
+          "truncated": 166
+        }
+      },
+      "vs_base": {}
+    },
+    "medicine": {
+      "accuracy": {
+        "base": {
+          "n": 2318,
+          "correct": 658,
+          "accuracy": 0.2839,
+          "ci95": [
+            0.2659,
+            0.3026
+          ],
+          "unparsed": 738,
+          "truncated": 978
+        }
+      },
+      "vs_base": {}
+    }
+  }
+}
