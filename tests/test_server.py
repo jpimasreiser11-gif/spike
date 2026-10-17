@@ -125,3 +125,34 @@ def test_retry_and_edit_replace_the_rest_of_the_chat(env):
                 {"replace_from": uid}):
         assert client.post("/api/chat", json={"message": "x", **bad}).status_code == 400
     assert len(state.store.list_conversations()) == 1  # a refused retry creates no chat
+
+
+def test_an_edit_can_go_on_in_a_branch_and_the_original_stays(tmp_path, monkeypatch):
+    monkeypatch.setenv("SPIKE_HOME", str(tmp_path))
+    monkeypatch.setenv("SPIKE_NO_KEYRING", "1")
+    local = ScriptedProvider([text("uno"), text("dos"), text("dos bis")], name="spike-local")
+
+    def factory(cfg):
+        local.config = cfg
+        return local
+
+    client = TestClient(create_app(AppState(home=tmp_path, provider_factory=factory)))
+    client.get("/api/providers")
+
+    def send(message, cid=None):
+        body = {"message": message, "mode": "core", **({"conversation_id": cid} if cid else {})}
+        lines = client.post("/api/chat", json=body).text.splitlines()
+        return next(json.loads(x[6:]) for x in lines if x.startswith("data: ") and '"conversation"' in x)
+
+    cid = send("primera")["id"]
+    second = send("segunda", cid)["user_message_id"]
+    branch = client.post(f"/api/conversations/{cid}/branch", json={"before": second, "title": "Rama"}).json()
+    assert branch["title"] == "Rama" and branch["id"] != cid and branch["temporary"] is False
+    copied = client.get(f"/api/conversations/{branch['id']}").json()["messages"]
+    assert [(m["role"], m["content"]) for m in copied] == [("user", "primera"), ("assistant", "uno")]
+
+    send("segunda, mejor así", branch["id"])
+    assert [m.content for m in local.requests[-1].messages[1:]] == ["primera", "uno", "segunda, mejor así"]
+    original = client.get(f"/api/conversations/{cid}").json()["messages"]
+    assert [m["content"] for m in original] == ["primera", "uno", "segunda", "dos"]
+    assert client.post(f"/api/conversations/{cid}/branch", json={"before": original[1]["id"]}).status_code == 400

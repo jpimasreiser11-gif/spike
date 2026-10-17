@@ -15,8 +15,9 @@ import type { ChatEvent, Conversation, PermissionState, Project, ProviderInfo, R
 
 type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
 
-/** A sent message, editable in place: sending the edit replaces it and everything after it. */
-function UserMessage({ text, onEdit }: { text: string; onEdit?: (text: string) => void }) {
+/** A sent message, editable in place: sending the edit replaces it and everything after it, or goes on in a branch
+ * (a copy of the chat up to this message) so the original stays as it was. */
+function UserMessage({ text, onEdit, onBranch }: { text: string; onEdit?: (text: string) => void; onBranch?: (text: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
   if (draft !== null) {
     return (
@@ -25,6 +26,7 @@ function UserMessage({ text, onEdit }: { text: string; onEdit?: (text: string) =
           autoFocus onChange={(e) => setDraft(e.target.value)} />
         <div className="row">
           <button className="btn" onClick={() => setDraft(null)}>{t.cancel}</button>
+          {onBranch && <button className="btn" disabled={!draft.trim()} title={t.branchHint} onClick={() => { onBranch(draft.trim()); setDraft(null); }}>{t.sendBranch}</button>}
           <button className="btn primary" disabled={!draft.trim()} onClick={() => { onEdit?.(draft.trim()); setDraft(null); }}>{t.resend}</button>
         </div>
       </div>
@@ -177,7 +179,7 @@ export default function App() {
     });
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
-  const send = async (text: string, from?: number, provider: string | null = providerId) => {
+  const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId) => {
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -189,8 +191,8 @@ export default function App() {
     abortRef.current = controller;
     const started = performance.now();
     try {
-      await streamChat({ message: text, conversation_id: activeId, mode, provider_id: provider, project_id: project?.id ?? null,
-                         replace_from: replaceFrom ?? null, temporary: temporary && !activeId }, (ev) => {
+      await streamChat({ message: text, conversation_id: conversationId, mode, provider_id: provider, project_id: project?.id ?? null,
+                         replace_from: replaceFrom ?? null, temporary: temporary && !conversationId }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
@@ -207,6 +209,22 @@ export default function App() {
       setBusy(false);
       abortRef.current = null;
       loadConversations();
+    }
+  };
+
+  /** Copy the chat up to user message `from` and send the edited text there; the original chat stays as it was. */
+  const branch = async (text: string, from: number) => {
+    const target = items[from];
+    if (target?.kind !== "user" || !target.id || !activeId) return;
+    const title = conversations.find((c) => c.id === activeId)?.title;
+    try {
+      const conv = await api.post<Conversation>(`/api/conversations/${activeId}/branch`,
+        { before: target.id, title: title ? `${title} · ${t.branch}` : undefined });
+      setActiveId(conv.id);
+      setItems((prev) => prev.slice(0, from));
+      await send(text, undefined, providerId, conv.id);
+    } catch (e) {
+      setFatal(String((e as Error).message));
     }
   };
 
@@ -316,7 +334,8 @@ export default function App() {
                 {temporary && <div className="notice temp-notice"><IconTimer size={14} /> {t.temporaryHint}</div>}
                 {items.map((it, i) =>
                   it.kind === "user" ? (
-                    <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined} />
+                    <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined}
+                      onBranch={!busy && it.id && activeId ? (text) => branch(text, i) : undefined} />
                   ) : (
                     <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id}
                       providers={providers} onReplay={() => setReplay(it.run.events ?? null)}

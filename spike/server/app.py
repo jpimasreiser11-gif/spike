@@ -133,6 +133,11 @@ class DecisionIn(BaseModel):
     decision: str
 
 
+class BranchIn(BaseModel):
+    before: str  # a user message: the new chat gets everything before it
+    title: str | None = Field(default=None, max_length=300)
+
+
 class ConversationPatch(BaseModel):
     title: str | None = None
     mode: str | None = None
@@ -629,6 +634,28 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         if not conv:
             raise HTTPException(404, "conversation not found")
         return conv
+
+    @app.post("/api/conversations/{cid}/branch")
+    async def branch_conversation(cid: str, body: BranchIn) -> dict:
+        """A copy of the chat up to (not including) one of the user's messages, so an edit can go on in its own
+        chat and the original stays as it was. Undo stays with the original chat's steps."""
+        store = st().store_for(cid)
+        conv = store.get_conversation(cid)
+        if not conv:
+            raise HTTPException(404, "conversation not found")
+        messages = store.messages(cid)
+        at = next((i for i, m in enumerate(messages) if m["id"] == body.before and m["role"] == "user"), None)
+        if at is None:
+            raise HTTPException(400, "'before' must be a user message of this conversation")
+        new = store.create_conversation(title=body.title or conv["title"], mode=conv["mode"],
+                                        provider_id=conv["provider_id"], project_id=conv["project_id"])
+        for m in messages[:at]:
+            meta = json.loads(json.dumps(m["meta"]))
+            for ev in [*(meta.get("tools") or []), *(meta.get("events") or [])]:
+                ev.pop("checkpoint", None)
+            meta.pop("learn", None)
+            store.add_message(new["id"], m["role"], m["content"], meta, created=m["created"])
+        return {**new, "temporary": store is st().temp}
 
     @app.delete("/api/conversations/{cid}")
     async def delete_conversation(cid: str) -> dict:

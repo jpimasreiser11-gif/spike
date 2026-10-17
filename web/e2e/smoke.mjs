@@ -40,10 +40,31 @@ await page.waitForFunction(() => document.querySelectorAll(".msg-actions").lengt
 await page.locator(".msg.user").first().hover();
 await page.locator(".msg.user").first().getByRole("button", { name: "Editar" }).click();
 await page.getByLabel("Editar").fill("Hola de nuevo, ¿quién eres?");
-await page.locator(".msg.user.editing").getByRole("button", { name: "Enviar" }).click();
+await page.locator(".msg.user.editing").getByRole("button", { name: "Enviar", exact: true }).click();
 await page.locator(".msg.user .bubble", { hasText: "Hola de nuevo" }).waitFor({ timeout: 10000 });
 await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 1 && document.querySelectorAll(".msg.user").length === 1, null, { timeout: 10000 })
   .catch(() => fail("edit should replace the turn"));
+
+// 1c. an edit sent as a branch goes on in a copy; the original chat keeps its turn
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+for (const [question, answers] of [["¿Qué sabes hacer?", 1], ["Dímelo en una lista", 2]]) {
+  await page.locator("#composer-input").fill(question);
+  await page.keyboard.press("Enter");
+  await page.waitForFunction((n) => document.querySelectorAll(".msg-actions").length === n, answers, { timeout: 10000 });
+}
+await page.locator(".msg.user").last().hover();
+await page.locator(".msg.user").last().getByRole("button", { name: "Editar" }).click();
+await page.getByRole("textbox", { name: "Editar" }).fill("Dímelo en una tabla");
+await page.locator(".msg.user.editing").getByRole("button", { name: "Enviar en una rama" }).click();
+await page.locator(".conv-title", { hasText: "¿Qué sabes hacer? · rama" }).waitFor({ timeout: 10000 });
+await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 2, null, { timeout: 10000 });
+const branchTexts = (await page.locator(".msg.user .bubble").allTextContents()).map((x) => x.trim()).join("|");
+if (branchTexts !== "¿Qué sabes hacer?|Dímelo en una tabla") fail("branch thread: " + branchTexts);
+await page.screenshot({ path: `${out}/01c-branch.png` });
+await page.locator(".conv-title", { hasText: /^¿Qué sabes hacer\?$/ }).click();
+await page.locator(".msg.user .bubble", { hasText: "Dímelo en una lista" }).waitFor({ timeout: 10000 });
+await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).click();
+await page.locator(".msg.user .bubble", { hasText: "Hola de nuevo" }).waitFor({ timeout: 10000 });
 
 // 2. multi-specialist plan with synthesis
 await page.locator("#composer-input").fill("Plan a marketing campaign for an ETF and estimate the ROI of the investment");
