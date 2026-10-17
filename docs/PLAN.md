@@ -119,7 +119,7 @@ claimed until measured.
 
 ## 23. Open-source strategy
 - **Plan**: publish when P1 measurements exist (real numbers make the README credible); good-first-issues for new specialists' recipes; reproducible eval tables; issue templates; transparent STATUS.md.
-- **Status**: ⬜ waiting for the repository decision (joan).
+- **Status**: ✅ issue templates (bug, specialist recipe) and PR template in `.github/`; joan chose a private GitHub repository `spike`, made public once P1 results exist; ⬜ first push.
 
 ## 24. Objective completion criteria
 SPIKE 1.0 is done only when all 15 conditions of the directive hold with evidence. Current mapping:
