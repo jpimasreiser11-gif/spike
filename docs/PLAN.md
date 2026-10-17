@@ -161,7 +161,8 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | B6 | Evolution level 1: a user's correction becomes a memory rule applied in later chats | ✅ (fixed patterns; corrections need the user's OK) |
 | C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ✅ tested with Playwright MCP 0.0.83 and Chromium (local install, not the `npx` download) |
 | C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace; Blueprint first; local/API executor; ~10 test tasks with a measured success rate before announcing it | ✅ built and tested with a scripted model; 🟡 success rate with real weights not measured yet (`spike forge eval --baseline`), so Forge is not announced |
-| C3–C6 | `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
+| C3 | `spike dev` in the terminal on the agent loop: read, search, edit and run commands with permissions, undo points, Superpowers skills | ✅ tests + a real pseudo-terminal run with a scripted model; 🟡 not tried with real weights |
+| C4–C6 | Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
 | C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ⬜ |
 | C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ⬜ |
 | D | Motion (video from code: animated HTML/SVG, Motion Canvas or Manim, rendered with ffmpeg; not Remotion, whose license is not OSI) and Evolution levels 2–3 (prompt/skill optimisation against local evals, opt-in corrections as retraining data; nothing ships without passing the eval) | ⬜ |

@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import logging
+import signal
 import sys
 import webbrowser
 from dataclasses import asdict
@@ -244,6 +245,50 @@ def cmd_forge(args: argparse.Namespace) -> int:
     return asyncio.run(run())
 
 
+def cmd_dev(args: argparse.Namespace) -> int:
+    """`spike dev [folder]`: SPIKE's agent codes in a folder from the terminal, asking before edits and commands."""
+    from spike.dev import terminal
+    from spike.dev.session import DevSession
+    from spike.dev.tools import stop_commands
+    from spike.server.state import AppState
+
+    root = Path(args.path).expanduser().resolve()
+    if not root.is_dir():
+        print(f"error: {root} is not a folder", file=sys.stderr)
+        return 2
+    state = AppState()
+    if args.provider and not state.provider_config(args.provider):
+        print(f"error: unknown provider '{args.provider}' (see Settings → Providers)", file=sys.stderr)
+        return 2
+    if args.specialist != "auto" and args.specialist not in state.catalog.specialists:
+        print(f"error: unknown specialist '{args.specialist}'; one of: auto, {', '.join(state.catalog.specialists)}",
+              file=sys.stderr)
+        return 2
+    loop = asyncio.new_event_loop()  # one loop for the session; Ctrl-C stops a request, not the session
+
+    def leave(signum, frame):  # closing the terminal or `kill`: still stop running commands and the engine
+        raise SystemExit(128 + signum)
+
+    for name in ("SIGTERM", "SIGHUP"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), leave)
+    try:
+        if args.start_local:
+            loop.run_until_complete(state.start_runtime())
+        for pid in state.providers_for_run(args.provider):
+            loop.run_until_complete(state.refresh_adapters(pid))
+        session = DevSession(state, root, provider_id=args.provider, specialist=args.specialist,
+                             accept_edits=args.accept_edits, resume=args.resume)
+        return terminal.main(session, loop, args.prompt)
+    finally:
+        stop_commands()
+        if args.start_local:
+            loop.run_until_complete(state.stop_runtime())
+        loop.run_until_complete(state.close())
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
+
+
 def cmd_adapters(args: argparse.Namespace) -> int:
     from spike.evolution import adapters
     from spike.server.state import AppState
@@ -408,6 +453,19 @@ def build_parser() -> argparse.ArgumentParser:
     fg.add_argument("--model", help="GGUF for the local engine (saved as the local model, as `spike tune` does)")
     fg.add_argument("--out", help="write the JSON report here")
     fg.set_defaults(func=cmd_forge)
+
+    dv = sub.add_parser("dev", help="code in a folder from the terminal: SPIKE reads, edits and runs commands with "
+                                    "your OK, and /undo puts files back")
+    dv.add_argument("path", nargs="?", default=".", help="the folder to work in (default: this one)")
+    dv.add_argument("--provider", help="provider for every specialist (default: the app's bindings)")
+    dv.add_argument("--specialist", default="code", help="who answers: a specialist id, or auto (default: code)")
+    dv.add_argument("-p", "--print", dest="prompt", help="run one request without questions and print the answer")
+    dv.add_argument("--accept-edits", action="store_true", help="edit and create files without asking (commands "
+                                                                 "still ask)")
+    dv.add_argument("-c", "--continue", dest="resume", action="store_true",
+                    help="continue the latest conversation in this folder")
+    dv.add_argument("--start-local", action="store_true", help="start the local engine first (and stop it after)")
+    dv.set_defaults(func=cmd_dev)
 
     ad = sub.add_parser("adapters", help="install a trained adapter if its eval results pass acceptance")
     ad.add_argument("action", choices=["install"])

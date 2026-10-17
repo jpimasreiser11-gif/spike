@@ -148,6 +148,8 @@ run. The checker also judges each criterion; the answer ends with a `forge_repor
 what stayed unresolved). `spike forge eval` runs the ten tasks of `spike/forge/tasks.jsonl` in empty folders, with
 their checks run by SPIKE (Python in a limited subprocess), against the core model alone with `--baseline`.
 
+**`spike dev` (C3).** `spike/dev/` reuses the orchestrator and the agent loop with its own registry: the usual file tools on the chosen folder plus `edit_file`, `search`, `find_files` and `run_command` as shared tools (every specialist gets them), its own permission broker (the app's policies; `--accept-edits` allows the edit tools) and its own store `$SPIKE_HOME/dev/sessions.db` with checkpoints in `$SPIKE_HOME/dev/checkpoints` (one conversation per run, titled `dev:<folder>`; `/undo` takes the latest checkpoint of any of them). The terminal (`spike/dev/terminal.py`) settles each permission request and question before the loop goes on, runs each request as a task on one event loop so Ctrl-C cancels the request and not the session, and allows 30 model calls per request.
+
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.

@@ -53,6 +53,7 @@ acknowledge reports within 7 days.
   permission prompts as any chat. `spike forge eval` runs its checks as Python in a subprocess with CPU and memory
   limits, in a temporary folder per task, and some checks import the module the model wrote; during the eval the
   file tools and `python` run without asking and `web_fetch` is refused.
+- `spike dev` works only inside the folder you start it on (paths outside are refused, symlinks resolved). Edits and commands ask first, showing the diff or the command; `--accept-edits` lets edits through, never commands. Edits can be undone with `/undo`; what a command does cannot, and a command runs with your user's rights, not in a sandbox, so read it before allowing it. `-p` and input that is not a terminal refuse every ask. Started on your home folder or a disk root it warns first.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
   and size before anything is written.

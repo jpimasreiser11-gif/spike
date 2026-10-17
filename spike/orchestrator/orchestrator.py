@@ -78,6 +78,7 @@ class OrchestratorOptions:
     checkpoints: Checkpointer | None = None  # copies of files before tools change them (undo), for app chats
     json_schema: dict[str, Any] | None = None  # answer contract: one specialist answers JSON following this schema
     verify: bool = True  # a checker reviews multi-step results and can send work back (Collective)
+    max_steps: int = 8  # model calls per specialist run (tool use); `spike dev` allows more
     forge: Blueprint | None = None  # an approved Forge blueprint: its steps are the plan, its criteria are checked
 
 
@@ -254,7 +255,7 @@ class Orchestrator:
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
-            tag={"specialist": spec.id}, checkpoints=opts.checkpoints,
+            tag={"specialist": spec.id}, checkpoints=opts.checkpoints, max_steps=opts.max_steps,
         ):
             yield ev
 
@@ -362,7 +363,7 @@ class Orchestrator:
             backend.provider, messages, tools=tools, broker=self.broker, run=run,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
-            tag={"subtask": sid, "specialist": spec.id}, checkpoints=opts.checkpoints,
+            tag={"subtask": sid, "specialist": spec.id}, checkpoints=opts.checkpoints, max_steps=opts.max_steps,
         ):
             yield ev
         results[task.id] = run.text if not run.error else f"(failed: {run.error})\n{run.text}"
