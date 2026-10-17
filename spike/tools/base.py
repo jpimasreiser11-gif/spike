@@ -69,6 +69,8 @@ class PermissionRequest:
 class PermissionBroker:
     """Holds pending 'ask' decisions until the user answers in the UI (or a timeout denies them)."""
 
+    interactive = True
+
     def __init__(self, policies: dict[str, Policy] | None = None, timeout_s: float = 300.0):
         self.policies: dict[str, Policy] = dict(policies or {})
         self.session_allow: set[str] = set()
@@ -106,3 +108,16 @@ class PermissionBroker:
             self.session_allow.add(req.tool)
         req.future.set_result(decision)
         return True
+
+
+class HeadlessBroker(PermissionBroker):
+    """The app's policies for callers nobody can answer (the /v1 API): an 'ask' tool is refused, never waited on."""
+
+    interactive = False
+
+    def __init__(self, parent: PermissionBroker):
+        super().__init__(timeout_s=0)
+        self.parent = parent
+
+    def policy_for(self, tool: Tool) -> Policy:
+        return self.parent.policy_for(tool)

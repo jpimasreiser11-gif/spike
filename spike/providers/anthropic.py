@@ -91,6 +91,7 @@ class AnthropicProvider(Provider):
         url = self.config.base_url.rstrip("/") + "/messages"
         blocks: dict[int, dict[str, Any]] = {}
         stop_reason: str | None = None
+        usage: dict[str, Any] = {}
         try:
             async with self.client.stream("POST", url, headers=self.headers(), json=self.build_payload(request)) as resp:
                 await raise_for_status(resp, self.config.name)
@@ -104,9 +105,7 @@ class AnthropicProvider(Provider):
                         yield StreamEvent(kind="error", text=obj.get("error", {}).get("message", "unknown error"))
                         return
                     if kind == "message_start":
-                        usage = obj.get("message", {}).get("usage")
-                        if usage:
-                            yield StreamEvent(kind="usage", usage=usage)
+                        usage.update(obj.get("message", {}).get("usage") or {})
                     elif kind == "content_block_start":
                         block = obj.get("content_block", {})
                         blocks[obj["index"]] = {**block, "partial": ""}
@@ -131,14 +130,15 @@ class AnthropicProvider(Provider):
                             )
                     elif kind == "message_delta":
                         stop_reason = obj.get("delta", {}).get("stop_reason") or stop_reason
-                        if obj.get("usage"):
-                            yield StreamEvent(kind="usage", usage=obj["usage"])
+                        usage.update(obj.get("usage") or {})  # cumulative counts replace message_start's
         except ProviderError as exc:
             yield StreamEvent(kind="error", text=str(exc))
             return
         except Exception as exc:
             yield StreamEvent(kind="error", text=f"{self.config.name}: connection failed: {exc.__class__.__name__}: {exc}")
             return
+        if usage:
+            yield StreamEvent(kind="usage", usage=usage)
         yield StreamEvent(kind="done", finish_reason="tool_calls" if stop_reason == "tool_use" else stop_reason)
 
     async def list_models(self) -> list[str]:

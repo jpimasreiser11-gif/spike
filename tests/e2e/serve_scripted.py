@@ -44,7 +44,9 @@ class DemoProvider(Provider):
                               arguments={"path": "notas.md", "content": "# Notas\n"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
-        if last.role == "tool":
+        if last.role == "user" and "# Project instructions" in system:
+            answer = "Respuesta del proyecto: sigo sus instrucciones y uso sus archivos."
+        elif last.role == "tool":
             answer = f"He creado el archivo. Resultado de la herramienta: `{last.content}`"
         elif "Spike Finance" in system.split("\n")[0]:
             answer = ("**ROI estimado:** con un presupuesto de 50.000 € y 1.200 nuevos inversores con un ticket medio "

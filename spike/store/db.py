@@ -22,7 +22,12 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS messages_by_conv ON messages(conversation_id, created);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS providers (id TEXT PRIMARY KEY, config TEXT NOT NULL, created REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, instructions TEXT NOT NULL DEFAULT '', mode TEXT NOT NULL DEFAULT 'auto',
+  created REAL NOT NULL, updated REAL NOT NULL
+);
 """
+PROJECT_FIELDS = {"name", "instructions", "mode"}
 
 
 class Store:
@@ -33,6 +38,10 @@ class Store:
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.execute("PRAGMA journal_mode = WAL")
         self._conn.executescript(SCHEMA)
+        columns = {r["name"] for r in self._conn.execute("PRAGMA table_info(conversations)")}
+        if "project_id" not in columns:  # databases created before projects existed
+            self._conn.execute("ALTER TABLE conversations ADD COLUMN project_id TEXT")
+            self._conn.commit()
         self._lock = threading.Lock()
 
     def _exec(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
@@ -43,18 +52,26 @@ class Store:
             return rows
 
     # -------------------------------------------------------------- conversations
-    def create_conversation(self, title: str = "New chat", mode: str = "auto", provider_id: str | None = None) -> dict:
+    def create_conversation(self, title: str = "New chat", mode: str = "auto", provider_id: str | None = None,
+                            project_id: str | None = None, created: float | None = None,
+                            updated: float | None = None) -> dict:
         now = time.time()
         cid = uuid.uuid4().hex
-        self._exec("INSERT INTO conversations VALUES (?,?,?,?,?,?)", (cid, title, now, now, mode, provider_id))
+        self._exec("INSERT INTO conversations (id, title, created, updated, mode, provider_id, project_id) "
+                   "VALUES (?,?,?,?,?,?,?)",
+                   (cid, title, created or now, updated or created or now, mode, provider_id, project_id))
         return self.get_conversation(cid)
 
     def get_conversation(self, cid: str) -> dict | None:
         rows = self._exec("SELECT * FROM conversations WHERE id=?", (cid,))
         return dict(rows[0]) if rows else None
 
-    def list_conversations(self, limit: int = 200) -> list[dict]:
-        return [dict(r) for r in self._exec("SELECT * FROM conversations ORDER BY updated DESC LIMIT ?", (limit,))]
+    def list_conversations(self, project_id: str | None = None, limit: int = 200) -> list[dict]:
+        """Chats of one project, or (project_id None) the chats outside every project."""
+        where = "project_id=?" if project_id else "project_id IS NULL"
+        params = (project_id, limit) if project_id else (limit,)
+        return [dict(r) for r in self._exec(f"SELECT * FROM conversations WHERE {where} ORDER BY updated DESC LIMIT ?",
+                                            params)]
 
     def update_conversation(self, cid: str, **fields: Any) -> dict | None:
         allowed = {k: v for k, v in fields.items() if k in {"title", "mode", "provider_id"}}
@@ -67,11 +84,14 @@ class Store:
         self._exec("DELETE FROM conversations WHERE id=?", (cid,))
 
     # -------------------------------------------------------------- messages
-    def add_message(self, cid: str, role: str, content: str, meta: dict | None = None) -> dict:
-        mid, now = uuid.uuid4().hex, time.time()
+    def add_message(self, cid: str, role: str, content: str, meta: dict | None = None,
+                    created: float | None = None) -> dict:
+        """`created` is for imports: the message keeps its time and the chat's own `updated` is left alone."""
+        mid, now = uuid.uuid4().hex, created or time.time()
         self._exec("INSERT INTO messages VALUES (?,?,?,?,?,?)",
                    (mid, cid, role, content, json.dumps(meta or {}, ensure_ascii=False), now))
-        self._exec("UPDATE conversations SET updated=? WHERE id=?", (now, cid))
+        if created is None:
+            self._exec("UPDATE conversations SET updated=? WHERE id=?", (now, cid))
         return {"id": mid, "conversation_id": cid, "role": role, "content": content, "meta": meta or {}, "created": now}
 
     def messages(self, cid: str) -> list[dict]:
@@ -98,3 +118,27 @@ class Store:
 
     def delete_provider(self, pid: str) -> None:
         self._exec("DELETE FROM providers WHERE id=?", (pid,))
+
+    # -------------------------------------------------------------- projects
+    def create_project(self, name: str, instructions: str = "", mode: str = "auto") -> dict:
+        now, pid = time.time(), uuid.uuid4().hex
+        self._exec("INSERT INTO projects VALUES (?,?,?,?,?,?)", (pid, name, instructions, mode, now, now))
+        return self.get_project(pid)
+
+    def get_project(self, pid: str) -> dict | None:
+        rows = self._exec("SELECT * FROM projects WHERE id=?", (pid,))
+        return dict(rows[0]) if rows else None
+
+    def list_projects(self) -> list[dict]:
+        return [dict(r) for r in self._exec("SELECT * FROM projects ORDER BY updated DESC")]
+
+    def update_project(self, pid: str, **fields: Any) -> dict | None:
+        allowed = {k: v for k, v in fields.items() if k in PROJECT_FIELDS}
+        if allowed:
+            sets = ", ".join(f"{k}=?" for k in allowed)
+            self._exec(f"UPDATE projects SET {sets}, updated=? WHERE id=?", (*allowed.values(), time.time(), pid))
+        return self.get_project(pid)
+
+    def delete_project(self, pid: str) -> None:
+        self._exec("DELETE FROM conversations WHERE project_id=?", (pid,))
+        self._exec("DELETE FROM projects WHERE id=?", (pid,))

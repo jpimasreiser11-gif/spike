@@ -7,10 +7,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const raw = body instanceof Blob;
   const res = await fetch(path, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: body === undefined ? undefined : { "Content-Type": raw ? "application/octet-stream" : "application/json" },
+    body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
   if (!res.ok) {
     let detail = res.statusText;
@@ -29,6 +30,8 @@ export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {}),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
+  /** Sends a file (Blob) as the raw request body. */
+  upload: <T>(method: "PUT" | "POST", path: string, file: Blob) => request<T>(method, path, file),
   patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
   del: <T>(path: string) => request<T>("DELETE", path),
 };
@@ -61,7 +64,7 @@ export class SSEParser {
 }
 
 export async function streamChat(
-  body: { message: string; conversation_id?: string | null; mode: string; provider_id?: string | null },
+  body: { message: string; conversation_id?: string | null; mode: string; provider_id?: string | null; project_id?: string | null },
   onEvent: (ev: ChatEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {

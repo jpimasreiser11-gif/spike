@@ -20,7 +20,12 @@ def cmd_serve(args: argparse.Namespace) -> int:
     from spike.server.state import AppState
 
     state = AppState()
-    app = create_app(state)
+    if args.host in ("0.0.0.0", "::", ""):
+        allowed = None  # reachable by any name; /v1 still needs SPIKE_API_TOKEN from other machines
+        print("warning: SPIKE is reachable from your network and the app has no login", file=sys.stderr)
+    else:
+        allowed = {"127.0.0.1", "localhost", "::1", args.host}
+    app = create_app(state, allowed_hosts=allowed)
     if args.start_local:
         try:
             asyncio.run(state.start_runtime())

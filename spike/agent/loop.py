@@ -24,6 +24,7 @@ class AgentRun:
     usage: list[dict[str, Any]] = field(default_factory=list)
     error: str | None = None
     steps: int = 0
+    finish_reason: str | None = None  # of the last model call ("length" = cut by max_tokens)
 
 
 async def run_agent(
@@ -70,6 +71,8 @@ async def run_agent(
             elif ev.kind == "usage" and ev.usage:
                 run.usage.append(ev.usage)
                 yield {"type": "usage", "usage": ev.usage, **tag}
+            elif ev.kind == "done":
+                run.finish_reason = ev.finish_reason
             elif ev.kind == "error":
                 run.error = ev.text
                 yield {"type": "error", "message": ev.text, **tag}
@@ -91,6 +94,9 @@ async def run_agent(
                 policy = broker.policy_for(tool)
                 if policy == "deny":
                     result_text, ok = f"error: the user has disabled the '{call.name}' tool", False
+                elif policy == "ask" and not broker.interactive:
+                    result_text, ok = (f"error: '{call.name}' needs the user's approval, which can only be given in "
+                                       "the SPIKE app; it is not available to this caller"), False
                 elif policy == "ask":
                     # Yield the request first: the consumer forwards it to the UI before we block on it.
                     req = broker.open(tool, call.arguments)

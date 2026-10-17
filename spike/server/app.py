@@ -9,16 +9,19 @@ from collections.abc import AsyncIterator
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from spike import __version__
 from spike.core.types import Message
+from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
+from spike.server.openai_api import create_router
 from spike.server.state import AppState
 
 
@@ -40,6 +43,23 @@ class ChatIn(BaseModel):
     conversation_id: str | None = None
     mode: str = "auto"
     provider_id: str | None = None
+    project_id: str | None = None  # for a new chat; an existing chat keeps its own project
+
+
+class NewConversation(BaseModel):
+    project_id: str | None = None
+
+
+class ProjectIn(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    instructions: str = Field(default="", max_length=100_000)
+    mode: str = "auto"
+
+
+class ProjectPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    instructions: str | None = Field(default=None, max_length=100_000)
+    mode: str | None = None
 
 
 class DecisionIn(BaseModel):
@@ -68,12 +88,35 @@ def static_dir() -> Path | None:
     return None
 
 
-def create_app(state: AppState | None = None) -> FastAPI:
+def _hostname(value: str, url: bool) -> str | None:
+    try:
+        return urlsplit(value if url else f"//{value}").hostname
+    except ValueError:
+        return None
+
+
+def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = None) -> FastAPI:
+    """`allowed_hosts`: the names the server may be reached by. Any other Host or Origin header is refused, so a web
+    page that points its own domain at 127.0.0.1 (DNS rebinding) or calls from another site cannot use SPIKE."""
     app = FastAPI(title="SPIKE", version=__version__)
     app.state.spike = state or AppState()
 
     def st() -> AppState:
         return app.state.spike
+
+    if allowed_hosts is not None:
+        allowed = {h.lower().strip("[]") for h in allowed_hosts}
+
+        @app.middleware("http")
+        async def check_host(request: Request, call_next):
+            origin = request.headers.get("origin")
+            for value, url in ((request.headers.get("host", ""), False), (origin, True)):
+                if (value is not None or not url) and _hostname(value or "", url) not in allowed:
+                    return JSONResponse({"error": {"message": "request refused: unknown Host or Origin",
+                                                   "type": "permission_error"}}, status_code=403)
+            return await call_next(request)
+
+    app.include_router(create_router(st))
 
     # ---------------------------------------------------------------- system
     @app.get("/api/health")
@@ -192,13 +235,113 @@ def create_app(state: AppState | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
+    # ---------------------------------------------------------------- projects
+    def project_or_404(pid: str) -> dict:
+        project = st().store.get_project(pid)
+        if not project:
+            raise HTTPException(404, "project not found")
+        return project
+
+    def check_mode(mode: str | None) -> None:
+        if mode is not None and mode != "auto" and mode not in st().catalog.specialists:
+            raise HTTPException(400, f"unknown mode '{mode}'")
+
+    async def read_body(request: Request, limit: int) -> bytes:
+        if int(request.headers.get("content-length") or 0) > limit:
+            raise HTTPException(413, f"the upload is limited to {limit // 1024**2} MB")
+        data = await request.body()
+        if len(data) > limit:
+            raise HTTPException(413, f"the upload is limited to {limit // 1024**2} MB")
+        return data
+
+    @app.get("/api/projects")
+    async def projects() -> list[dict]:
+        return st().store.list_projects()
+
+    @app.post("/api/projects")
+    async def create_project(body: ProjectIn) -> dict:
+        check_mode(body.mode)
+        return st().store.create_project(body.name.strip(), body.instructions, body.mode)
+
+    @app.post("/api/projects/import")
+    async def import_project_zip(request: Request) -> dict:
+        blob = await read_body(request, MAX_ARCHIVE_BYTES)
+        try:
+            return import_project(st().store, st().project_files, blob, {"auto", *st().catalog.specialists})
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/projects/{pid}")
+    async def get_project(pid: str) -> dict:
+        return project_or_404(pid)
+
+    @app.patch("/api/projects/{pid}")
+    async def patch_project(pid: str, body: ProjectPatch) -> dict:
+        project_or_404(pid)
+        check_mode(body.mode)
+        return st().store.update_project(pid, **body.model_dump(exclude_none=True))
+
+    @app.delete("/api/projects/{pid}")
+    async def delete_project(pid: str) -> dict:
+        project_or_404(pid)
+        st().store.delete_project(pid)
+        st().forget_project(pid)
+        return {"ok": True}
+
+    @app.get("/api/projects/{pid}/files")
+    async def project_files(pid: str) -> list[dict]:
+        project_or_404(pid)
+        return st().project_files.list(pid)
+
+    @app.put("/api/projects/{pid}/files/{path:path}")
+    async def put_project_file(pid: str, path: str, request: Request) -> dict:
+        project_or_404(pid)
+        data = await read_body(request, MAX_FILE_BYTES)
+        try:
+            return st().project_files.write(pid, path, data)
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    def existing_file(pid: str, path: str) -> Path:
+        project_or_404(pid)
+        try:
+            target = st().project_files.path(pid, path)
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        if not target.is_file():
+            raise HTTPException(404, "file not found")
+        return target
+
+    @app.get("/api/projects/{pid}/files/{path:path}")
+    async def get_project_file(pid: str, path: str):
+        target = existing_file(pid, path)
+        # a download, never a page: an uploaded .html must not run with the app's origin
+        return FileResponse(target, media_type="application/octet-stream", filename=target.name,
+                            headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
+
+    @app.delete("/api/projects/{pid}/files/{path:path}")
+    async def delete_project_file(pid: str, path: str) -> dict:
+        existing_file(pid, path).unlink()
+        return {"ok": True}
+
+    @app.get("/api/projects/{pid}/export")
+    async def export_project_zip(pid: str) -> Response:
+        project = project_or_404(pid)
+        name = re.sub(r"[^A-Za-z0-9._-]+", "-", project["name"]).strip("-") or "project"
+        return Response(export_project(st().store, st().project_files, pid), media_type="application/zip",
+                        headers={"Content-Disposition": f'attachment; filename="{name}.spike-project.zip"'})
+
     # ---------------------------------------------------------------- conversations
     @app.get("/api/conversations")
-    async def conversations() -> list[dict]:
-        return st().store.list_conversations()
+    async def conversations(project_id: str | None = None) -> list[dict]:
+        return st().store.list_conversations(project_id=project_id)
 
     @app.post("/api/conversations")
-    async def new_conversation() -> dict:
+    async def new_conversation(body: NewConversation | None = None) -> dict:
+        project_id = body.project_id if body else None
+        if project_id:
+            project = project_or_404(project_id)
+            return st().store.create_conversation(mode=project["mode"], project_id=project_id)
         return st().store.create_conversation()
 
     @app.get("/api/conversations/{cid}")
@@ -257,24 +400,29 @@ def create_app(state: AppState | None = None) -> FastAPI:
             raise HTTPException(400, f"unknown mode '{body.mode}'")
         if body.provider_id and not state.provider_config(body.provider_id):
             raise HTTPException(400, f"unknown provider '{body.provider_id}'")
+        if body.project_id and not state.store.get_project(body.project_id):
+            raise HTTPException(400, f"unknown project '{body.project_id}'")
         conv = state.store.get_conversation(body.conversation_id) if body.conversation_id else None
+        mode = body.mode
         if conv is None:
-            conv = state.store.create_conversation(title=_title_from(body.message), mode=body.mode,
-                                                   provider_id=body.provider_id)
+            project = state.store.get_project(body.project_id) if body.project_id else None
+            if project and mode == "auto":
+                mode = project["mode"]
+            conv = state.store.create_conversation(title=_title_from(body.message), mode=mode,
+                                                   provider_id=body.provider_id, project_id=body.project_id)
+        project = state.store.get_project(conv["project_id"]) if conv.get("project_id") else None
         history = [Message(role=m["role"], content=m["content"]) for m in state.store.messages(conv["id"])
                    if m["role"] in ("user", "assistant") and m["content"]]
         state.store.add_message(conv["id"], "user", body.message)
-        for pid in state.providers_for_run(body.provider_id):
-            if pid not in state.installed_adapters and state.provider_config(pid):
-                await state.refresh_adapters(pid)
+        await state.ensure_adapters(body.provider_id)
 
         async def stream() -> AsyncIterator[bytes]:
             yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"]})
             meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
             final_text, error, cancelled = "", None, True
-            orchestrator = state.orchestrator(body.provider_id)
+            orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
             try:
-                async for ev in orchestrator.run(history, body.message, state.options(body.mode)):
+                async for ev in orchestrator.run(history, body.message, state.options(mode, project)):
                     kind = ev["type"]
                     if kind == "route":
                         meta["route"] = ev

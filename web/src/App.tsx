@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, streamChat } from "./api";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
-import { IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash } from "./components/Icons";
+import { IconBack, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
+import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
 import { applyEvent, emptyRun, runFromStored } from "./run";
-import type { Conversation, PermissionState, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
+import type { Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
 type Item = { kind: "user"; text: string } | { kind: "assistant"; run: RunState };
 
@@ -53,6 +54,9 @@ export default function App() {
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
+  const [projectDialog, setProjectDialog] = useState<Project | "new" | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
@@ -66,18 +70,28 @@ export default function App() {
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const importRef = useRef<HTMLInputElement>(null);
 
-  const loadConversations = useCallback(() => api.get<Conversation[]>("/api/conversations").then(setConversations), []);
+  const projectId = project?.id;
+  const loadConversations = useCallback(
+    () => api.get<Conversation[]>(`/api/conversations${projectId ? `?project_id=${projectId}` : ""}`).then(setConversations),
+    [projectId],
+  );
+  const loadProjects = useCallback(() => api.get<Project[]>("/api/projects").then(setProjects), []);
   const loadProviders = useCallback(() => api.get<ProviderInfo[]>("/api/providers").then(setProviders), []);
 
   useEffect(() => {
     Promise.all([
       api.get<Specialist[]>("/api/specialists").then(setSpecialists),
       loadProviders(),
-      loadConversations(),
+      loadProjects(),
       api.get<{ running: boolean }>("/api/runtime").then(setEngine),
     ]).catch((e) => setFatal(String(e.message || e)));
-  }, [loadConversations, loadProviders]);
+  }, [loadProjects, loadProviders]);
+
+  useEffect(() => {
+    loadConversations().catch((e) => setFatal(String(e.message || e)));
+  }, [loadConversations]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -97,6 +111,28 @@ export default function App() {
     if (busy) abortRef.current?.abort();
     setActiveId(null);
     setItems([]);
+    if (project) setMode(project.mode);
+  };
+
+  const selectProject = (p: Project | null) => {
+    if (busy) abortRef.current?.abort();
+    setProject(p);
+    setActiveId(null);
+    setItems([]);
+    setMode(p?.mode ?? "auto");
+    if (window.innerWidth <= 860) setSidebar(false);
+  };
+
+  const importProject = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const p = await api.upload<Project>("POST", "/api/projects/import", file);
+      await loadProjects();
+      selectProject(p);
+    } catch (e) {
+      setFatal(String((e as Error).message));
+    }
+    if (importRef.current) importRef.current.value = "";
   };
 
   const updateLast = (fn: (r: RunState) => RunState) =>
@@ -114,7 +150,7 @@ export default function App() {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      await streamChat({ message: text, conversation_id: activeId, mode, provider_id: providerId }, (ev) => {
+      await streamChat({ message: text, conversation_id: activeId, mode, provider_id: providerId, project_id: project?.id ?? null }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           loadConversations();
@@ -154,6 +190,20 @@ export default function App() {
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label="Close sidebar"><IconSidebar /></button>
         </div>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
+        <div className="project-list" aria-label={PL.projects}>
+          <div className="conv-group project-list-head">
+            <span>{PL.projects}</span>
+            <button className="icon-btn" onClick={() => importRef.current?.click()} aria-label={PL.importProject} title={PL.importProject}><IconUpload size={14} /></button>
+            <button className="icon-btn" onClick={() => setProjectDialog("new")} aria-label={PL.newProject} title={PL.newProject}><IconPlus size={14} /></button>
+            <input ref={importRef} type="file" accept=".zip,application/zip" hidden data-testid="project-import" onChange={(e) => importProject(e.target.files?.[0])} />
+          </div>
+          {projects.map((p) => (
+            <button key={p.id} className={`project-item ${project?.id === p.id ? "active" : ""}`} onClick={() => selectProject(project?.id === p.id ? null : p)} title={p.name}>
+              <IconFolder size={15} /> <span>{p.name}</span>
+            </button>
+          ))}
+        </div>
+        {project && <button className="side-btn back" onClick={() => selectProject(null)}><IconBack size={15} /> {PL.back}</button>}
         <nav className="conv-list">
           {groupByDate(conversations).map(([label, list]) => (
             <div key={label}>
@@ -179,6 +229,7 @@ export default function App() {
         <header className="topbar">
           {!sidebar && <button className="icon-btn" onClick={() => setSidebar(true)} aria-label="Open sidebar"><IconSidebar /></button>}
           {!sidebar && <button className="icon-btn" onClick={newChat} aria-label={t.newChat}><IconPlus /></button>}
+          {project && <span className="crumb"><IconFolder size={15} /> {project.name}</span>}
           <div className="spacer" />
           <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle theme">{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
         </header>
@@ -187,17 +238,23 @@ export default function App() {
 
         {empty ? (
           <section className="welcome">
-            {!fatal && <img className="welcome-mark" src="/states/empty-chat.webp" alt="" width={220} height={144} />}
-            <h1>{t.greeting}</h1>
-            <p className="muted">{t.greetingSub}</p>
+            {project ? (
+              <ProjectPanel project={project} specialists={specialists} onEdit={() => setProjectDialog(project)} />
+            ) : (
+              <>
+                {!fatal && <img className="welcome-mark" src="/states/empty-chat.webp" alt="" width={220} height={144} />}
+                <h1>{t.greeting}</h1>
+                <p className="muted">{t.greetingSub}</p>
+              </>
+            )}
             <div className="welcome-composer">{composer}</div>
-            <div className="spec-chips">
+            {!project && <div className="spec-chips">
               {specialists.filter((s) => s.id !== "core").map((s) => (
                 <button key={s.id} className={`chip spec-${s.id} ${mode === s.id ? "selected" : ""}`} onClick={() => setMode(mode === s.id ? "auto" : s.id)} title={s.description}>
                   <SpecMark id={s.id} />{s.name.replace("Spike ", "")}
                 </button>
               ))}
-            </div>
+            </div>}
           </section>
         ) : (
           <>
@@ -219,6 +276,12 @@ export default function App() {
           </>
         )}
       </main>
+
+      {projectDialog && (
+        <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} onClose={() => setProjectDialog(null)}
+          onSaved={(p) => { setProjectDialog(null); loadProjects(); selectProject(p); }}
+          onDeleted={() => { setProjectDialog(null); loadProjects(); selectProject(null); }} />
+      )}
 
       {settingsOpen && (
         <SettingsDialog onClose={() => { setSettingsOpen(false); loadProviders(); api.get<{ running: boolean }>("/api/runtime").then(setEngine); }}

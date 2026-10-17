@@ -58,6 +58,7 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | psutil | 7.2.2 | BSD-3-Clause |
 | keyring (optional) | 25.7.0 | MIT |
 | pytest, pytest-asyncio, ruff (development only) | — | MIT |
+| openai (development only: tests of the `/v1` API) | 3.33.0 | Apache-2.0 |
 
 ## Web app (bundled into `web/dist`, which ships inside the Python package)
 

@@ -170,7 +170,7 @@ def test_to_anthropic_merges_tool_results():
 
 async def test_anthropic_stream_text_thinking_and_tool():
     events_raw = [
-        ("message_start", {"type": "message_start", "message": {"usage": {"input_tokens": 3}}}),
+        ("message_start", {"type": "message_start", "message": {"usage": {"input_tokens": 3, "output_tokens": 1}}}),
         ("content_block_start", {"type": "content_block_start", "index": 0, "content_block": {"type": "thinking"}}),
         ("content_block_delta", {"type": "content_block_delta", "index": 0, "delta": {"type": "thinking_delta", "thinking": "hmm"}}),
         ("content_block_start", {"type": "content_block_start", "index": 1, "content_block": {"type": "text"}}),
@@ -198,6 +198,8 @@ async def test_anthropic_stream_text_thinking_and_tool():
     assert "".join(e.text for e in events if e.kind == "text") == "Hi"
     assert [e.tool_call.arguments for e in events if e.kind == "tool_call"] == [{"city": "Rome"}]
     assert events[-1].finish_reason == "tool_calls"
+    # message_delta carries the cumulative output count: one merged usage event, not 1 + 9
+    assert [e.usage for e in events if e.kind == "usage"] == [{"input_tokens": 3, "output_tokens": 9}]
     assert seen["headers"]["x-api-key"] == "k"
     assert seen["body"]["system"] == "S" and seen["body"]["tools"][0]["input_schema"]
 

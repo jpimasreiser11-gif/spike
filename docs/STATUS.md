@@ -27,9 +27,11 @@ _Last update: 2026-10-17, commit on `main` in the development repository (not ye
 | Packaging: the wheel ships the web app, the sdist carries it, editable installs and the test suite need no Node.js, a wheel build without the bundle fails with a clear message | `python -m build` (wheel: 81 static files); clean dev-only venv: 69 passed, 4 skipped | `python -m build`, `pip install -e ".[dev]" && pytest` |
 | Replay data licensing: Llama-3.1-generated replay (smol-magpie-ultra) excluded; human-written OpenAssistant oasst2 tree builder | Llama 3.1 license §1.b.i read in `meta-llama/llama-models`; builder unit test (ranking, review, deletion, language filters) | `pytest tests/test_training.py -k oasst` |
 | CI workflow (Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) | actionlint 1.7.7 + shellcheck 0.11.0 clean; llama-server built with the CI's flags (`GGML_NATIVE=OFF`, no OpenSSL) passes the 5 integration tests; **never run on GitHub** (no repository yet) | `actionlint .github/workflows/ci.yml` |
+| OpenAI-compatible API `/v1` (models list, orchestrated and single-specialist completions, streaming chunks, client tool calls round trip, passthrough, approval-needing tools refused without blocking, token / loopback-only / Origin / Host checks) | 17 tests with the official `openai` Python client 3.33.0 over real HTTP; end to end against a real llama-server (tiny random model): `spike-finance` loaded the `spike-finance` adapter, streaming and usage correct | `pytest tests/test_openai_api.py` |
+| Projects (own instructions and default specialist, isolated workspace for file tools, files, chats kept in their project, zip export → import identical, unsafe archives refused) | 6 API tests; browser smoke step (create, upload, export download, project chat) | `pytest tests/test_projects.py`, `node web/e2e/smoke.mjs` |
 | Benchmark harness end to end (TTFT, tok/s, RSS, build info) | runs against the tiny model; **its numbers are meaningless for quality or speed** | `spike bench --model <tiny.gguf>` |
 
-Total at this update: 109 Python tests (incl. the llama.cpp integration tests) and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+Total at this update: 132 Python tests (incl. the llama.cpp integration tests) and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
 
 ## Measured with real weights
 

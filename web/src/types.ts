@@ -35,7 +35,11 @@ export type ProviderInfo = {
   capabilities_effective: Record<string, unknown> | null;
 };
 
-export type Conversation = { id: string; title: string; created: number; updated: number; mode: string };
+export type Conversation = { id: string; title: string; created: number; updated: number; mode: string; project_id?: string | null };
+
+export type Project = { id: string; name: string; instructions: string; mode: string; created: number; updated: number };
+
+export type ProjectFile = { path: string; size: number };
 
 export type StoredMessage = {
   id: string;

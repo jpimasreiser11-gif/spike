@@ -141,3 +141,17 @@ SPIKE 1.0 is done only when all 15 conditions of the directive hold with evidenc
 | 13 | Licenses respected | ✅ gate; ⬜ adapter releases |
 | 14 | Repo ready for open source | 🟡 waiting for repository |
 | 15 | Reproducible evidence of function, performance, quality | 🟡 function ✅; performance and quality ⬜ |
+
+## 25. Improvements adopted from the 2026-10-17 review
+Source: the founder asked to build every viable item of an external proposal; analysis and task list kept in the
+project files. Same rules: failing test first, only permissive licenses, everything through the permission broker.
+
+| Item | Scope | Status |
+|---|---|---|
+| A1 | OpenAI-compatible local API (`/v1/models`, `/v1/chat/completions`, streaming, tools), [integrations](INTEGRATIONS.md) | ✅ tests with the official `openai` client + real llama-server |
+| A2 | Projects: instructions, default specialist, own workspace and chats, files, zip export/import | ✅ API tests + browser smoke |
+| A3 | MCP client and one-click connector catalog | ⬜ |
+| A4 | Skills engine (`SKILL.md`), MIT/Apache skills only | ⬜ |
+| A5 | Artifacts panel (sandboxed iframe) and document tools | ⬜ |
+| B1–B5 | Local RAG, privacy and spend controls, undo/replay, `spike tune`, SPIKE as an MCP server | ⬜ |
+| C1–C6 | Browser via Playwright MCP, Forge, `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |

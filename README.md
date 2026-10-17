@@ -27,6 +27,10 @@ Local first, open source (Apache-2.0), and able to use external API models with 
   OpenAI-compatible server. Paid providers stay blocked until you allow them; keys live in your OS keychain.
 - **Tools with permissions.** Calculator, workspace files, sandboxed Python and web fetch, each allow / ask /
   deny, with an inline permission prompt.
+- **Projects.** Instructions, a default specialist, files and chats per project; file tools work in the
+  project's own folder; export and import a project as one zip.
+- **Works with your tools.** An OpenAI-compatible endpoint (`/v1`) lets Aider, OpenCode, Continue, open-design
+  or any OpenAI SDK use `spike-auto` or a single specialist ([integrations](docs/INTEGRATIONS.md)).
 - **Measured, not announced.** Exact-answer evals with confidence intervals and McNemar tests, acceptance
   criteria written before training, and a benchmark command that records hardware and build.
 
@@ -59,10 +63,11 @@ SPIKE works without a local model too: add an external provider in Settings → 
 | | |
 |---|---|
 | [Architecture](docs/ARCHITECTURE.md) | components, request flow, providers, tools |
-| [Master plan](docs/PLAN.md) | the 24-point plan with acceptance criteria and status |
+| [Master plan](docs/PLAN.md) | the 24-point plan, adopted improvements, acceptance criteria and status |
 | [Research](docs/RESEARCH.md) | base model, engines, memory, training, datasets, references, with sources |
 | [Specialists](docs/SPECIALISTS.md) | scope, data, evaluation and risks per specialist |
 | [Training](docs/TRAINING.md) | train, export and evaluate an adapter on an Apple Silicon Mac |
+| [Integrations](docs/INTEGRATIONS.md) | use SPIKE from Aider, OpenCode, Continue, open-design and OpenAI SDKs |
 | [Status](docs/STATUS.md) | what is verified, what is pending, blockers |
 | [Decisions](docs/adr/) | ADRs: base model, training method, orchestration, adapter serving |
 

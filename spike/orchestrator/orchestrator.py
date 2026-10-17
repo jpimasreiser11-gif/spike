@@ -46,6 +46,8 @@ class OrchestratorOptions:
     max_tokens: int | None = None
     reasoning: bool | None = None
     tools_enabled: bool = True
+    app_instructions: str = ""  # system prompt of an application calling SPIKE through the /v1 API
+    project_instructions: str = ""
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -70,8 +72,12 @@ class Orchestrator:
         parts = [spec.system_prompt]
         if opts.custom_instructions.strip():
             parts.append("# Instructions from the user (always follow them)\n" + opts.custom_instructions.strip())
+        if opts.project_instructions.strip():
+            parts.append("# Project instructions\n" + opts.project_instructions.strip())
         if opts.specialist_instructions.get(spec.id, "").strip():
             parts.append(f"# Instructions for {spec.name}\n" + opts.specialist_instructions[spec.id].strip())
+        if opts.app_instructions.strip():
+            parts.append("# Instructions from the application calling SPIKE\n" + opts.app_instructions.strip())
         if extra:
             parts.append(extra)
         return "\n\n".join(parts)
@@ -144,6 +150,7 @@ class Orchestrator:
             "type": "done",
             "text": final.text,
             "error": final.error,
+            "finish_reason": final.finish_reason,
             "specialists": decision.specialists,
             "elapsed_s": round(time.perf_counter() - started, 3),
         }

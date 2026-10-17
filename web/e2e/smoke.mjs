@@ -68,12 +68,34 @@ await page.getByRole("dialog").getByText("Hardware").waitFor();
 await page.screenshot({ path: `${out}/05-settings-engine.png` });
 await page.keyboard.press("Escape");
 
-// 6. dark mode + mobile
+// 6. projects: create, upload a file, export, chat with the project's instructions; the chat stays in its project
+await page.getByRole("button", { name: "Nuevo proyecto" }).click();
+const dlg = page.getByRole("dialog", { name: "Nuevo proyecto" });
+await dlg.getByLabel("Nombre").fill("Tesis");
+await dlg.getByLabel("Instrucciones del proyecto").fill("Responde citando fuentes.");
+await dlg.getByLabel("Especialista por defecto").selectOption("medicine");
+await dlg.getByRole("button", { name: "Crear" }).click();
+await page.locator(".project-panel h2", { hasText: "Tesis" }).waitFor();
+await page.getByTestId("project-upload").setInputFiles({ name: "datos.csv", mimeType: "text/csv", buffer: Buffer.from("a,b\n1,2\n") });
+await page.locator(".file-list a", { hasText: "datos.csv" }).waitFor();
+await page.screenshot({ path: `${out}/06-project.png` });
+const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exportar (.zip)" }).click()]);
+if (!download.suggestedFilename().endsWith(".spike-project.zip")) fail("export filename: " + download.suggestedFilename());
+await page.locator("#composer-input").fill("Resume los datos");
+await page.keyboard.press("Enter");
+await page.getByText("Respuesta del proyecto").waitFor({ timeout: 10000 });
+await page.waitForFunction(() => document.querySelectorAll(".conv").length === 1, null, { timeout: 5000 }).catch(() => fail("project chat list should hold only the project's chat"));
+await page.screenshot({ path: `${out}/07-project-chat.png` });
+await page.getByRole("button", { name: "Todos los chats" }).click();
+await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).waitFor();
+if (await page.locator(".conv-title", { hasText: "Resume los datos" }).count()) fail("project chat leaked into the main list");
+
+// 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
 const dp = await dark.newPage();
 await dp.goto(base);
 await dp.getByText("How can I help you today?").waitFor();
-await dp.screenshot({ path: `${out}/06-welcome-dark-en.png` });
+await dp.screenshot({ path: `${out}/08-welcome-dark-en.png` });
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-ES", isMobile: true, hasTouch: true });
 const mp = await mobile.newPage();
 await mp.goto(base);
@@ -82,7 +104,7 @@ const overflow = await mp.evaluate(() => document.documentElement.scrollWidth > 
 if (overflow) fail("horizontal overflow on mobile");
 const send = await mp.locator(".send-btn").boundingBox();
 if (!send || send.x + send.width > 390) fail("send button outside the mobile viewport");
-await mp.screenshot({ path: `${out}/07-mobile.png` });
+await mp.screenshot({ path: `${out}/09-mobile.png` });
 
 if (errors.length) fail("browser errors: " + errors.join(" | "));
 await browser.close();

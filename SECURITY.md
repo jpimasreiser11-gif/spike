@@ -10,6 +10,13 @@ acknowledge reports within 7 days.
 
 - The server binds to `127.0.0.1` by default. Exposing it on a network gives anyone who can reach it the
   ability to run the configured tools; do not do that without your own authentication in front.
+- When bound to a specific address, requests whose `Host` or `Origin` header names anything else are refused
+  (403). This stops DNS rebinding and other websites from using SPIKE through the user's browser.
+- The OpenAI-compatible API (`/v1`, [integrations](docs/INTEGRATIONS.md)): without `SPIKE_API_TOKEN` only
+  programs on the same computer can call it, and requests carrying an `Origin` header (web pages) are refused;
+  with it set, every request needs `Authorization: Bearer <token>` (compared in constant time). Tools that
+  need approval are refused there instead of waiting, since nobody can answer an approval card through the
+  API; the client's own tools are returned to the client and never run by SPIKE.
 - API keys are stored in the OS keychain through `keyring`; if no keychain is available SPIKE falls back to a
   file readable only by the current user (mode 0600, **not encrypted**) and the UI says which backend is active.
   Keys are never written to the SQLite database or returned by the API.

@@ -75,3 +75,18 @@ export const IconMoon = ({ size }: P) => (
     <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
   </svg>
 );
+export const IconFolder = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </svg>
+);
+export const IconUpload = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
+  </svg>
+);
+export const IconBack = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M15 6l-6 6 6 6" />
+  </svg>
+);
