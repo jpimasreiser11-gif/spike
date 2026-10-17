@@ -113,6 +113,10 @@ class SkillPatch(BaseModel):
     enabled: bool
 
 
+class TuneIn(BaseModel):
+    quick: bool = False
+
+
 class UndoIn(BaseModel):
     force: bool = False  # also overwrite files that changed after the step
 
@@ -404,6 +408,32 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             return {"ok": False, "error": str(exc) or exc.__class__.__name__}
         adapters = sorted(await st().refresh_adapters(pid))
         return {"ok": True, "models": models[:200], "adapters": adapters}
+
+    # ---------------------------------------------------------------- tuning (`spike tune` from the app)
+    @app.get("/api/tune")
+    async def tune_report() -> dict | None:
+        return st().tune_report()
+
+    @app.post("/api/tune")
+    async def run_tune(body: TuneIn) -> StreamingResponse:
+        state = st()
+        events = state.run_tune(quick=body.quick, tuner=getattr(app.state, "tuner", None))
+        try:
+            first = await events.__anext__()  # surfaces a missing model or a run in progress as an HTTP error
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+        async def stream() -> AsyncIterator[bytes]:
+            yield _sse(first)
+            try:
+                async for ev in events:
+                    yield _sse(ev)
+            except Exception as exc:  # a failed llama-server start, for example
+                yield _sse({"type": "error", "message": f"{exc.__class__.__name__}: {exc}"})
+
+        return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
 
     # ---------------------------------------------------------------- call log and spending
     @app.get("/api/calls")

@@ -58,6 +58,7 @@ git clone <repository-url> spike && cd spike     # PyPI package after the first 
 brew install llama.cpp                   # macOS / Linux with Homebrew; other platforms: official llama.cpp releases
 spike doctor                             # what this machine can run, and with how much context
 spike models pull qwen3.5-4b             # Q4_K_M by default, license and SHA-256 checked
+spike tune                               # optional: measures threads and KV cache here, saves the fastest
 spike serve --open                       # app at http://127.0.0.1:8740
 ```
 

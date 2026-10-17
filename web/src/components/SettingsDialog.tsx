@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, streamPost } from "../api";
 import { lang } from "../i18n";
 import type { Limits, Preset, ProviderInfo, Settings, Specialist, ToolInfo } from "../types";
 import { Connectors } from "./Connectors";
@@ -24,6 +24,9 @@ const L = lang === "es"
       shareFiles: "Enviar el contenido de tus archivos a este proveedor", shareHint: "Desactivado: SPIKE cambia el contenido de tus archivos (y las respuestas escritas a partir de ellos) por un aviso antes de enviar nada.",
       limits: "Topes mensuales", monthlyTokens: "Tokens al mes", priceIn: "Precio por millón de tokens de entrada", priceOut: "Precio por millón de tokens de salida", monthlyCost: "Gasto máximo al mes", noLimit: "sin tope", noPrice: "sin precio",
       limitsHint: "Precios en tu moneda, tal como te los cobra el proveedor. Al llegar a un tope, SPIKE deja de llamar a este proveedor hasta el mes siguiente.",
+      tune: "Optimizar mi equipo", tuneHint: "Prueba varias configuraciones del modelo local en este ordenador (hilos y caché) y guarda la más rápida. Tarda unos minutos; el motor local se detiene mientras tanto.",
+      tuneQuick: "Prueba rápida (menos precisa)", tuning: "Midiendo…", threads: "hilos", gen: "generación", prompt: "lectura", failedCfg: "no arranca",
+      tuneSaved: "Guardado", ctxEstimated: "contexto estimado por memoria, no medido", lastTune: "Última optimización", noModelTune: "Primero elige un modelo local.",
     }
   : {
       title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", skills: "Skills", connectors: "Connectors", memory: "Memory", privacy: "Privacy", engine: "Local engine",
@@ -39,6 +42,9 @@ const L = lang === "es"
       shareFiles: "Send your files' contents to this provider", shareHint: "Off: SPIKE replaces your files' contents (and answers written from them) with a notice before sending anything.",
       limits: "Monthly limits", monthlyTokens: "Tokens per month", priceIn: "Price per million input tokens", priceOut: "Price per million output tokens", monthlyCost: "Maximum spend per month", noLimit: "no limit", noPrice: "no price",
       limitsHint: "Prices in your currency, as the provider bills you. When a limit is reached, SPIKE stops calling this provider until next month.",
+      tune: "Optimize for my computer", tuneHint: "Tries a few settings of the local model on this computer (threads and cache) and keeps the fastest. Takes a few minutes; the local engine stops meanwhile.",
+      tuneQuick: "Quick run (less precise)", tuning: "Measuring…", threads: "threads", gen: "generation", prompt: "prompt", failedCfg: "does not start",
+      tuneSaved: "Saved", ctxEstimated: "context estimated from memory, not measured", lastTune: "Last optimization", noModelTune: "Choose a local model first.",
     };
 
 type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "connectors" | "memory" | "privacy" | "engine";
@@ -99,7 +105,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
             ) : tab === "privacy" ? (
               <Privacy />
             ) : (
-              <Engine settings={settings} save={save} />
+              <Engine settings={settings} save={save} reload={() => api.get<Settings>("/api/settings").then(setSettings)} />
             )}
           </div>
         </div>
@@ -302,7 +308,53 @@ function Tools({ settings, save }: { settings: Settings; save: (p: Partial<Setti
   );
 }
 
-function Engine({ settings, save }: { settings: Settings; save: (p: Partial<Settings>) => void }) {
+type TuneRow = { threads: number; kv_cache_type: string; gen_tok_s?: number; prompt_tok_s?: number; peak_rss_mb?: number; failed?: boolean };
+type TuneBest = { threads: number; kv_cache_type: string; context: number };
+
+/** "Optimize for my computer": runs `spike tune` through the API and shows each measured setting as it arrives. */
+function Tune({ hasModel, onDone }: { hasModel: boolean; onDone: () => void }) {
+  const [rows, setRows] = useState<TuneRow[]>([]);
+  const [best, setBest] = useState<TuneBest | null>(null);
+  const [last, setLast] = useState<{ date_utc: string; best: TuneBest } | null>(null);
+  const [quick, setQuick] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => { api.get<{ date_utc: string; best: TuneBest } | null>("/api/tune").then(setLast).catch(() => {}); }, []);
+  const run = async () => {
+    setBusy(true); setErr(""); setRows([]); setBest(null);
+    try {
+      await streamPost("/api/tune", { quick }, (ev) => {
+        if (ev.type === "tune_result") setRows((r) => [...r, ev as unknown as TuneRow]);
+        else if (ev.type === "tune_done") { setBest(ev.best); setLast({ date_utc: ev.report.date_utc, best: ev.best }); }
+        else if (ev.type === "error") setErr(ev.message);
+      });
+    } catch (e) { setErr(String((e as Error).message)); }
+    setBusy(false); onDone();
+  };
+  return (
+    <div className="tune" data-testid="tune">
+      <small className="muted">{L.tuneHint}</small>
+      <div className="row">
+        <button className="btn" disabled={busy || !hasModel} onClick={run}>{busy ? L.tuning : L.tune}</button>
+        <label className="check small"><input type="checkbox" checked={quick} disabled={busy} onChange={(e) => setQuick(e.target.checked)} />{L.tuneQuick}</label>
+      </div>
+      {!hasModel && <small className="muted">{L.noModelTune}</small>}
+      {rows.length > 0 && (
+        <ul className="tune-rows small">
+          {rows.map((r, i) => (
+            <li key={i} className={best && !r.failed && r.threads === best.threads && r.kv_cache_type === best.kv_cache_type ? "best" : ""}>
+              {r.threads} {L.threads} · KV {r.kv_cache_type} · {r.failed ? L.failedCfg : `${L.gen} ${r.gen_tok_s} tok/s · ${L.prompt} ${r.prompt_tok_s} tok/s · ${r.peak_rss_mb} MB`}
+            </li>
+          ))}
+        </ul>
+      )}
+      {last && <p className="small">{best ? L.tuneSaved : L.lastTune} ({new Date(last.date_utc).toLocaleString()}): {last.best.threads} {L.threads}, KV {last.best.kv_cache_type}, ctx {last.best.context} <span className="muted">({L.ctxEstimated})</span></p>}
+      {err && <span className="bad small">{err}</span>}
+    </div>
+  );
+}
+
+function Engine({ settings, save, reload }: { settings: Settings; save: (p: Partial<Settings>) => void; reload: () => void }) {
   const [sys, setSys] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -328,9 +380,10 @@ function Engine({ settings, save }: { settings: Settings; save: (p: Partial<Sett
       <div className="card">
         <div className="card-head"><b>{L.engine}</b><span className={`badge ${sys.runtime.running ? "ok" : ""}`}>{sys.runtime.running ? L.running : L.stoppedS}</span></div>
         <label className="field"><span>{L.modelPath}</span><input defaultValue={rt.model} placeholder="~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf" onBlur={(e) => e.target.value !== rt.model && save({ local_runtime: { ...rt, model: e.target.value } })} /></label>
-        <label className="field"><span>{L.ctx}</span><input type="number" defaultValue={rt.context ?? ""} placeholder={String(sys.recommendation.context)} onBlur={(e) => save({ local_runtime: { ...rt, context: e.target.value ? Number(e.target.value) : null } })} /></label>
+        <label className="field"><span>{L.ctx}</span><input type="number" key={rt.context ?? "auto"} defaultValue={rt.context ?? ""} placeholder={String(sys.recommendation.context)} onBlur={(e) => save({ local_runtime: { ...rt, context: e.target.value ? Number(e.target.value) : null } })} /></label>
         {!rt.model && <div className="no-models"><img src="/states/no-models.webp" alt="" width={84} height={89} /><small className="muted">{L.pull}</small></div>}
         {sys.runtime.running && <p className="small muted">RSS {sys.runtime.rss_mb} MB · load {sys.runtime.load_seconds}s · {sys.runtime.adapters.length} {L.adapters}</p>}
+        <Tune hasModel={!!rt.model} onDone={() => { reload(); load(); }} />
         <div className="card-actions">
           <button className="btn primary" disabled={busy} onClick={() => act("start")}>{L.start}</button>
           <button className="btn" disabled={busy || !sys.runtime.running} onClick={() => act("stop")}>{L.stop}</button>

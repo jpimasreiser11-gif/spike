@@ -154,6 +154,34 @@ def cmd_bench(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tune(args: argparse.Namespace) -> int:
+    from spike.server.state import AppState
+
+    async def run() -> int:
+        state = AppState()
+        if args.model:
+            state.update_settings({"local_runtime": {**state.settings()["local_runtime"], "model": args.model}})
+        try:
+            async for ev in state.run_tune(quick=args.quick):
+                if ev["type"] == "tune_start":
+                    print(f"Measuring threads {ev['threads']} (prompt {ev['prompt']} tokens, {ev['gen']} generated)...")
+                elif ev["type"] == "tune_result":
+                    print(f"  threads {ev['threads']:>2}  KV {ev['kv_cache_type']:<5} generation {ev['gen_tok_s']:>7} tok/s"
+                          f"  prompt {ev['prompt_tok_s']:>8} tok/s  peak RSS {ev['peak_rss_mb']} MB")
+                elif ev["type"] == "tune_done":
+                    b, c = ev["best"], ev["report"]["context"]
+                    print(f"Saved: threads {b['threads']}, KV {b['kv_cache_type']}, context {b['context']} "
+                          f"(context estimated: {c['estimated_gb']} GB of a {c['budget_gb']} GB budget, not measured)")
+        except (ValueError, RuntimeError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        finally:
+            await state.close()
+        return 0
+
+    return asyncio.run(run())
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="spike", description="SPIKE local AI system")
     p.add_argument("--version", action="version", version=f"spike {__version__}")
@@ -197,6 +225,11 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--port", type=int, default=8799)
     b.add_argument("--out", help="write the JSON report here")
     b.set_defaults(func=cmd_bench)
+
+    t = sub.add_parser("tune", help="measure threads and KV cache on this machine and save the fastest settings")
+    t.add_argument("--model", help="GGUF to tune for (default: the local model in Settings)")
+    t.add_argument("--quick", action="store_true", help="shorter runs (less precise)")
+    t.set_defaults(func=cmd_tune)
     return p
 
 

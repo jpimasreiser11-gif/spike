@@ -71,7 +71,12 @@ export async function streamChat(
   onEvent: (ev: ChatEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {
-  const res = await fetch("/api/chat", {
+  return streamPost("/api/chat", body, onEvent, signal);
+}
+
+/** POST a JSON body and call `onEvent` for each Server-Sent Event of the response. */
+export async function streamPost(path: string, body: unknown, onEvent: (ev: ChatEvent) => void, signal?: AbortSignal): Promise<void> {
+  const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

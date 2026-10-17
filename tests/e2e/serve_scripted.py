@@ -86,13 +86,30 @@ class DemoProvider(Provider):
         yield StreamEvent(kind="done", finish_reason="stop")
 
 
+async def scripted_tuner(model, quick=False):
+    """Stands in for spike.tune in UI tests (the real one is tested against llama-server in tests/test_tune.py)."""
+    yield {"type": "tune_start", "threads": [4, 2], "gpu_layers": 0, "prompt": 256, "gen": 32}
+    for threads, kv, gen in ((4, "q8_0", 9.1), (2, "q8_0", 6.0), (4, "f16", 9.3)):
+        await asyncio.sleep(0.2)
+        yield {"type": "tune_result", "threads": threads, "kv_cache_type": kv, "gpu_layers": 0, "gen_tok_s": gen,
+               "prompt_tok_s": 80.0, "peak_rss_mb": 3100.0}
+    best = {"threads": 4, "kv_cache_type": "q8_0", "gpu_layers": 0, "context": 32768}
+    yield {"type": "tune_done", "best": best, "report": {"date_utc": "2026-10-17T12:00:00Z", "best": best,
+                                                         "results": [], "context": {"measured": False}}}
+
+
 def main() -> None:
     home = Path(tempfile.mkdtemp(prefix="spike-e2e-"))
     os.environ["SPIKE_HOME"] = str(home)
     os.environ["SPIKE_WORKSPACE"] = str(home / "ws")
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg))
+    model = home / "models" / "scripted.gguf"  # only checked for existence: the tuner below is scripted too
+    model.parent.mkdir(parents=True, exist_ok=True)
+    model.write_bytes(b"GGUF")
+    state.update_settings({"local_runtime": {**state.settings()["local_runtime"], "model": str(model)}})
     app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
+    app.state.tuner = scripted_tuner
     uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
 
 

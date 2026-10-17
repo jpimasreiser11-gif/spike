@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import socket
+from collections.abc import AsyncIterator
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -83,6 +85,7 @@ class AppState:
         self.embed_error: str | None = None
         self._summarized: dict[str, int] = {}
         self._background: set[asyncio.Task] = set()
+        self._tuning = asyncio.Lock()
         self.tools = default_registry(workspace_dir())
         for tool in memory_tools(self.memory, None):
             self.tools.register(tool)
@@ -376,3 +379,35 @@ class AppState:
     async def stop_runtime(self) -> None:
         if self.runtime:
             await self.runtime.stop()
+
+    # ------------------------------------------------------------------ tuning
+    def tune_report(self) -> dict[str, Any] | None:
+        path = self.home / "tune.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+
+    async def run_tune(self, quick: bool = False, tuner=None) -> AsyncIterator[dict[str, Any]]:
+        """Measure settings for the local model (`spike.tune`), save the best ones and the report. The local engine
+        is stopped while it runs, so only one model is in memory, and started again afterwards."""
+        from spike.tune import save_report, tune
+
+        model = (self.settings()["local_runtime"].get("model") or "").strip()
+        if not model or not Path(model).expanduser().is_file():
+            raise ValueError("No local model configured. Download one with `spike models pull` or set it in Settings.")
+        if self._tuning.locked():
+            raise RuntimeError("a tuning run is already in progress")
+        async with self._tuning:
+            was_running = bool(self.runtime and self.runtime.running())
+            if was_running:
+                await self.stop_runtime()
+            try:
+                async for ev in (tuner or tune)(Path(model).expanduser(), quick=quick):
+                    if ev["type"] == "tune_done":
+                        cfg = dict(self.settings()["local_runtime"])
+                        cfg.update({k: ev["best"][k] for k in ("threads", "kv_cache_type", "context")})
+                        self.update_settings({"local_runtime": cfg})
+                        save_report(ev["report"], self.home / "tune.json")
+                        ev = {**ev, "applied": True}
+                    yield ev
+            finally:
+                if was_running:
+                    await self.start_runtime()

@@ -119,6 +119,9 @@ await fsCard.getByRole("button", { name: "Cancelar" }).click();
 if (await fsCard.locator("code.cmd").count()) fail("connector confirmation did not close");
 await page.getByRole("tab", { name: "Motor local" }).click();
 await page.getByRole("dialog").getByText("Hardware").waitFor();
+await page.getByRole("button", { name: "Optimizar mi equipo" }).click();
+await page.locator(".tune-rows li.best", { hasText: "4 hilos · KV q8_0" }).waitFor({ timeout: 10000 });
+await page.getByTestId("tune").getByText("Guardado").waitFor();
 await page.screenshot({ path: `${out}/05-settings-engine.png` });
 await page.keyboard.press("Escape");
 
