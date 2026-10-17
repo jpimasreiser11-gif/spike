@@ -1,6 +1,6 @@
 # SPIKE · Imágenes necesarias y prompts de generación
 
-Logo oficial: [`spike-logo-original.png`](spike-logo-original.png) (copia exacta de `~/Downloads/frutinovelas/Identidad visual SPIKE con cactus amistoso.png`, 1448×1086). **El logo no se reemplaza**: todo lo de abajo se deriva de él o lo acompaña.
+Logo oficial: [`spike-logo-original.png`](spike-logo-original.png) (copia exacta del archivo original, 1448×1086). **El logo no se reemplaza**: todo lo de abajo se deriva de él o lo acompaña.
 
 ---
 
@@ -234,4 +234,4 @@ Hugging Face model card banner, 1280x640, background soft gradient from cream #F
 
 Total a generar con IA: **A0 (opcional), B0, B2, B3, C2, D1, D2 (+oscura), E1, E2, F1, F2, F3 ×3, F4 ×3, G2 ×4, 13 especialistas, 13 portadas H** ≈ 45 imágenes. Todo lo demás (≈60 archivos de tamaños, favicons, .icns/.ico) se deriva automáticamente.
 
-Cuando tengas imágenes generadas, déjalas en `~/Downloads/frutinovelas` (o súbelas al proyecto) y las proceso a todos los formatos en `spike/brand/`.
+Cuando tengas imágenes generadas, súbelas al proyecto y las proceso a todos los formatos en `spike/brand/`.

@@ -89,7 +89,16 @@ def cmd_models(args: argparse.Namespace) -> int:
         pct = done / total * 100 if total else 0
         print(f"\r  {done / 1024**3:.2f}/{total / 1024**3:.2f} GB ({pct:.0f}%)", end="", flush=True)
 
-    path = asyncio.run(download(args.model, args.quant, progress=progress))
+    import httpx
+
+    try:
+        path = asyncio.run(download(args.model, args.quant, progress=progress))
+    except httpx.HTTPError as exc:
+        print(f"\nerror: could not download {args.model} from the Hugging Face Hub: {exc}", file=sys.stderr)
+        return 1
+    except (FileNotFoundError, PermissionError, ValueError) as exc:  # missing file, license refused, bad checksum
+        print(f"\nerror: {exc}", file=sys.stderr)
+        return 1
     print(f"\nsaved {path} (sha256 verified)")
     from spike.server.state import AppState
 

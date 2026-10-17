@@ -12,8 +12,8 @@ domain_sources:
 replay:
   ratio: 0.3                          # share of general data in the training mix (anti-forgetting)
   sources:
-    - {source: smoltalk-magpie-ultra, max: 9000}
-    - {source: smoltalk-constraints, max: 3000}
+    - {source: oasst2, max: 9000}
+    - {source: smoltalk-constraints, max: 4000}
 decontaminate_against: [mmlu-pro]
 valid_fraction: 0.02
 seed: 0

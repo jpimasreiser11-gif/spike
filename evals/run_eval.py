@@ -34,7 +34,7 @@ def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list
     from datasets import load_dataset
 
     src = registry[task["source"]]
-    ok, reason = licenses.check(src["license"], "eval")
+    ok, reason = licenses.check(licenses.hub_license(src["hub"]), "eval")  # as published, not as recorded
     if not ok or src["role"] != "eval":
         raise SystemExit(f"source '{task['source']}' is not an eval source: {reason}")
     ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "test"))

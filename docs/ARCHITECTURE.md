@@ -1,0 +1,88 @@
+# SPIKE architecture
+
+```
+ Browser (React app, web/)                     CLI (spike …)
+        │  REST + Server-Sent Events                │
+        ▼                                           ▼
+ FastAPI server (spike/server) ── SQLite store (conversations, settings, providers; no keys)
+        │                         └─ SecretStore: OS keychain, or a 0600 file fallback
+        ▼
+ Orchestrator (spike/orchestrator)
+   1 lexical router ─► 2 JSON-schema planner (only multi/ambiguous) ─► 3 subtask DAG ─► 4 synthesis
+        │ each subtask = (provider, model, adapter, system prompt + user instructions)
+        ▼
+ Agent loop (spike/agent) ── tools (spike/tools) ── PermissionBroker: allow / ask / deny per tool
+        │
+        ▼
+ Providers (spike/providers)
+   ├─ llama.cpp (local)  ── one llama-server: base GGUF + every adapter, explicit per-request scales
+   ├─ OpenAI-compatible  ── Ollama, LM Studio, OpenAI, DeepSeek, Gemini, OpenRouter, Groq, Mistral, Together, custom
+   └─ Anthropic (native Messages API)
+```
+
+## Request flow
+
+1. `POST /api/chat` with the conversation, mode (auto / a specialist / direct) and options.
+2. The router scores the message against each specialist's weighted keywords (EN/ES, accent-insensitive).
+   Clear single-domain requests go straight to that specialist; clear general ones to core.
+3. Multi-domain or ambiguous requests get a plan from core: JSON constrained by a schema, validated
+   (known specialists, backward dependencies, size cap), with a deterministic fallback.
+4. Subtasks run by topological level. Each gets its specialist's system prompt, the user's custom
+   instructions and per-specialist instructions, its adapter (local) or its bound provider/model (remote),
+   and a token budget (`spike/core/context.py` keeps system prompt and latest turn, drops the oldest turns).
+5. The agent loop streams text and reasoning, executes tool calls (native, or emulated with `<tool_call>`
+   blocks for providers without native tools) and pauses on `ask` tools until the user answers in the UI.
+6. Core synthesizes when more than one specialist contributed. Every step is an SSE event; the assistant
+   message is stored with its route, plan, subtasks, tool calls, usage and timing.
+
+## Specialists
+
+`spike/specialists/catalog.yaml`: id, name, domain, description, adapter name (`spike-<id>`),
+`adapter_status` (`planned` until an adapter passes its acceptance criteria), sensitivity flag (finance,
+medicine, law, security show a limitations notice), tool allowlist, routing keywords and system prompt.
+Users can add custom specialists (prompt profiles) and bind any specialist to any provider/model.
+
+## Local runtime
+
+`spike/runtime`: hardware detection and recommendations (`spike doctor`), GGUF metadata reader and
+KV-cache calculator, model download with license allowlist, resume and SHA-256 verification, and the
+llama-server lifecycle (`--parallel 1`, `--jinja`, flash attention auto, q8_0 KV by default, global adapter
+scales reset to 0 at startup). See [ADR 0004](adr/0004-adapter-serving.md).
+
+## Providers and safety rails
+
+- Paid providers (every remote preset) refuse to send a request unless the user enabled `allow_paid` for
+  that provider: no cost without explicit configuration. `/test` only lists models.
+- API keys are stored in the OS keychain (`keyring`), never in SQLite or responses.
+- Capabilities (streaming, native tools, JSON schema, adapters, reasoning, context) are declared per
+  provider; when a feature is missing SPIKE emulates it only if reliable (tool calls) and otherwise reports
+  the limitation.
+
+## Tools
+
+| Tool | Default policy | Limits |
+|---|---|---|
+| calculator | allow | AST-restricted arithmetic, exponent cap |
+| current_time | allow | — |
+| read_file, list_dir | allow | confined to the workspace (`SPIKE_WORKSPACE`), traversal rejected |
+| write_file | ask | workspace only |
+| python | ask | separate process, `-I`, CPU 20 s, memory 512 MB (Linux), 30 s timeout; **network is not blocked** |
+| web_fetch | ask | http(s) only, private/loopback/link-local addresses refused, no redirects, 2 MB cap |
+
+## Training and evaluation (offline, on the developer Mac)
+
+`training/` builds data, trains mlx-lm LoRA adapters and exports them to GGUF; `evals/` measures base vs.
+adapter through llama-server with explicit scales. See [TRAINING.md](TRAINING.md).
+
+## Repository layout
+
+```
+spike/          Python package (server, orchestrator, agent, providers, tools, runtime, store, CLI, bench)
+web/            React + Vite + TypeScript app (built into the Python wheel)
+training/       data preparation, distillation, mlx-lm training, adapter export, configs, seeds
+evals/          evaluation suites, runner, pairwise judge, router eval data
+tests/          pytest: unit, API, real llama-server integration, official-converter export
+docs/           plan, research, architecture, status, ADRs, audits
+brand/          official SPIKE logo and derived assets
+scripts/        installers
+```

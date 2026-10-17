@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 
 from spike_train import licenses  # noqa: E402
 from spike_train.data import (  # noqa: E402
+    BUILDERS,
     FORMATTERS,
     ContaminationIndex,
     dedupe,
@@ -121,10 +122,19 @@ def main() -> int:
         chats = []
         for entry in entries:
             src = checked(entry["source"], "train")
-            fmt = FORMATTERS[src["format"]]
+            start, limit = entry.get("offset", 0), entry.get("max")
+            if src["format"] in BUILDERS:  # needs every row of the source before it can emit a chat
+                built = BUILDERS[src["format"]](load_rows(src), **src.get("options", {}))
+                if not built:
+                    raise SystemExit(f"source '{entry['source']}' produced no chats; check its schema against the builder")
+                manifest["sources"][entry["source"]]["built"] = len(built)
+                candidates = iter(built[start: None if limit is None else start + limit])
+            else:
+                fmt = FORMATTERS[src["format"]]
+                candidates = (fmt(row, sys_prompt) if src["format"] != "messages" else fmt(row)
+                              for row in load_rows(src, start, limit))
             kept = 0
-            for row in load_rows(src, entry.get("offset", 0), entry.get("max")):
-                chat = fmt(row, sys_prompt) if src["format"] != "messages" else fmt(row)
+            for chat in candidates:
                 if chat is None or not passes_quality(chat):
                     manifest["dropped"]["format_or_quality"] += 1
                     continue
@@ -153,7 +163,13 @@ def main() -> int:
                                  seed=cfg.get("seed", 0))
     n_train = write_jsonl(out / "train.jsonl", train)
     n_valid = write_jsonl(out / "valid.jsonl", valid)
-    manifest["counts"] = {"domain": len(domain), "replay_available": len(replay), "train": n_train, "valid": n_valid}
+    ratio = cfg.get("replay", {}).get("ratio", 0.0)
+    actual = round(1 - len(domain) / max(1, n_train + n_valid), 4)
+    manifest["counts"] = {"domain": len(domain), "replay_available": len(replay), "train": n_train, "valid": n_valid,
+                          "replay_ratio_target": ratio, "replay_ratio_actual": actual}
+    if ratio - actual > 0.02:
+        print(f"warning: replay is {actual:.1%} of the mix, below the {ratio:.0%} target; add replay sources",
+              file=sys.stderr)
     manifest["files"] = {f: sha256(out / f) for f in ("train.jsonl", "valid.jsonl")}
 
     mlx_cfg = {"model": cfg["base_model"], "train": True, "fine_tune_type": "lora", "data": str(out),

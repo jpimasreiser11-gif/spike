@@ -6,8 +6,10 @@ import fs from "node:fs";
 const base = process.argv[2] || "http://127.0.0.1:8741";
 const out = process.argv[3] || "e2e/screenshots";
 fs.mkdirSync(out, { recursive: true });
-const executablePath = process.env.CHROMIUM_PATH || "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
-const browser = await chromium.launch({ executablePath: fs.existsSync(executablePath) && fs.statSync(executablePath).isFile() ? executablePath : "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+// CHROMIUM_PATH, then a preinstalled Chromium, then the browser installed by `npx playwright-core install chromium`.
+const executablePath = [process.env.CHROMIUM_PATH, "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell",
+  "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find((p) => p && fs.existsSync(p) && fs.statSync(p).isFile());
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const fail = (msg) => { console.error("FAIL:", msg); process.exitCode = 1; };
 const ctx = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "es-ES", colorScheme: "light" });
 const page = await ctx.newPage();

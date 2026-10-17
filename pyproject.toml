@@ -29,8 +29,8 @@ dependencies = [
 
 [project.optional-dependencies]
 keyring = ["keyring>=25"]
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6"]
-train = ["mlx-lm>=0.31; sys_platform == 'darwin'", "datasets>=3", "numpy>=1.26", "safetensors>=0.4"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6", "numpy>=1.26"]
+train = ["mlx-lm>=0.30.7; sys_platform == 'darwin'", "datasets>=3", "numpy>=1.26", "safetensors>=0.4"]
 
 [project.scripts]
 spike = "spike.cli:main"
@@ -38,8 +38,11 @@ spike = "spike.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["spike"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"web/dist" = "spike/server/static"
+[tool.hatch.build.targets.wheel.hooks.custom]   # hatch_build.py: adds web/dist as spike/server/static
+
+[tool.hatch.build.targets.sdist]
+exclude = ["web/node_modules", "training/data", "training/runs", "evals/results/*/predictions.jsonl"]
+artifacts = ["web/dist/**"]   # built bundle travels with the sdist so a wheel can be built from it
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

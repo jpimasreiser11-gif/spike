@@ -28,6 +28,8 @@ from spike_train.export import convert, write_safetensors  # noqa: E402
 
 from spike.runtime.gguf import read_gguf  # noqa: E402
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig, find_binary  # noqa: E402
+
+pytest.importorskip("gguf", reason="llama.cpp's gguf package builds the tiny test model")
 from tests.fixtures import make_tiny_gguf as tiny  # noqa: E402
 
 LLAMA_CPP = os.environ.get("SPIKE_LLAMA_CPP")

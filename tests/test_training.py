@@ -21,6 +21,7 @@ from spike_train.data import (  # noqa: E402
     fmt_mmlu_pro,
     fmt_pubmedqa,
     mix_and_split,
+    oasst_conversations,
     passes_quality,
 )
 from spike_train.distill import Task, verify  # noqa: E402
@@ -53,7 +54,39 @@ def chat(user: str, answer: str = "ok") -> dict:
     return {"messages": [{"role": "user", "content": user}, {"role": "assistant", "content": answer}]}
 
 
+def oasst(mid, parent, role, text, rank=None, **kw) -> dict:
+    return {"message_id": mid, "parent_id": parent, "role": role, "text": text, "rank": rank, "lang": "en",
+            "review_result": True, "deleted": False, "synthetic": False, **kw}
+
+
 # ------------------------------------------------------------------ data
+def test_oasst_trees_become_best_ranked_chats():
+    rows = [
+        oasst("q", None, "prompter", "What is a ledger?"),
+        oasst("a0", "q", "assistant", "A record of accounts.", rank=0),
+        oasst("a1", "q", "assistant", "No idea.", rank=1),
+        oasst("f", "a0", "prompter", "And a journal?"),
+        oasst("b", "f", "assistant", "The book of original entry."),  # only reply: kept
+        oasst("g", "a1", "prompter", "Why?"),
+        oasst("c", "g", "assistant", "Below a rank-1 reply: dropped.", rank=0),
+        oasst("q2", None, "prompter", "Hola", lang="es"),
+        oasst("d", "q2", "assistant", "Hola, ¿en qué te ayudo?", rank=0),
+        oasst("q3", None, "prompter", "Unreviewed", review_result=None),
+        oasst("e", "q3", "assistant", "dropped", rank=0),
+        oasst("q4", None, "prompter", "Deleted reply"),
+        oasst("x", "q4", "assistant", "deleted", rank=0, deleted=True),
+        oasst("y", "q4", "assistant", "two unranked live replies: neither is best"),
+        oasst("z", "q4", "assistant", "second unranked reply"),
+    ]
+    chats = oasst_conversations(rows, langs=["en"])
+    assert [[m["content"] for m in c["messages"]] for c in chats] == [
+        ["What is a ledger?", "A record of accounts."],
+        ["What is a ledger?", "A record of accounts.", "And a journal?", "The book of original entry."],
+    ]
+    assert chats[1]["messages"][2]["role"] == "user"
+    assert len(oasst_conversations(rows, langs=["en", "es"])) == 3
+
+
 def test_formatters_produce_chats_with_gold_answers():
     c = fmt_medmcqa(MEDMCQA, "SYS")
     assert c["messages"][0] == {"role": "system", "content": "SYS"}
@@ -265,7 +298,8 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     rows = {
         "medmcqa": [med(i) for i in range(40)] + [med(99, leaked)],
         "pubmedqa-artificial": [{**PUBMED, "pubid": i, "question": f"Does treatment {i} reduce mortality?"} for i in range(10)],
-        "smoltalk-magpie-ultra": [chat(f"general question {i}", "a general answer") for i in range(200)],
+        "oasst2": [r for i in range(200) for r in (oasst(f"q{i}", None, "prompter", f"general question {i}"),
+                                                    oasst(f"a{i}", f"q{i}", "assistant", "a general answer", rank=0))],
         "smoltalk-constraints": [chat(f"constraint task {i}", "done") for i in range(50)],
         "medmcqa-eval": [med(1000, leaked)],
         "pubmedqa-labeled": [PUBMED],
@@ -289,10 +323,12 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["dropped"]["contaminated"] == 1  # the leaked eval question never reaches training
     assert manifest["sources"]["medmcqa"]["kept"] == 40
+    assert manifest["sources"]["oasst2"]["built"] == 200 and "smoltalk-magpie-ultra" not in manifest["sources"]
     counts = manifest["counts"]
     domain = counts["domain"]
     replay_in_mix = counts["train"] + counts["valid"] - domain
     assert domain == 50 and replay_in_mix == int(domain * 0.3 / 0.7)
+    assert abs(counts["replay_ratio_actual"] - 0.3) < 0.01
     mlx = yaml.safe_load((out / "mlx_lora.yaml").read_text())
     assert mlx["iters"] == counts["iters"] and mlx["lr_schedule"]["arguments"][1] != "auto"
     assert mlx["lora_parameters"]["keys"][0] == "self_attn.q_proj" and mlx["mask_prompt"] is True

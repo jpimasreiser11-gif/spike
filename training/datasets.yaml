@@ -7,14 +7,14 @@
 # provenance: notes on how the data was produced, including synthetic data and its generator.
 sources:
   # ------------------------------------------------------------------ general replay (anti-forgetting)
-  smoltalk-magpie-ultra:
-    hub: HuggingFaceTB/smoltalk
-    config: smol-magpie-ultra
+  oasst2:
+    hub: OpenAssistant/oasst2
     split: train
     license: apache-2.0
     role: train
-    format: messages
-    provenance: Synthetic (Magpie pipeline with Llama-3.1-405B-Instruct). Llama 3.1 license permits using outputs to improve other models with attribution.
+    format: oasst_tree            # message trees; prepare.py builds one chat per best-ranked reply
+    options: {langs: [en, es]}
+    provenance: Human-written conversations collected by OpenAssistant (2023); only reviewed, non-deleted, non-synthetic messages are used.
   smoltalk-constraints:
     hub: HuggingFaceTB/smoltalk
     config: smol-constraints
@@ -22,7 +22,15 @@ sources:
     license: apache-2.0
     role: train
     format: messages
-    provenance: Synthetic instruction-following with explicit constraints.
+    provenance: Synthetic instruction-following with explicit constraints (distilabel). The dataset card does not name the generator model; confirm it before releasing adapter weights.
+  smoltalk-magpie-ultra:
+    hub: HuggingFaceTB/smoltalk
+    config: smol-magpie-ultra
+    split: train
+    license: apache-2.0
+    role: excluded
+    format: messages
+    provenance: Generated with Llama-3.1-405B-Instruct. Excluded because the Llama 3.1 license (section 1.b.i) requires any distributed model trained on Llama outputs to put "Llama" at the beginning of its name.
 
   # ------------------------------------------------------------------ medicine
   medmcqa:

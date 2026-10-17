@@ -119,6 +119,60 @@ FORMATTERS = {
 }
 
 
+# ------------------------------------------------------------------ builders (whole source -> chats)
+def oasst_conversations(rows: Iterable[dict[str, Any]], langs: Iterable[str] | None = None) -> list[Chat]:
+    """OpenAssistant message trees (one row per message) -> one chat per best assistant reply.
+
+    A reply is kept when it and every message above it are reviewed, not deleted, human-written and in
+    `langs`, and every assistant turn on the path is the best of its siblings (rank 0, or the only reply).
+    mlx-lm's mask_prompt trains only the last turn, so chats sharing a prefix still have distinct targets."""
+    langs = set(langs) if langs else None
+    rows = list(rows)
+    by_id = {r["message_id"]: r for r in rows}
+    replies: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        if r.get("parent_id") is not None and r.get("role") == "assistant":
+            replies.setdefault(r["parent_id"], []).append(r)
+
+    def ok(m: dict[str, Any]) -> bool:
+        return (not m.get("deleted") and m.get("review_result") is True and not m.get("synthetic")
+                and (langs is None or m.get("lang") in langs) and bool(str(m.get("text") or "").strip()))
+
+    def best(m: dict[str, Any]) -> bool:
+        siblings = [s for s in replies.get(m["parent_id"], []) if ok(s)]
+        return m.get("rank") == 0 or (m.get("rank") is None and len(siblings) == 1)
+
+    path_cache: dict[str, list[dict[str, Any]] | None] = {}
+
+    def path(m: dict[str, Any]) -> list[dict[str, Any]] | None:
+        mid = m["message_id"]
+        if mid not in path_cache:
+            want = "prompter" if m.get("role") == "assistant" else "assistant"
+            parent = by_id.get(m["parent_id"]) if m.get("parent_id") is not None else None
+            if not ok(m) or (m.get("role") == "assistant" and not best(m)):
+                path_cache[mid] = None
+            elif m.get("parent_id") is None:
+                path_cache[mid] = [m] if m.get("role") == "prompter" else None
+            elif parent is None or parent.get("role") != want:
+                path_cache[mid] = None
+            else:
+                above = path(parent)
+                path_cache[mid] = None if above is None else [*above, m]
+        return path_cache[mid]
+
+    chats = []
+    for r in rows:
+        if r.get("role") == "assistant" and (p := path(r)):
+            chats.append({"messages": [{"role": "user" if m["role"] == "prompter" else "assistant",
+                                        "content": str(m["text"]).strip()} for m in p]})
+    return chats
+
+
+BUILDERS = {
+    "oasst_tree": oasst_conversations,
+}
+
+
 # ------------------------------------------------------------------ quality, dedup, contamination
 def text_of(chat: Chat, roles: tuple[str, ...] = ("user",)) -> str:
     return "\n".join(m["content"] for m in chat["messages"] if m["role"] in roles)
