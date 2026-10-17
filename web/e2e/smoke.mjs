@@ -237,6 +237,9 @@ await page.screenshot({ path: `${out}/07h-question.png` });
 await question.getByRole("button", { name: "España" }).click();
 await page.getByText("el IVA general es del").waitFor({ timeout: 10000 });
 await page.locator(".question.done", { hasText: "Tu respuesta: España" }).waitFor();
+const [proofDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Descargar paquete de prueba" }).click()]);
+if (!/^spike-proof-.*\.zip$/.test(proofDl.suggestedFilename())) fail("proof package name: " + proofDl.suggestedFilename());
+if (fs.readFileSync(await proofDl.path()).subarray(0, 2).toString() !== "PK") fail("proof package is not a zip");
 
 // temporary chat: not listed in the sidebar, no memory used
 await page.getByRole("button", { name: "Nuevo chat" }).click();

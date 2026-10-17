@@ -7,6 +7,7 @@ import json
 import re
 import shutil
 import time
+import unicodedata
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -24,6 +25,8 @@ from spike.core.types import Message
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
+from spike.proof import build_proof
+from spike.providers.guard import CURRENT_CHAT
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
@@ -639,6 +642,21 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(404, "conversation not found")
         return conv
 
+    @app.get("/api/conversations/{cid}/proof")
+    async def proof_package(cid: str) -> Response:
+        """The chat with every recorded step, its model calls and file checksums, as a verifiable zip."""
+        state = st()
+        store = state.store_for(cid)
+        conv = store.get_conversation(cid)
+        if not conv:
+            raise HTTPException(404, "conversation not found")
+        data = build_proof(conv, store.messages(cid), state.store.calls_for(cid), state.store.list_checkpoints(cid),
+                           state.provider_configs(), state.settings(), temporary=store is state.temp)
+        ascii_title = unicodedata.normalize("NFKD", conv["title"]).encode("ascii", "ignore").decode()
+        name = re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")[:40] or "chat"  # headers are ASCII
+        return Response(data, media_type="application/zip", headers={
+            "Content-Disposition": f'attachment; filename="spike-proof-{name}-{time.strftime("%Y%m%d")}.zip"'})
+
     @app.post("/api/conversations/{cid}/branch")
     async def branch_conversation(cid: str, body: BranchIn) -> dict:
         """A copy of the chat up to (not including) one of the user's messages, so an edit can go on in its own
@@ -849,6 +867,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         await state.connectors.ensure_started()
 
         async def stream() -> AsyncIterator[bytes]:
+            CURRENT_CHAT.set(conv["id"])  # the call log notes which chat each model call was for
             yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"],
                         "user_message_id": user_message["id"], **({"temporary": True} if temporary else {})})
             meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}

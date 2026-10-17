@@ -3,7 +3,7 @@ import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
-import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
+import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { Replay } from "./components/Replay";
@@ -298,6 +298,11 @@ export default function App() {
           {(empty || temporary) && (
             <button className={`btn small temp-toggle ${temporary ? "on" : ""}`} aria-pressed={temporary} disabled={!empty}
               onClick={() => setTemporary(!temporary)} title={t.temporaryHint}><IconTimer size={15} /> {t.temporaryChat}</button>
+          )}
+          {activeId && !empty && !busy && (
+            <a className="icon-btn" href={`/api/conversations/${activeId}/proof`} download title={t.proofHint} aria-label={t.proof}>
+              <IconDownload />
+            </a>
           )}
           <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle theme">{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
         </header>

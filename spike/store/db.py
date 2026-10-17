@@ -55,6 +55,8 @@ class Store:
         columns = {r["name"] for r in self._conn.execute("PRAGMA table_info(conversations)")}
         if "project_id" not in columns:  # databases created before projects existed
             self._conn.execute("ALTER TABLE conversations ADD COLUMN project_id TEXT")
+        if "conversation_id" not in {r["name"] for r in self._conn.execute("PRAGMA table_info(calls)")}:
+            self._conn.execute("ALTER TABLE calls ADD COLUMN conversation_id TEXT")  # logs from before chat tagging
         self._conn.execute("DELETE FROM calls WHERE ts < ?", (time.time() - CALL_LOG_DAYS * 86400,))
         self._conn.commit()
         self._lock = threading.Lock()
@@ -152,15 +154,21 @@ class Store:
     # -------------------------------------------------------------- call log
     def log_call(self, provider_id: str, provider: str, status: str, model: str = "", local: bool = False,
                  tokens_in: int = 0, tokens_out: int = 0, estimated: bool = False, cost: float | None = None,
-                 files_sent: int = 0, files_withheld: int = 0, detail: str = "") -> None:
+                 files_sent: int = 0, files_withheld: int = 0, detail: str = "",
+                 conversation_id: str | None = None) -> None:
         self._exec("INSERT INTO calls (ts, provider_id, provider, model, local, status, tokens_in, tokens_out, "
-                   "estimated, cost, files_sent, files_withheld, detail) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                   "estimated, cost, files_sent, files_withheld, detail, conversation_id) "
+                   "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                    (time.time(), provider_id, provider, model, int(local), status, tokens_in, tokens_out,
-                    int(estimated), cost, files_sent, files_withheld, detail))
+                    int(estimated), cost, files_sent, files_withheld, detail, conversation_id))
 
     def calls(self, limit: int = 200, remote_only: bool = False) -> list[dict]:
         where = "WHERE local=0" if remote_only else ""
         rows = self._exec(f"SELECT * FROM calls {where} ORDER BY id DESC LIMIT ?", (limit,))
+        return [{**dict(r), "local": bool(r["local"]), "estimated": bool(r["estimated"])} for r in rows]
+
+    def calls_for(self, conversation_id: str) -> list[dict]:
+        rows = self._exec("SELECT * FROM calls WHERE conversation_id=? ORDER BY id", (conversation_id,))
         return [{**dict(r), "local": bool(r["local"]), "estimated": bool(r["estimated"])} for r in rows]
 
     def usage_since(self, provider_id: str, since: float) -> dict[str, float]:

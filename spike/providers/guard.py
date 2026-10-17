@@ -6,6 +6,7 @@ from __future__ import annotations
 import datetime as dt
 import time
 from collections.abc import AsyncIterator, Callable
+from contextvars import ContextVar
 from dataclasses import replace
 from typing import Any, Protocol
 
@@ -22,6 +23,8 @@ from spike.providers.base import Provider, ProviderConfig
 
 LIMIT_KEYS = ("monthly_tokens", "monthly_cost", "price_in", "price_out")
 
+
+CURRENT_CHAT: ContextVar[str | None] = ContextVar("spike_chat", default=None)  # set by the chat route
 
 class CallLog(Protocol):
     def log_call(self, **row: Any) -> None: ...
@@ -139,7 +142,7 @@ class GuardedProvider(Provider):
     async def stream(self, request: ChatRequest) -> AsyncIterator[StreamEvent]:
         cfg = self.config
         row: dict[str, Any] = {"provider_id": cfg.id, "provider": cfg.name, "model": request.model or cfg.model,
-                               "local": cfg.local}
+                               "local": cfg.local, "conversation_id": CURRENT_CHAT.get()}
         if (reason := self.blocked()) is not None:
             self.log.log_call(**row, status="blocked", detail=reason)
             yield StreamEvent(kind="error", text=reason)

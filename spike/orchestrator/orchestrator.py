@@ -145,6 +145,7 @@ class Orchestrator:
             "id": spec.id,
             "name": spec.name,
             "provider": backend.provider.config.name,
+            "provider_id": backend.provider.config.id,
             "model": backend.model or backend.provider.config.model,
             "adapter": backend.adapter,
             "profile_only": backend.profile_only and spec.adapter is not None,
