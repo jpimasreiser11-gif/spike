@@ -1,7 +1,8 @@
-<p align="center">
-  <img src="brand/spike-mark.png" alt="SPIKE cactus logo" width="120">
-</p>
-<h1 align="center">SPIKE</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="brand/github/readme-banner-dark.png">
+  <img alt="SPIKE" src="brand/github/readme-banner-light.png">
+</picture>
+
 <p align="center"><b>A family of small specialist models with an orchestrator, built to run on an ordinary 16 GB computer.</b><br>
 Local first, open source (Apache-2.0), and able to use external API models with the same instructions, specialists and tools.</p>
 
@@ -28,6 +29,13 @@ Local first, open source (Apache-2.0), and able to use external API models with 
   deny, with an inline permission prompt.
 - **Measured, not announced.** Exact-answer evals with confidence intervals and McNemar tests, acceptance
   criteria written before training, and a benchmark command that records hardware and build.
+
+<table>
+  <tr><td align="center"><img src="brand/specialists/core/avatar-core-128.png" width="56" alt=""><br>Core</td><td align="center"><img src="brand/specialists/code/avatar-code-128.png" width="56" alt=""><br>Code</td><td align="center"><img src="brand/specialists/finance/avatar-finance-128.png" width="56" alt=""><br>Finance</td><td align="center"><img src="brand/specialists/medicine/avatar-medicine-128.png" width="56" alt=""><br>Medicine</td><td align="center"><img src="brand/specialists/law/avatar-law-128.png" width="56" alt=""><br>Law</td><td align="center"><img src="brand/specialists/marketing/avatar-marketing-128.png" width="56" alt=""><br>Marketing</td><td align="center"><img src="brand/specialists/science/avatar-science-128.png" width="56" alt=""><br>Science</td></tr>
+  <tr><td align="center"><img src="brand/specialists/data/avatar-data-128.png" width="56" alt=""><br>Data</td><td align="center"><img src="brand/specialists/math/avatar-math-128.png" width="56" alt=""><br>Math</td><td align="center"><img src="brand/specialists/education/avatar-education-128.png" width="56" alt=""><br>Education</td><td align="center"><img src="brand/specialists/writing/avatar-writing-128.png" width="56" alt=""><br>Writing</td><td align="center"><img src="brand/specialists/business/avatar-business-128.png" width="56" alt=""><br>Business</td><td align="center"><img src="brand/specialists/security/avatar-security-128.png" width="56" alt=""><br>Security</td></tr>
+</table>
+
+Scope, data and evaluation of each one: [docs/SPECIALISTS.md](docs/SPECIALISTS.md).
 
 ## Quick start
 

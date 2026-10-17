@@ -82,5 +82,13 @@ services is governed by each provider's terms; SPIKE ships none of their code, n
 
 ## Brand
 
-The SPIKE name, cactus logo and palette in [brand/](brand/) are the project's own identity and are not
-licensed for use as another product's identity.
+The SPIKE name, cactus logo and palette in [brand/](brand/) are the project's own identity. Apache-2.0
+grants no trademark rights (section 6), so they may not be used as another product's identity.
+
+- The original cactus logo (`brand/spike-logo-original.png`) was drawn for the project by its founder.
+- The other brand images were generated from that logo with ChatGPT's image generation (prompts in
+  `brand/IMAGENES-Y-PROMPTS.md`, originals in `brand/source/`) and cut, resized and composed with
+  `brand/tools/build_brand.py` and `build_round2.py`.
+- Taglines in the images are set in Nunito, SIL Open Font License 1.1 (`brand/tools/Nunito-OFL.txt`).
+- The web app ships derived copies: favicons and app icons, the 13 specialist avatars and three state
+  illustrations in `web/public/`.

@@ -41,7 +41,7 @@ packages = ["spike"]
 [tool.hatch.build.targets.wheel.hooks.custom]   # hatch_build.py: adds web/dist as spike/server/static
 
 [tool.hatch.build.targets.sdist]
-exclude = ["web/node_modules", "training/data", "training/runs", "evals/results/*/predictions.jsonl"]
+exclude = ["web/node_modules", "training/data", "training/runs", "evals/results/*/predictions.jsonl", "brand"]
 artifacts = ["web/dist/**"]   # built bundle travels with the sdist so a wheel can be built from it
 
 [tool.pytest.ini_options]
@@ -51,6 +51,7 @@ pythonpath = ["."]
 
 [tool.ruff]
 line-length = 110
+extend-exclude = ["brand"]   # brand/tools are the brand pipeline's own scripts
 target-version = "py311"
 
 [tool.ruff.lint]

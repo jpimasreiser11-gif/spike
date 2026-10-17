@@ -78,7 +78,7 @@ claimed until measured.
 
 ## 13. Visual design
 - **Decision**: joan's official cactus logo and palette (`brand/`); derived icons only; specialist colours; light/dark.
-- **Acceptance**: no invented logo; brand consistent in app, README and installers. **Status**: ✅ app and README; ⬜ installer icons.
+- **Acceptance**: no invented logo; brand consistent in app, README and installers. **Status**: ✅ app (favicons, PWA icons, specialist avatars, empty/error/no-model illustrations) and README from joan's brand set in `brand/`; ✅ Hugging Face model cards (`training/model_card.py`, per-specialist banner); ⬜ native installer icons and DMG/NSIS art, ready in `brand/icons/` and `brand/installers/`, wait for native packages (today's installers are scripts).
 
 ## 14. Tools and connectors
 - **Decision**: built-in tools with per-tool allow/ask/deny: calculator, time, workspace read/list/write, sandboxed Python (rlimits, timeout; network not blocked, documented), web fetch (private IPs blocked).

@@ -20,14 +20,16 @@ _Last update: 2026-10-17, commit on `main` in the development repository (not ye
 | Training data pipeline: license gate, template-aware decontamination, replay ratio, iters/LR schedule, mlx-lm config | 22 tests pass incl. an end-to-end `prepare.py` run on in-memory sources | `pytest tests/test_training.py` |
 | Eval statistics: Wilson CI, exact McNemar, acceptance rules, pairwise summary | unit tests | same file |
 | Web app: welcome, multi-specialist plan trace, tool permission card, history reload, settings, dark mode, English, mobile layout | Playwright smoke in Chromium; 5 Vitest tests | `node web/e2e/smoke.mjs` (with `tests/e2e/serve_scripted.py`), `npx vitest run` |
+| Brand in the app and README: favicons, PWA manifest with maskable icon, avatar per specialist on every chip, empty-chat / error / no-model illustrations, README banner (light/dark) and specialists table | Playwright smoke passes; screenshots checked in light, dark, mobile and with the API failing; every catalog specialist has an avatar and a Hugging Face banner (test) | `node web/e2e/smoke.mjs`, `pytest tests/test_model_card.py` |
+| Hugging Face model card generator: front matter, data/license table, embedded eval table and verdict, only from pipeline records | 4 unit tests (accepted, rejected, missing verdict, no advice line for non-sensitive) | `pytest tests/test_model_card.py` |
 | Frontend network surface: only same-origin `/api/*` calls, one localStorage key | REA static audit | [audit](audits/2026-10-17-web-bundle-rea.md) |
 | Installers: `scripts/install.sh` and `scripts/install.ps1` install pipx, build the web app, install SPIKE with pipx and run `spike doctor`; a failed model download ends with a clean error | both ran end to end with `--yes`/`-Yes` in an isolated home in the build container (Linux x86_64; `install.ps1` under PowerShell 7.4 for Linux, **not on Windows**); shellcheck clean | `HOME=$(mktemp -d) scripts/install.sh --yes` |
-| Packaging: the wheel ships the web app, the sdist carries it, editable installs and the test suite need no Node.js, a wheel build without the bundle fails with a clear message | `python -m build` (wheel: 64 static files); clean dev-only venv: 69 passed, 4 skipped | `python -m build`, `pip install -e ".[dev]" && pytest` |
+| Packaging: the wheel ships the web app, the sdist carries it, editable installs and the test suite need no Node.js, a wheel build without the bundle fails with a clear message | `python -m build` (wheel: 81 static files); clean dev-only venv: 69 passed, 4 skipped | `python -m build`, `pip install -e ".[dev]" && pytest` |
 | Replay data licensing: Llama-3.1-generated replay (smol-magpie-ultra) excluded; human-written OpenAssistant oasst2 tree builder | Llama 3.1 license §1.b.i read in `meta-llama/llama-models`; builder unit test (ranking, review, deletion, language filters) | `pytest tests/test_training.py -k oasst` |
 | CI workflow (Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) | actionlint 1.7.7 + shellcheck 0.11.0 clean; llama-server built with the CI's flags (`GGML_NATIVE=OFF`, no OpenSSL) passes the 5 integration tests; **never run on GitHub** (no repository yet) | `actionlint .github/workflows/ci.yml` |
 | Benchmark harness end to end (TTFT, tok/s, RSS, build info) | runs against the tiny model; **its numbers are meaningless for quality or speed** | `spike bench --model <tiny.gguf>` |
 
-Total at this update: 74 Python tests and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+Total at this update: 93 Python tests (incl. the llama.cpp integration tests) and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
 
 ## Built, not yet measured with real weights
 

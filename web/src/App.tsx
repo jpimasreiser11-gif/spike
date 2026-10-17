@@ -5,6 +5,7 @@ import { Composer } from "./components/Composer";
 import { IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
 import { applyEvent, emptyRun, runFromStored } from "./run";
 import type { Conversation, PermissionState, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
@@ -182,18 +183,18 @@ export default function App() {
           <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle theme">{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
         </header>
 
-        {fatal && <div className="error-box center">{fatal}</div>}
+        {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}
 
         {empty ? (
           <section className="welcome">
-            <img className="welcome-mark" src="/spike-mark.png" alt="SPIKE" width={92} height={92} />
+            {!fatal && <img className="welcome-mark" src="/states/empty-chat.webp" alt="" width={220} height={144} />}
             <h1>{t.greeting}</h1>
             <p className="muted">{t.greetingSub}</p>
             <div className="welcome-composer">{composer}</div>
             <div className="spec-chips">
               {specialists.filter((s) => s.id !== "core").map((s) => (
                 <button key={s.id} className={`chip spec-${s.id} ${mode === s.id ? "selected" : ""}`} onClick={() => setMode(mode === s.id ? "auto" : s.id)} title={s.description}>
-                  <span className="chip-dot" />{s.name.replace("Spike ", "")}
+                  <SpecMark id={s.id} />{s.name.replace("Spike ", "")}
                 </button>
               ))}
             </div>

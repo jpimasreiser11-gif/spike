@@ -3,6 +3,7 @@ import { api } from "../api";
 import { lang } from "../i18n";
 import type { Preset, ProviderInfo, Settings, Specialist, ToolInfo } from "../types";
 import { IconClose, IconTrash } from "./Icons";
+import { SpecMark } from "./SpecMark";
 
 const L = lang === "es"
   ? {
@@ -218,7 +219,7 @@ function Specialists({ specialists, providers, settings, save }: { specialists: 
       {specialists.map((s) => (
         <div key={s.id} className="card">
           <div className="card-head">
-            <span className={`chip spec-${s.id}`}><span className="chip-dot" />{s.name}</span>
+            <span className={`chip spec-${s.id}`}><SpecMark id={s.id} />{s.name}</span>
             <span className="muted small">{s.domain}</span>
             {s.adapter && <span className={`badge status-${s.adapter_status}`}>{L.adapterStatus}: {s.adapter_status}</span>}
           </div>
@@ -284,7 +285,7 @@ function Engine({ settings, save }: { settings: Settings; save: (p: Partial<Sett
         <div className="card-head"><b>{L.engine}</b><span className={`badge ${sys.runtime.running ? "ok" : ""}`}>{sys.runtime.running ? L.running : L.stoppedS}</span></div>
         <label className="field"><span>{L.modelPath}</span><input defaultValue={rt.model} placeholder="~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf" onBlur={(e) => e.target.value !== rt.model && save({ local_runtime: { ...rt, model: e.target.value } })} /></label>
         <label className="field"><span>{L.ctx}</span><input type="number" defaultValue={rt.context ?? ""} placeholder={String(sys.recommendation.context)} onBlur={(e) => save({ local_runtime: { ...rt, context: e.target.value ? Number(e.target.value) : null } })} /></label>
-        {!rt.model && <small className="muted">{L.pull}</small>}
+        {!rt.model && <div className="no-models"><img src="/states/no-models.webp" alt="" width={84} height={89} /><small className="muted">{L.pull}</small></div>}
         {sys.runtime.running && <p className="small muted">RSS {sys.runtime.rss_mb} MB · load {sys.runtime.load_seconds}s · {sys.runtime.adapters.length} {L.adapters}</p>}
         <div className="card-actions">
           <button className="btn primary" disabled={busy} onClick={() => act("start")}>{L.start}</button>

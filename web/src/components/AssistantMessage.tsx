@@ -4,6 +4,7 @@ import { t } from "../i18n";
 import type { PermissionState, RunState, Specialist } from "../types";
 import { IconChevron, IconCopy, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
+import { SpecMark } from "./SpecMark";
 
 function Collapsible({ title, children, defaultOpen = false, live = false }: {
   title: React.ReactNode;
@@ -72,7 +73,7 @@ export function AssistantMessage({ run, specialists, onPermission }: {
         <div className="route">
           {routeSpecs.map((s) => (
             <span key={s.id} className={`chip spec-${s.id}`} title={`${s.provider} · ${s.model || ""}${s.adapter ? ` · ${t.adapter}: ${s.adapter}` : ""}${s.profile_only ? ` · ${t.promptProfile}` : ""}`}>
-              <span className="chip-dot" />
+              <SpecMark id={s.id} />
               {s.name}
               {s.profile_only && <span className="chip-note">β</span>}
             </span>
