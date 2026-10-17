@@ -11,6 +11,7 @@ from spike.core.context import fit_messages
 from spike.core.types import ChatRequest, Message, ToolCall
 from spike.providers.base import Provider
 from spike.tools.base import PermissionBroker, Tool
+from spike.tools.builtin import NO_ONE_TO_ASK, AskUser
 
 Event = dict[str, Any]
 
@@ -106,6 +107,22 @@ async def run_agent(
             file, private, checkpoint = None, [], None
             if tool is None:
                 result_text, ok = f"error: tool '{call.name}' is not available to this specialist", False
+            elif tool.name == AskUser.name:
+                question = str(call.arguments.get("question") or "").strip()
+                options = [str(o).strip()[:200] for o in call.arguments.get("options") or [] if str(o).strip()][:6]
+                if not question:
+                    result_text, ok = "error: 'question' is required", False
+                elif not broker.interactive:
+                    result_text, ok = NO_ONE_TO_ASK, False
+                else:
+                    q = broker.ask(question[:2000], options)
+                    yield {"type": "question", "id": q.id, "question": q.text, "options": options,
+                           "call_id": call.id, **tag}
+                    answer = await broker.wait_answer(q)
+                    yield {"type": "answered", "id": q.id, "answer": answer, **tag}
+                    result_text, ok = (f"The user answered: {answer}", True) if answer is not None else \
+                        ("The user did not answer in time; continue with your best assumption and say what you "
+                         "assumed.", False)
             else:
                 policy = broker.policy_for(tool)
                 if policy == "deny":

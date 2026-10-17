@@ -227,6 +227,17 @@ await page.keyboard.press("Escape");
 await learnedRule.getByRole("button", { name: "Deshacer" }).click();
 await page.locator(".learned-line", { hasText: "Quitado de la memoria" }).waitFor();
 
+// human handoff: the specialist asks, the run waits, the answer goes back and the run finishes
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("¿Qué IVA pongo en la factura?");
+await page.keyboard.press("Enter");
+const question = page.getByRole("alertdialog", { name: "SPIKE necesita que le digas algo para seguir" });
+await question.getByText("¿Para qué país es la factura?").waitFor({ timeout: 10000 });
+await page.screenshot({ path: `${out}/07h-question.png` });
+await question.getByRole("button", { name: "España" }).click();
+await page.getByText("el IVA general es del").waitFor({ timeout: 10000 });
+await page.locator(".question.done", { hasText: "Tu respuesta: España" }).waitFor();
+
 // temporary chat: not listed in the sidebar, no memory used
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByRole("button", { name: "Chat temporal" }).click();

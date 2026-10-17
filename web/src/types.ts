@@ -91,6 +91,15 @@ export type PermissionState = {
   status: "pending" | "allow_once" | "allow_always" | "deny" | "sending";
 };
 
+/** A question a specialist asked the user (`ask_user`); the run waits for the answer. */
+export type QuestionState = {
+  id: string;
+  question: string;
+  options: string[];
+  answer?: string | null; // null: the run went on without one
+  status: "pending" | "answered" | "unanswered";
+};
+
 export type RunState = {
   status: "idle" | "planning" | "running" | "synthesizing" | "done" | "error" | "stopped";
   route?: { mode: string; method: string; confidence: number; specialists: RouteSpecialist[] };
@@ -109,6 +118,7 @@ export type RunState = {
   privacy?: Record<string, number>; // provider name -> file passages withheld from it
   events?: ChatEvent[]; // the run as it happened, for the step-by-step view (each with `t`, seconds from the start)
   learn?: Learn;
+  questions?: QuestionState[];
 };
 
 /** What the user's message taught SPIKE: notes saved at once ("recuerda que…"), or a rule proposed from a correction. */

@@ -62,7 +62,14 @@ class DemoProvider(Provider):
                 "path": "informes/informe.docx", "content": "# Informe\n\n- Ventas: **+12 %**\n"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
-        if last.role == "user" and "página" in last.content.lower():
+        if last.role == "user" and "factura" in last.content.lower() and "ask_user" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c3", name="ask_user", arguments={
+                "question": "¿Para qué país es la factura?", "options": ["España", "Francia"]}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "tool" and last.name == "ask_user":
+            answer = f"Entendido ({last.content}). Para España, el IVA general es del **21 %**."
+        elif last.role == "user" and "página" in last.content.lower():
             answer = "Aquí tienes la página:\n\n```html\n" + PROBE_PAGE + "\n```"
         elif last.role == "user" and "# Project instructions" in system:
             answer = "Respuesta del proyecto: sigo sus instrucciones y uso sus archivos."

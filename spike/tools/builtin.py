@@ -75,6 +75,28 @@ class Calculator(Tool):
         return ToolResult(ok=True, content=f"{expr} = {value!r}", data={"value": value})
 
 
+class AskUser(Tool):
+    """Human handoff: the run pauses on a question card in the app and goes on with the user's answer. The agent loop
+    handles it (it needs the user, not code); `run` is only reached outside the app's loop."""
+
+    name = "ask_user"
+    description = ("Ask the user a question and wait for the answer, when you cannot continue well without "
+                   "information or a decision only they have (a missing detail, a choice between options). Do not "
+                   "use it for what you can find out or safely assume.")
+    parameters = {"type": "object", "properties": {
+        "question": {"type": "string", "description": "one clear question"},
+        "options": {"type": "array", "items": {"type": "string"},
+                    "description": "optional short answers to pick from (2 to 4)"},
+    }, "required": ["question"]}
+
+    async def run(self, args: dict[str, Any]) -> ToolResult:
+        return ToolResult(ok=False, content=NO_ONE_TO_ASK)
+
+
+NO_ONE_TO_ASK = ("error: nobody can answer questions here; continue with your best assumption and say what you "
+                 "assumed")
+
+
 class CurrentTime(Tool):
     name = "current_time"
     description = "Return the current date and time, optionally for an IANA timezone such as 'Europe/Madrid'."
@@ -292,6 +314,6 @@ class WebFetch(Tool):
 def default_registry(workspace_root: Path) -> ToolRegistry:
     ws = Workspace(workspace_root)
     return ToolRegistry([
-        Calculator(), CurrentTime(), ReadFile(ws), ListDir(ws), WriteFile(ws), PythonRunner(), WebFetch(),
+        Calculator(), CurrentTime(), AskUser(), ReadFile(ws), ListDir(ws), WriteFile(ws), PythonRunner(), WebFetch(),
         *document_tools(ws),
     ])

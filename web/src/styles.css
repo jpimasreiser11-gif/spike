@@ -197,6 +197,13 @@ button.chip:hover, .chip.selected { border-color: var(--spec, var(--green-shade)
 .tool-io .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); margin: 6px 0 2px; }
 .tool-io pre, .permission-args { background: var(--code-bg); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; margin: 0; max-height: 240px; overflow: auto; }
 
+.question { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.question.done { border: 0; background: none; padding: 0; font-size: 12.5px; display: block; color: var(--text-3); }
+.question-title { font-weight: 500; font-size: 13px; color: var(--text-2); }
+.question-text { white-space: pre-wrap; }
+.question-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.question-reply { display: flex; gap: 8px; }
+.question-reply input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
 .permission { border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
 .permission.done { border: 0; background: none; padding: 0; font-size: 12.5px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
 .permission-title { display: flex; align-items: center; gap: 6px; font-weight: 500; }

@@ -207,7 +207,7 @@ Order of the next rounds, after the medicine verdict:
 
 **Cheap additions to B/C:** answer contracts (`response_format` with validation in `/v1` and the UI), temporary chats
 (nothing saved, no memory) ✅, branch a chat when a message is edited ✅, human handoff (the agent pauses with a question
-and resumes), Blueprint as Forge's first phase, proof package export, opt-in folder indexing in Neural Memory,
+and resumes) ✅, Blueprint as Forge's first phase, proof package export, opt-in folder indexing in Neural Memory,
 citation inspector, deterministic visual critic (Playwright + axe-core, MPL-2.0), dependency doctor (pip-audit,
 Apache-2.0), data-to-software template after Analytics, `spike skills validate` / `spike connectors validate` in CI,
 `spike bench --share` (anonymous JSON for an issue, no telemetry), docs/COMPATIBILITY.md, versioned JSON Schemas.

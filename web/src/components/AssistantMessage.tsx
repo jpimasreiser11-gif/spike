@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { ApiError, api } from "../api";
 import { t } from "../i18n";
-import type { Learn, PermissionState, ProviderInfo, RunState, Specialist, ToolState } from "../types";
+import type { Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
@@ -108,6 +108,46 @@ function Learned({ initial, messageId }: { initial: Learn; messageId: string }) 
   );
 }
 
+/** Human handoff: a specialist's question, answered with one of its options or in the user's own words. */
+function Question({ q, readOnly }: { q: QuestionState; readOnly?: boolean }) {
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const reply = async (answer: string) => {
+    setSending(true); setError("");
+    try {
+      await api.post(`/api/questions/${q.id}`, { answer });
+    } catch (e) {
+      setError((e as Error).message);
+      setSending(false);
+    }
+  };
+  if (readOnly || q.status !== "pending") {
+    return (
+      <div className="question done">
+        <span className="question-text">❓ {q.question}</span>
+        <span className="muted"> · {q.status === "answered" ? `${t.yourAnswer}: ${q.answer}` : q.status === "pending" ? t.waitingAnswer : t.noAnswer}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="question" role="alertdialog" aria-label={t.questionFor}>
+      <div className="question-title">❓ {t.questionFor}</div>
+      <div className="question-text">{q.question}</div>
+      {q.options.length > 0 && (
+        <div className="question-options">
+          {q.options.map((o) => <button key={o} className="btn" disabled={sending} onClick={() => reply(o)}>{o}</button>)}
+        </div>
+      )}
+      <form className="question-reply" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) reply(draft.trim()); }}>
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t.answerPlaceholder} aria-label={t.answerPlaceholder} autoFocus disabled={sending} />
+        <button className="btn primary" type="submit" disabled={sending || !draft.trim()}>{t.answer}</button>
+      </form>
+      {error && <span className="bad small">{error}</span>}
+    </div>
+  );
+}
+
 function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean }) {
   const decide = async (decision: "allow_once" | "allow_always" | "deny") => {
     onDecided(p.id, "sending");
@@ -205,7 +245,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   const live = run.status === "running" || run.status === "planning" || run.status === "synthesizing";
   const routeSpecs = run.route?.specialists ?? [];
   const sensitive = routeSpecs.some((r) => specialists.find((s) => s.id === r.id)?.sensitive);
-  const pending = run.permissions.filter((p) => p.status === "pending" || p.status === "sending");
+  const pending = [...run.permissions.filter((p) => p.status === "pending" || p.status === "sending"),
+    ...(run.questions ?? []).filter((q) => q.status === "pending")];
   const files = [...new Set(run.tools.filter((x) => x.ok && x.file).map((x) => x.file as string))];
 
   return (
@@ -270,6 +311,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       {run.permissions.map((p) => (
         <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} />
       ))}
+
+      {(run.questions ?? []).map((q) => <Question key={q.id} q={q} readOnly={replay} />)}
 
       {run.trimmed ? <div className="notice">{run.trimmed} {t.contextTrimmed}</div> : null}
 

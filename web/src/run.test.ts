@@ -126,3 +126,15 @@ describe("learning from the user", () => {
     expect(runFromStored({ role: "assistant", content: "ok", meta: { learn } } as any).learn).toEqual(learn);
   });
 });
+
+describe("questions", () => {
+  it("shows a pending question, then the answer, live and stored", () => {
+    let run = applyEvent(emptyRun(), { type: "question", id: "ask_1", question: "¿País?", options: ["España"] });
+    expect(run.questions?.[0]).toMatchObject({ status: "pending", options: ["España"] });
+    run = applyEvent(run, { type: "answered", id: "ask_1", answer: "España" });
+    expect(run.questions?.[0]).toMatchObject({ status: "answered", answer: "España" });
+    expect(applyEvent(run, { type: "answered", id: "ask_1", answer: null }).questions?.[0].status).toBe("unanswered");
+    const stored = runFromStored({ role: "assistant", content: "ok", meta: { questions: [{ id: "q", question: "¿?", options: [] }] } } as any);
+    expect(stored.questions?.[0].status).toBe("unanswered");
+  });
+});

@@ -129,6 +129,10 @@ class UndoIn(BaseModel):
     force: bool = False  # also overwrite files that changed after the step
 
 
+class AnswerIn(BaseModel):
+    answer: str = Field(min_length=1, max_length=20_000)
+
+
 class DecisionIn(BaseModel):
     decision: str
 
@@ -783,6 +787,13 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(404, "no pending permission request with this id")
         return {"ok": True}
 
+    @app.post("/api/questions/{question_id}")
+    async def answer_question(question_id: str, body: AnswerIn) -> dict:
+        """The user's answer to a question a specialist asked with `ask_user`; the paused run goes on with it."""
+        if not st().broker.answer(question_id, body.answer.strip()):
+            raise HTTPException(404, "no pending question with this id")
+        return {"ok": True}
+
     # ---------------------------------------------------------------- runtime
     @app.get("/api/runtime")
     async def runtime_status() -> dict:
@@ -887,6 +898,13 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         meta.setdefault("skills", []).extend(n for n in ev["names"] if n not in meta.get("skills", []))
                     elif kind == "usage":
                         meta["usage"].append(ev.get("usage"))
+                    elif kind == "question":
+                        meta.setdefault("questions", []).append(
+                            {k: ev[k] for k in ("id", "question", "options") if k in ev})
+                    elif kind == "answered":
+                        for q in meta.get("questions", []):
+                            if q["id"] == ev["id"]:
+                                q["answer"] = ev["answer"]
                     elif kind == "privacy":
                         seen = meta.setdefault("privacy", {})
                         seen[ev["provider"]] = max(seen.get(ev["provider"], 0), ev["withheld"])

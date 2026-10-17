@@ -101,7 +101,10 @@ class Orchestrator:
         return Message(role="system", content="\n\n".join(parts), private=files)
 
     def _tools_for(self, spec: Specialist, opts: OrchestratorOptions):
-        return self.tools.subset(spec.tools) + self.tools.shared_tools() if opts.tools_enabled else []
+        if not opts.tools_enabled:
+            return []
+        tools = self.tools.subset(spec.tools) + self.tools.shared_tools()
+        return tools if self.broker.interactive else [t for t in tools if t.name != "ask_user"]  # nobody to ask
 
     def _skills_for(self, spec: Specialist, backend: Backend, text: str,
                     opts: OrchestratorOptions) -> tuple[str, list[Tool], Event | None]:

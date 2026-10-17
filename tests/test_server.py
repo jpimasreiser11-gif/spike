@@ -156,3 +156,62 @@ def test_an_edit_can_go_on_in_a_branch_and_the_original_stays(tmp_path, monkeypa
     original = client.get(f"/api/conversations/{cid}").json()["messages"]
     assert [m["content"] for m in original] == ["primera", "uno", "segunda", "dos"]
     assert client.post(f"/api/conversations/{cid}/branch", json={"before": original[1]["id"]}).status_code == 400
+
+
+def test_a_specialist_can_ask_the_user_and_go_on_with_the_answer(tmp_path, monkeypatch):
+    import threading
+
+    monkeypatch.setenv("SPIKE_HOME", str(tmp_path))
+    monkeypatch.setenv("SPIKE_NO_KEYRING", "1")
+    local = ScriptedProvider([call("ask_user", {"question": "¿Para qué país es la factura?",
+                                                "options": ["España", "Francia"]}),
+                              text("Entonces el IVA es del 21 %.")], name="spike-local")
+
+    def factory(cfg):
+        local.config = cfg
+        return local
+
+    state = AppState(home=tmp_path, provider_factory=factory)
+    client = TestClient(create_app(state))
+    client.__enter__()  # one event loop for both requests, as under uvicorn
+    client.get("/api/providers")
+    seen: list[dict] = []
+
+    def answer_when_asked():
+        for _ in range(200):
+            if state.broker.questions:
+                qid = next(iter(state.broker.questions))
+                assert client.post(f"/api/questions/{qid}", json={"answer": "España"}).json() == {"ok": True}
+                return
+            threading.Event().wait(0.02)
+
+    helper = threading.Thread(target=answer_when_asked)
+    helper.start()
+    with client.stream("POST", "/api/chat", json={"message": "¿Qué IVA pongo?", "mode": "core"}) as r:
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                seen.append(json.loads(line[6:]))
+    helper.join()
+    question = next(e for e in seen if e["type"] == "question")
+    assert question["question"] == "¿Para qué país es la factura?" and question["options"] == ["España", "Francia"]
+    assert next(e for e in seen if e["type"] == "answered")["answer"] == "España"
+    assert local.requests[-1].messages[-1].content == "The user answered: España"
+    cid = next(e["id"] for e in seen if e["type"] == "conversation")
+    meta = [m for m in state.store.messages(cid) if m["role"] == "assistant"][0]["meta"]
+    assert meta["questions"] == [{"id": question["id"], "question": "¿Para qué país es la factura?",
+                                  "options": ["España", "Francia"], "answer": "España"}]
+    assert client.post("/api/questions/ask_nope", json={"answer": "x"}).status_code == 404
+    client.__exit__(None, None, None)
+
+
+async def test_nobody_to_ask_through_the_api():
+    from spike.agent.loop import AgentRun, run_agent
+    from spike.tools.base import HeadlessBroker, PermissionBroker
+    from spike.tools.builtin import AskUser
+
+    provider = ScriptedProvider([call("ask_user", {"question": "¿País?"}), text("Asumo España.")])
+    events = [ev async for ev in run_agent(provider, [], tools=[AskUser()], broker=HeadlessBroker(PermissionBroker()),
+                                                run=AgentRun())]
+    result = next(e for e in events if e["type"] == "tool_result")
+    assert not result["ok"] and "best assumption" in result["content"]
+    assert not any(e["type"] == "question" for e in events)

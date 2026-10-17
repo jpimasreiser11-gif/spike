@@ -88,6 +88,13 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
     }
     case "memory":
       return { ...state, memory: { rules: ev.rules, semantic: ev.semantic, notes: ev.notes } };
+    case "question":
+      return { ...state, questions: [...(state.questions ?? []), { id: ev.id, question: ev.question, options: ev.options ?? [], status: "pending" }] };
+    case "answered":
+      return {
+        ...state,
+        questions: (state.questions ?? []).map((q) => (q.id === ev.id ? { ...q, answer: ev.answer, status: ev.answer == null ? "unanswered" : "answered" } : q)),
+      };
     case "memory_saved":
       return { ...state, learn: { ...state.learn, saved: ev.saved } };
     case "correction":
@@ -125,6 +132,9 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.privacy) run.privacy = meta.privacy;
   if (meta.events?.length) run.events = meta.events;
   if (meta.learn) run.learn = meta.learn;
+  if (meta.questions?.length) {
+    run.questions = meta.questions.map((q: any) => ({ ...q, options: q.options ?? [], status: q.answer == null ? "unanswered" : "answered" }));
+  }
   for (const [id, st] of Object.entries<any>(meta.subtasks || {})) {
     const planned = meta.plan?.subtasks?.find((t: any) => t.id === id);
     run.order.push(id);
