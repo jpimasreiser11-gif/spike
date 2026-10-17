@@ -1,7 +1,8 @@
-# Using SPIKE from other tools (OpenAI-compatible API)
+# Using SPIKE from other tools (OpenAI-compatible API and MCP)
 
 `spike serve` also answers the OpenAI chat API at `http://127.0.0.1:8740/v1`, so tools that accept a custom
-OpenAI-compatible endpoint can use SPIKE's specialists. Nothing here is sent anywhere else: requests run on the
+OpenAI-compatible endpoint can use SPIKE's specialists. Agents that speak MCP can instead call SPIKE as a tool
+([below](#spike-as-an-mcp-server-claude-code-cursor-codex)). Nothing here is sent anywhere else: requests run on the
 providers you configured in SPIKE, with the same paid-call guard.
 
 ## What the API offers
@@ -113,6 +114,70 @@ an OpenAI-compatible endpoint and paste base URL `http://127.0.0.1:8740/v1`, an 
 a placeholder works without `SPIKE_API_TOKEN`) and a model such as `spike-auto`. Its source allows loopback
 provider endpoints. Its quickstart notes that BYOK runs have no file tools, so the model must return the whole
 artifact in its answer, a demanding task for a small local model (unmeasured).
+
+## SPIKE as an MCP server (Claude Code, Cursor, Codex)
+
+Here SPIKE is a tool the other agent calls, not its model: the agent keeps its own model and asks SPIKE's
+specialists when it wants a second opinion in medicine, finance, law and the rest.
+
+| Tool | What it does |
+|---|---|
+| `ask_spike` | the orchestrator picks one or several specialists and merges their answers; `specialist` can fix one |
+| `spike_<id>` (`spike_medicine`, `spike_finance`, …) | that specialist only |
+
+Every tool takes `question` and an optional `context` (text, data or code to work from) and returns the answer as
+text plus `structuredContent` `{answer, specialists}`. As with `/v1`, calls get no memory, no connectors and no chat
+history in the app, and SPIKE's tools that need approval are refused.
+
+Two transports:
+
+- **stdio**: `spike mcp` (the agent starts it). It uses a running `spike serve`'s settings and providers; add
+  `--start-local` to start the local engine itself when the app is not running. The engine starts in the
+  background, so `initialize` answers at once and the first call waits for the model to load.
+- **Streamable HTTP**: `POST http://127.0.0.1:8740/mcp` on a running `spike serve`, with the `/v1` access rules
+  (loopback only and no `Origin` header without `SPIKE_API_TOKEN`; with it, `Authorization: Bearer <token>`).
+
+The setups below are each tool's documented format. They have **not been tried with those clients**; what is tested
+is the protocol, with SPIKE's own MCP client and the official MCP Python SDK over both transports
+(`tests/test_mcp_server.py`).
+
+**Claude Code** ([docs](https://code.claude.com/docs/en/mcp)):
+
+```bash
+claude mcp add --transport stdio --scope user spike -- spike mcp --start-local
+# or, with `spike serve` running:
+claude mcp add --transport http spike http://127.0.0.1:8740/mcp
+# add  --header "Authorization: Bearer $SPIKE_API_TOKEN"  when SPIKE runs with a token
+```
+
+**Cursor** (`~/.cursor/mcp.json`, or `.cursor/mcp.json` in a project; [docs](https://cursor.com/docs/mcp)):
+
+```json
+{
+  "mcpServers": {
+    "spike": { "type": "stdio", "command": "spike", "args": ["mcp", "--start-local"] }
+  }
+}
+```
+
+or `"spike": { "url": "http://127.0.0.1:8740/mcp" }` with `spike serve` running.
+
+**Codex CLI** (`~/.codex/config.toml`; [docs](https://developers.openai.com/codex/mcp)):
+
+```toml
+[mcp_servers.spike]
+command = "spike"
+args = ["mcp", "--start-local"]
+startup_timeout_sec = 30
+tool_timeout_sec = 600  # the default, 60 s, is short for a 4B model answering on a CPU
+```
+
+or `codex mcp add spike -- spike mcp --start-local`. With `spike serve` running, use `url =
+"http://127.0.0.1:8740/mcp"` (and `bearer_token_env_var = "SPIKE_API_TOKEN"` when SPIKE runs with a token).
+
+**Speed.** An answer takes as long as it takes in the app: on a CPU a long answer can take minutes (see the
+measured speeds in [STATUS](STATUS.md)). Claude Code documents `MCP_TOOL_TIMEOUT` for slow tools; Cursor's docs
+name no tool timeout setting.
 
 ## Anything else
 

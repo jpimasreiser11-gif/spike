@@ -27,7 +27,8 @@ from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, expo
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
-from spike.server.openai_api import create_router
+from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
+from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.state import AppState
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
@@ -184,6 +185,24 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             return await call_next(request)
 
     app.include_router(create_router(st))
+
+    # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
+    @app.post("/mcp", include_in_schema=False)
+    async def mcp_endpoint(request: Request) -> Response:
+        try:
+            check_access(request)  # the /v1 rules: this computer only, or a token; never a web page without one
+        except ApiError as exc:
+            return exc.response()
+        try:
+            message = await request.json()
+        except ValueError:
+            return JSONResponse(rpc_error(None, PARSE_ERROR, "invalid JSON"), status_code=400)
+        response = await SpikeMcp(st()).handle(message)
+        return Response(status_code=202) if response is None else JSONResponse(response)
+
+    @app.get("/mcp", include_in_schema=False)
+    async def mcp_stream() -> Response:
+        return Response(status_code=405, headers={"Allow": "POST"})  # no server-initiated messages
 
     # ---------------------------------------------------------------- system
     @app.get("/api/health")

@@ -17,6 +17,10 @@ acknowledge reports within 7 days.
   with it set, every request needs `Authorization: Bearer <token>` (compared in constant time). Tools that
   need approval are refused there instead of waiting, since nobody can answer an approval card through the
   API; the client's own tools are returned to the client and never run by SPIKE.
+- SPIKE as an MCP server (`POST /mcp`, `spike mcp`): the HTTP endpoint follows the `/v1` rules above (loopback
+  only and no `Origin` without the token; bearer token with it). Calls get no memory, no connectors and no chat
+  history, and tools that need approval are refused. `spike mcp` over stdio is started by the user's own agent
+  and has the same reach as the app's settings on that computer.
 - API keys are stored in the OS keychain through `keyring`; if no keychain is available SPIKE falls back to a
   file readable only by the current user (mode 0600, **not encrypted**) and the UI says which backend is active.
   Keys are never written to the SQLite database or returned by the API.

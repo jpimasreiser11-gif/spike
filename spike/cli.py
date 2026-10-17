@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import sys
 import webbrowser
 from dataclasses import asdict
@@ -182,6 +183,15 @@ def cmd_tune(args: argparse.Namespace) -> int:
     return asyncio.run(run())
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from spike.server.mcp_server import serve_stdio
+    from spike.server.state import AppState
+
+    logging.basicConfig(level=logging.WARNING, stream=sys.stderr)  # stdout carries the protocol
+    asyncio.run(serve_stdio(AppState(), start_local=args.start_local))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="spike", description="SPIKE local AI system")
     p.add_argument("--version", action="version", version=f"spike {__version__}")
@@ -230,6 +240,11 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--model", help="GGUF to tune for (default: the local model in Settings)")
     t.add_argument("--quick", action="store_true", help="shorter runs (less precise)")
     t.set_defaults(func=cmd_tune)
+
+    mc = sub.add_parser("mcp", help="serve SPIKE's specialists as MCP tools over stdio (Claude Code, Cursor, Codex)")
+    mc.add_argument("--start-local", action="store_true",
+                    help="start the local engine in this process (when the SPIKE app is not running)")
+    mc.set_defaults(func=cmd_mcp)
     return p
 
 

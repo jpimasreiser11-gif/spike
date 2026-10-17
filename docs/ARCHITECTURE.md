@@ -114,6 +114,10 @@ local model summarises the chat into a `summary` memory; `remember` and `recall`
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.
 
+**MCP server.** `spike/server/mcp_server.py` makes SPIKE a tool for other agents: `ask_spike` runs the
+orchestrator, `spike_<id>` one specialist. One JSON-RPC handler serves stdio (`spike mcp`) and `POST /mcp`; runs
+use the headless broker and no memory, like `/v1`.
+
 ## Training and evaluation (offline, on the developer Mac)
 
 `training/` builds data, trains mlx-lm LoRA adapters and exports them to GGUF; `evals/` measures base vs.

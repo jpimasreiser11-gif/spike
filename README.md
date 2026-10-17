@@ -64,6 +64,8 @@ spike serve --open                       # app at http://127.0.0.1:8740
 
 Or use the installer scripts in [`scripts/`](scripts/) (they show every step before running it).
 SPIKE works without a local model too: add an external provider in Settings → Providers.
+Other agents can use SPIKE too: as an OpenAI-compatible endpoint (`/v1`) or as an MCP server (`spike mcp`, for
+Claude Code, Cursor or Codex); see [integrations](docs/INTEGRATIONS.md).
 
 ## Documentation
 

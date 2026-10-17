@@ -157,7 +157,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | B2 | Privacy and spend: remote providers get no file contents unless allowed (checked on the wire), monthly limits, call log, retry on another provider, edit a sent message | ✅ |
 | B3 | Undo each file change of an answer (copies kept before writing, conflicts confirmed) and replay an answer step by step | ✅ |
 | B4 | `spike tune` / "Optimizar mi equipo": measure threads and KV cache on the user's machine, save the fastest (context estimated, labelled) | ✅ (🟡 not yet run with Qwen3.5-4B on a real machine) |
-| B5 | SPIKE as an MCP server | ⬜ |
+| B5 | SPIKE as an MCP server | ✅ (protocol tested with the official SDK; not tried in Claude Code, Cursor or Codex) |
 | B6 | Evolution level 1: a user's correction becomes a memory rule applied in later chats | ⬜ |
 | C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ⬜ |
 | C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace | ⬜ |
