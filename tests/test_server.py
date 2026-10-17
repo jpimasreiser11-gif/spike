@@ -215,3 +215,32 @@ async def test_nobody_to_ask_through_the_api():
     result = next(e for e in events if e["type"] == "tool_result")
     assert not result["ok"] and "best assumption" in result["content"]
     assert not any(e["type"] == "question" for e in events)
+
+
+def test_an_answer_contract_in_the_app_gives_checked_json(tmp_path, monkeypatch):
+    monkeypatch.setenv("SPIKE_HOME", str(tmp_path))
+    monkeypatch.setenv("SPIKE_NO_KEYRING", "1")
+    local = ScriptedProvider([text('{"pais": "España"'), text('{"pais": "España", "iva": 21}')], name="spike-local")
+
+    def factory(cfg):
+        local.config = cfg
+        return local
+
+    state = AppState(home=tmp_path, provider_factory=factory)
+    client = TestClient(create_app(state))
+    client.get("/api/providers")
+    schema = {"type": "object", "properties": {"pais": {"type": "string"}, "iva": {"type": "number"}},
+              "required": ["pais", "iva"]}
+    lines = client.post("/api/chat", json={"message": "IVA general de España", "response_schema": schema}).text
+    events = [json.loads(x[6:]) for x in lines.splitlines() if x.startswith("data: ")]
+    contract = next(e for e in events if e["type"] == "contract")
+    assert contract["valid"] and contract["attempts"] == 2
+    done = next(e for e in events if e["type"] == "done")
+    assert json.loads(done["text"]) == {"pais": "España", "iva": 21} and len(done["specialists"]) == 1
+    assert local.requests[0].json_schema == schema and local.requests[0].tools == []
+    assert "not valid JSON" in local.requests[1].messages[-1].content
+    cid = next(e["id"] for e in events if e["type"] == "conversation")
+    meta = [m for m in state.store.messages(cid) if m["role"] == "assistant"][0]["meta"]
+    assert meta["contract"] == {"valid": True, "attempts": 2, "errors": []}
+    bad = client.post("/api/chat", json={"message": "x", "response_schema": {"type": 5}})
+    assert bad.status_code == 400 and "invalid JSON Schema" in bad.json()["detail"]

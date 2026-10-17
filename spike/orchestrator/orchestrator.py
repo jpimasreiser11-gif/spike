@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from spike.agent.loop import AgentRun, Checkpointer, Event, run_agent
-from spike.core.types import Message
+from spike.contracts import check, repair_prompt
+from spike.core.context import fit_messages
+from spike.core.types import ChatRequest, Message
 from spike.memory.service import Recall, memory_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
@@ -54,6 +57,7 @@ class OrchestratorOptions:
     disabled_skills: list[str] = field(default_factory=list)
     memory: Recall | None = None  # rules and notes recalled for this message (Neural Memory)
     checkpoints: Checkpointer | None = None  # copies of files before tools change them (undo), for app chats
+    json_schema: dict[str, Any] | None = None  # answer contract: one specialist answers JSON following this schema
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -161,6 +165,8 @@ class Orchestrator:
         else:
             decision = self.router.route(user_text)
 
+        if opts.json_schema is not None and len(decision.specialists) > 1:
+            decision.mode, decision.specialists = "single", decision.specialists[:1]  # one answer, one contract
         plan: Plan | None = None
         if opts.mode == "auto" and opts.use_planner and decision.mode == "multi":
             core = self.resolve(self.catalog.core)
@@ -180,7 +186,10 @@ class Orchestrator:
         yield self._route_event(decision, specs)
 
         final = AgentRun()
-        if plan is None:
+        if opts.json_schema is not None:
+            async for ev in self._run_contract(specs[0], history, user_text, opts, final):
+                yield ev
+        elif plan is None:
             spec = specs[0]
             async for ev in self._run_single(spec, history, user_text, opts, final):
                 yield ev
@@ -217,6 +226,49 @@ class Orchestrator:
             tag={"specialist": spec.id}, checkpoints=opts.checkpoints,
         ):
             yield ev
+
+    # ------------------------------------------------------------------ answer contract
+    async def _run_contract(self, spec: Specialist, history: list[Message], user_text: str,
+                            opts: OrchestratorOptions, final: AgentRun, retries: int = 1) -> AsyncIterator[Event]:
+        """One specialist answers JSON for the schema, without tools; an answer that breaks it is asked for once
+        more with the errors. The text is the JSON alone, pretty-printed when it follows the schema."""
+        schema = opts.json_schema or {}
+        backend = self.resolve(spec)
+        messages = [self.system_message(spec, opts, "", backend.context_budget), *history,
+                    Message(role="user", content=user_text)]
+        tag = {"specialist": spec.id}
+        answer, value, errors, attempt = "", None, ["no answer"], 0
+        for attempt in range(1, retries + 2):
+            fitted, _ = fit_messages(messages, backend.context_budget)
+            final.private = final.private or (getattr(backend.provider, "receives_files", True)
+                                              and any(m.private for m in fitted))
+            request = ChatRequest(messages=fitted, model=backend.model, adapter=backend.adapter,
+                                  temperature=opts.temperature, max_tokens=opts.max_tokens, json_schema=schema,
+                                  reasoning=opts.reasoning)
+            parts: list[str] = []
+            async for ev in backend.provider.stream(request):
+                if ev.kind == "text":
+                    parts.append(ev.text)
+                elif ev.kind == "reasoning":
+                    yield {"type": "reasoning", "text": ev.text, **tag}
+                elif ev.kind == "usage" and ev.usage:
+                    yield {"type": "usage", "usage": ev.usage, **tag}
+                elif ev.kind == "notice" and ev.notice:
+                    yield {**ev.notice, **tag}
+                elif ev.kind == "done":
+                    final.finish_reason = ev.finish_reason
+                elif ev.kind == "error":
+                    final.error = ev.text
+                    yield {"type": "error", "message": ev.text, **tag}
+                    return
+            answer = "".join(parts)
+            value, errors = check(answer, schema)
+            if not errors or attempt > retries:
+                break
+            messages += [Message(role="assistant", content=answer), Message(role="user", content=repair_prompt(errors))]
+        final.text = json.dumps(value, indent=2, ensure_ascii=False) if not errors else answer
+        yield {"type": "delta", "text": final.text, **tag}
+        yield {"type": "contract", "valid": not errors, "attempts": attempt, "errors": errors, **tag}
 
     # ------------------------------------------------------------------ multi specialist
     async def _run_subtask(self, task: Subtask, history: list[Message], user_text: str, results: dict[str, str],

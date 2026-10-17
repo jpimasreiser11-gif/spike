@@ -64,6 +64,16 @@ const es = {
   undoAnyway: "Deshacer igualmente",
   replay: "Ver paso a paso",
   temporaryChat: "Chat temporal",
+  answerFormat: "Formato",
+  answerFormatHint: "Pide la respuesta en JSON; SPIKE comprueba que sigue el esquema y, si no, la pide otra vez",
+  formatText: "texto",
+  formatSchema: "JSON con esquema",
+  schemaEmpty: "Pega un JSON Schema",
+  schemaNotJson: "El esquema no es JSON válido",
+  schemaNotObject: "El esquema debe ser un objeto JSON",
+  contractOk: "Cumple el esquema",
+  contractBad: "No cumple el esquema",
+  attempts: "intentos",
   proof: "Descargar paquete de prueba",
   proofHint: "Paquete de prueba: el chat con cada paso, las llamadas a modelos y las huellas de los archivos, verificable con SHA256SUMS",
   questionFor: "SPIKE necesita que le digas algo para seguir",
@@ -89,7 +99,7 @@ const es = {
   nextStep: "Paso siguiente",
   play: "Reproducir",
   pause: "Pausa",
-  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", memory_saved: "Guarda en memoria", question: "Te pregunta", answered: "Respondes", correction: "Propone una regla", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
+  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", memory_saved: "Guarda en memoria", question: "Te pregunta", contract: "Comprueba el formato", answered: "Respondes", correction: "Propone una regla", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
 };
 
 type Dict = typeof es;
@@ -160,6 +170,16 @@ const en: Dict = {
   undoAnyway: "Undo anyway",
   replay: "Step by step",
   temporaryChat: "Temporary chat",
+  answerFormat: "Format",
+  answerFormatHint: "Ask for the answer as JSON; SPIKE checks it follows the schema and asks again if not",
+  formatText: "text",
+  formatSchema: "JSON with schema",
+  schemaEmpty: "Paste a JSON Schema",
+  schemaNotJson: "The schema is not valid JSON",
+  schemaNotObject: "The schema must be a JSON object",
+  contractOk: "Follows the schema",
+  contractBad: "Does not follow the schema",
+  attempts: "attempts",
   proof: "Download proof package",
   proofHint: "Proof package: the chat with every step, its model calls and file checksums, verifiable with SHA256SUMS",
   questionFor: "SPIKE needs something from you to go on",
@@ -185,7 +205,7 @@ const en: Dict = {
   nextStep: "Next step",
   play: "Play",
   pause: "Pause",
-  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", memory_saved: "Saves to memory", question: "Asks you", answered: "You answer", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
+  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", memory_saved: "Saves to memory", question: "Asks you", contract: "Checks the format", answered: "You answer", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

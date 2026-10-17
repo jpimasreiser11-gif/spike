@@ -179,7 +179,7 @@ export default function App() {
     });
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
-  const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId) => {
+  const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object) => {
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -192,7 +192,8 @@ export default function App() {
     const started = performance.now();
     try {
       await streamChat({ message: text, conversation_id: conversationId, mode, provider_id: provider, project_id: project?.id ?? null,
-                         replace_from: replaceFrom ?? null, temporary: temporary && !conversationId }, (ev) => {
+                         replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
+                         ...(schema ? { response_schema: schema } : {}) }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
@@ -240,7 +241,7 @@ export default function App() {
   const empty = items.length === 0;
   const lastUser = items.map((it) => it.kind).lastIndexOf("user");
   const composer = (
-    <Composer onSend={(text) => send(text)} onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode}
+    <Composer onSend={(text, schema) => send(text, undefined, providerId, activeId, schema)} onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode}
       providerId={providerId} setProviderId={setProviderId} specialists={specialists.filter((s) => s.id !== "core")}
       providers={providers} followUp={!empty} autoFocus />
   );

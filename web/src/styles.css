@@ -155,6 +155,11 @@ input, textarea, select { font: inherit; color: inherit; }
   font-size: 13px; max-width: 220px; min-width: 0; flex: 0 1 auto; color: var(--text-2); text-overflow: ellipsis;
 }
 .composer-bar .send-btn { flex-shrink: 0; }
+@media (max-width: 520px) {
+  .composer-bar { flex-wrap: wrap; }
+  .composer-bar .spacer { display: none; }
+  .composer-bar .send-btn { margin-left: auto; }
+}
 .send-btn { width: 34px; height: 34px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
 .send-btn:hover:not(:disabled) { background: var(--green-shade); }
 .send-btn.stop { background: var(--text); color: var(--bg); }
@@ -396,6 +401,11 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .temp-toggle { display: inline-flex; align-items: center; gap: 6px; }
 .temp-toggle.on { background: var(--text); color: var(--bg); border-color: var(--text); }
 .temp-notice { display: flex; align-items: center; gap: 6px; justify-content: center; margin-bottom: 12px; }
+.schema-box { display: grid; gap: 4px; padding: 0 12px 10px; }
+.schema-box textarea { width: 100%; font-family: var(--mono); font-size: 12.5px; resize: vertical; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; background: var(--surface); color: var(--text); }
+.contract { margin: 4px 0; }
+.contract.ok { color: var(--text-2); }
+.json-answer { background: var(--code-bg); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 13px; white-space: pre-wrap; word-break: break-word; margin: 6px 0; }
 .learned { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .learned-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; color: var(--text-2); }
 .learn-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--border);

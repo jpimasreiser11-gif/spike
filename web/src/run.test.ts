@@ -138,3 +138,12 @@ describe("questions", () => {
     expect(stored.questions?.[0].status).toBe("unanswered");
   });
 });
+
+describe("answer contracts", () => {
+  it("keeps whether the answer follows the schema, live and stored", () => {
+    const run = applyEvent(emptyRun(), { type: "contract", valid: false, attempts: 2, errors: ["(root): 'total' is a required property"] });
+    expect(run.contract).toEqual({ valid: false, attempts: 2, errors: ["(root): 'total' is a required property"] });
+    const stored = runFromStored({ role: "assistant", content: "{}", meta: { contract: { valid: true, attempts: 1, errors: [] } } } as any);
+    expect(stored.contract?.valid).toBe(true);
+  });
+});

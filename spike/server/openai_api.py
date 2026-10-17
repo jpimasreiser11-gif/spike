@@ -15,13 +15,14 @@ import json
 import os
 import time
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from spike.contracts import check, repair_prompt, schema_error
 from spike.core.context import fit_messages
 from spike.core.types import ChatRequest, Message, StreamEvent, ToolCall, ToolSpec
 from spike.server.state import AppState
@@ -189,6 +190,8 @@ def parse_completion(body: Any) -> Completion:
         schema = {"type": "object"}
     elif fmt.get("type") == "json_schema":
         schema = (fmt.get("json_schema") or {}).get("schema") or {"type": "object"}
+        if (problem := schema_error(schema)) is not None:
+            raise ApiError(400, problem, param="response_format")
     elif fmt.get("type") not in (None, "text"):
         raise ApiError(400, f"unsupported response_format type '{fmt.get('type')}'", param="response_format")
     stop = body.get("stop")
@@ -225,22 +228,23 @@ def _options(state: AppState, mode: str, app_instructions: str, req: Completion)
                    max_tokens=req.max_tokens or opts.max_tokens)
 
 
-async def run_passthrough(state: AppState, pid: str, model: str, req: Completion) -> AsyncIterator[Out]:
+async def run_passthrough(state: AppState, pid: str, model: str, req: Completion,
+                          extra: list[Message] | None = None) -> AsyncIterator[Out]:
     yield "spike", {"provider": pid}
-    request = ChatRequest(messages=req.messages, model=model, temperature=req.temperature, top_p=req.top_p,
+    request = ChatRequest(messages=[*req.messages, *(extra or [])], model=model, temperature=req.temperature, top_p=req.top_p,
                           max_tokens=req.max_tokens, tools=req.tools, stop=req.stop, json_schema=req.json_schema)
     async for out in _provider_events(state.provider(pid).stream(request)):
         yield out
 
 
 async def run_direct(state: AppState, spec: Specialist, app_instructions: str, conversation: list[Message],
-                     req: Completion) -> AsyncIterator[Out]:
+                     req: Completion, extra: list[Message] | None = None) -> AsyncIterator[Out]:
     yield "spike", {"specialists": [spec.id]}
     await state.ensure_adapters()
     orchestrator = state.orchestrator()
     backend = orchestrator.resolve(spec)
     opts = _options(state, spec.id, app_instructions, req)
-    messages, _ = fit_messages([orchestrator.system_message(spec, opts), *conversation],
+    messages, _ = fit_messages([orchestrator.system_message(spec, opts), *conversation, *(extra or [])],
                                backend.context_budget)
     request = ChatRequest(messages=messages, model=backend.model, adapter=backend.adapter,
                           temperature=opts.temperature, top_p=req.top_p, max_tokens=opts.max_tokens, tools=req.tools,
@@ -271,6 +275,36 @@ async def run_orchestrated(state: AppState, mode: str, app_instructions: str, co
                 yield "finish", ev.get("finish_reason")
 
 
+async def with_contract(attempt: Callable[[list[Message]], AsyncIterator[Out]],
+                        schema: dict[str, Any], retries: int = 1) -> AsyncIterator[Out]:
+    """Collect the answer, check it against the schema and, if it breaks it, ask once more with the errors. The
+    client gets the JSON alone (fences removed) and `spike.contract` says whether it follows the schema."""
+    extra: list[Message] = []
+    for n in range(1, retries + 2):
+        parts: list[str] = []
+        finish, spike = None, {}
+        async for kind, value in attempt(extra):
+            if kind == "text":
+                parts.append(value)
+            elif kind == "finish":
+                finish = value
+            elif kind == "spike":
+                spike = value
+            elif kind == "error":
+                yield kind, value
+                return
+            else:  # reasoning and usage of every attempt reach the client
+                yield kind, value
+        answer = "".join(parts)
+        value, errors = check(answer, schema)
+        if not errors or n > retries:
+            break
+        extra = [Message(role="assistant", content=answer), Message(role="user", content=repair_prompt(errors))]
+    yield "text", json.dumps(value, ensure_ascii=False) if not errors else answer
+    yield "spike", {**spike, "contract": {"valid": not errors, "attempts": n, **({"errors": errors} if errors else {})}}
+    yield "finish", finish
+
+
 def plan_run(state: AppState, req: Completion) -> AsyncIterator[Out]:
     if req.model == AUTO:
         spec_id = None
@@ -279,6 +313,8 @@ def plan_run(state: AppState, req: Completion) -> AsyncIterator[Out]:
     else:
         pid, sep, model = req.model.partition("/")
         if sep and model and state.provider_config(pid):
+            if req.json_schema is not None and not req.client_tools:
+                return with_contract(lambda extra: run_passthrough(state, pid, model, req, extra), req.json_schema)
             return run_passthrough(state, pid, model, req)
         raise ApiError(404, f"unknown model '{req.model}': GET /v1/models lists the available ones",
                        param="model", code="model_not_found")
@@ -290,7 +326,11 @@ def plan_run(state: AppState, req: Completion) -> AsyncIterator[Out]:
         if spec_id is None:
             last_user = next((m.content for m in reversed(conversation) if m.role == "user"), "")
             spec_id = state.orchestrator().router.route(last_user).specialists[0]
-        return run_direct(state, state.catalog.get(spec_id), app_instructions, conversation, req)
+        spec = state.catalog.get(spec_id)
+        if req.json_schema is not None and not req.client_tools:
+            return with_contract(lambda extra: run_direct(state, spec, app_instructions, conversation, req, extra),
+                                 req.json_schema)
+        return run_direct(state, spec, app_instructions, conversation, req)
     return run_orchestrated(state, spec_id or "auto", app_instructions, conversation, req)
 
 

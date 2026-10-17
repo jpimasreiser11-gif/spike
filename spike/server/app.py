@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from spike import __version__
+from spike.contracts import schema_error
 from spike.core.types import Message
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
@@ -69,6 +70,7 @@ class ChatIn(BaseModel):
     project_id: str | None = None  # for a new chat; an existing chat keeps its own project
     replace_from: str | None = None  # a user message of this chat: it and everything after it are replaced (edit, retry)
     temporary: bool = False  # for a new chat: kept in memory only, no SPIKE memory read or written, gone on restart
+    response_schema: dict[str, Any] | None = None  # answer contract: the answer is JSON following this JSON Schema
 
 
 class MemoryIn(BaseModel):
@@ -846,6 +848,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         conv = store.get_conversation(body.conversation_id) if body.conversation_id else None
         if body.replace_from and conv is None:
             raise HTTPException(400, "replace_from needs an existing conversation")
+        if body.response_schema is not None and (problem := schema_error(body.response_schema)) is not None:
+            raise HTTPException(400, problem)
         mode = body.mode
         if conv is None:
             project = state.store.get_project(body.project_id) if body.project_id else None
@@ -875,6 +879,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
             options = state.options(mode, project)
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
+            options.json_schema = body.response_schema
             started = time.perf_counter()
 
             def record(ev: dict[str, Any]) -> None:
@@ -917,6 +922,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         meta.setdefault("skills", []).extend(n for n in ev["names"] if n not in meta.get("skills", []))
                     elif kind == "usage":
                         meta["usage"].append(ev.get("usage"))
+                    elif kind == "contract":
+                        meta["contract"] = {k: ev[k] for k in ("valid", "attempts", "errors")}
                     elif kind == "question":
                         meta.setdefault("questions", []).append(
                             {k: ev[k] for k in ("id", "question", "options") if k in ev})

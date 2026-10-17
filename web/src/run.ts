@@ -88,6 +88,8 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
     }
     case "memory":
       return { ...state, memory: { rules: ev.rules, semantic: ev.semantic, notes: ev.notes } };
+    case "contract":
+      return { ...state, contract: { valid: ev.valid, attempts: ev.attempts, errors: ev.errors ?? [] } };
     case "question":
       return { ...state, questions: [...(state.questions ?? []), { id: ev.id, question: ev.question, options: ev.options ?? [], status: "pending" }] };
     case "answered":
@@ -132,6 +134,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.privacy) run.privacy = meta.privacy;
   if (meta.events?.length) run.events = meta.events;
   if (meta.learn) run.learn = meta.learn;
+  if (meta.contract) run.contract = meta.contract;
   if (meta.questions?.length) {
     run.questions = meta.questions.map((q: any) => ({ ...q, options: q.options ?? [], status: q.answer == null ? "unanswered" : "answered" }));
   }

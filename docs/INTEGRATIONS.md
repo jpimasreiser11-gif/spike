@@ -15,7 +15,9 @@ providers you configured in SPIKE, with the same paid-call guard.
 
 `GET /v1/models` lists them. `POST /v1/chat/completions` supports streaming (`stream`, `stream_options.include_usage`),
 `max_tokens` / `max_completion_tokens`, `temperature`, `top_p`, `stop`, `tools` / `tool_calls`, `tool_choice: "none"`
-and `response_format` (`json_object`, `json_schema`). The client's `system` messages are added to the specialist's
+and `response_format` (`json_object`, `json_schema`): the answer is checked against the schema, asked for once more
+with the errors if it breaks it, and returned as bare JSON with `spike.contract` (`valid`, `attempts`, `errors`).
+The client's `system` messages are added to the specialist's
 prompt under "Instructions from the application calling SPIKE". Not supported: images (400), `n > 1` (400).
 
 **How tools behave.** When the request carries the client's own `tools` (coding agents do), SPIKE runs one

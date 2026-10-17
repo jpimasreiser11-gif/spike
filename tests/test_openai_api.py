@@ -254,3 +254,49 @@ def test_a_cut_answer_reports_length(api):
     r = client.chat.completions.create(model="spike-auto", max_tokens=4, messages=[{"role": "user", "content": "hi"}])
     assert r.choices[0].finish_reason == "length"
     assert local.requests[-1].max_tokens == 4
+
+
+TOTAL = {"type": "json_schema", "json_schema": {"name": "total", "schema": {
+    "type": "object", "properties": {"total": {"type": "integer"}}, "required": ["total"]}}}
+
+
+def test_answer_contract_returns_bare_json_that_follows_the_schema(api):
+    client, _, local, _ = api
+    local._script = [text('```json\n{"total": 3}\n```')]
+    r = client.chat.completions.create(model="spike-finance", response_format=TOTAL,
+                                       messages=[{"role": "user", "content": "Suma 1 y 2"}])
+    assert r.choices[0].message.content == '{"total": 3}'
+    assert r.model_extra["spike"]["contract"] == {"valid": True, "attempts": 1}
+    assert local.requests[-1].json_schema == TOTAL["json_schema"]["schema"] and local.requests[-1].tools == []
+
+
+def test_answer_contract_asks_again_with_the_errors(api):
+    client, _, local, _ = api
+    local._script = [text('{"total": "tres"}'), text('{"total": 3}')]
+    r = client.chat.completions.create(model="spike-finance", response_format=TOTAL,
+                                       messages=[{"role": "user", "content": "Suma 1 y 2"}])
+    assert r.choices[0].message.content == '{"total": 3}'
+    assert r.model_extra["spike"]["contract"] == {"valid": True, "attempts": 2}
+    repair = local.requests[-1].messages[-1]
+    assert repair.role == "user" and "total: 'tres' is not of type 'integer'" in repair.content
+    assert local.requests[-1].messages[-2].content == '{"total": "tres"}'
+
+
+def test_answer_contract_reports_an_answer_that_still_breaks_it(api):
+    client, _, local, _ = api
+    local._script = [text("tres"), text("{}")]
+    stream = client.chat.completions.create(model="spike-finance", response_format=TOTAL, stream=True,
+                                            messages=[{"role": "user", "content": "Suma 1 y 2"}])
+    chunks = list(stream)
+    assert "".join(c.choices[0].delta.content or "" for c in chunks if c.choices) == "{}"
+    contract = chunks[-1].model_extra["spike"]["contract"]
+    assert contract["valid"] is False and contract["attempts"] == 2
+    assert contract["errors"] == ["(root): 'total' is a required property"]
+
+
+def test_an_invalid_schema_is_refused(api):
+    client, _, _, _ = api
+    bad = {"type": "json_schema", "json_schema": {"name": "x", "schema": {"type": "objekt"}}}
+    with pytest.raises(openai.BadRequestError, match="invalid JSON Schema"):
+        client.chat.completions.create(model="spike-finance", response_format=bad,
+                                       messages=[{"role": "user", "content": "x"}])

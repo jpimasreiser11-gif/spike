@@ -43,6 +43,10 @@ class DemoProvider(Provider):
     async def stream(self, request):
         system = request.messages[0].content if request.messages else ""
         last = request.messages[-1]
+        if request.json_schema is not None and "subtasks" not in json.dumps(request.json_schema):
+            yield StreamEvent(kind="text", text='```json\n{"pais": "España", "iva": 21}\n```')  # an answer contract
+            yield StreamEvent(kind="done")
+            return
         if request.json_schema is not None:
             plan = {"subtasks": [
                 {"id": "t1", "specialist": "marketing", "instruction": "Design the launch campaign for the ETF", "depends_on": []},

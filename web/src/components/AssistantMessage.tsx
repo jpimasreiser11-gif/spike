@@ -316,7 +316,15 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
 
       {run.trimmed ? <div className="notice">{run.trimmed} {t.contextTrimmed}</div> : null}
 
-      {run.text ? (
+      {run.contract && (
+        <div className={`contract small ${run.contract.valid ? "ok" : "bad"}`} title={run.contract.errors.join("\n")}>
+          {run.contract.valid ? `✓ ${t.contractOk}` : `✕ ${t.contractBad}: ${run.contract.errors.join("; ")}`}
+          {run.contract.attempts > 1 && <span className="muted"> · {run.contract.attempts} {t.attempts}</span>}
+        </div>
+      )}
+      {run.text && run.contract ? (
+        <pre className="json-answer"><code>{run.text}</code></pre>
+      ) : run.text ? (
         <Markdown text={run.text} />
       ) : live && pending.length === 0 ? (
         <div className="typing" aria-live="polite">

@@ -241,6 +241,21 @@ const [proofDl] = await Promise.all([page.waitForEvent("download"), page.getByRo
 if (!/^spike-proof-.*\.zip$/.test(proofDl.suggestedFilename())) fail("proof package name: " + proofDl.suggestedFilename());
 if (fs.readFileSync(await proofDl.path()).subarray(0, 2).toString() !== "PK") fail("proof package is not a zip");
 
+// answer contracts: JSON is checked; a schema the answer breaks is reported after a second attempt
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.getByLabel("Formato", { exact: true }).selectOption("json");
+await page.locator("#composer-input").fill("Dame el IVA de España");
+await page.keyboard.press("Enter");
+await page.locator(".contract.ok", { hasText: "Cumple el esquema" }).waitFor({ timeout: 10000 });
+if (!(await page.locator("pre.json-answer").innerText()).includes('"iva": 21')) fail("contract JSON answer");
+await page.getByLabel("Formato", { exact: true }).selectOption("schema");
+await page.getByLabel("JSON con esquema").fill('{"type": "object", "required": ["total"]}');
+await page.locator("#composer-input").fill("Y el total");
+await page.keyboard.press("Enter");
+await page.locator(".contract.bad", { hasText: "'total' is a required property" }).waitFor({ timeout: 10000 });
+await page.screenshot({ path: `${out}/07i-contract.png` });
+await page.getByLabel("Formato", { exact: true }).selectOption("text");
+
 // temporary chat: not listed in the sidebar, no memory used
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByRole("button", { name: "Chat temporal" }).click();

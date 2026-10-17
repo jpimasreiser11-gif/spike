@@ -119,6 +119,7 @@ export type RunState = {
   events?: ChatEvent[]; // the run as it happened, for the step-by-step view (each with `t`, seconds from the start)
   learn?: Learn;
   questions?: QuestionState[];
+  contract?: { valid: boolean; attempts: number; errors: string[] }; // the answer had to be JSON for a schema
 };
 
 /** What the user's message taught SPIKE: notes saved at once ("recuerda que…"), or a rule proposed from a correction. */

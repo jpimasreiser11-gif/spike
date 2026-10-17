@@ -4,7 +4,7 @@ import type { ProviderInfo, Specialist } from "../types";
 import { IconSend, IconStop } from "./Icons";
 
 export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setProviderId, specialists, providers, followUp, autoFocus }: {
-  onSend: (text: string) => void;
+  onSend: (text: string, schema?: object) => void;
   onStop: () => void;
   busy: boolean;
   mode: string;
@@ -17,7 +17,21 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
   autoFocus?: boolean;
 }) {
   const [text, setText] = useState("");
+  const [format, setFormat] = useState<"text" | "json" | "schema">("text");
+  const [schemaText, setSchemaText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
+  let schema: object | undefined;
+  let schemaProblem = "";
+  if (format === "json") schema = { type: "object" };
+  if (format === "schema") {
+    try {
+      const parsed = JSON.parse(schemaText);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) schema = parsed;
+      else schemaProblem = t.schemaNotObject;
+    } catch {
+      schemaProblem = schemaText.trim() ? t.schemaNotJson : t.schemaEmpty;
+    }
+  }
 
   useEffect(() => {
     const el = ref.current;
@@ -32,8 +46,8 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
 
   const submit = () => {
     const value = text.trim();
-    if (!value || busy) return;
-    onSend(value);
+    if (!value || busy || schemaProblem) return;
+    onSend(value, schema);
     setText("");
   };
 
@@ -69,17 +83,29 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
             <option key={p.id} value={p.id}>{p.name}{p.paid ? " $" : ""}</option>
           ))}
         </select>
+        <select className="select" value={format} onChange={(e) => setFormat(e.target.value as typeof format)} aria-label={t.answerFormat} title={t.answerFormatHint}>
+          <option value="text">{t.answerFormat}: {t.formatText}</option>
+          <option value="json">{t.answerFormat}: JSON</option>
+          <option value="schema">{t.answerFormat}: {t.formatSchema}</option>
+        </select>
         <div className="spacer" />
         {busy ? (
           <button className="send-btn stop" onClick={onStop} aria-label={t.stop} title={t.stop}>
             <IconStop />
           </button>
         ) : (
-          <button className="send-btn" onClick={submit} disabled={!text.trim()} aria-label={t.send} title={t.send}>
+          <button className="send-btn" onClick={submit} disabled={!text.trim() || Boolean(schemaProblem)} aria-label={t.send} title={t.send}>
             <IconSend />
           </button>
         )}
       </div>
+      {format === "schema" && (
+        <div className="schema-box">
+          <textarea value={schemaText} onChange={(e) => setSchemaText(e.target.value)} rows={4} spellCheck={false}
+            aria-label={t.formatSchema} placeholder={'{"type": "object", "properties": {"total": {"type": "number"}}, "required": ["total"]}'} />
+          {schemaProblem && <span className="small warn-text">{schemaProblem}</span>}
+        </div>
+      )}
     </div>
   );
 }
