@@ -16,7 +16,7 @@ claimed until measured.
   KV ~0.5 GiB at 32K with q8_0 (computed), adapters ~40 MB each (computed).
 - **Depends on**: 2, 4, 17. **Tasks**: measure RSS, TTFT, tok/s on a 16 GB CPU-only machine (`spike bench --gpu-layers 0`).
 - **Acceptance**: peak RSS ≤ 8 GB at 32K context; ≥ 5 tok/s generation on a 4-core x86 CPU; numbers in STATUS.md with hardware.
-- **Status**: 🟡 harness verified on a tiny model; real model not yet benchmarked (the build container cannot download weights).
+- **Status**: 🟡 measured on an M4 Max Mac (STATUS.md: CPU-only peak RSS 6,330 MiB at 32K, 13.8 tok/s; Metal 66.5 tok/s at 32K); ⬜ the 16 GB 4-core x86 target (needs huggingface.co in the cloud environment).
 
 ## 2. Base model selection
 - **Decision**: Qwen3.5-4B (Apache-2.0); alternative Gemma 4 E4B. [ADR 0001](adr/0001-base-model.md).
@@ -108,7 +108,7 @@ claimed until measured.
 
 ## 20. Tests and benchmarks
 - **Decision**: pytest (unit, API, real llama-server integration, official-converter export), Vitest, Playwright smoke, router eval, model evals with Wilson CIs and McNemar, `spike bench`.
-- **Acceptance**: CI runs everything that needs no weights; model results reproducible from committed configs. **Status**: ✅ 74 Python + 5 web tests; CI workflow (`.github/workflows/ci.yml`: Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) lint-checked with actionlint + shellcheck, ⬜ not yet run on GitHub (no repository); ⬜ model results.
+- **Acceptance**: CI runs everything that needs no weights; model results reproducible from committed configs. **Status**: ✅ 109 Python + 5 web tests; CI workflow (`.github/workflows/ci.yml`: Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) lint-checked with actionlint + shellcheck, ⬜ not yet run on GitHub (repository pending); 🟡 model results: Mac benchmarks and baseline measured, adapters pending.
 
 ## 21. Documentation
 - README, ARCHITECTURE, RESEARCH, PLAN, STATUS, SPECIALISTS, TRAINING, ADRs, SECURITY, CONTRIBUTING, THIRD_PARTY. **Status**: ✅ written; kept in sync with evidence.

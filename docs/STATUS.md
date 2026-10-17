@@ -29,18 +29,56 @@ _Last update: 2026-10-17, commit on `main` in the development repository (not ye
 | CI workflow (Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) | actionlint 1.7.7 + shellcheck 0.11.0 clean; llama-server built with the CI's flags (`GGML_NATIVE=OFF`, no OpenSSL) passes the 5 integration tests; **never run on GitHub** (no repository yet) | `actionlint .github/workflows/ci.yml` |
 | Benchmark harness end to end (TTFT, tok/s, RSS, build info) | runs against the tiny model; **its numbers are meaningless for quality or speed** | `spike bench --model <tiny.gguf>` |
 
-Total at this update: 93 Python tests (incl. the llama.cpp integration tests) and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+Total at this update: 109 Python tests (incl. the llama.cpp integration tests) and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+
+## Measured with real weights
+
+Qwen3.5-4B Q4_K_M (unsloth GGUF, SHA-256 verified) on joan's Mac: Apple M4 Max, 14 cores, 36 GB, macOS 27,
+Homebrew llama-server b11669-620d2225c (not the CI-pinned 62318cd), KV cache q8_0. Raw JSON next to each row.
+
+**Speed and memory** (`spike bench`, 128 generated tokens, median of 3 runs):
+
+| backend | context | TTFT | prompt tok/s | generation tok/s | peak RSS (MiB = 1024² bytes) |
+|---|---|---|---|---|---|
+| CPU only (`--gpu-layers 0`) | 1K | 8.4 s | 122.5 | 40.6 | 6,307 MiB |
+| | 8K | 92.3 s | 88.8 | 29.5 | 6,309 MiB |
+| | 32K | 814.7 s | 40.2 | 13.8 | 6,330 MiB |
+| Metal (`--gpu-layers 99`) | 1K | 0.86 s | 1197 | 82.4 | 3,653 MiB |
+| | 8K | 7.2 s | 1145 | 79.8 | 3,668 MiB |
+| | 32K | 36.6 s | 895 | 66.5 | 3,719 MiB |
+
+Evidence: `evals/results/bench-mac-20261017/bench-{cpu-ngl0,metal-ngl99}.json`. CPU RSS includes the mmap'd
+model file and, by inference (not measured), llama.cpp's repacked CPU copy of the weights; `spike bench` now
+records `peak_rss_anon_mb` on Linux to separate them. This is an Apple CPU, not the 16 GB x86 target.
+
+**Baseline accuracy, no adapter** ("baseline@512 (rescored)", Metal, greedy, thinking off, max_tokens 512,
+specialist system prompts; generated with the old extractor and re-scored from the saved responses after the
+extractor fix: 403 parses and 289 verdicts changed):
+
+| task | n | accuracy | Wilson 95 % CI | unparsed | truncated |
+|---|---|---|---|---|---|
+| general (MMLU-Pro history/philosophy/psychology/other) | 800 | 0.557 | 0.523–0.592 | 105 | 166 |
+| MedMCQA validation | 1000 | 0.242 | 0.216–0.270 | 440 | 194 |
+| MMLU-Pro health | 818 | 0.248 | 0.220–0.279 | 298 | 314 |
+| PubMedQA labeled | 500 | 0.426 | 0.383–0.470 | 0 | 470 |
+| medicine (pooled) | 2318 | 0.284 | 0.266–0.303 | 738 | 978 |
+
+Evidence: `evals/results/baseline-mac-20261017/summary.{json,md}`. A diagnostic, not the adapter comparison:
+many medicine answers end with a disclaimer and name no option (scored as wrong), and 94 % of PubMedQA answers
+hit the 512-token limit. The adapter verdict comes from base and adapter evaluated in one run at 2048 tokens.
+
+**Training data, medicine** (`training/data/medicine/manifest.json` on the Mac): 26,050 training examples,
+6,513 iterations; replay 0.30 of the mix from 13,002 OpenAssistant chats built from the real dataset (12,994
+kept); MedMCQA keeps 12,609 of 24,000 rows (short explanations and multi-answer questions dropped); 21 examples
+removed for sharing a 13-gram with an eval set.
 
 ## Built, not yet measured with real weights
 
-- Qwen3.5-4B inference speed, TTFT and peak RSS on a 16 GB CPU-only machine and on Apple Silicon.
-- Any trained adapter (medicine, finance, marketing recipes are ready; nothing has been trained).
+- Qwen3.5-4B inference speed, TTFT and peak RSS on a 16 GB CPU-only x86 machine (Apple Silicon measured above).
+- Any trained adapter: medicine is training on the Mac; finance and marketing follow.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Live calls to external providers (needs the user's keys; never done without explicit configuration).
 - Installers on fresh macOS and Windows machines (Homebrew and winget paths not exercised; Linux path verified above).
-- OpenAssistant oasst2 rows from the Hub: the builder follows the published schema (`message_id`, `parent_id`, `role`,
-  `rank`, `review_result`, `deleted`, `synthetic`, `lang`), not yet read from the real dataset because the build
-  container cannot reach huggingface.co; `prepare.py` stops if a source builds no chats.
 - The first GitHub Actions run.
 
 ## Computed (not measured)
@@ -54,12 +92,13 @@ Total at this update: 93 Python tests (incl. the llama.cpp integration tests) an
 1. **No model weights in the build container**: its network policy blocks huggingface.co, so real-model
    benchmarks and evals must run on joan's Mac (or the environment must allow huggingface.co; the container
    itself is a 4-core x86 machine with 15.7 GB RAM, a good proxy for the 16 GB CPU-only target).
-2. **Publication**: no GitHub repository chosen yet; nothing has been pushed.
+2. **Publication**: joan chose a private GitHub repository `spike`; waiting for joan to create it (sessions cannot
+   create repositories). Nothing has been pushed.
 
 ## Next steps (in order)
 
-1. Benchmark Qwen3.5-4B Q4_K_M CPU-only and with Metal (`spike bench`), record here.
-2. `general` + `medicine` baseline evals of the prompt-profile system (no adapter) on the Mac.
+1. ~~Benchmark CPU-only and Metal on the Mac~~ (done, above); the 16 GB x86 CPU benchmark needs huggingface.co.
+2. ~~Baseline evals on the Mac~~ (done, above).
 3. Train, export and evaluate the medicine adapter; accept or reject by its criteria.
 4. Finance, then marketing (teacher distillation).
 5. Long-context eval; orchestrated vs single-model pairwise eval.
