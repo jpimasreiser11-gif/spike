@@ -18,6 +18,7 @@ from spike.agent.loop import AgentRun, Checkpointer, Event, run_agent
 from spike.contracts import check, repair_prompt
 from spike.core.context import fit_messages
 from spike.core.types import ChatRequest, Message
+from spike.design.library import DesignSystem, design_prompt
 from spike.memory.service import Recall, memory_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
@@ -80,6 +81,7 @@ class OrchestratorOptions:
     verify: bool = True  # a checker reviews multi-step results and can send work back (Collective)
     max_steps: int = 8  # model calls per specialist run (tool use); `spike dev` allows more
     forge: Blueprint | None = None  # an approved Forge blueprint: its steps are the plan, its criteria are checked
+    design: DesignSystem | None = None  # Spike Design: pages, slides and documents follow this design system
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -119,6 +121,8 @@ class Orchestrator:
             parts.append("# Instructions from the user (always follow them)\n" + opts.custom_instructions.strip())
         if opts.project_instructions.strip():
             parts.append("# Project instructions\n" + opts.project_instructions.strip())
+        if opts.design is not None:
+            parts.append(design_prompt(opts.design, max(300, min(2500, context_budget // 5))))
         if opts.memory is not None:
             section, files = memory_section(opts.memory, max(200, min(1500, context_budget // 6)))
             if section:

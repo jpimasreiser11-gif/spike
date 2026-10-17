@@ -341,6 +341,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
           {(run.skills ?? []).map((name) => (
             <span key={name} className="chip skill-chip" title={t.skill}>✦ {name}</span>
           ))}
+          {run.design && <span className="chip design-chip" title={t.designUsed}>{t.design}: {run.design.name}</span>}
           {run.memory && (
             <span className="chip memory-chip" tabIndex={0} title={[
               ...(run.memory.rules ? [`${run.memory.rules} × ${M.kinds.rule}`] : []),

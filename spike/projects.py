@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import shutil
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -66,7 +67,8 @@ def export_project(store: Store, files: ProjectFiles, pid: str) -> bytes:
         conversations.append({**{k: conv[k] for k in ("title", "mode", "provider_id", "created", "updated")},
                               "messages": messages})
     manifest = {"format": FORMAT, "version": VERSION,
-                "project": {k: project[k] for k in ("name", "instructions", "mode")}, "conversations": conversations}
+                "project": {k: project[k] for k in ("name", "instructions", "mode", "design")},
+                "conversations": conversations}
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(_entry("project.json"), json.dumps(manifest, ensure_ascii=False, indent=1, sort_keys=True))
@@ -110,8 +112,10 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
         if not isinstance(meta.get("name"), str) or not meta["name"].strip():
             raise ProjectError("the project has no name")
         mode = meta.get("mode") or "auto"
+        design = meta.get("design") if isinstance(meta.get("design"), str) else ""
         project = store.create_project(meta["name"], str(meta.get("instructions") or ""),
-                                       mode if mode in modes else "auto")
+                                       mode if mode in modes else "auto",
+                                       design if re.fullmatch(r"[a-z0-9][a-z0-9-]{0,47}", design) else "")
         try:
             for conv in manifest.get("conversations") or []:
                 c = store.create_conversation(title=str(conv.get("title") or "Imported chat"),

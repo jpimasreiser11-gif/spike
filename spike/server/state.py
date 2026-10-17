@@ -15,6 +15,7 @@ from spike.connectors import browser
 from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message
+from spike.design.library import DesignLibrary
 from spike.evolution.router_learning import apply_overlay
 from spike.evolution.service import Evolution
 from spike.evolution.store import EvolutionStore
@@ -108,6 +109,7 @@ class AppState:
         self.evolution = Evolution(EvolutionStore(self.home / "evolution.db"))
         self.catalog = self._load_catalog()
         self.skills = SkillLibrary([(BUNDLED, "bundled"), (self.home / "skills", "user")])
+        self.designs = DesignLibrary(self.home / "design-systems")
         if not self.store.list_providers():
             self._seed_providers()
 
@@ -262,6 +264,7 @@ class AppState:
             skill_mode=s["skill_mode"], disabled_skills=list(s["disabled_skills"]),
             use_planner=s["use_planner"], parallel=s["parallel"], temperature=s["temperature"],
             max_tokens=s["max_tokens"], reasoning=s["reasoning"], tools_enabled=s["tools_enabled"],
+            design=self.designs.get((project or {}).get("design") or ""),  # the project's, unless the chat picks one
         )
 
     def providers_for_run(self, override_provider: str | None) -> set[str]:

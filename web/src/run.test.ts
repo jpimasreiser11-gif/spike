@@ -186,3 +186,13 @@ describe("answer contracts", () => {
     expect(stored.contract?.valid).toBe(true);
   });
 });
+
+describe("design systems", () => {
+  it("shows the design system live and after a reload", () => {
+    const live = applyEvent(emptyRun(), { type: "design", id: "minimal", name: "Minimal" });
+    expect(live.design).toEqual({ id: "minimal", name: "Minimal" });
+    const stored = runFromStored({ id: "m1", role: "assistant", content: "ok", created: 0, meta: { design: { id: "spike", name: "SPIKE" } } } as any);
+    expect(stored.design).toEqual({ id: "spike", name: "SPIKE" });
+    expect(runFromStored({ id: "m2", role: "assistant", content: "ok", created: 0, meta: {} } as any).design).toBeUndefined();
+  });
+});

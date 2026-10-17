@@ -12,7 +12,7 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
-import type { Blueprint, ChatEvent, Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
+import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
 type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
 
@@ -93,6 +93,8 @@ export default function App() {
   const [mode, setMode] = useState("auto");
   const [temporary, setTemporary] = useState(false); // a chat kept in memory only, without SPIKE's memory
   const [providerId, setProviderId] = useState<string | null>(null);
+  const [designs, setDesigns] = useState<DesignSystemInfo[]>([]);
+  const [design, setDesign] = useState(""); // "" = the project's design system (or none)
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [forgeOpen, setForgeOpen] = useState(false);
@@ -111,15 +113,17 @@ export default function App() {
   );
   const loadProjects = useCallback(() => api.get<Project[]>("/api/projects").then(setProjects), []);
   const loadProviders = useCallback(() => api.get<ProviderInfo[]>("/api/providers").then(setProviders), []);
+  const loadDesigns = useCallback(() => api.get<DesignSystemInfo[]>("/api/design-systems").then(setDesigns), []);
 
   useEffect(() => {
     Promise.all([
       api.get<Specialist[]>("/api/specialists").then(setSpecialists),
       loadProviders(),
       loadProjects(),
+      loadDesigns(),
       api.get<{ running: boolean }>("/api/runtime").then(setEngine),
     ]).catch((e) => setFatal(String(e.message || e)));
-  }, [loadProjects, loadProviders]);
+  }, [loadProjects, loadProviders, loadDesigns]);
 
   useEffect(() => {
     loadConversations().catch((e) => setFatal(String(e.message || e)));
@@ -198,7 +202,8 @@ export default function App() {
     try {
       await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
-                         ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}) }, (ev) => {
+                         ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}),
+                         ...(design ? { design_system: design } : {}) }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
@@ -268,7 +273,8 @@ export default function App() {
   const composer = (
     <Composer onSend={(text, schema) => send(text, undefined, providerId, activeId, schema)} onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode}
       providerId={providerId} setProviderId={setProviderId} specialists={specialists.filter((s) => s.id !== "core")}
-      providers={providers} followUp={!empty} autoFocus />
+      providers={providers} followUp={!empty} autoFocus designs={designs} design={design} setDesign={setDesign}
+      projectDesign={designs.find((d) => d.id === project?.design)?.name} />
   );
 
   return (
@@ -341,7 +347,7 @@ export default function App() {
         ) : empty ? (
           <section className="welcome">
             {project ? (
-              <ProjectPanel project={project} specialists={specialists} onEdit={() => setProjectDialog(project)} />
+              <ProjectPanel project={project} specialists={specialists} designs={designs} onEdit={() => setProjectDialog(project)} />
             ) : (
               <>
                 {!fatal && <img className="welcome-mark" src="/states/empty-chat.webp" alt="" width={220} height={144} />}
@@ -390,13 +396,13 @@ export default function App() {
       {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}
 
       {projectDialog && (
-        <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} onClose={() => setProjectDialog(null)}
+        <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} designs={designs} onClose={() => setProjectDialog(null)}
           onSaved={(p) => { setProjectDialog(null); loadProjects(); selectProject(p); }}
           onDeleted={() => { setProjectDialog(null); loadProjects(); selectProject(null); }} />
       )}
 
       {settingsOpen && (
-        <SettingsDialog onClose={() => { setSettingsOpen(false); loadProviders(); api.get<{ running: boolean }>("/api/runtime").then(setEngine); }}
+        <SettingsDialog onClose={() => { setSettingsOpen(false); loadProviders(); loadDesigns(); api.get<{ running: boolean }>("/api/runtime").then(setEngine); }}
           specialists={specialists} providers={providers} reloadProviders={loadProviders} />
       )}
     </div>

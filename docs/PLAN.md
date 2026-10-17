@@ -162,7 +162,8 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ✅ tested with Playwright MCP 0.0.83 and Chromium (local install, not the `npx` download) |
 | C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace; Blueprint first; local/API executor; ~10 test tasks with a measured success rate before announcing it | ✅ built and tested with a scripted model; 🟡 success rate with real weights not measured yet (`spike forge eval --baseline`), so Forge is not announced |
 | C3 | `spike dev` in the terminal on the agent loop: read, search, edit and run commands with permissions, undo points, Superpowers skills | ✅ tests + a real pseudo-terminal run with a scripted model; 🟡 not tried with real weights |
-| C4–C6 | Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
+| C4 | Spike Design: design systems (`DESIGN.md` + tokens) from open-design and the user's own, per chat, project or Forge task, on the artifacts panel | ✅ tests + browser smoke; 🟡 how well a 4B model follows them is unmeasured |
+| C5–C6 | Finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
 | C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ⬜ |
 | C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ⬜ |
 | D | Motion (video from code: animated HTML/SVG, Motion Canvas or Manim, rendered with ffmpeg; not Remotion, whose license is not OSI) and Evolution levels 2–3 (prompt/skill optimisation against local evals, opt-in corrections as retraining data; nothing ships without passing the eval) | ⬜ |

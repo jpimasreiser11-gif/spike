@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS providers (id TEXT PRIMARY KEY, config TEXT NOT NULL, created REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, instructions TEXT NOT NULL DEFAULT '', mode TEXT NOT NULL DEFAULT 'auto',
-  created REAL NOT NULL, updated REAL NOT NULL
+  created REAL NOT NULL, updated REAL NOT NULL, design TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS calls (
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, provider_id TEXT NOT NULL, provider TEXT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
 CREATE INDEX IF NOT EXISTS checkpoints_by_conv ON checkpoints(conversation_id, created);
 """
 CALL_LOG_DAYS = 400  # older entries of the call log are dropped when SPIKE starts
-PROJECT_FIELDS = {"name", "instructions", "mode"}
+PROJECT_FIELDS = {"name", "instructions", "mode", "design"}
 
 
 class Store:
@@ -55,6 +55,8 @@ class Store:
         columns = {r["name"] for r in self._conn.execute("PRAGMA table_info(conversations)")}
         if "project_id" not in columns:  # databases created before projects existed
             self._conn.execute("ALTER TABLE conversations ADD COLUMN project_id TEXT")
+        if "design" not in {r["name"] for r in self._conn.execute("PRAGMA table_info(projects)")}:
+            self._conn.execute("ALTER TABLE projects ADD COLUMN design TEXT NOT NULL DEFAULT ''")  # before C4
         if "conversation_id" not in {r["name"] for r in self._conn.execute("PRAGMA table_info(calls)")}:
             self._conn.execute("ALTER TABLE calls ADD COLUMN conversation_id TEXT")  # logs from before chat tagging
         self._conn.execute("DELETE FROM calls WHERE ts < ?", (time.time() - CALL_LOG_DAYS * 86400,))
@@ -219,9 +221,10 @@ class Store:
         self._exec("DELETE FROM checkpoints WHERE conversation_id=?", (conversation_id,))
 
     # -------------------------------------------------------------- projects
-    def create_project(self, name: str, instructions: str = "", mode: str = "auto") -> dict:
+    def create_project(self, name: str, instructions: str = "", mode: str = "auto", design: str = "") -> dict:
         now, pid = time.time(), uuid.uuid4().hex
-        self._exec("INSERT INTO projects VALUES (?,?,?,?,?,?)", (pid, name, instructions, mode, now, now))
+        self._exec("INSERT INTO projects (id, name, instructions, mode, created, updated, design) VALUES (?,?,?,?,?,?,?)",
+                   (pid, name, instructions, mode, now, now, design))
         return self.get_project(pid)
 
     def get_project(self, pid: str) -> dict | None:

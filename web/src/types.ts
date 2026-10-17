@@ -39,7 +39,13 @@ export type ProviderInfo = {
 
 export type Conversation = { id: string; title: string; created: number; updated: number; mode: string; project_id?: string | null };
 
-export type Project = { id: string; name: string; instructions: string; mode: string; created: number; updated: number };
+export type Project = { id: string; name: string; instructions: string; mode: string; design: string; created: number; updated: number };
+
+/** A design system (Spike Design): its DESIGN.md and tokens go into the prompt of chats that use it. */
+export type DesignSystemInfo = {
+  id: string; name: string; category: string; description: string; source: "bundled" | "user";
+  has_tokens: boolean; colors: { name: string; value: string }[];
+};
 
 export type ProjectFile = { path: string; size: number };
 
@@ -135,6 +141,7 @@ export type RunState = {
   elapsed?: number;
   trimmed?: number;
   skills?: string[];
+  design?: { id: string; name: string };
   memory?: MemoryUse;
   privacy?: Record<string, number>; // provider name -> file passages withheld from it
   events?: ChatEvent[]; // the run as it happened, for the step-by-step view (each with `t`, seconds from the start)

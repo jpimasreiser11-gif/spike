@@ -20,7 +20,7 @@ from tests.helpers import ScriptedProvider, call, text
 
 BUNDLED_NAMES = {"test-driven-development", "systematic-debugging", "writing-plans", "verification-before-completion",
                  "frontend-design", "mcp-builder", "webapp-testing", "medical-evidence-summary",
-                 "financial-ratio-analysis", "campaign-brief"}
+                 "financial-ratio-analysis", "campaign-brief", "web-design-guidelines"}
 
 
 def write_skill(root: Path, name: str, description: str = "Use when testing.", body: str = "Do the thing.",
@@ -38,7 +38,7 @@ def test_bundled_skills_load_with_their_licenses():
     for s in skills.values():
         assert s.license, s.name
         assert len(s.description) <= 1024 and s.body().strip(), s.name
-    for name in ("test-driven-development", "frontend-design"):  # upstream copies carry their license file
+    for name in ("test-driven-development", "frontend-design", "web-design-guidelines"):  # upstream: license file
         assert any(p.name.startswith("LICENSE") for p in skills[name].path.iterdir())
     assert skills["financial-ratio-analysis"].specialists == ["finance"]
     assert skills["systematic-debugging"].specialists == ["code", "data"]  # from bindings.yaml
@@ -68,6 +68,7 @@ def test_invalid_skills_are_rejected(tmp_path, front, error):
      "medical-evidence-summary"),
     ("marketing", "Prepara una campaña de lanzamiento con canales y KPI", "campaign-brief"),
     ("code", "Write an MCP server for my notes app", "mcp-builder"),
+    ("code", "Revisa la accesibilidad y la UX de mi formulario", "web-design-guidelines"),
     ("core", "Hola, ¿qué tal estás?", None),
     ("code", "Hazme una página de prueba", None),  # "prueba" alone is not about tests
     ("code", "Calcula el margen EBITDA y el ROE", None),  # finance skill is not bound to Code

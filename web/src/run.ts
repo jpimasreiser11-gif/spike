@@ -97,6 +97,8 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
         ...state,
         permissions: state.permissions.map((p) => (p.id === ev.id ? { ...p, status: ev.decision } : p)),
       };
+    case "design":
+      return { ...state, design: { id: ev.id, name: ev.name } };
     case "skill": {
       const names = (ev.names as string[]).filter((n) => !(state.skills ?? []).includes(n));
       return names.length ? { ...state, skills: [...(state.skills ?? []), ...names] } : state;
@@ -145,6 +147,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.route) run.route = meta.route;
   if (meta.plan) run.plan = meta.plan;
   if (meta.skills?.length) run.skills = meta.skills;
+  if (meta.design) run.design = meta.design;
   if (meta.memory) run.memory = { rules: meta.memory.rules, semantic: meta.memory.semantic, notes: meta.memory.notes };
   if (meta.privacy) run.privacy = meta.privacy;
   if (meta.events?.length) run.events = meta.events;

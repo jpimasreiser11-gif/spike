@@ -116,6 +116,12 @@ class DemoProvider(Provider):
             return
         if last.role == "tool" and last.name == "ask_user":
             answer = f"Entendido ({last.content}). Para España, el IVA general es del **21 %**."
+        elif last.role == "user" and "landing" in last.content.lower() and "# Design system:" in system:
+            tokens = system.split("```css\n", 1)[1].split("\n```", 1)[0]  # pasted as the design system asks
+            answer = ("Tu landing con el sistema de diseño:\n\n```html\n<title>Landing</title>\n<style>" + tokens +
+                      "\nbody{background:var(--bg);color:var(--fg);font-family:var(--font-body)}"
+                      "\n.cta{background:var(--accent);color:var(--accent-on);border:0;padding:12px 20px;"
+                      "border-radius:var(--radius-md)}</style>\n<h1>Landing</h1>\n<button class=\"cta\">Empezar</button>\n```")
         elif last.role == "user" and "página" in last.content.lower():
             answer = "Aquí tienes la página:\n\n```html\n" + PROBE_PAGE + "\n```"
         elif last.role == "user" and "# Project instructions" in system:

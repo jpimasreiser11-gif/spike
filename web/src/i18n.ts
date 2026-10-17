@@ -40,6 +40,11 @@ const es = {
   contextTrimmed: "mensajes antiguos omitidos para caber en el contexto",
   disclaimerSensitive: "Información, no consejo profesional personalizado. Verifica decisiones importantes.",
   skill: "Skill aplicada a esta respuesta",
+  designUsed: "Sistema de diseño que sigue esta respuesta",
+  design: "Diseño",
+  designNone: "ninguno",
+  designProject: "el del proyecto",
+  designHint: "Las páginas, presentaciones y documentos que haga SPIKE siguen este sistema de diseño",
   preview: "Vista previa",
   code: "Código",
   download: "Descargar",
@@ -122,7 +127,7 @@ const es = {
   notMet: "no cumplido",
   notChecked: "sin comprobar",
   unresolved: "Sin resolver",
-  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", verify_start: "Verifica", verify: "Veredicto del verificador", forge_report: "Informe de Forge", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", memory_saved: "Guarda en memoria", question: "Te pregunta", contract: "Comprueba el formato", answered: "Respondes", correction: "Propone una regla", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
+  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", verify_start: "Verifica", verify: "Veredicto del verificador", forge_report: "Informe de Forge", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", design: "Sigue el diseño", privacy: "Protege tus archivos de", memory_saved: "Guarda en memoria", question: "Te pregunta", contract: "Comprueba el formato", answered: "Respondes", correction: "Propone una regla", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
 };
 
 type Dict = typeof es;
@@ -169,6 +174,11 @@ const en: Dict = {
   contextTrimmed: "older messages omitted to fit the context",
   disclaimerSensitive: "Information, not personalized professional advice. Verify important decisions.",
   skill: "Skill applied to this answer",
+  designUsed: "Design system this answer follows",
+  design: "Design",
+  designNone: "none",
+  designProject: "the project's",
+  designHint: "Pages, slides and documents SPIKE makes follow this design system",
   preview: "Preview",
   code: "Code",
   download: "Download",
@@ -251,7 +261,7 @@ const en: Dict = {
   notMet: "not met",
   notChecked: "not checked",
   unresolved: "Unresolved",
-  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", verify_start: "Checks", verify: "Checker verdict", forge_report: "Forge report", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", memory_saved: "Saves to memory", question: "Asks you", contract: "Checks the format", answered: "You answer", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
+  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", verify_start: "Checks", verify: "Checker verdict", forge_report: "Forge report", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", design: "Follows the design", privacy: "Protects your files from", memory_saved: "Saves to memory", question: "Asks you", contract: "Checks the format", answered: "You answer", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

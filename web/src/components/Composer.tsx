@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
-import type { ProviderInfo, Specialist } from "../types";
+import type { DesignSystemInfo, ProviderInfo, Specialist } from "../types";
 import { IconSend, IconStop } from "./Icons";
 
-export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setProviderId, specialists, providers, followUp, autoFocus }: {
+export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setProviderId, specialists, providers, followUp, autoFocus,
+  designs = [], design = "", setDesign, projectDesign }: {
   onSend: (text: string, schema?: object) => void;
   onStop: () => void;
   busy: boolean;
@@ -15,6 +16,10 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
   providers: ProviderInfo[];
   followUp: boolean;
   autoFocus?: boolean;
+  designs?: DesignSystemInfo[];
+  design?: string; // "" = the project's (or none), "none", or a design system id
+  setDesign?: (d: string) => void;
+  projectDesign?: string; // name of the project's design system
 }) {
   const [text, setText] = useState("");
   const [format, setFormat] = useState<"text" | "json" | "schema">("text");
@@ -83,6 +88,13 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
             <option key={p.id} value={p.id}>{p.name}{p.paid ? " $" : ""}</option>
           ))}
         </select>
+        {setDesign && designs.length > 0 && (
+          <select className="select" value={design} onChange={(e) => setDesign(e.target.value)} aria-label={t.design} title={t.designHint}>
+            <option value="">{t.design}: {projectDesign ? `${t.designProject} (${projectDesign})` : t.designNone}</option>
+            {projectDesign && <option value="none">{t.design}: {t.designNone}</option>}
+            {designs.map((d) => <option key={d.id} value={d.id}>{t.design}: {d.name}</option>)}
+          </select>
+        )}
         <select className="select" value={format} onChange={(e) => setFormat(e.target.value as typeof format)} aria-label={t.answerFormat} title={t.answerFormatHint}>
           <option value="text">{t.answerFormat}: {t.formatText}</option>
           <option value="json">{t.answerFormat}: JSON</option>

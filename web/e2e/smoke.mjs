@@ -317,6 +317,29 @@ const [page_dl] = await Promise.all([page.waitForEvent("download"), page.getByRo
 if (page_dl.suggestedFilename() !== "prueba-de-aislamiento.html") fail("artifact download name: " + page_dl.suggestedFilename());
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
 
+// Spike Design: Settings lists the design systems with a sample page; a chat with one gets a page in its tokens
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Diseño" }).click();
+const minimalCard = page.locator('[data-design="minimal"]');
+await minimalCard.getByRole("button", { name: "Vista previa" }).click();
+await page.frameLocator('[data-design="minimal"] .design-frame').locator("h1", { hasText: "Minimal" }).waitFor({ timeout: 5000 });
+if ((await page.locator("[data-design]").count()) !== 21) fail("expected 21 design systems");
+await page.screenshot({ path: `${out}/07l-design-settings.png` });
+await page.keyboard.press("Escape");
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.getByLabel("Diseño", { exact: true }).selectOption("spike");
+await page.locator("#composer-input").fill("Hazme una landing para mi app");
+await page.keyboard.press("Enter");
+await page.locator(".design-chip", { hasText: "SPIKE" }).waitFor({ timeout: 10000 });
+await page.locator(".code-preview").first().click({ timeout: 10000 });
+const cta = page.frameLocator(".artifact-frame").locator("button.cta");
+await cta.waitFor({ timeout: 5000 });
+const ctaColour = await cta.evaluate((el) => getComputedStyle(el).backgroundColor);
+if (ctaColour !== "rgb(136, 212, 69)") fail("the page does not use the SPIKE tokens: " + ctaColour);
+await page.screenshot({ path: `${out}/07m-design-artifact.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+await page.getByLabel("Diseño", { exact: true }).selectOption("");
+
 // documents: the Word tool asks first, then its file is offered as a download
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();

@@ -57,10 +57,26 @@ the upstream license file. SPIKE's routing hints for them live separately in `bi
 | test-driven-development (+ writing-good-tests.md), systematic-debugging (+ 3 reference files), writing-plans, verification-before-completion | [obra/superpowers](https://github.com/obra/superpowers) | MIT, © 2025 Jesse Vincent (`LICENSE` in each folder) |
 | frontend-design, mcp-builder (+ 4 reference files), webapp-testing (+ scripts/with_server.py and 3 examples) | [anthropics/skills](https://github.com/anthropics/skills) | Apache-2.0 (`LICENSE.txt` in each folder) |
 | medical-evidence-summary, financial-ratio-analysis, campaign-brief | written for SPIKE | Apache-2.0 |
+| web-design-guidelines (+ `references/guidelines.md`, a pinned copy of Vercel's Web Interface Guidelines) | [nexu-io/open-design](https://github.com/nexu-io/open-design) `skills/`, from [vercel-labs/web-interface-guidelines](https://github.com/vercel-labs/web-interface-guidelines) | MIT, © 2025 Vercel Labs (`LICENSE` in the folder) |
 
 Not shipped: anthropics/skills `docx`, `pdf`, `pptx`, `xlsx` (source-available, not open source) and
 `skill-creator` (depends on sub-agents and many resource files); Superpowers `brainstorming` (needs its
 browser companion).
+
+## Design systems shipped with SPIKE (`spike/design/systems/`)
+
+20 generic design systems copied verbatim (`DESIGN.md` and `tokens.css`) from
+[nexu-io/open-design](https://github.com/nexu-io/open-design) `design-systems/` at commit `78d5637cb49da07e81314d1544b5fc6d37c95084`
+(2026-10-16), Apache-2.0 (copy of the license in `spike/design/systems/LICENSE-open-design`; the repository has no
+NOTICE file): neutral-modern (upstream `default`, renamed), minimal, clean, modern, refined, mono, flat, editorial,
+publication, brutalism, neobrutalism, glassmorphism, claymorphism, corporate, friendly, retro, spacious, bold, paper,
+professional. Their manifests mark them "OpenDesign curated bundled fixture". The fonts they name are SIL OFL fonts
+(Google Fonts); no font file is shipped.
+
+Not shipped: the other 134 open-design systems. Those that imitate a company's look (Airbnb, Apple, Stripe, Linear,
+Vercel, Notion, car makers, banks and many more) and those whose text names a company or a commercial font
+(dashboard, elegant, warm-editorial, trading-terminal) are left out on purpose; the remaining generic ones can be
+imported by the user (Settings → Diseño). `spike` is SPIKE's own system, from its logo palette (Apache-2.0).
 
 ## Connectors in the catalog (downloaded and run on the user's computer when enabled, not redistributed)
 

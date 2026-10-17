@@ -21,3 +21,6 @@ mcp-builder:
 webapp-testing:
   specialists: [code]
   keywords: [playwright, e2e, navegador, browser, captura, screenshot, webapp, aplicación web]
+web-design-guidelines:
+  specialists: [code]
+  keywords: [revisar ui, revisar la interfaz, review ui, review my ui, ux, accesibilidad, accessibility, pautas de interfaz, interface guidelines, auditoría de diseño, design audit]

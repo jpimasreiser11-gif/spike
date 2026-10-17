@@ -24,6 +24,8 @@ from pydantic import BaseModel, Field
 from spike import __version__
 from spike.contracts import schema_error
 from spike.core.types import Message
+from spike.design.library import MAX_ZIP as MAX_DESIGN_BYTES
+from spike.design.library import DesignError, preview_html
 from spike.forge.blueprint import from_user as blueprint_from_user
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
@@ -76,6 +78,7 @@ class ChatIn(BaseModel):
     temporary: bool = False  # for a new chat: kept in memory only, no SPIKE memory read or written, gone on restart
     response_schema: dict[str, Any] | None = None  # answer contract: the answer is JSON following this JSON Schema
     forge: dict[str, Any] | None = None  # a Forge blueprint the user approved: the team runs it and checks it
+    design_system: str | None = None  # a design system id; "none" for none; absent = the project's (Spike Design)
 
 
 class BlueprintIn(BaseModel):
@@ -103,12 +106,14 @@ class ProjectIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     instructions: str = Field(default="", max_length=100_000)
     mode: str = "auto"
+    design: str = ""  # a design system id, or "" for none
 
 
 class ProjectPatch(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     instructions: str | None = Field(default=None, max_length=100_000)
     mode: str | None = None
+    design: str | None = None
 
 
 class ConnectorPatch(BaseModel):
@@ -293,6 +298,44 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         broker = st().broker
         return [{"name": t.name, "description": t.description, "risk": t.risk, "default_policy": t.default_policy,
                  "policy": broker.policy_for(t)} for t in st().tools.all()]
+
+    # ---------------------------------------------------------------- design systems (Spike Design)
+    def design_or_404(ds_id: str):
+        ds = st().designs.get(ds_id)
+        if ds is None:
+            raise HTTPException(404, "design system not found")
+        return ds
+
+    @app.get("/api/design-systems")
+    async def design_systems() -> list[dict]:
+        return [d.to_dict() for d in st().designs.all()]
+
+    @app.get("/api/design-systems/{ds_id}")
+    async def design_system(ds_id: str) -> dict:
+        return design_or_404(ds_id).to_dict(full=True)
+
+    @app.get("/api/design-systems/{ds_id}/preview")
+    async def design_preview(ds_id: str) -> dict:
+        """A sample page in the system's tokens, for the app's isolated preview (not served as a page)."""
+        return {"html": preview_html(design_or_404(ds_id))}
+
+    @app.post("/api/design-systems/import")
+    async def import_design(request: Request) -> dict:
+        blob = await read_body(request, MAX_DESIGN_BYTES)
+        try:
+            imported = st().designs.import_blob(blob)
+        except DesignError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return {"imported": [d.to_dict() for d in imported]}
+
+    @app.delete("/api/design-systems/{ds_id}")
+    async def delete_design(ds_id: str) -> dict:
+        design_or_404(ds_id)
+        try:
+            st().designs.delete(ds_id)
+        except DesignError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return {"ok": True}
 
     # ---------------------------------------------------------------- skills and packs
     def skill_or_404(name: str):
@@ -565,6 +608,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(404, "project not found")
         return project
 
+    def check_design(ds_id: str | None) -> None:
+        if ds_id and st().designs.get(ds_id) is None:
+            raise HTTPException(400, f"unknown design system '{ds_id}'")
+
     def check_mode(mode: str | None) -> None:
         if mode is not None and mode != "auto" and mode not in st().catalog.specialists:
             raise HTTPException(400, f"unknown mode '{mode}'")
@@ -584,7 +631,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.post("/api/projects")
     async def create_project(body: ProjectIn) -> dict:
         check_mode(body.mode)
-        return st().store.create_project(body.name.strip(), body.instructions, body.mode)
+        check_design(body.design)
+        return st().store.create_project(body.name.strip(), body.instructions, body.mode, body.design)
 
     @app.post("/api/projects/import")
     async def import_project_zip(request: Request) -> dict:
@@ -605,6 +653,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def patch_project(pid: str, body: ProjectPatch) -> dict:
         project_or_404(pid)
         check_mode(body.mode)
+        check_design(body.design)
         return st().store.update_project(pid, **body.model_dump(exclude_none=True))
 
     @app.delete("/api/projects/{pid}")
@@ -999,6 +1048,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, "replace_from needs an existing conversation")
         if body.response_schema is not None and (problem := schema_error(body.response_schema)) is not None:
             raise HTTPException(400, problem)
+        if body.design_system and body.design_system != "none":
+            check_design(body.design_system)
         blueprint = None
         if body.forge is not None:
             if body.response_schema is not None:
@@ -1040,6 +1091,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
             options.json_schema = body.response_schema
             options.forge = blueprint
+            if body.design_system is not None:  # the chat's choice replaces the project's
+                options.design = state.designs.get(body.design_system)
+            if options.design is not None:
+                meta["design"] = {"id": options.design.id, "name": options.design.name}
             if blueprint is not None:
                 meta["forge"] = {"blueprint": blueprint.to_dict()}
             started = time.perf_counter()
@@ -1054,6 +1109,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 elif len(events) < MAX_RUN_EVENTS:
                     events.append({**ev, "t": round(time.perf_counter() - started, 3)})
             try:
+                if "design" in meta:  # the answer's design system, shown as a chip
+                    design_event = {"type": "design", **meta["design"]}
+                    record(design_event)
+                    yield _sse(design_event)
                 learned, saved = ({}, []) if temporary else state.learn_from(
                     body.message, conv, user_message["id"], any(m.role == "assistant" for m in history))
                 if learned:

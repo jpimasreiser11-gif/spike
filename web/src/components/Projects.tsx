@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
-import type { Project, ProjectFile, Specialist } from "../types";
+import type { DesignSystemInfo, Project, ProjectFile, Specialist } from "../types";
 import { IconClose, IconTrash, IconUpload } from "./Icons";
 
 export const PL = lang === "es"
@@ -11,6 +11,7 @@ export const PL = lang === "es"
       mode: "Especialista por defecto", auto: "Auto (el orquestador elige)", save: "Guardar", create: "Crear", remove: "Eliminar proyecto",
       confirmRemove: "Pulsa otra vez para borrar el proyecto, sus chats y sus archivos", files: "Archivos", filesHint: "Las herramientas de archivos de los chats de este proyecto trabajan en esta carpeta.",
       upload: "Subir archivos", removeFile: "Eliminar archivo", noFiles: "Todavía no hay archivos.", export: "Exportar (.zip)", edit: "Editar", back: "Todos los chats", chats: "Chats del proyecto",
+      design: "Sistema de diseño", designNone: "Ninguno", designHint: "Las páginas, presentaciones y documentos de este proyecto lo siguen (tu marca, por ejemplo). Importa el tuyo en Ajustes › Diseño.",
     }
   : {
       projects: "Projects", newProject: "New project", importProject: "Import project", editProject: "Edit project",
@@ -18,14 +19,16 @@ export const PL = lang === "es"
       mode: "Default specialist", auto: "Auto (the orchestrator picks)", save: "Save", create: "Create", remove: "Delete project",
       confirmRemove: "Click again to delete the project, its chats and its files", files: "Files", filesHint: "File tools in this project's chats work in this folder.",
       upload: "Upload files", removeFile: "Delete file", noFiles: "No files yet.", export: "Export (.zip)", edit: "Edit", back: "All chats", chats: "Project chats",
+      design: "Design system", designNone: "None", designHint: "Pages, slides and documents in this project follow it (your brand, for example). Import yours in Settings › Design.",
     };
 
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 const fileUrl = (pid: string, path: string) => `/api/projects/${pid}/files/${path.split("/").map(encodeURIComponent).join("/")}`;
 
-export function ProjectDialog({ project, specialists, onClose, onSaved, onDeleted }: {
+export function ProjectDialog({ project, specialists, designs = [], onClose, onSaved, onDeleted }: {
   project: Project | null;
   specialists: Specialist[];
+  designs?: DesignSystemInfo[];
   onClose: () => void;
   onSaved: (p: Project) => void;
   onDeleted: (id: string) => void;
@@ -33,6 +36,7 @@ export function ProjectDialog({ project, specialists, onClose, onSaved, onDelete
   const [name, setName] = useState(project?.name ?? "");
   const [instructions, setInstructions] = useState(project?.instructions ?? "");
   const [mode, setMode] = useState(project?.mode ?? "auto");
+  const [design, setDesign] = useState(project?.design ?? "");
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,7 +49,7 @@ export function ProjectDialog({ project, specialists, onClose, onSaved, onDelete
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const body = { name: name.trim(), instructions, mode };
+      const body = { name: name.trim(), instructions, mode, design };
       onSaved(project ? await api.patch<Project>(`/api/projects/${project.id}`, body) : await api.post<Project>("/api/projects", body));
     } catch (err) {
       setError(String((err as Error).message));
@@ -80,6 +84,15 @@ export function ProjectDialog({ project, specialists, onClose, onSaved, onDelete
               {specialists.filter((s) => s.id !== "core").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </label>
+          {designs.length > 0 && (
+            <label className="field"><span>{PL.design}</span>
+              <select value={design} onChange={(e) => setDesign(e.target.value)}>
+                <option value="">{PL.designNone}</option>
+                {designs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+              <small>{PL.designHint}</small>
+            </label>
+          )}
           {error && <div className="error-box" role="alert">{error}</div>}
           <div className="row end">
             {project && <button type="button" className="btn danger" onClick={remove}>{confirm ? PL.confirmRemove : PL.remove}</button>}
@@ -92,7 +105,7 @@ export function ProjectDialog({ project, specialists, onClose, onSaved, onDelete
   );
 }
 
-export function ProjectPanel({ project, specialists, onEdit }: { project: Project; specialists: Specialist[]; onEdit: () => void }) {
+export function ProjectPanel({ project, specialists, designs = [], onEdit }: { project: Project; specialists: Specialist[]; designs?: DesignSystemInfo[]; onEdit: () => void }) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [error, setError] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -119,6 +132,7 @@ export function ProjectPanel({ project, specialists, onEdit }: { project: Projec
       <div className="project-head">
         <h2>{project.name}</h2>
         <span className="chip">{spec ? spec.name : PL.auto}</span>
+        {designs.find((d) => d.id === project.design) && <span className="chip design-chip">{PL.design}: {designs.find((d) => d.id === project.design)?.name}</span>}
         <div className="spacer" />
         <button className="btn" onClick={onEdit}>{PL.edit}</button>
         <a className="btn" href={`/api/projects/${project.id}/export`} download>{PL.export}</a>
