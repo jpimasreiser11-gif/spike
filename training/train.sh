@@ -15,7 +15,7 @@ python -c "import mlx_lm.models.qwen3_5" 2>/dev/null || {
 mkdir -p "$run"
 started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 set +e
-python -m mlx_lm.lora --config "$cfg" 2>&1 | tee "$run/train.log"
+python "$root/training/lora.py" --config "$cfg" 2>&1 | tee "$run/train.log"  # mlx_lm.lora + chunked gated delta
 status=${PIPESTATUS[0]}
 set -e
 python - "$run" "$data" "$started" "$status" <<'PY'
@@ -34,7 +34,8 @@ json.dump({"specialist": manifest["specialist"], "started_utc": started,
            "data_files_sha256": manifest["files"], "counts": manifest["counts"],
            "git_commit": sh("git", "rev-parse", "HEAD"), "chip": sh("sysctl", "-n", "machdep.cpu.brand_string"),
            "memory_bytes": sh("sysctl", "-n", "hw.memsize"), "os": platform.platform(),
-           "python": platform.python_version(), "mlx": v("mlx"), "mlx_lm": v("mlx-lm")},
+           "python": platform.python_version(), "mlx": v("mlx"), "mlx_lm": v("mlx-lm"),
+           "gated_delta": "spike_train.gated_delta_chunked (chunk 16)"},
           open(f"{run}/run.json", "w"), indent=2)
 print(f"wrote {run}/run.json (exit {status})")
 PY
