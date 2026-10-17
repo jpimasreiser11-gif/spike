@@ -83,6 +83,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 def cmd_models(args: argparse.Namespace) -> int:
     from spike.runtime.models import MODELS, download, local_models
 
+    if args.action == "history":
+        return show_history(args.model)
+    args.model = args.model or "qwen3.5-4b"
     if args.action == "list":
         for m in MODELS.values():
             print(f"{m.id:20} {m.repo:32} quants={','.join(m.quants)} license={m.license}  {m.notes}")
@@ -114,6 +117,105 @@ def cmd_models(args: argparse.Namespace) -> int:
         runtime["model"] = str(path)
         state.update_settings({"local_runtime": runtime})
         print("set as the local SPIKE model")
+    return 0
+
+
+def _when(ts: float) -> str:
+    import time
+
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts))
+
+
+def show_history(component: str | None) -> int:
+    """Every version of what Evolution changed (router keywords, specialist adapters), newest first."""
+    from spike.evolution.store import EvolutionStore
+    from spike.runtime.paths import spike_home
+
+    versions = EvolutionStore(spike_home() / "evolution.db").versions(component)
+    if not versions:
+        print("No versions yet: SPIKE uses its built-in router and the adapters you installed by hand.")
+        return 0
+    for v in versions:
+        print(f"{'*' if v['active'] else ' '} {v['component']:<20} v{v['id']:<4} {_when(v['created'])}  {v['reason']}")
+    print("\n* = in use. Go back with: spike evolve rollback <component>")
+    return 0
+
+
+def cmd_evolve(args: argparse.Namespace) -> int:
+    from spike.server.state import AppState
+
+    async def run() -> int:
+        state = AppState()
+        try:
+            if args.action == "check":
+                from spike.evolution.checks import run_checks
+
+                report = await run_checks(state, replay=args.replay)
+                if args.json:
+                    print(json.dumps(report, indent=2, ensure_ascii=False))
+                for c in [] if args.json else report["checks"]:
+                    print(f"{'ok  ' if c['ok'] else 'FAIL'} {c['name']:<9} {c['detail']}")
+                    for r in c.get("results") or []:
+                        print(f"       {'pass' if r['passed'] else 'fail'} {r['question'][:70]}"
+                              + (f"  ({'; '.join(r['problems'])})" if r["problems"] else "")
+                              + ("" if r["checked"] else "  [no text checks: only that it answers without error]"))
+                return 0 if report["ok"] else 1
+            if args.action == "router":
+                report = state.learn_router()
+                b, a = report["before"], report["after"]
+                print(f"Learned from {report['learned_from']} route corrections, {report['keywords']} keywords.")
+                for split in ("corrections", "dev", "test"):
+                    if b[split]["n"]:
+                        print(f"  {split:<11} n={b[split]['n']:<3} first choice {b[split]['primary']:.2f} -> "
+                              f"{a[split]['primary']:.2f}, exact {b[split]['exact']:.2f} -> {a[split]['exact']:.2f}")
+                print("Accepted: now in use." if report["accepted"] else "Not used: " + "; ".join(report["reasons"]))
+                return 0 if report["accepted"] else 1
+            if args.action == "rollback":
+                if not args.component:
+                    print("error: name what to roll back: router or adapter:<specialist>", file=sys.stderr)
+                    return 2
+                previous = state.rollback(args.component)
+                print(f"{args.component}: " + (f"back to v{previous['id']} ({previous['reason']})" if previous
+                                               else "back to the built-in version"))
+                if args.component.startswith("adapter:"):
+                    print("Restart the local engine (or the SPIKE app) to load it.")
+                return 0
+            out = state.evolution.export()
+            if args.component and args.component != "-":
+                Path(args.component).write_text(out, encoding="utf-8")
+                print(f"wrote {out.count(chr(10))} accepted eval candidates to {args.component}")
+            else:
+                print(out, end="")
+            return 0
+        except (LookupError, ValueError, FileNotFoundError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        finally:
+            await state.close()
+
+    return asyncio.run(run())
+
+
+def cmd_adapters(args: argparse.Namespace) -> int:
+    from spike.evolution import adapters
+    from spike.server.state import AppState
+
+    state = AppState()
+    try:
+        spec = state.catalog.get(args.specialist)
+        result = adapters.install(state.evolution.store, state.adapters_path(), spec, Path(args.gguf),
+                                  Path(args.eval), Path(args.config) if args.config else None, args.variant)
+    except (KeyError, ValueError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    v = result["version"]
+    if result.get("unchanged"):
+        print(f"{spec.id}: this adapter is already in use (v{v['id']}).")
+        return 0
+    for reason in v["report"]["reasons"]:
+        print(f"  {reason}")
+    print(f"Installed {result['path']} as {v['component']} v{v['id']}. Restart the local engine (or the SPIKE app) "
+          f"to load it. Go back with: spike evolve rollback {v['component']}")
     return 0
 
 
@@ -211,8 +313,8 @@ def build_parser() -> argparse.ArgumentParser:
     d.set_defaults(func=cmd_doctor)
 
     m = sub.add_parser("models", help="list or download models")
-    m.add_argument("action", choices=["list", "pull"])
-    m.add_argument("model", nargs="?", default="qwen3.5-4b")
+    m.add_argument("action", choices=["list", "pull", "history"])
+    m.add_argument("model", nargs="?", help="model to pull (default qwen3.5-4b); for history, a component")
     m.add_argument("--quant")
     m.set_defaults(func=cmd_models)
 
@@ -240,6 +342,22 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--model", help="GGUF to tune for (default: the local model in Settings)")
     t.add_argument("--quick", action="store_true", help="shorter runs (less precise)")
     t.set_defaults(func=cmd_tune)
+
+    ev = sub.add_parser("evolve", help="check, learn or roll back what SPIKE learned from its use")
+    ev.add_argument("action", choices=["check", "router", "rollback", "export"])
+    ev.add_argument("component", nargs="?", help="rollback: router or adapter:<specialist>; export: output file")
+    ev.add_argument("--replay", action="store_true", help="check: answer the accepted eval candidates again")
+    ev.add_argument("--json", action="store_true")
+    ev.set_defaults(func=cmd_evolve)
+
+    ad = sub.add_parser("adapters", help="install a trained adapter if its eval results pass acceptance")
+    ad.add_argument("action", choices=["install"])
+    ad.add_argument("gguf", help="the LoRA adapter GGUF")
+    ad.add_argument("--specialist", required=True)
+    ad.add_argument("--eval", required=True, help="eval run directory (or its summary.json) from evals/run_eval.py")
+    ad.add_argument("--config", help="training config whose acceptance rule to apply (training/configs/<id>.yaml)")
+    ad.add_argument("--variant", help="the adapter's variant name in the eval run, when it has several")
+    ad.set_defaults(func=cmd_adapters)
 
     mc = sub.add_parser("mcp", help="serve SPIKE's specialists as MCP tools over stdio (Claude Code, Cursor, Codex)")
     mc.add_argument("--start-local", action="store_true",

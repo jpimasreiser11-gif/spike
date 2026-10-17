@@ -65,6 +65,12 @@ acknowledge reports within 7 days.
 - Temporary chats live in an in-memory database: their messages are never written to disk and vanish when SPIKE
   stops. They neither read nor write memory. The spending log still records each call's token counts (no text),
   and files a tool writes are ordinary files.
+- Evolution keeps what it learns in `$SPIKE_HOME/evolution.db`: corrections you saved (question, wrong answer,
+  rule), retries with another specialist, failures (error text, specialists, SPIKE version and platform) and
+  proposed eval questions. Nothing in it is sent anywhere; "Copiar como issue" only puts text on your clipboard
+  and leaves your question out. Temporary chats and the "Aprender de mi uso" switch turned off record nothing. A
+  learned router is used only after it passes its check, and an adapter is installed only if its measured eval
+  results pass its acceptance rule; both roll back from Settings → Evolución or `spike evolve rollback`.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

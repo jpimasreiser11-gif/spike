@@ -14,6 +14,9 @@ from typing import Any
 from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message
+from spike.evolution.router_learning import apply_overlay
+from spike.evolution.service import Evolution
+from spike.evolution.store import EvolutionStore
 from spike.memory.extract import extract_text
 from spike.memory.learn import correction_rule, explicit_memories
 from spike.memory.service import Embedder, MemoryService, scopes_for
@@ -55,6 +58,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # chat summaries only when the summarising model is local, so memory never spends money
     "memory": {"enabled": True, "embeddings": "auto", "auto_summary": True, "learn": True},
     "disabled_skills": [],
+    # Evolution: learn from corrections, route corrections and failures on this computer; a learned router is used
+    # only after it passes its gate, and every version can be rolled back
+    "evolution": {"enabled": True, "auto_router": True},
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
 }
@@ -94,6 +100,7 @@ class AppState:
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
         self._project_tools: dict[str, ToolRegistry] = {}
+        self.evolution = Evolution(EvolutionStore(self.home / "evolution.db"))
         self.catalog = self._load_catalog()
         self.skills = SkillLibrary([(BUNDLED, "bundled"), (self.home / "skills", "user")])
         if not self.store.list_providers():
@@ -118,8 +125,15 @@ class AppState:
             self.catalog = self._load_catalog()
         return self.settings()
 
-    def _load_catalog(self) -> Catalog:
+    def base_catalog(self) -> Catalog:
+        """The catalog with the user's custom specialists, without anything learned."""
         return load_catalog(extra=self.store.get_setting("custom_specialists", []))
+
+    def _load_catalog(self) -> Catalog:
+        return apply_overlay(self.base_catalog(), self.evolution.router_overlay())
+
+    def reload_catalog(self) -> None:
+        self.catalog = self._load_catalog()
 
     # ------------------------------------------------------------------ providers
     def _seed_providers(self) -> None:
@@ -309,12 +323,15 @@ class AppState:
                         "message": user_message_id})
                     self.background(self.memory.index())
                 correction.update(status="saved", memory=memory.id, text=wording)
+                if self.evolution_settings()["enabled"]:
+                    self.evolution.record_correction(thread, user_message_id, wording, memory.id)
         elif action == "undo":
             if correction and memory_id and correction.get("memory") == memory_id:
                 if not correction.pop("existing", False):
                     store.delete(memory_id)
                 correction["status"] = "proposed"
                 correction.pop("memory", None)
+                self.evolution.forget_correction(user_message_id)
             else:
                 item = next((s for s in learn.get("saved", []) if s["id"] == memory_id and not s.get("existing")), None)
                 if item is None:
@@ -325,6 +342,53 @@ class AppState:
             raise ValueError(f"unknown action '{action}'")
         self.store.update_message_meta(answer["id"], answer["meta"])
         return learn
+
+    # ------------------------------------------------------------------ evolution
+    def evolution_settings(self) -> dict[str, Any]:
+        return {**DEFAULT_SETTINGS["evolution"], **(self.settings()["evolution"] or {})}
+
+    def adapters_path(self) -> Path:
+        return adapters_dir()
+
+    def route_correction(self, user_message_id: str, specialist: str) -> dict[str, Any]:
+        """The user is retrying this question with another specialist: record it and, when automatic, learn the
+        router again behind its gate."""
+        if specialist not in self.catalog.specialists:
+            raise ValueError(f"unknown specialist '{specialist}'")
+        message = self.store.get_message(user_message_id)
+        if message is None or message["role"] != "user":
+            raise LookupError("message not found")
+        thread = self.store.messages(message["conversation_id"])
+        after = thread[next(i for i, m in enumerate(thread) if m["id"] == user_message_id) + 1:]
+        answer = next((m for m in after if m["role"] == "assistant"), None)
+        routed = [s["id"] for s in ((answer or {}).get("meta", {}).get("route") or {}).get("specialists") or []]
+        cfg = self.evolution_settings()
+        if not cfg["enabled"]:
+            return {"recorded": False}
+        item = self.evolution.record_route(message["content"], routed, specialist, message["conversation_id"],
+                                           user_message_id)
+        out: dict[str, Any] = {"recorded": item is not None}
+        if item is not None and cfg["auto_router"]:
+            out["router"] = self.learn_router()
+        return out
+
+    def learn_router(self) -> dict[str, Any]:
+        report = self.evolution.learn_router(self.base_catalog())
+        self.reload_catalog()
+        return report
+
+    def rollback(self, component: str) -> dict[str, Any] | None:
+        """Go back to the version a component's active version replaced (the built-in one when there is none)."""
+        from spike.evolution import adapters
+
+        if component == "router":
+            previous = self.evolution.store.rollback("router")
+            self.reload_catalog()
+            return previous
+        spec = self.catalog.specialists.get(component.removeprefix("adapter:"))
+        if not component.startswith("adapter:") or spec is None:
+            raise LookupError(f"unknown component '{component}'")
+        return adapters.rollback(self.evolution.store, self.adapters_path(), spec)
 
     # ------------------------------------------------------------------ memory
     def memory_settings(self) -> dict[str, Any]:

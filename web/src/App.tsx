@@ -179,7 +179,8 @@ export default function App() {
     });
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
-  const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object) => {
+  const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object,
+                    specialist?: string) => {
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -191,7 +192,7 @@ export default function App() {
     abortRef.current = controller;
     const started = performance.now();
     try {
-      await streamChat({ message: text, conversation_id: conversationId, mode, provider_id: provider, project_id: project?.id ?? null,
+      await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
                          ...(schema ? { response_schema: schema } : {}) }, (ev) => {
         if (ev.type === "conversation") {
@@ -211,6 +212,16 @@ export default function App() {
       abortRef.current = null;
       loadConversations();
     }
+  };
+
+  /** Run the last turn again; with another specialist, the router first notes it to learn from (Evolution). */
+  const retry = async (from: number, provider: string | null, specialist?: string) => {
+    const target = items[from];
+    if (target?.kind !== "user") return;
+    if (specialist && target.id) {
+      try { await api.post(`/api/messages/${target.id}/route`, { specialist }); } catch { /* learning is optional */ }
+    }
+    await send(target.text, from, provider, activeId, undefined, specialist);
   };
 
   /** Copy the chat up to user message `from` and send the edited text there; the original chat stays as it was. */
@@ -347,7 +358,7 @@ export default function App() {
                       providers={providers} onReplay={() => setReplay(it.run.events ?? null)}
                       messageId={items[i - 1]?.kind === "user" ? (items[i - 1] as { id?: string }).id : undefined}
                       onRetry={!busy && i === items.length - 1 && lastUser === i - 1 && items[lastUser].kind === "user"
-                        ? (pid) => send((items[lastUser] as { text: string }).text, lastUser, pid ?? providerId) : undefined} />
+                        ? (pid, specialist) => retry(lastUser, pid ?? providerId, specialist) : undefined} />
                   ),
                 )}
               </div>

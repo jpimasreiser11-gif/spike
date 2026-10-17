@@ -71,7 +71,7 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
         }}
       />
       <div className="composer-bar">
-        <select className="select" value={mode} onChange={(e) => setMode(e.target.value)} aria-label="Specialist" title={t.autoHint}>
+        <select className="select" value={mode} onChange={(e) => setMode(e.target.value)} aria-label={t.specialistSelect} title={t.autoHint}>
           <option value="auto">✦ {t.auto}</option>
           {specialists.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>

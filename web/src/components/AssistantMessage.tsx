@@ -203,9 +203,14 @@ function Files({ files, projectId }: { files: string[]; projectId?: string }) {
   );
 }
 
-/** Run the turn again, on the same model or on another provider the user picks (never a paid one they did not allow). */
-function Retry({ providers, onRetry, failed }: { providers: ProviderInfo[]; onRetry: (pid: string | null) => void; failed: boolean }) {
+/** Run the turn again, on the same model or on another provider the user picks (never a paid one they did not allow),
+ * or with another specialist than the router picked, which the router learns from. */
+function Retry({ providers, specialists, routed, onRetry, failed }: {
+  providers: ProviderInfo[]; specialists: Specialist[]; routed: string[];
+  onRetry: (pid: string | null, specialist?: string) => void; failed: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const others = specialists.filter((s) => !routed.includes(s.id));
   return (
     <span className="retry">
       <button className="icon-btn" onClick={() => setOpen(!open)} title={t.retry} aria-label={t.retry} aria-expanded={open}>
@@ -224,6 +229,15 @@ function Retry({ providers, onRetry, failed }: { providers: ProviderInfo[]; onRe
               </button>
             );
           })}
+          {others.length > 0 && routed.length > 0 && (
+            <label className="retry-specialist small" title={t.otherSpecialistHint}>
+              {t.otherSpecialist}
+              <select aria-label={t.otherSpecialist} value="" onChange={(e) => { if (e.target.value) { setOpen(false); onRetry(null, e.target.value); } }}>
+                <option value="">…</option>
+                {others.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </label>
+          )}
         </span>
       )}
     </span>
@@ -236,7 +250,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   onPermission?: (id: string, status: PermissionState["status"]) => void;
   projectId?: string;
   providers?: ProviderInfo[];
-  onRetry?: (providerId: string | null) => void; // only on the chat's last answer
+  onRetry?: (providerId: string | null, specialist?: string) => void; // only on the chat's last answer
   onReplay?: () => void;
   replay?: boolean; // shown inside the step-by-step view: nothing in it acts
   messageId?: string; // the user's message this answers, for what it taught SPIKE
@@ -345,7 +359,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
           {run.text && <button className="icon-btn" onClick={() => { navigator.clipboard?.writeText(run.text); setCopied(true); setTimeout(() => setCopied(false), 1500); }} title={t.copy} aria-label={t.copy}>
             <IconCopy size={15} />
           </button>}
-          {onRetry && <Retry providers={providers} onRetry={onRetry} failed={run.status === "error"} />}
+          {onRetry && <Retry providers={providers} specialists={specialists} routed={(run.route?.specialists ?? []).map((s) => s.id)}
+            onRetry={onRetry} failed={run.status === "error"} />}
           {onReplay && run.events?.length ? <button className="link-btn small" onClick={onReplay}>{t.replay}</button> : null}
           {copied && <span className="muted small">{t.copied}</span>}
           {run.elapsed !== undefined && <span className="muted small">{run.elapsed.toFixed(1)} s</span>}

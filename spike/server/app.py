@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 import shutil
 import time
@@ -36,6 +37,8 @@ from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.state import AppState
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
+
+log = logging.getLogger(__name__)
 
 
 class Limits(BaseModel):
@@ -128,6 +131,27 @@ class LearnIn(BaseModel):
     action: Literal["save", "dismiss", "undo"]
     text: str | None = Field(default=None, max_length=2000)  # the user's wording of a proposed rule
     memory: str | None = None  # the memory to undo
+
+
+class RouteIn(BaseModel):
+    specialist: str  # the specialist the user retries this question with
+
+
+class EvolutionItemPatch(BaseModel):
+    status: Literal["proposed", "accepted", "rejected", "new", "ignored"] | None = None
+    question: str | None = Field(default=None, max_length=4000)  # candidates
+    checks: dict[str, list[str]] | None = None
+    cause: str | None = Field(default=None, max_length=4000)  # failures
+    fix: str | None = Field(default=None, max_length=4000)
+    verified: bool | None = None
+
+
+class CheckIn(BaseModel):
+    replay: bool = False  # also answer the accepted eval candidates again (runs the model)
+
+
+class RollbackIn(BaseModel):
+    component: str  # "router" or "adapter:<specialist>"
 
 
 class UndoIn(BaseModel):
@@ -715,6 +739,86 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
+    @app.post("/api/messages/{mid}/route")
+    async def route_correction(mid: str, body: RouteIn) -> dict:
+        """The user retries this question with another specialist: a route correction the router learns from."""
+        try:
+            return st().route_correction(mid, body.specialist)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    # ---------------------------------------------------------------- evolution
+    @app.get("/api/evolution")
+    async def evolution() -> dict:
+        state = st()
+        return {"settings": state.evolution_settings(), **state.evolution.overview(state.base_catalog())}
+
+    @app.get("/api/evolution/items")
+    async def evolution_items(kind: str | None = None, status: str | None = None) -> list[dict]:
+        return st().evolution.store.items(kind, status)
+
+    @app.patch("/api/evolution/items/{iid}")
+    async def patch_evolution_item(iid: str, body: EvolutionItemPatch) -> dict:
+        evo = st().evolution
+        item = evo.store.get(iid)
+        if item is None:
+            raise HTTPException(404, "item not found")
+        try:
+            if item["kind"] == "failure":
+                return evo.update_failure(iid, cause=body.cause, fix=body.fix, verified=body.verified)
+            if item["kind"] == "candidate":
+                return evo.review_candidate(iid, body.status, body.question, body.checks)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        if item["kind"] == "route" and body.status in ("new", "ignored"):
+            return evo.store.update(iid, status=body.status)
+        raise HTTPException(400, f"a {item['kind']} cannot be changed this way")
+
+    @app.delete("/api/evolution/items/{iid}")
+    async def delete_evolution_item(iid: str) -> dict:
+        if not st().evolution.store.delete(iid):
+            raise HTTPException(404, "item not found")
+        return {"ok": True}
+
+    @app.get("/api/evolution/items/{iid}/issue")
+    async def failure_issue(iid: str) -> Response:
+        item = st().evolution.store.get(iid)
+        if item is None or item["kind"] != "failure":
+            raise HTTPException(404, "failure not found")
+        return Response(st().evolution.issue_markdown(item), media_type="text/markdown; charset=utf-8")
+
+    @app.get("/api/evolution/candidates.jsonl")
+    async def export_candidates() -> Response:
+        return Response(st().evolution.export(), media_type="application/x-ndjson",
+                        headers={"Content-Disposition": 'attachment; filename="spike-eval-candidates.jsonl"'})
+
+    @app.post("/api/evolution/router/learn")
+    async def learn_router() -> dict:
+        return st().learn_router()
+
+    @app.post("/api/evolution/check")
+    async def evolution_check(body: CheckIn) -> dict:
+        from spike.evolution.checks import run_checks
+
+        return await run_checks(st(), replay=body.replay)
+
+    @app.post("/api/evolution/rollback")
+    async def evolution_rollback(body: RollbackIn) -> dict:
+        state = st()
+        try:
+            previous = state.rollback(body.component)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except FileNotFoundError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        restarted = False
+        if body.component.startswith("adapter:") and state.runtime and state.runtime.running():
+            await state.start_runtime()  # llama-server loads adapters when it starts
+            restarted = True
+        return {"active": previous, "restarted": restarted}
+
     # ---------------------------------------------------------------- memory
     def check_scope(scope: str) -> str:
         if scope != "global" and not (scope.startswith("project:") and st().store.get_project(scope[8:])):
@@ -948,7 +1052,12 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             finally:
                 meta["error"] = error
                 meta["cancelled"] = cancelled
-                store.add_message(conv["id"], "assistant", final_text, meta)
+                answer = store.add_message(conv["id"], "assistant", final_text, meta)
+                if not temporary and state.evolution_settings()["enabled"]:
+                    try:
+                        state.evolution.record_failures(body.message, meta, conv["id"], answer["id"])
+                    except Exception as exc:  # recording a failure must never become one
+                        log.warning("evolution: could not record a failure: %s", exc)
                 if not error and not cancelled and not temporary:
                     state.background(state.maybe_summarize(conv["id"], body.provider_id))
 

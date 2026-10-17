@@ -25,7 +25,7 @@ full models in memory (each 4B Q4 model is ~2.7 GB plus its own KV cache, agains
 
 ## Evidence
 
-- Router on 74 hand-labelled queries (`evals/router/labeled.jsonl`), test split never used for tuning:
+- Router on 74 hand-labelled queries (`evals/router/labeled.jsonl`, since moved to `spike/evolution/router_labeled.jsonl`), test split never used for tuning:
   primary specialist correct 46/50 = 0.92 (Wilson 95 % CI 0.81–0.97), exact set 40/50 = 0.80 (0.67–0.89);
   dev split 22/24 primary. Measured by `tests/test_core.py`.
 - Planner, plan validation, DAG execution and synthesis are covered by unit tests with scripted providers.

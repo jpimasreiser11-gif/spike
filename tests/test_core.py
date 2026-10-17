@@ -47,7 +47,7 @@ def test_router_single_multi_direct():
 
 def _router_accuracy(split: str) -> tuple[float, float, int]:
     router = LexicalRouter(CATALOG)
-    rows = [json.loads(line) for line in Path("evals/router/labeled.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in Path("spike/evolution/router_labeled.jsonl").read_text().splitlines()]
     rows = [r for r in rows if r["split"] == split]
     primary = exact = 0
     for r in rows:

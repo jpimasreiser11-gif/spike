@@ -268,6 +268,37 @@ if (await page.locator(".conv-title", { hasText: "Pregunta temporal" }).count())
 if (await page.locator(".memory-chip").count()) fail("temporary chat used memory");
 await page.screenshot({ path: `${out}/07g-temporary.png` });
 
+// evolution: retrying with another specialist teaches the router behind its check; Settings → Evolución shows it
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
+await page.locator("#composer-input").fill("Mi perro tiene diarrea desde ayer, ¿qué le doy?");
+await page.keyboard.press("Enter");
+await page.locator(".msg.assistant .route .chip.spec-core").waitFor({ timeout: 10000 });
+await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
+await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
+await page.getByLabel("Con otro especialista").selectOption("medicine");
+await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeout: 10000 });
+await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
+if ((await page.locator(".msg.assistant").count()) !== 1) fail("retry with a specialist should replace the answer");
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Mi perro tiene diarrea otra vez");
+await page.keyboard.press("Enter");
+await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeout: 10000 })
+  .catch(() => fail("the learned router should send the same kind of question to Medicine"));
+await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Evolución" }).click();
+await page.getByTestId("evo-route").filter({ hasText: "medicine" }).waitFor();
+await page.getByTestId("evo-router").getByText(/Aprendido v\d+/).waitFor();
+await page.screenshot({ path: `${out}/07j-evolution.png` });
+await page.getByRole("button", { name: "Comprobar ahora" }).click();
+await page.getByTestId("evo-checks").locator("li.ok", { hasText: "Enrutador" }).waitFor({ timeout: 10000 });
+if (await page.getByTestId("evo-checks").locator("li.fail").count()) fail("the evolution check failed");
+await page.screenshot({ path: `${out}/07k-evolution-check.png` });
+await page.getByRole("button", { name: "Volver a la anterior" }).first().click();
+await page.getByTestId("evo-router").getByText(/Aprendido v/).waitFor({ state: "detached" });
+await page.keyboard.press("Escape");
+
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();

@@ -117,6 +117,18 @@ message that corrects the previous answer ("No, …", "Te equivocas: …") yield
 `meta.learn`, which the user saves (with their own wording), dismisses or later undoes through
 `POST /api/messages/{id}/learn`. Rules then reach every later chat through recall.
 
+**Evolution (E1–E6).** `spike/evolution/` learns from use without a model call, in `$SPIKE_HOME/evolution.db`
+(`store.py`: items and versions, each version pointing at the one it replaced). A saved correction keeps its
+question, wrong answer and rule and proposes an eval question (`candidates.py`: checks are strings the answer must
+or must not contain, suggested from the numbers the user wrote; word-trigram overlap with SPIKE's eval questions
+blocks duplicates). "Reintentar → Con otro especialista" calls `POST /api/messages/{id}/route`; `router_learning.py`
+picks words of the corrected questions that no other specialist's corrections or dev questions use, weights them
+just enough to win and keeps them only if the dev split holds; `gate()` then requires better corrections and no
+drop on dev or test, and the overlay is applied in `AppState._load_catalog`. Run and tool failures are recorded
+from the chat route. `checks.py` is `spike evolve check`; `adapters.py` installs an adapter only when
+`acceptance.py` (a test-checked copy of the training rule) passes, keeps every file in `adapters/history` by
+checksum and rolls back by hard link.
+
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.
@@ -136,7 +148,7 @@ adapter through llama-server with explicit scales. See [TRAINING.md](TRAINING.md
 spike/          Python package (server, orchestrator, agent, providers, tools, runtime, store, CLI, bench)
 web/            React + Vite + TypeScript app (built into the Python wheel)
 training/       data preparation, distillation, mlx-lm training, adapter export, configs, seeds
-evals/          evaluation suites, runner, pairwise judge, router eval data
+evals/          evaluation suites, runner, pairwise judge (the router set is spike/evolution/router_labeled.jsonl)
 tests/          pytest: unit, API, real llama-server integration, official-converter export
 docs/           plan, research, architecture, status, ADRs, audits
 brand/          official SPIKE logo and derived assets

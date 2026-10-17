@@ -155,6 +155,35 @@ export type Settings = {
   skill_mode: "auto" | "router" | "model" | "off";
   disabled_skills: string[];
   memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean; learn?: boolean };
+  evolution?: { enabled: boolean; auto_router: boolean };
+};
+
+export type Checks = { include?: string[]; exclude?: string[] };
+
+/** Something Evolution recorded: a correction, a route correction, a failure or an eval candidate. */
+export type EvolutionItem = {
+  id: string; kind: "correction" | "route" | "failure" | "candidate"; status: string; created: number; updated: number;
+  [key: string]: any;
+};
+
+export type RouterSplit = { n: number; primary: number | null; exact: number | null };
+
+export type EvolutionVersion = {
+  id: number; component: string; created: number; active: boolean; reason: string; replaces: number | null;
+  data: Record<string, any>; report: Record<string, any>;
+};
+
+export type EvolutionOverview = {
+  settings: { enabled: boolean; auto_router: boolean };
+  counts: Record<string, Record<string, number>>;
+  router: { active: EvolutionVersion | null; pending: number; built_in: Record<string, RouterSplit>; current?: Record<string, RouterSplit> };
+  versions: EvolutionVersion[];
+};
+
+export type CheckResult = {
+  name: string; ok: boolean; detail: string; count?: number; passed?: number; total?: number;
+  built_in?: Record<string, RouterSplit>; current?: Record<string, RouterSplit> | null;
+  results?: { id: string; question: string; passed: boolean; problems: string[]; checked: boolean }[];
 };
 
 export type ToolInfo = { name: string; description: string; risk: string; default_policy: string; policy: string };

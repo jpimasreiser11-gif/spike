@@ -51,7 +51,7 @@ presents it as trained.
 ## Adding a specialist
 
 1. Add an entry to `catalog.yaml` (id, prompt, keywords, tools) and labelled router queries to
-   `evals/router/labeled.jsonl` (dev and test).
+   `spike/evolution/router_labeled.jsonl` (dev and test).
 2. Register sources in `training/datasets.yaml` with license and role; write `training/configs/<id>.yaml`
    with a hypothesis and an `acceptance` block; add an eval suite to `evals/suites.yaml`.
 3. Run `training/scripts/run_specialist.sh <id> …`; only an accepted run may set `adapter_status: trained`.

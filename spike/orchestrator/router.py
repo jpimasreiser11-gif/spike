@@ -1,7 +1,8 @@
 """Stage-1 router: fast, deterministic, zero-cost lexical scoring of a request against each specialist.
 
 It decides most requests without any model call. Ambiguous or multi-domain requests are escalated to the
-LLM planner (planner.py). Accuracy is measured on evals/router/labeled.jsonl (see tests/test_router_eval.py).
+LLM planner (planner.py). Accuracy is measured on spike/evolution/router_labeled.jsonl (tests/test_core.py; the
+test split also guards router learning, spike/evolution/router_learning.py).
 """
 
 from __future__ import annotations

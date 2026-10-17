@@ -389,6 +389,8 @@ table.calls th { background: var(--surface-2); font-weight: 600; }
 table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--danger); }
 .retry { display: inline-flex; align-items: center; gap: 6px; position: relative; flex-wrap: wrap; }
 .retry-menu { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.retry-specialist { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+.retry-specialist select { font-size: 12.5px; padding: 3px 6px; }
 .msg.user { align-items: flex-start; gap: 4px; }
 .msg.user .edit-btn { opacity: 0; transition: opacity .15s; }
 .msg.user:hover .edit-btn, .msg.user .edit-btn:focus-visible { opacity: 1; }
@@ -430,3 +432,16 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .tune { display: grid; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
 .tune-rows { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
 .tune-rows li.best { font-weight: 600; color: var(--green-dark); }
+
+/* Evolution settings tab */
+.evolution h3 { margin: 14px 0 0; font-size: 15px; }
+.evolution h4 { margin: 6px 0 0; font-size: 13px; color: var(--text-2); }
+.evo-item textarea, .evo-item input { width: 100%; }
+.evo-item .row .field { min-width: 0; }
+.evo-error { display: block; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--danger); }
+.evo-route { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.evo-route .grow { flex: 1; min-width: 0; }
+.evo-checks, .evo-versions { margin: 0; padding-left: 18px; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.evo-checks li.ok b { color: var(--green-dark); }
+.evo-checks li.fail b { color: var(--danger); }
+@media (max-width: 520px) { .evo-item .row { flex-direction: column; align-items: stretch; } }

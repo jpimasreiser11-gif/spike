@@ -196,14 +196,14 @@ Order of the next rounds, after the medicine verdict:
 
 ## 27. Third review batch and launch (adopted 2026-10-17)
 **E — Evolution, built next to B.** Nothing changes the shipped behaviour without passing the local evals.
-| Item | Scope |
-|---|---|
-| E1 | Correction learning: an approved correction becomes a memory rule (B6) and an evaluable example in a local set |
-| E2 | Routing learning: route corrections feed the router's dev set; new weights only if the protected test (0.92) does not drop |
-| E3 | Failure library: cause + verified fix, kept locally, exportable as an issue |
-| E4 | Benchmark generation: failures become candidate eval questions, reviewed by a person and decontaminated |
-| E5 | Regression protection extended to the router, prompts and skills |
-| E6 | Versioning and rollback: active adapter/prompt/router version recorded from the run/export/summary files, `spike models history`, automatic return to the previous version when the new one fails its eval or the user rejects it |
+| Item | Scope | State |
+|---|---|---|
+| E1 | Correction learning: an approved correction becomes a memory rule (B6) and an evaluable example in a local set | ✅ |
+| E2 | Routing learning: route corrections feed the router's dev set; new weights only if the protected test (0.92) does not drop | ✅ (keyword overlay; dev and test must not drop, corrections must improve) |
+| E3 | Failure library: cause + verified fix, kept locally, exportable as an issue | ✅ (copy as issue; nothing is posted) |
+| E4 | Benchmark generation: failures become candidate eval questions, reviewed by a person and decontaminated | ✅ (from corrections and fixed failures; checked against SPIKE's eval questions) |
+| E5 | Regression protection extended to the router, prompts and skills | ✅ (`spike evolve check`: router, catalog, skills, adapters, optional replay) |
+| E6 | Versioning and rollback: active adapter/prompt/router version recorded from the run/export/summary files, `spike models history`, automatic return to the previous version when the new one fails its eval or the user rejects it | ✅ (router and adapters; an adapter that fails acceptance is refused, so nothing to return from; prompts are versioned as skills) |
 
 **Cheap additions to B/C:** answer contracts (`response_format` with validation in `/v1` and the UI) ✅, temporary chats
 (nothing saved, no memory) ✅, branch a chat when a message is edited ✅, human handoff (the agent pauses with a question
