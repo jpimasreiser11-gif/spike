@@ -254,40 +254,34 @@ specialists:
 
   - id: science
     name: Spike Science
-    domain: Mathematics and natural sciences
-    description: Mathematics, physics, chemistry and biology problem solving with rigorous derivations.
+    domain: Natural sciences
+    description: Physics, chemistry, biology and earth sciences, with rigorous derivations and units.
     adapter: spike-science
     adapter_status: planned
     sensitive: false
     tools: [calculator, python]
     keywords:
-      math: 3
-      equation: 3
-      integral: 4
-      derivative: 4
-      proof: 3
-      theorem: 3
-      probability: 3
-      statistics: 2
       physics: 4
       chemistry: 4
       molecule: 3
       reaction: 2
       quantum: 4
       biology: 3
-      matrix: 2
-      matemáticas: 3
-      ecuación: 3
-      derivada: 4
-      demostración: 3
-      teorema: 3
-      probabilidad: 3
+      genetics: 4
+      thermodynamics: 4
+      astronomy: 4
+      cell: 2
+      genética: 4
+      termodinámica: 4
+      astronomía: 4
+      célula: 2
+      reacción química: 4
       física: 4
       química: 4
       molécula: 3
       biología: 3
     system_prompt: |
-      You are Spike Science, a mathematician and scientist. Solve problems with explicit, checkable steps,
+      You are Spike Science, a scientist across physics, chemistry and biology. Solve problems with explicit, checkable steps,
       keep track of units, and verify numerical results with the calculator or python tools. When a
       problem is ambiguous, state the interpretation you use. Prefer exact answers, then give decimals.
 
@@ -323,3 +317,193 @@ specialists:
       You are Spike Data, a data analyst and database engineer. Write correct, efficient SQL and analysis
       code, explain how results should be read, and point out data quality issues and statistical
       pitfalls. Validate computations with the python tool when data is available.
+
+  - id: math
+    name: Spike Math
+    domain: Mathematics
+    description: Algebra, calculus, statistics, discrete math and proofs, solved step by step and verified.
+    adapter: spike-math
+    adapter_status: planned
+    sensitive: false
+    tools: [calculator, python]
+    keywords:
+      math: 4
+      mathematics: 4
+      equation: 4
+      integral: 4
+      derivative: 4
+      limit: 2
+      proof: 3
+      prove: 3
+      theorem: 4
+      probability: 4
+      matrix: 3
+      eigenvalue: 4
+      polynomial: 4
+      algebra: 4
+      geometry: 4
+      combinatorics: 4
+      matemáticas: 4
+      ecuación: 4
+      integral definida: 4
+      derivada: 4
+      demostración: 3
+      demuestra: 3
+      teorema: 4
+      probabilidad: 4
+      matriz: 3
+      polinomio: 4
+      álgebra: 4
+      geometría: 4
+    system_prompt: |
+      You are Spike Math, a mathematician and patient tutor. Solve problems with explicit, checkable steps,
+      state the method before applying it, and verify numerical results with the calculator or python
+      tools. When a problem is ambiguous, state the interpretation you use. Give exact answers first,
+      then decimals, and point out common mistakes when they are relevant.
+
+  - id: education
+    name: Spike Education
+    domain: Teaching and learning
+    description: Explanations adapted to the learner, study plans, exercises, quizzes and feedback.
+    adapter: spike-education
+    adapter_status: planned
+    sensitive: false
+    tools: [calculator, web_fetch]
+    keywords:
+      explain like: 3
+      teach me: 4
+      study plan: 4
+      lesson plan: 4
+      quiz: 3
+      exam: 3
+      homework: 3
+      student: 2
+      curriculum: 4
+      flashcards: 4
+      learn: 2
+      enséñame: 4
+      explícame: 2
+      plan de estudio: 4
+      examen: 3
+      deberes: 3
+      estudiante: 2
+      alumno: 3
+      temario: 4
+      aprender: 2
+    system_prompt: |
+      You are Spike Education, an expert teacher. Find out (or infer) the learner's level, explain with
+      clear structure, concrete examples and analogies, and check understanding with short questions.
+      Build study plans that are realistic and spaced. Correct mistakes kindly and precisely.
+
+  - id: writing
+    name: Spike Writing
+    domain: Writing and editing
+    description: Drafting, editing, summarizing and translating texts with control over tone and style.
+    adapter: spike-writing
+    adapter_status: planned
+    sensitive: false
+    tools: [read_file, write_file, web_fetch]
+    keywords:
+      essay: 4
+      rewrite: 4
+      proofread: 4
+      edit my: 3
+      summarize: 3
+      summary: 2
+      translate: 3
+      email: 2
+      blog post: 4
+      article: 2
+      story: 3
+      poem: 4
+      tone: 2
+      redacta: 4
+      reescribe: 4
+      corrige el texto: 4
+      resume: 3
+      resumen: 3
+      traduce: 3
+      correo: 2
+      artículo: 2
+      cuento: 3
+      poema: 4
+      ensayo: 4
+    system_prompt: |
+      You are Spike Writing, an editor and writer. Match the requested audience, purpose, tone and length.
+      Prefer clear, concrete, active sentences. When editing, preserve the author's voice and meaning and
+      explain significant changes briefly. When translating, keep meaning and register over literalness.
+
+  - id: business
+    name: Spike Business
+    domain: Business strategy and operations
+    description: Strategy, business models, operations, management, pricing and startup planning.
+    adapter: spike-business
+    adapter_status: planned
+    sensitive: false
+    tools: [calculator, web_fetch, python]
+    keywords:
+      business plan: 4
+      business model: 4
+      strategy: 2
+      startup: 3
+      pricing: 3
+      competitor: 3
+      competitive: 2
+      swot: 4
+      okr: 4
+      operations: 2
+      management: 2
+      hiring: 3
+      negotiation: 3
+      supply chain: 4
+      saas: 3
+      plan de negocio: 4
+      modelo de negocio: 4
+      estrategia: 2
+      empresa: 2
+      competencia: 2
+      precios: 2
+      dafo: 4
+      negociación: 3
+      contratación: 2
+    system_prompt: |
+      You are Spike Business, a seasoned strategy and operations advisor. Structure problems clearly,
+      quantify where possible, compare options with their trade-offs and risks, and finish with concrete
+      next steps. Make your assumptions explicit and say which data would change the recommendation.
+
+  - id: security
+    name: Spike Security
+    domain: Cybersecurity
+    description: Secure design, code review for vulnerabilities, threat modeling, hardening and incident response.
+    adapter: spike-security
+    adapter_status: planned
+    sensitive: true
+    tools: [read_file, list_dir, python, web_fetch]
+    keywords:
+      security: 4
+      vulnerability: 4
+      cve: 4
+      exploit: 3
+      xss: 4
+      sql injection: 4
+      csrf: 4
+      authentication: 3
+      encryption: 3
+      firewall: 3
+      malware: 4
+      phishing: 4
+      threat model: 4
+      pentest: 4
+      owasp: 4
+      hardening: 4
+      seguridad informática: 4
+      ciberseguridad: 4
+      vulnerabilidad: 4
+      cifrado: 3
+      contraseña: 2
+      ataque: 2
+    system_prompt: |
+      You are Spike Security, a defensive security engineer. Identify vulnerabilities and their impact,
+      explain root causes, and give concrete fixes and hardening steps that follow current best practice
+      (OWASP, CIS, NIST). Support authorized testing and education; decline to help attack systems the user
+      does not own or is not authorized to test.

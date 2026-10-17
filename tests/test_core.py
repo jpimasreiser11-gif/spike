@@ -20,7 +20,8 @@ CATALOG = load_catalog()
 
 # ---------------------------------------------------------------- catalog & router
 def test_catalog_loads_all_specialists():
-    assert {"core", "finance", "medicine", "marketing", "law", "code", "science", "data"} <= set(CATALOG.specialists)
+    assert set(CATALOG.specialists) == {"core", "finance", "medicine", "marketing", "law", "code", "science", "math",
+                                       "education", "data", "writing", "business", "security"}
     assert all(s.adapter_status in {"none", "planned"} for s in CATALOG.specialists.values())
 
 

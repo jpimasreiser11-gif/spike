@@ -8,12 +8,12 @@
 {"split": "dev", "query": "How should I structure a go-to-market plan for a B2B SaaS product?", "labels": ["marketing"]}
 {"split": "dev", "query": "¿Es legal grabar una llamada sin avisar a la otra persona en España?", "labels": ["law"]}
 {"split": "dev", "query": "Review this contract clause about limitation of liability.", "labels": ["law"]}
-{"split": "dev", "query": "Solve the integral of x^2 * e^x dx.", "labels": ["science"]}
-{"split": "dev", "query": "¿Cuál es la probabilidad de sacar dos ases seguidos de una baraja?", "labels": ["science"]}
+{"split": "dev", "query": "Solve the integral of x^2 * e^x dx.", "labels": ["math"]}
+{"split": "dev", "query": "¿Cuál es la probabilidad de sacar dos ases seguidos de una baraja?", "labels": ["math"]}
 {"split": "dev", "query": "Write a SQL query to get the top 5 customers by revenue from an orders table.", "labels": ["data"]}
 {"split": "dev", "query": "Tengo un CSV con ventas mensuales, ¿cómo hago un análisis de datos de estacionalidad con pandas?", "labels": ["data"]}
 {"split": "dev", "query": "Hola, ¿qué tal estás?", "labels": ["core"]}
-{"split": "dev", "query": "Summarize the main ideas of stoicism in five bullet points.", "labels": ["core"]}
+{"split": "dev", "query": "Explain the main ideas of stoicism in five bullet points.", "labels": ["core"]}
 {"split": "dev", "query": "Plan a marketing campaign for a new ETF and estimate its expected ROI.", "labels": ["marketing", "finance"]}
 {"split": "dev", "query": "Un paciente diabético quiere saber si su seguro médico desgrava en impuestos y qué tratamiento le conviene.", "labels": ["medicine", "finance"]}
 {"split": "dev", "query": "Draft the terms of service for our app and the landing page copy.", "labels": ["law", "marketing"]}
@@ -38,8 +38,8 @@
 {"split": "test", "query": "¿Qué cláusulas debe tener un contrato de alquiler de vivienda?", "labels": ["law"]}
 {"split": "test", "query": "Can I use a song in my YouTube video under fair use? Copyright question.", "labels": ["law"]}
 {"split": "test", "query": "Mi casero quiere quedarse la fianza, ¿puedo poner una demanda?", "labels": ["law"]}
-{"split": "test", "query": "Prove that the square root of 2 is irrational.", "labels": ["science"]}
-{"split": "test", "query": "Calcula la derivada de sin(x)/x.", "labels": ["science"]}
+{"split": "test", "query": "Prove that the square root of 2 is irrational.", "labels": ["math"]}
+{"split": "test", "query": "Calcula la derivada de sin(x)/x.", "labels": ["math"]}
 {"split": "test", "query": "Balance this chemistry reaction: Fe + O2 -> Fe2O3", "labels": ["science"]}
 {"split": "test", "query": "Explain quantum entanglement simply.", "labels": ["science"]}
 {"split": "test", "query": "Write a SQL join between users and orders that also shows users with no orders.", "labels": ["data"]}
@@ -47,14 +47,28 @@
 {"split": "test", "query": "Clean this dataset in pandas: missing values and duplicated rows.", "labels": ["data"]}
 {"split": "test", "query": "Diseña el esquema de base de datos para una app de reservas.", "labels": ["data"]}
 {"split": "test", "query": "Tell me a fun fact about octopuses.", "labels": ["core"]}
-{"split": "test", "query": "Write a short poem about autumn.", "labels": ["core"]}
+{"split": "test", "query": "Write a short poem about autumn.", "labels": ["writing"]}
 {"split": "test", "query": "¿Qué hora es en Tokio si en Madrid son las 10?", "labels": ["core"]}
-{"split": "test", "query": "Translate 'good morning' into French, German and Italian.", "labels": ["core"]}
-{"split": "test", "query": "Help me plan a weekly study schedule.", "labels": ["core"]}
-{"split": "test", "query": "Analyze our startup: SaaS pricing, the marketing funnel and the cash flow runway.", "labels": ["finance", "marketing"]}
+{"split": "test", "query": "Translate 'good morning' into French, German and Italian.", "labels": ["writing"]}
+{"split": "test", "query": "Help me plan a weekly study schedule.", "labels": ["education"]}
+{"split": "test", "query": "Analyze our startup: SaaS pricing, the marketing funnel and the cash flow runway.", "labels": ["business", "finance", "marketing"]}
 {"split": "test", "query": "A patient asks about a drug's side effects and whether the pharma company can be sued for liability.", "labels": ["medicine", "law"]}
 {"split": "test", "query": "Escribe código Python que calcule la cuota de una hipoteca a 30 años.", "labels": ["code", "finance"]}
 {"split": "test", "query": "Write a SQL query for monthly revenue and then explain the inflation-adjusted growth.", "labels": ["data", "finance"]}
 {"split": "test", "query": "Necesito una campaña de publicidad para un medicamento sin receta que cumpla la normativa.", "labels": ["marketing", "medicine", "law"]}
-{"split": "test", "query": "Estimate statistics for a clinical trial: what sample size do I need for the probability of detecting the effect?", "labels": ["science", "medicine"]}
+{"split": "test", "query": "Estimate statistics for a clinical trial: what sample size do I need for the probability of detecting the effect?", "labels": ["math", "medicine"]}
 {"split": "test", "query": "Create a GDPR-compliant newsletter signup flow and write the code for it.", "labels": ["law", "marketing", "code"]}
+{"split": "dev", "query": "Rewrite this paragraph so it sounds more professional.", "labels": ["writing"]}
+{"split": "dev", "query": "Crea un plan de estudio para aprobar el examen de selectividad.", "labels": ["education"]}
+{"split": "dev", "query": "Help me write a business plan for a coffee shop.", "labels": ["business"]}
+{"split": "dev", "query": "Is this login form vulnerable to SQL injection?", "labels": ["security"]}
+{"split": "test", "query": "Corrige el texto de este correo antes de enviarlo a mi jefe.", "labels": ["writing"]}
+{"split": "test", "query": "Write a blog post intro about remote work.", "labels": ["writing"]}
+{"split": "test", "query": "Explícame la fotosíntesis como si tuviera 10 años y hazme un quiz.", "labels": ["education", "science"]}
+{"split": "test", "query": "Make flashcards for the main events of World War I.", "labels": ["education"]}
+{"split": "test", "query": "Haz un análisis DAFO de mi empresa de reformas.", "labels": ["business"]}
+{"split": "test", "query": "How should we approach a negotiation with a big supplier?", "labels": ["business"]}
+{"split": "test", "query": "How do I protect my web app against XSS and CSRF?", "labels": ["security"]}
+{"split": "test", "query": "We got a phishing email at the office, what's the incident response?", "labels": ["security"]}
+{"split": "test", "query": "Find the eigenvalues of the matrix [[2,1],[1,2]].", "labels": ["math"]}
+{"split": "test", "query": "Explain the second law of thermodynamics.", "labels": ["science"]}
