@@ -32,17 +32,37 @@ SAMPLE_TEXT = (
 )
 
 
+def rss_anon_bytes(pid: int) -> int | None:
+    """Anonymous resident memory (Linux). RSS also counts file pages of the mmap'd GGUF, which the kernel can
+    reclaim under pressure; the anonymous part (heap, KV cache, CPU-repacked weights) is what must fit in RAM."""
+    try:
+        with open(f"/proc/{pid}/status", encoding="ascii") as f:
+            for line in f:
+                if line.startswith("RssAnon:"):
+                    return int(line.split()[1]) * 1024
+    except OSError:
+        pass
+    return None
+
+
 class RSSSampler:
     def __init__(self, pid: int, interval: float = 0.1):
         self.proc = psutil.Process(pid)
         self.interval = interval
         self.peak = 0
+        self.peak_anon: int | None = None
         self._task: asyncio.Task | None = None
+
+    def sample(self) -> None:
+        self.peak = max(self.peak, self.proc.memory_info().rss)
+        anon = rss_anon_bytes(self.proc.pid)
+        if anon is not None:
+            self.peak_anon = max(self.peak_anon or 0, anon)
 
     async def _run(self) -> None:
         while True:
             try:
-                self.peak = max(self.peak, self.proc.memory_info().rss)
+                self.sample()
             except psutil.Error:
                 return
             await asyncio.sleep(self.interval)
@@ -138,6 +158,7 @@ async def run_benchmark(args: Any) -> dict[str, Any]:
                         "prompt_tokens": n, "variant": name, "runs": runs,
                         "ttft_s": _summary(runs, "ttft_s"), "prompt_tok_s": _summary(runs, "prompt_tok_s"),
                         "gen_tok_s": _summary(runs, "gen_tok_s"), "peak_rss_mb": round(sampler.peak / 1024**2, 1),
+                        "peak_rss_anon_mb": None if sampler.peak_anon is None else round(sampler.peak_anon / 1024**2, 1),
                     })
     finally:
         await server.stop()
