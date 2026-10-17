@@ -16,8 +16,9 @@ distill:                              # optional: verified teacher answers on he
 replay:
   ratio: 0.3                          # share of general data in the training mix (anti-forgetting)
   sources:
-    - {source: oasst2, max: 9000}
-    - {source: smoltalk-constraints, max: 4000}
+    - {source: oasst2, max: 13000}       # human-written only; 13,002 chats are built from en+es
+eval:
+  max_tokens: 2048                    # base and adapter share it; at 512 21 % of base answers were cut off
 decontaminate_against: [medmcqa-eval, pubmedqa-labeled, mmlu-pro]
 valid_fraction: 0.02
 seed: 0

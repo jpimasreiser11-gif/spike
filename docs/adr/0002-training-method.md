@@ -25,7 +25,8 @@ General ability must not degrade. Every adaptation needs a hypothesis and an acc
 - **Data per adapter** (`training/prepare.py`): permissive sources only (license re-checked on the Hub at
   download time, `spike_train/licenses.py`), explanation-rich answers, dedupe, 13-gram decontamination
   against every eval set (shared instruction templates excluded), **30–35 % general replay**
-  (human-written OpenAssistant oasst2 plus smoltalk smol-constraints, both Apache-2.0) against forgetting;
+  (human-written OpenAssistant oasst2 only, Apache-2.0) against forgetting; smoltalk smol-constraints is
+  excluded (no license in the Hub metadata, generator model not named);
   Llama-generated data is excluded because its license would force "Llama" into the adapter names.
 - **Verified distillation** (`training/distill.py`): teacher answers kept only if they match the gold label
   (MCQ, yes/no, numeric) or pass a strict rubric review; GPT-4o-generated datasets are excluded by default

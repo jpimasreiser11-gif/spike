@@ -16,6 +16,7 @@ import asyncio
 import json
 import platform
 import random
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -27,7 +28,16 @@ sys.path.insert(0, str(ROOT / "training"))
 sys.path.insert(0, str(ROOT))
 
 from spike_train import licenses  # noqa: E402
-from spike_train.evaluation import Client, Item, check_acceptance, free_port, make_item, score, summarize  # noqa: E402
+from spike_train.evaluation import (  # noqa: E402
+    Client,
+    Item,
+    check_acceptance,
+    free_port,
+    make_item,
+    rescore,
+    score,
+    summarize,
+)
 
 
 def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list[Item]:
@@ -75,7 +85,7 @@ async def run(args: argparse.Namespace) -> int:
         adapters = await client.adapters()
         variants = {"base": client.lora(None)} | {stem: client.lora(stem) for stem in adapters}
         meta = {"run_id": run_id, "model": args.model, "adapters": adapters, "server_url": base_url,
-                "parallel": args.parallel, "kv_cache_type": args.kv_cache_type, "max_tokens": args.max_tokens, "seed": args.seed, "decoding": "greedy",
+                "parallel": args.parallel, "kv_cache_type": args.kv_cache_type, "max_tokens": args.max_tokens, "seed": args.seed, "limit": args.limit, "suites": args.suites, "decoding": "greedy",
                 "thinking": False, "host": platform.platform(), "machine": platform.machine(),
                 "props": (await client.http.get(f"{base_url}/props")).json().get("build_info")}
         predictions: list[dict] = []
@@ -105,24 +115,54 @@ async def run(args: argparse.Namespace) -> int:
                     print(f"{suite_name}/{task['name']} [{variant}] n={len(rows)} acc={acc:.3f} "
                           f"({time.perf_counter() - t0:.0f}s)", file=sys.stderr)
         pred_file.close()
-        summary = {"meta": meta, **summarize(predictions)}
-        verdicts = {}
-        if args.acceptance:
-            acceptance = yaml.safe_load(Path(args.acceptance).read_text())["acceptance"]
-            for variant in variants:
-                if variant != "base":
-                    ok, reasons = check_acceptance(summary, acceptance, variant)
-                    verdicts[variant] = {"accepted": ok, "reasons": reasons}
-            summary["acceptance"] = verdicts
-        (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
-        (out / "summary.md").write_text(render_markdown(summary))
-        print((out / "summary.md").read_text())
-        print(f"results: {out}", file=sys.stderr)
-        return 0 if all(v["accepted"] for v in verdicts.values()) else 2
+        return write_summary(out, meta, predictions, list(variants), args.acceptance)
     finally:
         await client.aclose()
         if server:
             await server.stop()
+
+
+def write_summary(out: Path, meta: dict, predictions: list[dict], variants: list[str],
+                  acceptance_file: str | None) -> int:
+    summary = {"meta": meta, **summarize(predictions)}
+    verdicts = {}
+    if acceptance_file:
+        acceptance = yaml.safe_load(Path(acceptance_file).read_text())["acceptance"]
+        for variant in variants:
+            if variant != "base":
+                ok, reasons = check_acceptance(summary, acceptance, variant)
+                verdicts[variant] = {"accepted": ok, "reasons": reasons}
+        summary["acceptance"] = verdicts
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+    (out / "summary.md").write_text(render_markdown(summary))
+    print((out / "summary.md").read_text())
+    print(f"results: {out}", file=sys.stderr)
+    return 0 if all(v["accepted"] for v in verdicts.values()) else 2
+
+
+def rescore_run(args: argparse.Namespace) -> int:
+    """Re-score a finished run's saved responses with the current answer extractors. No model is run;
+    the same items are rebuilt from the run's seed and every saved prediction must match one of them."""
+    out = Path(args.rescore)
+    meta = json.loads((out / "summary.json").read_text())["meta"]
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text())["suites"]
+    old = [json.loads(line) for line in (out / "predictions.jsonl").open(encoding="utf-8")]
+    items: dict[str, Item] = {}
+    for suite_name in sorted({p["suite"] for p in old}):
+        for task in suites[suite_name]["tasks"]:
+            items.update({it.id: it for it in load_items(task, registry, meta["seed"], meta.get("limit", args.limit))})
+    new = rescore(old, items)
+    commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True,
+                            text=True).stdout.strip()
+    meta["rescored"] = {"date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "git_commit": commit,
+                        "rows": len(new), "parsed_changed": sum(a["parsed"] != b["parsed"] for a, b in zip(old, new, strict=True)),
+                        "correct_changed": sum(a["correct"] != b["correct"] for a, b in zip(old, new, strict=True))}
+    with (out / "predictions.jsonl").open("w", encoding="utf-8") as f:
+        for r in new:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    variants = sorted({p["variant"] for p in new}, key=lambda v: (v != "base", v))
+    return write_summary(out, meta, new, variants, args.acceptance)
 
 
 def render_markdown(summary: dict) -> str:
@@ -149,7 +189,7 @@ def render_markdown(summary: dict) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--suites", required=True, help="comma-separated names from evals/suites.yaml")
+    ap.add_argument("--suites", help="comma-separated names from evals/suites.yaml (required unless --rescore)")
     ap.add_argument("--model", help="base GGUF (required unless --server-url)")
     ap.add_argument("--adapter", action="append", default=[], help="GGUF LoRA; repeatable")
     ap.add_argument("--server-url", help="use a running llama-server instead of starting one")
@@ -163,7 +203,13 @@ def main() -> int:
     ap.add_argument("--kv-cache-type", default="q8_0", help="same default as the SPIKE runtime")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out")
+    ap.add_argument("--rescore", metavar="RUN_DIR",
+                    help="re-score a finished run's predictions.jsonl with the current extractors (no model run)")
     args = ap.parse_args()
+    if args.rescore:
+        return rescore_run(args)
+    if not args.suites:
+        ap.error("--suites is required")
     if not args.server_url and not args.model:
         ap.error("--model is required unless --server-url is given")
     return asyncio.run(run(args))

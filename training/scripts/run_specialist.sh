@@ -16,6 +16,14 @@ then
   python training/distill.py "$cfg" --out "training/data/$spec/distilled.jsonl"
   extra=(--distilled "training/data/$spec/distilled.jsonl")
 fi
+eval_lines=$(PYTHONPATH=training python - "$cfg" <<'PY'
+import sys, yaml
+from spike_train.evaluation import eval_args
+print("\n".join(eval_args(yaml.safe_load(open(sys.argv[1])))))
+PY
+)  # read before training so a bad `eval` block fails in seconds, not hours later
+eval_extra=()
+while IFS= read -r arg; do [[ -n $arg ]] && eval_extra+=("$arg"); done <<< "$eval_lines"
 python training/prepare.py "$cfg" ${extra[@]+"${extra[@]}"}  # bash 3.2 (macOS) safe
 training/train.sh "$spec"
 python training/export_adapter.py "$spec" --llama-cpp "$llama_cpp" --check-model "$model"
@@ -24,5 +32,6 @@ if [[ $spec == marketing ]]; then
   python evals/pairwise.py --specialist marketing --prompts evals/data/marketing_eval.jsonl \
     --model "$model" --adapter "$adapter" --acceptance "$cfg"
 else
-  python evals/run_eval.py --suites "$spec,general" --model "$model" --adapter "$adapter" --acceptance "$cfg"
+  python evals/run_eval.py --suites "$spec,general" --model "$model" --adapter "$adapter" --acceptance "$cfg" \
+    ${eval_extra[@]+"${eval_extra[@]}"}
 fi

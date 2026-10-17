@@ -27,9 +27,12 @@ from spike_train.data import (  # noqa: E402
 from spike_train.distill import Task, verify  # noqa: E402
 from spike_train.evaluation import (  # noqa: E402
     Client,
+    Item,
     check_acceptance,
+    eval_args,
     make_item,
     pairwise_summary,
+    rescore,
     score,
     summarize,
 )
@@ -208,6 +211,26 @@ def test_extract_choice(text, expected):
     assert extract_choice(text, 4) == expected
 
 
+# Response endings seen in the first Qwen3.5-4B baseline run (evals/results/baseline-mac-20261017).
+@pytest.mark.parametrize("text,expected", [
+    ("*   D. $Lfh$: Incorrect order.\n*   E-J: extra symbols.\n\nThe correct translation is $Lhf$.\n\nA", "A"),
+    ("Therefore, the correct option is **F**.\n\n**F**", "F"),
+    ("Therefore, option B is the correct description.\n\nB", "B"),
+    ("Therefore, the correct option is **C**.\n\n**Answer:** C", "C"),
+    ("...the slave of the passions.\n\n**Answer:** G", "G"),
+    ("*   J: $Bc$ - Matches our derivation perfectly.\n\nThe correct option is **J**.", "J"),
+    ("The answer is a matter of definition, so I pick B. because it fits", "B"),
+    ("Therefore, the par value is reduced to $2.\n\n**Correct Option:** I", "I"),
+    ("*   Option G is incorrect because masking applies to sound.", None),
+])
+def test_extract_choice_real_endings(text, expected):
+    assert extract_choice(text, 10) == expected
+
+
+def test_extract_yes_no_bold_answer():
+    assert extract_yes_no("**Answer:** no. Larger trials could still say yes.") == "no"
+
+
 def test_extract_yes_no_and_number():
     assert extract_yes_no("The trial shows benefit.\nAnswer: no") == "no"
     assert extract_yes_no("<think>yes?</think>Probably maybe.") == "maybe"
@@ -250,6 +273,24 @@ def preds(variant, results, suite="medicine", task="t"):
              "parsed": "A", "finish_reason": "stop"} for i, c in enumerate(results)]
 
 
+def test_eval_args_come_from_the_training_config():
+    assert eval_args({}) == []  # run_eval.py keeps its own default
+    assert eval_args({"eval": {"max_tokens": 2048}}) == ["--max-tokens", "2048"]
+    with pytest.raises(ValueError):
+        eval_args({"eval": {"max_tokens": 0}})
+    with pytest.raises(ValueError):
+        eval_args({"eval": {"temperature": 0.7}})  # unknown keys are not silently ignored
+
+
+def test_medicine_eval_uses_2048_tokens_through_run_specialist():
+    import yaml
+
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
+    assert eval_args(cfg) == ["--max-tokens", "2048"]
+    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text()
+    assert "spike_train.evaluation import eval_args" in script and '"${eval_extra[@]}"' in script
+
+
 def test_summarize_and_acceptance():
     base = [True] * 50 + [False] * 50
     tuned = [True] * 50 + [True] * 12 + [False] * 38  # +12 points, 12 discordant pairs all in favour
@@ -269,6 +310,21 @@ def test_summarize_and_acceptance():
     acceptance["regression"]["max_drop_points"] = 0.5
     assert not check_acceptance(s, acceptance, "spike-medicine")[0]
     assert not check_acceptance(s, {"primary": {"suite": "finance", "min_gain_points": 3}}, "spike-medicine")[0]
+
+
+def test_rescore_recomputes_parsed_and_correct_from_saved_responses():
+    items = {"t/1": Item("t/1", "t", "q", "mcq", "A", 10), "t/2": Item("t/2", "t", "q", "yesno", "no")}
+    rows = [
+        {"item": "t/1", "variant": "base", "gold": "A", "parsed": "D", "correct": False,
+         "response": "D. wrong option text\n\nA"},
+        {"item": "t/2", "variant": "base", "gold": "no", "parsed": "yes", "correct": False,
+         "response": "**Answer:** no. Trials could say yes."},
+    ]
+    out = rescore(rows, items)
+    assert [(r["parsed"], r["correct"]) for r in out] == [("A", True), ("no", True)]
+    assert rows[0]["parsed"] == "D"  # the input rows are not modified
+    with pytest.raises(KeyError):
+        rescore([{**rows[0], "item": "t/missing"}], items)
 
 
 def test_pairwise_summary():
@@ -300,7 +356,6 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
         "pubmedqa-artificial": [{**PUBMED, "pubid": i, "question": f"Does treatment {i} reduce mortality?"} for i in range(10)],
         "oasst2": [r for i in range(200) for r in (oasst(f"q{i}", None, "prompter", f"general question {i}"),
                                                     oasst(f"a{i}", f"q{i}", "assistant", "a general answer", rank=0))],
-        "smoltalk-constraints": [chat(f"constraint task {i}", "done") for i in range(50)],
         "medmcqa-eval": [med(1000, leaked)],
         "pubmedqa-labeled": [PUBMED],
         "mmlu-pro": [MMLU],
@@ -323,7 +378,8 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["dropped"]["contaminated"] == 1  # the leaked eval question never reaches training
     assert manifest["sources"]["medmcqa"]["kept"] == 40
-    assert manifest["sources"]["oasst2"]["built"] == 200 and "smoltalk-magpie-ultra" not in manifest["sources"]
+    assert manifest["sources"]["oasst2"]["built"] == 200
+    assert not any(name.startswith("smoltalk") for name in manifest["sources"])  # replay is human-written only
     counts = manifest["counts"]
     domain = counts["domain"]
     replay_in_mix = counts["train"] + counts["valid"] - domain
@@ -334,6 +390,33 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     assert mlx["lora_parameters"]["keys"][0] == "self_attn.q_proj" and mlx["mask_prompt"] is True
     lines = (out / "train.jsonl").read_text().splitlines()
     assert len(lines) == counts["train"] and all(json.loads(x)["messages"][-1]["role"] == "assistant" for x in lines)
+
+
+@pytest.mark.parametrize("source", ["smoltalk-constraints", "smoltalk-magpie-ultra"])
+def test_prepare_refuses_excluded_replay_sources(tmp_path, monkeypatch, source):
+    import prepare
+    import yaml
+
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    assert registry[source]["role"] == "excluded"
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
+    cfg["replay"]["sources"].append({"source": source, "max": 10})
+    (tmp_path / "cfg.yaml").write_text(yaml.safe_dump(cfg))
+    monkeypatch.setattr(prepare, "load_rows", lambda src, offset=0, limit=None: iter([]))
+    monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: "apache-2.0")
+    monkeypatch.setattr(sys, "argv", ["prepare.py", str(tmp_path / "cfg.yaml"), "--out", str(tmp_path)])
+    with pytest.raises(SystemExit, match=f"refusing source '{source}'"):
+        prepare.main()
+
+
+def test_no_training_config_uses_an_excluded_source():
+    import yaml
+
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    for path in (ROOT / "training" / "configs").glob("*.yaml"):
+        cfg = yaml.safe_load(path.read_text())
+        used = [s["source"] for s in cfg.get("domain_sources", []) + (cfg.get("replay") or {}).get("sources", [])]
+        assert all(registry[name]["role"] == "train" for name in used), path.name
 
 
 def test_shared_prompt_templates_do_not_count_as_contamination():
