@@ -55,6 +55,7 @@ class Recall:
     rules: list[Memory] = field(default_factory=list)
     hits: list[Hit] = field(default_factory=list)
     semantic: bool = False
+    saved: list[Memory] = field(default_factory=list)  # saved from this very message ("recuerda que…")
 
     def event(self) -> dict[str, Any] | None:
         if not self.rules and not self.hits:
@@ -76,7 +77,7 @@ def memory_section(recall: Recall, budget_tokens: int) -> tuple[str, list[str]]:
     """(prompt section, its lines that quote the user's files). Rules get up to half of the budget, matching notes
     the rest; whatever does not fit is left out."""
     rules: list[str] = []
-    rules_head = "# The user's standing rules (saved from their corrections; follow them)"
+    rules_head = "# The user's standing rules (they asked for them or saved them from their corrections; follow them)"
     for rule in recall.rules:
         if estimate_tokens("\n".join([rules_head, *rules, f"- {rule.text}"])) > budget_tokens // 2:
             break
@@ -87,9 +88,13 @@ def memory_section(recall: Recall, budget_tokens: int) -> tuple[str, list[str]]:
     notes: list[str] = []
     files: list[str] = []
 
+    saved_block = "\n".join(["# Saved to memory from the user's message just now (say so in a few words; do not "
+                              "claim you cannot remember)", *(f"- [{KIND_LABEL.get(m.kind, m.kind)}] {m.text}"
+                                                              for m in recall.saved)]) if recall.saved else ""
+
     def build(extra: list[str]) -> str:
         block = "\n".join([notes_head, *notes, *extra]) if notes or extra else ""
-        return "\n\n".join(b for b in (rules_block, block) if b)
+        return "\n\n".join(b for b in (rules_block, saved_block, block) if b)
 
     for hit in recall.hits:
         m = hit.memory

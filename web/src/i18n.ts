@@ -63,13 +63,20 @@ const es = {
   undoConflict: "El archivo cambió después de este paso.",
   undoAnyway: "Deshacer igualmente",
   replay: "Ver paso a paso",
+  savedToMemory: "Guardado en memoria",
+  alreadyInMemory: "ya estaba en tu memoria",
+  removedFromMemory: "Quitado de la memoria",
+  correctionAsk: "¿Guardo tu corrección como regla para los próximos chats?",
+  saveRule: "Guardar regla",
+  notNow: "Ahora no",
+  ruleSaved: "Regla guardada",
   replayTitle: "Paso a paso",
   step: "Paso",
   prevStep: "Paso anterior",
   nextStep: "Paso siguiente",
   play: "Reproducir",
   pause: "Pausa",
-  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
+  ev: { route: "Elige especialistas", plan: "Plan", subtask_start: "Empieza", subtask_end: "Termina", tool_call: "Usa", tool_result: "Resultado de", permission_request: "Pide permiso para", permission_resolved: "Permiso", delta: "Escribe", reasoning: "Razona", synthesis_start: "Une los informes", memory: "Recuerda", skill: "Aplica la skill", privacy: "Protege tus archivos de", memory_saved: "Guarda en memoria", correction: "Propone una regla", status: "Planifica", usage: "Tokens", error: "Error", done: "Fin", context_trimmed: "Recorta el contexto" } as Record<string, string>,
 };
 
 type Dict = typeof es;
@@ -139,13 +146,20 @@ const en: Dict = {
   undoConflict: "The file changed after this step.",
   undoAnyway: "Undo anyway",
   replay: "Step by step",
+  savedToMemory: "Saved to memory",
+  alreadyInMemory: "already in your memory",
+  removedFromMemory: "Removed from memory",
+  correctionAsk: "Save your correction as a rule for future chats?",
+  saveRule: "Save rule",
+  notNow: "Not now",
+  ruleSaved: "Rule saved",
   replayTitle: "Step by step",
   step: "Step",
   prevStep: "Previous step",
   nextStep: "Next step",
   play: "Play",
   pause: "Pause",
-  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
+  ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", privacy: "Protects your files from", memory_saved: "Saves to memory", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

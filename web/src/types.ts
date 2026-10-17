@@ -108,6 +108,13 @@ export type RunState = {
   memory?: MemoryUse;
   privacy?: Record<string, number>; // provider name -> file passages withheld from it
   events?: ChatEvent[]; // the run as it happened, for the step-by-step view (each with `t`, seconds from the start)
+  learn?: Learn;
+};
+
+/** What the user's message taught SPIKE: notes saved at once ("recuerda que…"), or a rule proposed from a correction. */
+export type Learn = {
+  saved?: { id: string; kind: string; text: string; scope: string; existing?: boolean; undone?: boolean }[];
+  correction?: { text: string; status: "proposed" | "saved" | "dismissed"; memory?: string; existing?: boolean };
 };
 
 export type ChatEvent = { type: string; [key: string]: any };
@@ -136,7 +143,7 @@ export type Settings = {
   custom_specialists: unknown[];
   skill_mode: "auto" | "router" | "model" | "off";
   disabled_skills: string[];
-  memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean };
+  memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean; learn?: boolean };
 };
 
 export type ToolInfo = { name: string; description: string; risk: string; default_policy: string; policy: string };

@@ -219,6 +219,13 @@ class MemoryStore:
             r = self._db.execute("SELECT * FROM memories WHERE scope = ? AND source = ?", (scope, source)).fetchone()
         return _row(r) if r else None
 
+    def find_text(self, scope: str, kind: str, text: str) -> Memory | None:
+        with self._lock:
+            r = self._db.execute("SELECT * FROM memories WHERE scope = ? AND kind = ? "  # a final full stop aside
+                                 "AND rtrim(text, '. ') = ? COLLATE NOCASE",
+                                 (scope, kind, text.strip().rstrip(". "))).fetchone()
+        return _row(r) if r else None
+
     def list(self, scope: str | None = None, kind: str | None = None, limit: int = 200,
              offset: int = 0) -> list[Memory]:
         where, args = [], []

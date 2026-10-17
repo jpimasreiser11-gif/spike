@@ -7,7 +7,7 @@ import { IconTrash, IconUpload } from "./Icons";
 export const M = lang === "es"
   ? {
       intro: "SPIKE recuerda lo importante de tus chats y de los archivos de tus proyectos, y lo usa cuando viene al caso. Todo se guarda en tu ordenador; puedes verlo, corregirlo, exportarlo y borrarlo aquí.",
-      enabled: "Usar la memoria en los chats", summaries: "Resumir los chats en la memoria (solo con el modelo local, sin coste)",
+      enabled: "Usar la memoria en los chats", learn: "Guardar lo que le pides recordar («recuerda que…», «a partir de ahora…») y proponer reglas cuando lo corriges", summaries: "Resumir los chats en la memoria (solo con el modelo local, sin coste)",
       search: "Búsqueda", semanticOn: "por palabras y por significado", wordsOnly: "por palabras", installHint: "Para buscar también por significado, instala el modelo de memoria:",
       semanticOff: "Buscar solo por palabras", failed: "El modelo de memoria no arrancó; se busca por palabras",
       memories: "recuerdos", add: "Añadir", addPlaceholder: "Algo que SPIKE debe recordar…", filter: "Buscar en la memoria…",
@@ -20,7 +20,7 @@ export const M = lang === "es"
     }
   : {
       intro: "SPIKE remembers what matters from your chats and your project files, and uses it when relevant. Everything stays on your computer; see, correct, export and delete it here.",
-      enabled: "Use memory in chats", summaries: "Summarise chats into memory (local model only, no cost)",
+      enabled: "Use memory in chats", learn: "Save what you ask it to remember (\"remember that…\", \"from now on…\") and suggest rules when you correct it", summaries: "Summarise chats into memory (local model only, no cost)",
       search: "Search", semanticOn: "by words and by meaning", wordsOnly: "by words", installHint: "To also search by meaning, install the memory model:",
       semanticOff: "Search by words only", failed: "The memory model did not start; searching by words",
       memories: "memories", add: "Add", addPlaceholder: "Something SPIKE should remember…", filter: "Search memory…",
@@ -73,6 +73,7 @@ export function Memory({ settings, save }: { settings: Settings; save: (p: Parti
     <div className="form">
       <p className="small muted">{M.intro}</p>
       <label className="check"><input type="checkbox" checked={mem.enabled} onChange={(e) => save({ memory: { ...mem, enabled: e.target.checked } })} />{M.enabled}</label>
+      <label className="check"><input type="checkbox" checked={mem.learn !== false} onChange={(e) => save({ memory: { ...mem, learn: e.target.checked } })} />{M.learn}</label>
       <label className="check"><input type="checkbox" checked={mem.auto_summary} onChange={(e) => save({ memory: { ...mem, auto_summary: e.target.checked } })} />{M.summaries}</label>
       <label className="check"><input type="checkbox" checked={mem.embeddings === "off"} onChange={(e) => save({ memory: { ...mem, embeddings: e.target.checked ? "off" : "auto" } })} />{M.semanticOff}</label>
       {status && (

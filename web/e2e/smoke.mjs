@@ -182,6 +182,30 @@ await page.locator("#composer-input").fill("¿A cuántos días paga el cliente N
 await page.keyboard.press("Enter");
 await page.locator(".memory-chip", { hasText: "Memoria · 1" }).waitFor({ timeout: 10000 });
 
+// learning: "recuerda que…" is saved at once (with undo); a correction proposes a rule the user edits and saves
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Recuerda que nunca uses emojis. ¿Qué es el IVA?");
+await page.keyboard.press("Enter");
+const learnedRule = page.locator('.learned-line[data-learned="rule"]', { hasText: "Nunca uses emojis." });
+await learnedRule.waitFor({ timeout: 10000 });
+await page.locator("#composer-input").fill("No, el IVA general en España es del 21 %, no del 18 %.");
+await page.keyboard.press("Enter");
+const learnCard = page.locator(".learn-card");
+await learnCard.waitFor({ timeout: 10000 });
+if ((await learnCard.getByRole("textbox").inputValue()) !== "El IVA general en España es del 21 %, no del 18 %.") fail("proposed rule text");
+await learnCard.getByRole("textbox").fill("El IVA general en España es del 21 %.");
+await page.screenshot({ path: `${out}/07f-correction.png` });
+await learnCard.getByRole("button", { name: "Guardar regla" }).click();
+await page.locator('.learned-line[data-learned="correction"]', { hasText: "Regla guardada" }).waitFor();
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Memoria" }).click();
+await page.getByLabel("Buscar en la memoria…").fill("");
+await page.locator('.memory-item[data-memory="rule"]', { hasText: "El IVA general en España es del 21 %." }).waitFor();
+await page.locator('.memory-item[data-memory="rule"]', { hasText: "Nunca uses emojis." }).waitFor();
+await page.keyboard.press("Escape");
+await learnedRule.getByRole("button", { name: "Deshacer" }).click();
+await page.locator(".learned-line", { hasText: "Quitado de la memoria" }).waitFor();
+
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();

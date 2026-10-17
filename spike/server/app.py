@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
@@ -116,6 +116,12 @@ class SkillPatch(BaseModel):
 
 class TuneIn(BaseModel):
     quick: bool = False
+
+
+class LearnIn(BaseModel):
+    action: Literal["save", "dismiss", "undo"]
+    text: str | None = Field(default=None, max_length=2000)  # the user's wording of a proposed rule
+    memory: str | None = None  # the memory to undo
 
 
 class UndoIn(BaseModel):
@@ -645,6 +651,16 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 state.store.update_message_meta(m["id"], m["meta"])
         return {"ok": True, "files": [f["path"] for f in cp["files"]]}
 
+    @app.post("/api/messages/{mid}/learn")
+    async def learn(mid: str, body: LearnIn) -> dict:
+        """Save, reword or dismiss the rule proposed from a correction, or undo what a message saved to memory."""
+        try:
+            return st().apply_learning(mid, body.action, body.text, body.memory)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
     # ---------------------------------------------------------------- memory
     def check_scope(scope: str) -> str:
         if scope != "global" and not (scope.startswith("project:") and st().store.get_project(scope[8:])):
@@ -808,8 +824,17 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 elif len(events) < MAX_RUN_EVENTS:
                     events.append({**ev, "t": round(time.perf_counter() - started, 3)})
             try:
+                learned, saved = state.learn_from(body.message, conv, user_message["id"],
+                                                  any(m.role == "assistant" for m in history))
+                if learned:
+                    meta["learn"] = learned
+                    for ev in ([{"type": "memory_saved", "saved": learned["saved"]}] if "saved" in learned else
+                               [{"type": "correction", "text": learned["correction"]["text"]}]):
+                        record(ev)
+                        yield _sse(ev)
                 if state.memory_settings()["enabled"]:
                     options.memory = await state.memory.recall(body.message, project["id"] if project else None)
+                    options.memory.saved = saved
                     if (memory_event := options.memory.event()) is not None:
                         meta["memory"] = memory_event
                         record(memory_event)

@@ -88,6 +88,10 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
     }
     case "memory":
       return { ...state, memory: { rules: ev.rules, semantic: ev.semantic, notes: ev.notes } };
+    case "memory_saved":
+      return { ...state, learn: { ...state.learn, saved: ev.saved } };
+    case "correction":
+      return { ...state, learn: { ...state.learn, correction: { text: ev.text, status: "proposed" } } };
     case "privacy":
       return { ...state, privacy: { ...state.privacy, [ev.provider]: Math.max(state.privacy?.[ev.provider] ?? 0, ev.withheld) } };
     case "context_trimmed":
@@ -120,6 +124,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.memory) run.memory = { rules: meta.memory.rules, semantic: meta.memory.semantic, notes: meta.memory.notes };
   if (meta.privacy) run.privacy = meta.privacy;
   if (meta.events?.length) run.events = meta.events;
+  if (meta.learn) run.learn = meta.learn;
   for (const [id, st] of Object.entries<any>(meta.subtasks || {})) {
     const planned = meta.plan?.subtasks?.find((t: any) => t.id === id);
     run.order.push(id);

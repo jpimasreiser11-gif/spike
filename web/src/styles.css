@@ -386,6 +386,12 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .bubble-edit { width: 100%; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: 14px; padding: 10px 14px; font: inherit; resize: vertical; }
 
 /* undo and step-by-step view */
+.learned { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.learned-line { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; color: var(--text-2); }
+.learn-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface-2); max-width: 640px; }
+.learn-card textarea { width: 100%; resize: vertical; font: inherit; }
+.learn-card .row { display: flex; gap: 8px; }
 .undo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .modal.replay { width: min(1100px, calc(100vw - 32px)); }
 .replay-body { display: grid; grid-template-columns: minmax(220px, 320px) 1fr; gap: 0; min-height: 0; flex: 1; overflow: hidden; }

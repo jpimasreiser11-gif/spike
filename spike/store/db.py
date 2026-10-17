@@ -117,6 +117,10 @@ class Store:
         self._exec("DELETE FROM messages WHERE conversation_id=? AND created>=?", (cid, rows[0]["created"]))
         return True
 
+    def get_message(self, mid: str) -> dict | None:
+        rows = self._exec("SELECT * FROM messages WHERE id=?", (mid,))
+        return {**dict(rows[0]), "meta": json.loads(rows[0]["meta"])} if rows else None
+
     def update_message_meta(self, mid: str, meta: dict) -> None:
         self._exec("UPDATE messages SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), mid))
 

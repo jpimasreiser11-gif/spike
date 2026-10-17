@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { ApiError, api } from "../api";
 import { t } from "../i18n";
-import type { PermissionState, ProviderInfo, RunState, Specialist, ToolState } from "../types";
+import type { Learn, PermissionState, ProviderInfo, RunState, Specialist, ToolState } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
@@ -52,6 +52,58 @@ function Undo({ tool }: { tool: ToolState }) {
         <button className="btn small" disabled={state === "busy"} onClick={() => undo(false)}>{t.undo}</button>
       )}
       {error && <span className="bad small">{error}</span>}
+    </div>
+  );
+}
+
+/** What this message taught SPIKE: notes saved at once, with undo, or a rule proposed from a correction to approve. */
+function Learned({ initial, messageId }: { initial: Learn; messageId: string }) {
+  const [learn, setLearn] = useState(initial);
+  const [draft, setDraft] = useState(initial.correction?.text ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const act = async (body: { action: "save" | "dismiss" | "undo"; text?: string; memory?: string }) => {
+    setBusy(true); setError("");
+    try {
+      const next = await api.post<Learn>(`/api/messages/${messageId}/learn`, body);
+      setLearn(next);
+      if (next.correction) setDraft(next.correction.text);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const c = learn.correction;
+  return (
+    <div className="learned">
+      {(learn.saved ?? []).map((s) => (
+        <div key={s.id} className="learned-line small" data-learned={s.kind}>
+          {s.undone ? <span className="muted">{t.removedFromMemory}: «{s.text}»</span> : (<>
+            <span>◆ {t.savedToMemory} · {M.kinds[s.kind] ?? s.kind}: «{s.text}»</span>
+            {s.existing ? <span className="muted"> · {t.alreadyInMemory}</span>
+              : <button className="link-btn small" disabled={busy} onClick={() => act({ action: "undo", memory: s.id })}>{t.undo}</button>}
+          </>)}
+        </div>
+      ))}
+      {c?.status === "proposed" && (
+        <div className="learn-card" role="group" aria-label={t.correctionAsk}>
+          <div className="small">{t.correctionAsk}</div>
+          <textarea rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label={M.kinds.rule} />
+          <div className="row">
+            <button className="btn small primary" disabled={busy || !draft.trim()} onClick={() => act({ action: "save", text: draft.trim() })}>{t.saveRule}</button>
+            <button className="btn small" disabled={busy} onClick={() => act({ action: "dismiss" })}>{t.notNow}</button>
+          </div>
+        </div>
+      )}
+      {c?.status === "saved" && (
+        <div className="learned-line small" data-learned="correction">
+          <span>◆ {t.ruleSaved}: «{c.text}»</span>
+          {c.existing && <span className="muted"> · {t.alreadyInMemory}</span>}
+          <button className="link-btn small" disabled={busy} onClick={() => act({ action: "undo", memory: c.memory })}>{t.undo}</button>
+        </div>
+      )}
+      {error && <div className="bad small">{error}</div>}
     </div>
   );
 }
@@ -138,7 +190,7 @@ function Retry({ providers, onRetry, failed }: { providers: ProviderInfo[]; onRe
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false }: {
+export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false, messageId }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
@@ -147,6 +199,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   onRetry?: (providerId: string | null) => void; // only on the chat's last answer
   onReplay?: () => void;
   replay?: boolean; // shown inside the step-by-step view: nothing in it acts
+  messageId?: string; // the user's message this answers, for what it taught SPIKE
 }) {
   const [copied, setCopied] = useState(false);
   const live = run.status === "running" || run.status === "planning" || run.status === "synthesizing";
@@ -230,6 +283,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       ) : null}
 
       {files.length > 0 && !replay && <Files files={files} projectId={projectId} />}
+
+      {run.learn && !live && !replay && messageId && <Learned initial={run.learn} messageId={messageId} />}
 
       {run.error && <div className="error-box" role="alert">{t.error}: {run.error}</div>}
       {run.status === "stopped" && <div className="notice">{t.stopped}</div>}

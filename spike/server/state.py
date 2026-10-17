@@ -15,6 +15,7 @@ from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message
 from spike.memory.extract import extract_text
+from spike.memory.learn import correction_rule, explicit_memories
 from spike.memory.service import Embedder, MemoryService, scopes_for
 from spike.memory.store import MemoryStore
 from spike.memory.tools import memory_tools
@@ -52,7 +53,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "skill_mode": "auto",
     # Neural Memory: recall in chats; vectors from a local embedding model when installed ("off" = words only);
     # chat summaries only when the summarising model is local, so memory never spends money
-    "memory": {"enabled": True, "embeddings": "auto", "auto_summary": True},
+    "memory": {"enabled": True, "embeddings": "auto", "auto_summary": True, "learn": True},
     "disabled_skills": [],
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
@@ -241,6 +242,84 @@ class AppState:
         for pid in self.providers_for_run(override_provider):
             if pid not in self.installed_adapters and self.provider_config(pid):
                 await self.refresh_adapters(pid)
+
+    # ------------------------------------------------------------------ learning from the user (Evolution 1)
+    def learn_from(self, message: str, conversation: dict[str, Any], user_message_id: str,
+                   answered_before: bool) -> tuple[dict[str, Any], list[Any]]:
+        """What the user's message teaches: sentences they asked SPIKE to remember are saved now; a correction of
+        the previous answer becomes a proposed rule for them to approve. Returns (meta for the answer, saved)."""
+        cfg = self.memory_settings()
+        if not cfg["enabled"] or not cfg["learn"]:
+            return {}, []
+        scope = scopes_for(conversation.get("project_id"))[0]
+        store, saved, items = self.memory.store, [], []
+        for item in explicit_memories(message):
+            memory = store.find_text(scope, item.kind, item.text)
+            existing = memory is not None
+            if memory is None:
+                memory = store.add(item.text, item.kind, scope, meta={
+                    "by": "user", "from": "message", "conversation": conversation["id"], "message": user_message_id})
+            saved.append(memory)
+            items.append({"id": memory.id, "kind": memory.kind, "text": memory.text, "scope": scope,
+                          **({"existing": True} if existing else {})})
+        learn: dict[str, Any] = {}
+        if items:
+            learn["saved"] = items
+            self.background(self.memory.index())
+        elif answered_before and (proposal := correction_rule(message)):
+            learn["correction"] = {"text": proposal, "status": "proposed"}
+        return learn, saved
+
+    def apply_learning(self, user_message_id: str, action: str, text: str | None = None,
+                       memory_id: str | None = None) -> dict[str, Any]:
+        """The user's answer to a proposed rule (save, with their wording, or dismiss), or undo of a saved item."""
+        message = self.store.get_message(user_message_id)
+        if message is None or message["role"] != "user":
+            raise LookupError("message not found")
+        thread = self.store.messages(message["conversation_id"])
+        after = thread[next(i for i, m in enumerate(thread) if m["id"] == user_message_id) + 1:]
+        answer = next((m for m in after if m["role"] == "assistant"), None)
+        learn = (answer or {}).get("meta", {}).get("learn")
+        if answer is None or not learn:
+            raise ValueError("nothing to learn from this message")
+        conversation = self.store.get_conversation(message["conversation_id"]) or {}
+        scope = scopes_for(conversation.get("project_id"))[0]
+        store, correction = self.memory.store, learn.get("correction")
+        if action in ("save", "dismiss"):
+            if not correction:
+                raise ValueError("this message has no proposed rule")
+            if action == "dismiss":
+                correction["status"] = "dismissed"
+            elif correction["status"] != "saved":
+                wording = (text if text is not None else correction["text"]).strip()
+                if not wording or len(wording) > 2000:
+                    raise ValueError("the rule must be between 1 and 2000 characters")
+                memory = store.find_text(scope, "rule", wording)
+                correction.pop("existing", None)
+                if memory is not None:
+                    correction["existing"] = True  # the user already had this rule: undo leaves it alone
+                else:
+                    memory = store.add(wording, "rule", scope, meta={
+                        "by": "user", "from": "correction", "conversation": message["conversation_id"],
+                        "message": user_message_id})
+                    self.background(self.memory.index())
+                correction.update(status="saved", memory=memory.id, text=wording)
+        elif action == "undo":
+            if correction and memory_id and correction.get("memory") == memory_id:
+                if not correction.pop("existing", False):
+                    store.delete(memory_id)
+                correction["status"] = "proposed"
+                correction.pop("memory", None)
+            else:
+                item = next((s for s in learn.get("saved", []) if s["id"] == memory_id and not s.get("existing")), None)
+                if item is None:
+                    raise LookupError("nothing to undo")
+                store.delete(item["id"])
+                item["undone"] = True
+        else:
+            raise ValueError(f"unknown action '{action}'")
+        self.store.update_message_meta(answer["id"], answer["meta"])
+        return learn
 
     # ------------------------------------------------------------------ memory
     def memory_settings(self) -> dict[str, Any]:

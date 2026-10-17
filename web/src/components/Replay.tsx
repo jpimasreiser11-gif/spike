@@ -19,6 +19,8 @@ function describe(ev: ChatEvent): string {
     case "skill": return `${label} ${(ev.names ?? []).join(", ")}`;
     case "memory": return `${label}: ${(ev.notes ?? []).length + (ev.rules ?? 0)}`;
     case "privacy": return `${label} ${ev.provider}`;
+    case "memory_saved": return `${label}: ${(ev.saved ?? []).map((s: { text: string }) => s.text).join(" · ").slice(0, 70)}`;
+    case "correction": return `${label}: ${String(ev.text).slice(0, 70)}`;
     case "error": return `${label}: ${ev.message}`;
     default: return label;
   }

@@ -58,8 +58,10 @@ acknowledge reports within 7 days.
 - Memory lives in `$SPIKE_HOME/memory.db` on your computer. Deleting a memory removes its text, word index and
   vectors, and SQLite's `secure_delete` overwrites the freed pages. The `remember` tool asks before saving, so a
   page the model read cannot plant a note silently; notes are given to the model as information, and only rules
-  you wrote are presented as instructions. Chat summaries are only made with a local model, and the `/v1` API
-  never receives your memory.
+  you wrote are presented as instructions. Rules come only from your own typed message: "recuerda que…" /
+  "a partir de ahora…" saves at once (shown on the answer, with undo), and a correction only becomes a rule when
+  you press "Guardar regla"; file contents, tool results and web pages never create one. Chat summaries are only
+  made with a local model, and the `/v1` API and the MCP server never receive your memory.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

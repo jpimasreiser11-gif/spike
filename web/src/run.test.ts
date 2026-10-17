@@ -114,3 +114,15 @@ describe("step by step", () => {
     expect(runAt(events, 3).status).toBe("done");
   });
 });
+
+describe("learning from the user", () => {
+  it("keeps what a message saved and the rule proposed from a correction, live and stored", () => {
+    const saved = [{ id: "m1", kind: "rule", text: "Nunca uses emojis.", scope: "global" }];
+    let run = applyEvent(emptyRun(), { type: "memory_saved", saved });
+    expect(run.learn?.saved).toEqual(saved);
+    run = applyEvent(emptyRun(), { type: "correction", text: "El IVA general es del 21 %." });
+    expect(run.learn?.correction).toEqual({ text: "El IVA general es del 21 %.", status: "proposed" });
+    const learn = { correction: { text: "x y z w", status: "saved", memory: "m2" } };
+    expect(runFromStored({ role: "assistant", content: "ok", meta: { learn } } as any).learn).toEqual(learn);
+  });
+});

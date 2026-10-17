@@ -312,6 +312,7 @@ export default function App() {
                   ) : (
                     <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id}
                       providers={providers} onReplay={() => setReplay(it.run.events ?? null)}
+                      messageId={items[i - 1]?.kind === "user" ? (items[i - 1] as { id?: string }).id : undefined}
                       onRetry={!busy && i === items.length - 1 && lastUser === i - 1 && items[lastUser].kind === "user"
                         ? (pid) => send((items[lastUser] as { text: string }).text, lastUser, pid ?? providerId) : undefined} />
                   ),

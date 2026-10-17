@@ -110,6 +110,13 @@ message (BM25 and cosine rankings fused by reciprocal rank) and the orchestrator
 system prompt within a sixth of its context budget. Project files are indexed on upload; every few messages a
 local model summarises the chat into a `summary` memory; `remember` and `recall` tools let Core save and search.
 
+**Learning from the user (Evolution level 1).** `spike/memory/learn.py` reads only the user's own message, with
+fixed patterns (Spanish, English, Catalan) and no model: a sentence starting "recuerda que…", "a partir de
+ahora…", "remember that…" is saved before the run (rule, preference or fact) and named in that run's prompt; a
+message that corrects the previous answer ("No, …", "Te equivocas: …") yields a proposed rule kept in the answer's
+`meta.learn`, which the user saves (with their own wording), dismisses or later undoes through
+`POST /api/messages/{id}/learn`. Rules then reach every later chat through recall.
+
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.
