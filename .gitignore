@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+node_modules/
+web/dist/
+dist/
+build/
+*.egg-info/
+tests/fixtures/out/
+training/runs/
+training/data/
+evals/results/raw/
+.DS_Store
+*.gguf
+*.safetensors

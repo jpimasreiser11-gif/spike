@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spike-ai"
+version = "0.1.0"
+description = "SPIKE: a family of specialist small language models with an orchestrator, built to run on 16 GB CPU-only machines, plus unified external API providers."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "SPIKE contributors" }]
+keywords = ["llm", "local-ai", "llama.cpp", "lora", "multi-agent", "orchestration"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+]
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "httpx>=0.27",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+keyring = ["keyring>=25"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6"]
+train = ["mlx-lm>=0.31; sys_platform == 'darwin'", "datasets>=3", "numpy>=1.26", "safetensors>=0.4"]
+
+[project.scripts]
+spike = "spike.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["spike"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"web/dist" = "spike/server/static"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]

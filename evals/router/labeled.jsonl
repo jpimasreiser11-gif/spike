@@ -1,0 +1,60 @@
+{"split": "dev", "query": "¿Cómo calculo el VAN de un proyecto con flujos de 10k, 12k y 15k y una tasa del 8%?", "labels": ["finance"]}
+{"split": "dev", "query": "Explain the difference between EBITDA and operating cash flow.", "labels": ["finance"]}
+{"split": "dev", "query": "Me duele la cabeza desde hace tres días y tengo fiebre de 38.5, ¿qué puede ser?", "labels": ["medicine"]}
+{"split": "dev", "query": "What is the maximum daily dose of acetaminophen for an adult?", "labels": ["medicine"]}
+{"split": "dev", "query": "Write a Python function that removes duplicates from a list while keeping order.", "labels": ["code"]}
+{"split": "dev", "query": "Tengo este error de compilación en Rust: borrowed value does not live long enough", "labels": ["code"]}
+{"split": "dev", "query": "Escribe un eslogan para una marca de café ecológico dirigida a jóvenes.", "labels": ["marketing"]}
+{"split": "dev", "query": "How should I structure a go-to-market plan for a B2B SaaS product?", "labels": ["marketing"]}
+{"split": "dev", "query": "¿Es legal grabar una llamada sin avisar a la otra persona en España?", "labels": ["law"]}
+{"split": "dev", "query": "Review this contract clause about limitation of liability.", "labels": ["law"]}
+{"split": "dev", "query": "Solve the integral of x^2 * e^x dx.", "labels": ["science"]}
+{"split": "dev", "query": "¿Cuál es la probabilidad de sacar dos ases seguidos de una baraja?", "labels": ["science"]}
+{"split": "dev", "query": "Write a SQL query to get the top 5 customers by revenue from an orders table.", "labels": ["data"]}
+{"split": "dev", "query": "Tengo un CSV con ventas mensuales, ¿cómo hago un análisis de datos de estacionalidad con pandas?", "labels": ["data"]}
+{"split": "dev", "query": "Hola, ¿qué tal estás?", "labels": ["core"]}
+{"split": "dev", "query": "Summarize the main ideas of stoicism in five bullet points.", "labels": ["core"]}
+{"split": "dev", "query": "Plan a marketing campaign for a new ETF and estimate its expected ROI.", "labels": ["marketing", "finance"]}
+{"split": "dev", "query": "Un paciente diabético quiere saber si su seguro médico desgrava en impuestos y qué tratamiento le conviene.", "labels": ["medicine", "finance"]}
+{"split": "dev", "query": "Draft the terms of service for our app and the landing page copy.", "labels": ["law", "marketing"]}
+{"split": "dev", "query": "Build a pandas script that computes the IRR of each investment in my spreadsheet.", "labels": ["data", "finance"]}
+{"split": "test", "query": "What's a reasonable WACC for a mid-cap utility company?", "labels": ["finance"]}
+{"split": "test", "query": "¿Me conviene amortizar la hipoteca o invertir en un fondo indexado?", "labels": ["finance"]}
+{"split": "test", "query": "How do I read a balance sheet to judge whether a company is overleveraged?", "labels": ["finance"]}
+{"split": "test", "query": "Quiero saber cómo tributan los dividendos de acciones extranjeras.", "labels": ["finance"]}
+{"split": "test", "query": "My blood pressure is 160/100, should I worry?", "labels": ["medicine"]}
+{"split": "test", "query": "¿Qué antibiótico se usa normalmente para una infección de orina no complicada?", "labels": ["medicine"]}
+{"split": "test", "query": "What are the early symptoms of type 2 diabetes?", "labels": ["medicine"]}
+{"split": "test", "query": "Explica la farmacología de los betabloqueantes.", "labels": ["medicine"]}
+{"split": "test", "query": "Fix this JavaScript bug: my async function returns undefined.", "labels": ["code"]}
+{"split": "test", "query": "¿Cómo hago un refactor de esta clase de Java para usar inyección de dependencias?", "labels": ["code"]}
+{"split": "test", "query": "Write a Dockerfile for a FastAPI app.", "labels": ["code"]}
+{"split": "test", "query": "Explain this regex: ^(?=.*\\d)[A-Za-z\\d]{8,}$", "labels": ["code"]}
+{"split": "test", "query": "Necesito ideas de publicaciones para redes sociales de una clínica dental.", "labels": ["marketing"]}
+{"split": "test", "query": "What's a good SEO strategy for a local bakery website?", "labels": ["marketing"]}
+{"split": "test", "query": "Write landing page copy that improves conversion for a fitness app.", "labels": ["marketing"]}
+{"split": "test", "query": "¿Cómo reduzco el CAC de mi tienda online?", "labels": ["marketing"]}
+{"split": "test", "query": "Does GDPR apply to a US company with EU customers?", "labels": ["law"]}
+{"split": "test", "query": "¿Qué cláusulas debe tener un contrato de alquiler de vivienda?", "labels": ["law"]}
+{"split": "test", "query": "Can I use a song in my YouTube video under fair use? Copyright question.", "labels": ["law"]}
+{"split": "test", "query": "Mi casero quiere quedarse la fianza, ¿puedo poner una demanda?", "labels": ["law"]}
+{"split": "test", "query": "Prove that the square root of 2 is irrational.", "labels": ["science"]}
+{"split": "test", "query": "Calcula la derivada de sin(x)/x.", "labels": ["science"]}
+{"split": "test", "query": "Balance this chemistry reaction: Fe + O2 -> Fe2O3", "labels": ["science"]}
+{"split": "test", "query": "Explain quantum entanglement simply.", "labels": ["science"]}
+{"split": "test", "query": "Write a SQL join between users and orders that also shows users with no orders.", "labels": ["data"]}
+{"split": "test", "query": "¿Cómo diseño un dashboard de KPIs para un equipo de ventas?", "labels": ["data"]}
+{"split": "test", "query": "Clean this dataset in pandas: missing values and duplicated rows.", "labels": ["data"]}
+{"split": "test", "query": "Diseña el esquema de base de datos para una app de reservas.", "labels": ["data"]}
+{"split": "test", "query": "Tell me a fun fact about octopuses.", "labels": ["core"]}
+{"split": "test", "query": "Write a short poem about autumn.", "labels": ["core"]}
+{"split": "test", "query": "¿Qué hora es en Tokio si en Madrid son las 10?", "labels": ["core"]}
+{"split": "test", "query": "Translate 'good morning' into French, German and Italian.", "labels": ["core"]}
+{"split": "test", "query": "Help me plan a weekly study schedule.", "labels": ["core"]}
+{"split": "test", "query": "Analyze our startup: SaaS pricing, the marketing funnel and the cash flow runway.", "labels": ["finance", "marketing"]}
+{"split": "test", "query": "A patient asks about a drug's side effects and whether the pharma company can be sued for liability.", "labels": ["medicine", "law"]}
+{"split": "test", "query": "Escribe código Python que calcule la cuota de una hipoteca a 30 años.", "labels": ["code", "finance"]}
+{"split": "test", "query": "Write a SQL query for monthly revenue and then explain the inflation-adjusted growth.", "labels": ["data", "finance"]}
+{"split": "test", "query": "Necesito una campaña de publicidad para un medicamento sin receta que cumpla la normativa.", "labels": ["marketing", "medicine", "law"]}
+{"split": "test", "query": "Estimate statistics for a clinical trial: what sample size do I need for the probability of detecting the effect?", "labels": ["science", "medicine"]}
+{"split": "test", "query": "Create a GDPR-compliant newsletter signup flow and write the code for it.", "labels": ["law", "marketing", "code"]}
