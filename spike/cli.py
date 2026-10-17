@@ -209,6 +209,11 @@ def cmd_forge(args: argparse.Namespace) -> int:
 
     async def run() -> int:
         state = AppState()
+        if args.provider and not state.provider_config(args.provider):
+            print(f"error: unknown provider '{args.provider}' (see Settings → Providers)", file=sys.stderr)
+            return 2
+        if args.model:
+            state.update_settings({"local_runtime": {**state.settings()["local_runtime"], "model": args.model}})
         try:
             if args.start_local:
                 await state.start_runtime()
@@ -226,6 +231,8 @@ def cmd_forge(args: argparse.Namespace) -> int:
 
             report = await evaluate.evaluate(base, tasks, modes, meta, progress)
         finally:
+            if args.start_local:
+                await state.stop_runtime()
             await state.close()
         for mode, s in report["summary"].items():
             print(f"{mode:<8} {s['passed']}/{s['n']} = {s['rate']:.0%}  (95 % CI {s['ci95'][0]:.0%}–{s['ci95'][1]:.0%})")
@@ -397,7 +404,8 @@ def build_parser() -> argparse.ArgumentParser:
     fg.add_argument("--baseline", action="store_true", help="also run each task with the core model alone")
     fg.add_argument("--only", help="comma-separated task ids")
     fg.add_argument("--tasks", help="another tasks file (JSONL)")
-    fg.add_argument("--start-local", action="store_true", help="start the local engine first")
+    fg.add_argument("--start-local", action="store_true", help="start the local engine first (and stop it after)")
+    fg.add_argument("--model", help="GGUF for the local engine (saved as the local model, as `spike tune` does)")
     fg.add_argument("--out", help="write the JSON report here")
     fg.set_defaults(func=cmd_forge)
 

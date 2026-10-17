@@ -169,7 +169,7 @@ async def run_task(base: Orchestrator, task: dict[str, Any], mode: str, folder: 
             core = base.resolve(base.catalog.core)
             candidates = [c for c in base.router.route(task["prompt"]).specialists if c != "core"]
             bp = await make_blueprint(core.provider, base.catalog, task["prompt"], candidates, model=core.model)
-            extra = {"blueprint": bp.method, "steps": len(bp.steps)}
+            extra = {"blueprint": bp.method, "steps": len(bp.steps), **({"note": bp.note} if bp.note else {})}
             opts = OrchestratorOptions(forge=bp)
         else:
             opts = OrchestratorOptions(mode="core", use_planner=False)
