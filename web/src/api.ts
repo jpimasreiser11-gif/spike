@@ -6,11 +6,11 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, extra?: Record<string, string>): Promise<T> {
   const raw = body instanceof Blob;
   const res = await fetch(path, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": raw ? "application/octet-stream" : "application/json" },
+    headers: body === undefined ? extra : { "Content-Type": raw ? "application/octet-stream" : "application/json", ...extra },
     body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
   if (!res.ok) {
@@ -28,7 +28,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
-  post: <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {}),
+  post: <T>(path: string, body?: unknown, headers?: Record<string, string>) => request<T>("POST", path, body ?? {}, headers),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   /** Sends a file (Blob) as the raw request body. */
   upload: <T>(method: "PUT" | "POST", path: string, file: Blob) => request<T>(method, path, file),

@@ -103,8 +103,9 @@ async def run_agent(
         for call in calls:
             yield {"type": "tool_call", "id": call.id, "name": call.name, "arguments": call.arguments, **tag}
             tool = by_name.get(call.name)
-            # a workspace file the tool wrote; parts of the result that are file contents; the copy kept to undo it
-            file, private, checkpoint = None, [], None
+            # a workspace file the tool wrote; parts of the result that are file contents; the copy kept to undo it;
+            # something for the app to show (a real-order proposal to confirm)
+            file, private, checkpoint, ui = None, [], None, None
             if tool is None:
                 result_text, ok = f"error: tool '{call.name}' is not available to this specialist", False
             elif tool.name == AskUser.name:
@@ -143,12 +144,12 @@ async def run_agent(
                     if decision == "deny":
                         result_text, ok = "error: the user denied this tool call", False
                     else:
-                        result_text, ok, file, private, checkpoint = await _execute(tool, call, checkpoints)
+                        result_text, ok, file, private, checkpoint, ui = await _execute(tool, call, checkpoints)
                 else:
-                    result_text, ok, file, private, checkpoint = await _execute(tool, call, checkpoints)
+                    result_text, ok, file, private, checkpoint, ui = await _execute(tool, call, checkpoints)
             yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000],
                    **({"file": file} if file else {}), **({"checkpoint": checkpoint} if checkpoint and ok else {}),
-                   **tag}
+                   **({"ui": ui} if ui else {}), **tag}
             tool_msg = Message(role="tool", content=result_text, tool_call_id=call.id, name=call.name, private=private)
             history.append(tool_msg)
             run.messages.append(tool_msg)
@@ -157,16 +158,17 @@ async def run_agent(
     yield {"type": "error", "message": run.error, **tag}
 
 
-async def _execute(tool: Tool, call: ToolCall,
-                   checkpoints: Checkpointer | None) -> tuple[str, bool, str | None, list[str], str | None]:
+async def _execute(tool: Tool, call: ToolCall, checkpoints: Checkpointer | None
+                   ) -> tuple[str, bool, str | None, list[str], str | None, dict[str, Any] | None]:
     checkpoint = checkpoints.before(call.id, tool.name, tool.targets(call.arguments)) if checkpoints else None
     try:
         result = await tool.run(call.arguments)
     except Exception as exc:  # a tool bug must not kill the conversation
-        return f"error: {exc.__class__.__name__}: {exc}", False, None, [], None
+        return f"error: {exc.__class__.__name__}: {exc}", False, None, [], None, None
     finally:
         if checkpoint and checkpoints:
             checkpoints.after(checkpoint)
     file = result.data.get("file") if result.ok else None
+    ui = result.data.get("ui") if result.ok and isinstance(result.data.get("ui"), dict) else None
     return (result.content, result.ok, file if isinstance(file, str) else None, [p for p in result.private if p],
-            checkpoint)
+            checkpoint, ui)

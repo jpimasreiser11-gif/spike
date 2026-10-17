@@ -26,6 +26,10 @@ from spike.contracts import schema_error
 from spike.core.types import Message
 from spike.design.library import MAX_ZIP as MAX_DESIGN_BYTES
 from spike.design.library import DesignError, preview_html
+from spike.finance.backtest import STRATEGIES
+from spike.finance.live import LiveError
+from spike.finance.market import EXCHANGES
+from spike.finance.paper import PaperError
 from spike.forge.blueprint import from_user as blueprint_from_user
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
@@ -37,6 +41,7 @@ from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
 from spike.server.openai_api import ApiError, check_access, create_router
+from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.state import AppState
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
@@ -190,6 +195,21 @@ class DecisionIn(BaseModel):
 class BranchIn(BaseModel):
     before: str  # a user message: the new chat gets everything before it
     title: str | None = Field(default=None, max_length=300)
+
+
+class LiveKeyIn(BaseModel):
+    exchange: str
+    api_key: str = Field(min_length=1, max_length=512)
+    secret: str = Field(min_length=1, max_length=2048)
+
+
+class LiveConfirmIn(BaseModel):
+    id: str  # the order's id again, so a request without a body cannot confirm anything
+
+
+class PaperResetIn(BaseModel):
+    cash: float = Field(default=10_000, gt=0, le=1e12)
+    quote: str = Field(default="USDT", pattern=r"^[A-Za-z0-9]{1,15}$")
 
 
 class ConversationPatch(BaseModel):
@@ -595,11 +615,123 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         return st().settings()
 
     @app.put("/api/settings")
-    async def put_settings(patch: dict[str, Any]) -> dict:
+    async def put_settings(patch: dict[str, Any], request: Request) -> dict:
+        if isinstance(patch.get("finance"), dict) and "live" in patch["finance"]:
+            this_computer(request, "real-order settings")
         try:
             return st().update_settings(patch)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
+
+    # ---------------------------------------------------------------- finance
+    def this_computer(request: Request, what: str) -> None:
+        """Real orders are set up and confirmed only from this computer's browser: not from another machine on
+        the network (`spike serve --host 0.0.0.0` has no login) and not from another web site."""
+        client = request.client.host if request.client else ""
+        if not _loopback(client):
+            raise HTTPException(403, f"{what} can only be changed on the computer SPIKE runs on")
+        origin = request.headers.get("origin")
+        if origin and urlsplit(origin).netloc.lower() != request.headers.get("host", "").lower():
+            raise HTTPException(403, "request refused: it comes from another web site")
+
+    def live_or_400(fn, *args):
+        try:
+            return fn(*args)
+        except (LiveError, ValueError) as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    async def paper_view() -> dict:
+        fin = st().finance
+        st_ = fin.paper.state()
+        quote = st_["start"].get("quote", "USDT")
+        symbols = {o["symbol"] for o in fin.paper.orders(status="open")} | \
+            {f"{a}/{quote}" for a, q in st_["balances"].items() if q and a != quote}
+        prices, error = {}, None
+        for symbol in sorted(symbols):
+            try:
+                prices.update(await fin.prices({symbol}))
+            except Exception as exc:  # offline: show the balances without a value
+                error = str(exc)[:300]
+        filled = fin.paper.refresh(prices)
+        return {"valuation": fin.paper.valuation(prices), "balances": fin.paper.state()["balances"],
+                "start": fin.paper.state()["start"], "orders": fin.paper.orders(limit=50), "just_filled": filled,
+                "price_error": error}
+
+    @app.get("/api/finance")
+    async def finance_info() -> dict:
+        fin = st().finance
+        return {"settings": st().settings()["finance"], "exchanges": EXCHANGES, "strategies": STRATEGIES,
+                "live": live_or_400(fin.live.status), "live_orders": fin.live.orders(20),
+                "paper": {"balances": fin.paper.state()["balances"], "start": fin.paper.state()["start"]}}
+
+    @app.get("/api/finance/paper")
+    async def finance_paper() -> dict:
+        return await paper_view()
+
+    @app.post("/api/finance/paper/reset")
+    async def finance_paper_reset(body: PaperResetIn) -> dict:
+        try:
+            st().finance.paper.reset(body.cash, body.quote)
+        except PaperError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return await paper_view()
+
+    @app.post("/api/finance/paper/orders/{oid}/cancel")
+    async def finance_paper_cancel(oid: str) -> dict:
+        try:
+            return st().finance.paper.cancel(oid)
+        except PaperError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.put("/api/finance/live/key")
+    async def finance_live_key(body: LiveKeyIn, request: Request) -> dict:
+        this_computer(request, "exchange keys")
+        live_or_400(st().finance.live.set_key, body.exchange, body.api_key, body.secret)
+        return live_or_400(st().finance.live.status)  # never the key itself
+
+    @app.delete("/api/finance/live/key/{exchange}")
+    async def finance_live_key_delete(exchange: str, request: Request) -> dict:
+        this_computer(request, "exchange keys")
+        st().finance.live.delete_key(exchange)
+        return live_or_400(st().finance.live.status)
+
+    @app.post("/api/finance/live/check")
+    async def finance_live_check(request: Request) -> dict:
+        this_computer(request, "exchange keys")
+        try:
+            result = await st().finance.live.check_key()
+        except (LiveError, ValueError) as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return {**result, "status": st().finance.live.status()}
+
+    @app.get("/api/finance/live/orders")
+    async def finance_live_orders() -> list[dict]:
+        return st().finance.live.orders(50)
+
+    @app.get("/api/finance/live/orders/{oid}")
+    async def finance_live_order(oid: str) -> dict:
+        try:
+            return st().finance.live.get(oid)
+        except LiveError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.post("/api/finance/live/orders/{oid}/confirm")
+    async def finance_live_confirm(oid: str, body: LiveConfirmIn, request: Request) -> dict:
+        """The user's click on a proposed real order: the only way one reaches the exchange."""
+        this_computer(request, "real orders")
+        if request.headers.get("x-spike-confirm") != oid or body.id != oid:
+            raise HTTPException(400, "a confirmation must name the order in the body and the X-Spike-Confirm header")
+        try:
+            return await st().finance.live.confirm(oid)
+        except (LiveError, ValueError) as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+    @app.post("/api/finance/live/orders/{oid}/cancel")
+    async def finance_live_cancel(oid: str) -> dict:
+        try:
+            return st().finance.live.cancel(oid)
+        except LiveError as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     # ---------------------------------------------------------------- projects
     def project_or_404(pid: str) -> dict:

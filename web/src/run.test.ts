@@ -196,3 +196,16 @@ describe("design systems", () => {
     expect(runFromStored({ id: "m2", role: "assistant", content: "ok", created: 0, meta: {} } as any).design).toBeUndefined();
   });
 });
+
+describe("real order proposals", () => {
+  it("keeps the order card's data live and after a reload", () => {
+    const order = { id: "o1", symbol: "BTC/USDT", side: "buy", amount: 0.001, status: "proposed", sandbox: true };
+    const call = { type: "tool_call", id: "c1", name: "propose_live_order", arguments: { symbol: "BTC/USDT" } };
+    const result = { type: "tool_result", id: "c1", name: "propose_live_order", ok: true, content: "Proposed, NOT placed", ui: { kind: "live_order", order } };
+    const live = applyEvent(applyEvent(emptyRun(), call), result);
+    expect(live.tools[0].ui).toEqual({ kind: "live_order", order });
+    const stored = runFromStored({ id: "m1", role: "assistant", content: "ok", created: 0, meta: { tools: [call, result] } } as any);
+    expect(stored.tools[0].ui?.order.id).toBe("o1");
+    expect(applyEvent(applyEvent(emptyRun(), call), { ...result, ui: undefined }).tools[0].ui).toBeUndefined();
+  });
+});

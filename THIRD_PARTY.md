@@ -108,6 +108,9 @@ Not listed: the SQLite reference server (archived upstream with "no security gua
 | psutil | 7.2.2 | BSD-3-Clause |
 | numpy | 2.5.4 | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) |
 | keyring (optional) | 25.7.0 | MIT |
+| ccxt (optional, `finance` extra: market data and real orders; also used by the tests' development install) | 4.5.88 | MIT |
+| aiohttp, aiohappyeyeballs, aiosignal, frozenlist, multidict, propcache, yarl, attrs, aiohttp-fast-zlib, zlib-ng (pulled in by ccxt) | 3.14.5, 2.7.1, 1.4.0, 1.8.0, 6.9.1, 0.5.2, 1.25.1, 26.1.0, 0.3.0, 1.0.0 | Apache-2.0 AND MIT, PSF-2.0, Apache-2.0, Apache-2.0, Apache-2.0, Apache-2.0, Apache-2.0, MIT, Apache-2.0, PSF-2.0 |
+| requests, urllib3, idna, certifi, cryptography, cffi, pycparser, orjson, coincurve, uvloop (pulled in by ccxt) | 2.34.2, 2.8.0, 3.18, 2026.7.22, 50.0.2, 2.0.0, 3.0, 3.13.0, 21.0.0, 0.22.1 | Apache-2.0, MIT, BSD-3-Clause, MPL-2.0, Apache-2.0 OR BSD-3-Clause, MIT, BSD-3-Clause, MPL-2.0 AND (Apache-2.0 OR MIT), MIT OR Apache-2.0, MIT |
 | pytest, pytest-asyncio, ruff (development only) | — | MIT |
 | openai (development only: tests of the `/v1` API) | 3.33.0 | Apache-2.0 |
 | mcp (development only: builds the MCP server the connector tests run against) | 2.3.0 | MIT |

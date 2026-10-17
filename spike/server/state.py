@@ -19,6 +19,9 @@ from spike.design.library import DesignLibrary
 from spike.evolution.router_learning import apply_overlay
 from spike.evolution.service import Evolution
 from spike.evolution.store import EvolutionStore
+from spike.finance import live as live_trading
+from spike.finance.market import EXCHANGES, ccxt_exchange
+from spike.finance.tools import Finance, finance_tools
 from spike.forge.blueprint import Blueprint, make_blueprint
 from spike.memory.extract import extract_text
 from spike.memory.learn import correction_rule, explicit_memories
@@ -41,7 +44,7 @@ from spike.store.checkpoints import Checkpoints
 from spike.store.db import Store
 from spike.store.secrets import SecretStore
 from spike.tools.base import PermissionBroker, ToolRegistry
-from spike.tools.builtin import default_registry
+from spike.tools.builtin import Workspace, default_registry
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "custom_instructions": "",
@@ -66,6 +69,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "evolution": {"enabled": True, "auto_router": True},
     # the browser connector's domains ("allow" | "deny") and what other domains do ("ask" | "allow")
     "browser": {"domains": {}, "unknown": "ask"},
+    # Spike Finance: public prices from this exchange; real orders off until the user sets them up
+    "finance": {"exchange": "kraken", "live": dict(live_trading.DEFAULTS)},
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
 }
@@ -80,8 +85,17 @@ SUMMARY_PROMPT = (
 log = logging.getLogger(__name__)
 
 
+def clean_finance(value: dict[str, Any]) -> dict[str, Any]:
+    unknown = set(value) - {"exchange", "live"}
+    if unknown:
+        raise ValueError(f"unknown finance settings: {sorted(unknown)}")
+    if value.get("exchange") not in EXCHANGES:
+        raise ValueError(f"exchange must be one of {', '.join(EXCHANGES)}")
+    return {"exchange": value["exchange"], "live": live_trading.clean(value.get("live") or {})}
+
+
 class AppState:
-    def __init__(self, home: Path | None = None, provider_factory=create_provider):
+    def __init__(self, home: Path | None = None, provider_factory=create_provider, market_factory=ccxt_exchange):
         self.home = home or spike_home()
         self.store = Store(self.home / "spike.db")
         self.temp = Store(Path(":memory:"))  # temporary chats: never on disk, gone when SPIKE stops
@@ -100,8 +114,9 @@ class AppState:
         self._summarized: dict[str, int] = {}
         self._background: set[asyncio.Task] = set()
         self._tuning = asyncio.Lock()
+        self.finance = Finance(self.home, self.secrets, lambda: self.settings()["finance"], market_factory)
         self.tools = default_registry(workspace_dir())
-        for tool in memory_tools(self.memory, None):
+        for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, Workspace(workspace_dir()))]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -126,6 +141,13 @@ class AppState:
             raise ValueError(f"unknown settings: {sorted(unknown)}")
         if "browser" in patch:
             patch = {**patch, "browser": browser.clean(patch["browser"])}
+        if "finance" in patch:
+            now, given = self.settings()["finance"], patch["finance"]
+            if not isinstance(given, dict):
+                raise ValueError("'finance' must be an object")
+            live = {**now.get("live", {}), **given["live"]} if isinstance(given.get("live"), dict) else given.get(
+                "live", now.get("live"))
+            patch = {**patch, "finance": clean_finance({**now, **given, "live": live})}
         for key, value in patch.items():
             self.store.set_setting(key, value)
         if "tool_policies" in patch:
@@ -224,8 +246,9 @@ class AppState:
         if not project_id:
             return self.tools
         if project_id not in self._project_tools:
-            registry = default_registry(self.project_files.folder(project_id))
-            for tool in memory_tools(self.memory, project_id):
+            folder = self.project_files.folder(project_id)
+            registry = default_registry(folder)
+            for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, Workspace(folder))]:
                 registry.register(tool)
             registry.shared = self.connectors.tools
             self._project_tools[project_id] = registry
@@ -514,6 +537,7 @@ class AppState:
         if self.embed_server:
             await self.embed_server.stop()
         await self.connectors.close_all()
+        self.finance.close()
 
     # ------------------------------------------------------------------ local runtime
     def runtime_config(self) -> ServerConfig:

@@ -139,7 +139,10 @@ class Orchestrator:
         if not opts.tools_enabled:
             return []
         tools = self.tools.subset(spec.tools) + self.tools.shared_tools()
-        return tools if self.broker.interactive else [t for t in tools if t.name != "ask_user"]  # nobody to ask
+        if self.broker.interactive:
+            return tools
+        # nobody to ask, and nobody to confirm a real order
+        return [t for t in tools if t.name != "ask_user" and not getattr(t, "interactive_only", False)]
 
     def _skills_for(self, spec: Specialist, backend: Backend, text: str,
                     opts: OrchestratorOptions) -> tuple[str, list[Tool], Event | None]:

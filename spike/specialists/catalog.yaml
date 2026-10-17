@@ -66,7 +66,8 @@ specialists:
     adapter: spike-finance
     adapter_status: planned
     sensitive: true
-    tools: [ask_user, calculator, python, read_file, list_dir, web_fetch, create_xlsx, create_pdf]
+    tools: [ask_user, calculator, python, read_file, list_dir, web_fetch, create_xlsx, create_pdf, market_price,
+            market_history, backtest, portfolio_risk, paper_order, paper_portfolio, propose_live_order]
     keywords:
       finance: 3
       financial: 3

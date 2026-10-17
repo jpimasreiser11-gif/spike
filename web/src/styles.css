@@ -483,3 +483,16 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .design-card .swatches { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
 .swatch { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.12); display: inline-block; }
 .design-frame { width: 100%; height: 360px; border: 1px solid var(--border); border-radius: 10px; margin-top: 10px; background: #fff; }
+/* Spike Finance: a proposed real order waits for the user's click */
+.live-order { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.live-order.real { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+.live-order-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.live-order-body { font-size: 14px; }
+.side { font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: .03em; }
+.side-buy { color: var(--green-dark); }
+.side-sell { color: var(--danger); }
+.badge.status-placed { background: var(--accent-soft); color: var(--green-dark); border-color: var(--ground); }
+.badge.status-failed, .badge.status-expired, .badge.status-cancelled { color: var(--text-3); }
+.live-settings ul { margin: 4px 0 0; padding-left: 18px; }
+.form .label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.check > .grow { flex: 1 1 0; min-width: 0; }

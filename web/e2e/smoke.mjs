@@ -340,6 +340,45 @@ await page.screenshot({ path: `${out}/07m-design-artifact.png` });
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
 await page.getByLabel("Diseño", { exact: true }).selectOption("");
 
+// Spike Finance: a paper trade, then a real order that is off until set up and only sent on the user's click
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.getByLabel("Especialista", { exact: true }).selectOption("finance");
+await page.locator("#composer-input").fill("Compra 0,01 BTC en paper");
+await page.keyboard.press("Enter");
+await page.getByText("en la cuenta simulada").waitFor({ timeout: 10000 });
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Finanzas" }).click();
+await page.locator(".chip", { hasText: "BTC 0,01" }).waitFor({ timeout: 5000 });
+const liveCard = page.locator(".live-settings");
+await liveCard.getByText("Las órdenes reales están apagadas").waitFor();
+await liveCard.getByLabel("Permitir proponer órdenes reales").check();
+await liveCard.getByLabel("Exchange", { exact: true }).selectOption("binance");
+await liveCard.getByLabel("Confirmo que la clave NO puede retirar fondos", { exact: false }).check();
+await liveCard.getByLabel("Mercados permitidos", { exact: false }).fill("BTC/USDT");
+await liveCard.getByRole("button", { name: "Guardar", exact: true }).click();
+await liveCard.locator(".flash-box", { hasText: "Guardado" }).waitFor({ timeout: 5000 });
+await page.locator(".live-settings").getByLabel("API key").fill("e2e-key");
+await page.locator(".live-settings").getByLabel("Secreto").fill("e2e-secret");
+await page.locator(".live-settings").getByRole("button", { name: "Guardar clave" }).click();
+await page.locator(".live-settings").getByText("Listo: cada orden necesitará tu clic", { exact: false }).waitFor({ timeout: 5000 });
+const settingsText = await (await fetch(`${base}/api/settings`)).text();
+if (settingsText.includes("e2e-secret")) fail("the exchange secret is in the settings");
+await page.screenshot({ path: `${out}/07n-finance-settings.png`, fullPage: true });
+await page.keyboard.press("Escape");
+await page.locator("#composer-input").fill("Haz una orden real: compra 0,001 BTC");
+await page.keyboard.press("Enter");
+const order = page.locator(".live-order");
+await order.getByText("esperando tu confirmación").waitFor({ timeout: 10000 });
+let placed = await (await fetch(`${base}/api/finance/live/orders`)).json();
+if (placed[0].status !== "proposed") fail("the proposal was sent before the click: " + placed[0].status);
+await order.getByRole("button", { name: "Confirmar" }).click();
+await order.getByRole("button", { name: "Sí, enviar" }).click();
+await order.getByText("enviada", { exact: true }).waitFor({ timeout: 5000 });
+placed = await (await fetch(`${base}/api/finance/live/orders`)).json();
+if (placed[0].status !== "placed" || !placed[0].result.includes("E2E-1")) fail("the confirmed order was not placed");
+await page.screenshot({ path: `${out}/07o-live-order.png` });
+await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
+
 // documents: the Word tool asks first, then its file is offered as a download
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();

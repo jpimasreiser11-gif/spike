@@ -109,6 +109,16 @@ class DemoProvider(Provider):
                               arguments={"url": "https://www.boe.es/buscar"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "en paper" in last.content.lower() and "paper_order" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c6", name="paper_order", arguments={
+                "symbol": "BTC/USDT", "side": "buy", "amount": 0.01}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "orden real" in last.content.lower() and "propose_live_order" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c7", name="propose_live_order", arguments={
+                "symbol": "BTC/USDT", "side": "buy", "amount": 0.001}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "factura" in last.content.lower() and "ask_user" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c3", name="ask_user", arguments={
                 "question": "¿Para qué país es la factura?", "options": ["España", "Francia"]}))
@@ -126,6 +136,10 @@ class DemoProvider(Provider):
             answer = "Aquí tienes la página:\n\n```html\n" + PROBE_PAGE + "\n```"
         elif last.role == "user" and "# Project instructions" in system:
             answer = "Respuesta del proyecto: sigo sus instrucciones y uso sus archivos."
+        elif last.role == "tool" and last.name == "paper_order":
+            answer = "Comprados **0,01 BTC** en la cuenta simulada, con comisión y deslizamiento."
+        elif last.role == "tool" and last.name == "propose_live_order":
+            answer = "Te he propuesto la orden. **No se ha enviado**: confírmala en la tarjeta si la quieres."
         elif last.role == "tool":
             answer = f"He creado el archivo. Resultado de la herramienta: `{last.content}`"
         elif "Spike Finance" in system.split("\n")[0]:
@@ -156,6 +170,36 @@ class ScriptedBrowser:
         return CallResult(text=f"Page URL: {args.get('url')}\nPage Title: BOE", is_error=False)
 
 
+class ScriptedExchange:
+    """Stands in for a ccxt exchange (the real library is tested in tests/test_finance.py with fakes too): fixed
+    prices, a test network, and orders recorded instead of sent anywhere."""
+
+    PRICES = {"BTC/USDT": 50_000.0, "ETH/USDT": 2_500.0}
+    ORDERS: list = []
+
+    def __init__(self, exchange_id, config=None):
+        self.id = exchange_id
+
+    def set_sandbox_mode(self, on):
+        pass
+
+    async def fetch_ticker(self, symbol):
+        return {"last": self.PRICES.get(symbol, 100.0), "percentage": 1.2, "timestamp": None}
+
+    async def fetch_ohlcv(self, symbol, timeframe, since, limit):
+        return []
+
+    async def fetch_balance(self):
+        return {"total": {}}
+
+    async def create_order(self, symbol, type_, side, amount, price=None):
+        self.ORDERS.append((symbol, side, amount))
+        return {"id": f"E2E-{len(self.ORDERS)}", "status": "closed", "filled": amount, "average": 50_010.0}
+
+    async def close(self):
+        pass
+
+
 async def scripted_tuner(model, quick=False):
     """Stands in for spike.tune in UI tests (the real one is tested against llama-server in tests/test_tune.py)."""
     yield {"type": "tune_start", "threads": [4, 2], "gpu_layers": 0, "prompt": 256, "gen": 32}
@@ -173,7 +217,7 @@ def main() -> None:
     os.environ["SPIKE_HOME"] = str(home)
     os.environ["SPIKE_WORKSPACE"] = str(home / "ws")
     os.environ["SPIKE_NO_KEYRING"] = "1"
-    state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg))
+    state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
     model = home / "models" / "scripted.gguf"  # only checked for existence: the tuner below is scripted too
     model.parent.mkdir(parents=True, exist_ok=True)
     model.write_bytes(b"GGUF")

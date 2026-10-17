@@ -81,7 +81,7 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
       const i = state.tools.findIndex((t) => t.id === ev.id && t.result === undefined); // ids can repeat across turns
       if (i < 0) return state;
       const tools = state.tools.slice();
-      tools[i] = { ...tools[i], result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone };
+      tools[i] = { ...tools[i], result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone, ui: ev.ui };
       return { ...state, tools };
     }
     case "permission_request":
@@ -177,7 +177,7 @@ export function runFromStored(m: StoredMessage): RunState {
     if (ev.type === "tool_call") run.tools.push({ id: ev.id, name: ev.name, arguments: ev.arguments, specialist: ev.specialist });
     if (ev.type === "tool_result") {
       const t = run.tools.find((x) => x.id === ev.id && x.result === undefined); // ids can repeat across turns
-      if (t) Object.assign(t, { result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone });
+      if (t) Object.assign(t, { result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone, ui: ev.ui });
     }
   }
   return run;

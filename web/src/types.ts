@@ -104,6 +104,39 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
+  ui?: { kind: "live_order"; order: LiveOrder }; // something to act on, such as a real order to confirm
+};
+
+/** A real exchange order a specialist proposed; only the user's click in the app places it. */
+export type LiveOrder = {
+  id: string; created: number; exchange: string; sandbox: boolean; symbol: string; side: "buy" | "sell";
+  type: "market" | "limit"; amount: number; price: number | null; est_price: number; notional: number;
+  status: "proposed" | "sending" | "placed" | "failed" | "cancelled" | "expired"; decided: number | null; result: string;
+};
+
+export type LiveSettings = {
+  enabled: boolean; exchange: string; sandbox: boolean; no_withdrawal: boolean; max_order: number; max_day: number; symbols: string[];
+};
+
+export type LiveStatus = LiveSettings & {
+  has_key: boolean; spent_today: number; withdrawals: "yes" | "no" | null; problems: string[]; problem_codes: string[]; testnets: string[];
+};
+
+export type PaperOrder = {
+  id: string; created: number; exchange: string; symbol: string; side: string; type: string; amount: number;
+  limit_price: number | null; status: string; fill_price: number | null; fee: number | null; note: string;
+};
+
+export type PaperView = {
+  valuation: { quote: string; positions: { asset: string; quantity: number; price: number; value: number }[]; total: number;
+    start_cash: number; pnl: number | null; pnl_pct: number | null; unpriced: string[] };
+  balances: Record<string, number>; start: { cash: number; quote: string; time: number }; orders: PaperOrder[];
+  price_error: string | null;
+};
+
+export type FinanceInfo = {
+  settings: { exchange: string; live: LiveSettings }; exchanges: string[]; strategies: Record<string, Record<string, number>>;
+  live: LiveStatus; live_orders: LiveOrder[];
 };
 
 export type PermissionState = {
@@ -188,6 +221,7 @@ export type Settings = {
   disabled_skills: string[];
   memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean; learn?: boolean };
   evolution?: { enabled: boolean; auto_router: boolean };
+  finance?: { exchange: string; live: LiveSettings };
 };
 
 export type Checks = { include?: string[]; exclude?: string[] };
