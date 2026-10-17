@@ -25,6 +25,13 @@ acknowledge reports within 7 days.
   permission by default. `web_fetch` refuses private, loopback and link-local addresses and redirects.
   The Python tool runs in a separate process with CPU, memory (Linux) and time limits but **without network
   isolation**; treat "allow always" for it as granting code execution on your machine.
+- Connectors (MCP servers): enabling a stdio connector runs its command on your computer (the app shows the exact
+  command first; catalog entries pin a reviewed version). Their tools ask for permission by default. A server
+  process receives only the variables it needs to start plus its own secrets, never SPIKE's token or provider
+  keys. Connector secrets are stored like provider keys and never returned by the API.
+- Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
+  uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
+  and size before anything is written.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -36,16 +37,22 @@ class Tool(ABC):
 
 
 class ToolRegistry:
-    def __init__(self, tools: list[Tool] | None = None):
+    """Built-in tools, plus `shared` ones (connector tools) that every specialist gets while they are running."""
+
+    def __init__(self, tools: list[Tool] | None = None, shared: Callable[[], list[Tool]] | None = None):
         self._tools: dict[str, Tool] = {}
+        self.shared = shared
         for tool in tools or []:
             self.register(tool)
 
     def register(self, tool: Tool) -> None:
         self._tools[tool.name] = tool
 
+    def shared_tools(self) -> list[Tool]:
+        return [t for t in (self.shared() if self.shared else []) if t.name not in self._tools]
+
     def get(self, name: str) -> Tool | None:
-        return self._tools.get(name)
+        return self._tools.get(name) or next((t for t in self.shared_tools() if t.name == name), None)
 
     def names(self) -> list[str]:
         return sorted(self._tools)
@@ -54,7 +61,7 @@ class ToolRegistry:
         return [self._tools[n] for n in names if n in self._tools]
 
     def all(self) -> list[Tool]:
-        return [self._tools[n] for n in self.names()]
+        return [self._tools[n] for n in self.names()] + sorted(self.shared_tools(), key=lambda t: t.name)
 
 
 @dataclass

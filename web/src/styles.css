@@ -307,3 +307,13 @@ button.chip:hover, .chip.selected { border-color: var(--spec, var(--green-shade)
 .modal.small { width: min(560px, 100%); height: auto; max-height: 100%; }
 .form.padded { padding: 16px 18px 18px; overflow-y: auto; }
 .row.end { align-items: center; }
+
+/* connectors */
+.connector .card-head { flex-wrap: wrap; }
+.badge.warn { color: var(--warn); }
+.confirm-box { border: 1px dashed var(--border-strong); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; margin: 6px 0; }
+code.cmd { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; background: var(--surface-2); border-radius: 8px; padding: 6px 8px; }
+.field.inline { display: flex; align-items: center; gap: 10px; max-width: 420px; }
+.field.inline select { width: auto; }
+.btn.align-end { align-self: flex-end; }
+.error-box.small-pre { white-space: pre-wrap; font-size: 12.5px; max-height: 9em; overflow: auto; }

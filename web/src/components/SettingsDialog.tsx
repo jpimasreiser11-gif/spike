@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
 import type { Preset, ProviderInfo, Settings, Specialist, ToolInfo } from "../types";
+import { Connectors } from "./Connectors";
 import { IconClose, IconTrash } from "./Icons";
 import { SpecMark } from "./SpecMark";
 
 const L = lang === "es"
   ? {
-      title: "Ajustes", general: "General", providers: "Proveedores", specialists: "Especialistas", tools: "Herramientas", engine: "Motor local",
+      title: "Ajustes", general: "General", providers: "Proveedores", specialists: "Especialistas", tools: "Herramientas", connectors: "Conectores", engine: "Motor local",
       instructions: "Instrucciones personalizadas", instructionsHint: "Se aplican a todos los especialistas y proveedores. SPIKE las añade a su propio prompt de sistema, así que funcionan igual con modelos locales y externos.",
       planner: "Planificador con IA para tareas de varias disciplinas", parallel: "Ejecutar subtareas en paralelo (recomendado solo con APIs externas)", toolsOn: "Permitir herramientas",
       temperature: "Temperatura (vacío = la del modelo)", maxTokens: "Máximo de tokens por respuesta", reasoning: "Modo razonamiento", rDefault: "Por defecto del modelo", rOn: "Activado", rOff: "Desactivado",
@@ -19,7 +20,7 @@ const L = lang === "es"
       secrets: "Almacén de claves", pull: "Descarga el modelo base con: spike models pull", keyLink: "Obtener clave",
     }
   : {
-      title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", engine: "Local engine",
+      title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", connectors: "Connectors", engine: "Local engine",
       instructions: "Custom instructions", instructionsHint: "Applied to every specialist and provider. SPIKE adds them to its own system prompt, so they work the same with local and external models.",
       planner: "AI planner for multi-domain tasks", parallel: "Run subtasks in parallel (recommended only with external APIs)", toolsOn: "Allow tools",
       temperature: "Temperature (empty = model default)", maxTokens: "Max tokens per answer", reasoning: "Reasoning mode", rDefault: "Model default", rOn: "On", rOff: "Off",
@@ -31,7 +32,7 @@ const L = lang === "es"
       secrets: "Key storage", pull: "Download the base model with: spike models pull", keyLink: "Get a key",
     };
 
-type Tab = "general" | "providers" | "specialists" | "tools" | "engine";
+type Tab = "general" | "providers" | "specialists" | "tools" | "connectors" | "engine";
 
 export function SettingsDialog({ onClose, specialists, providers, reloadProviders }: {
   onClose: () => void;
@@ -67,7 +68,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
         </div>
         <div className="modal-body">
           <nav className="tabs" role="tablist">
-            {(["general", "providers", "specialists", "tools", "engine"] as Tab[]).map((k) => (
+            {(["general", "providers", "specialists", "tools", "connectors", "engine"] as Tab[]).map((k) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{L[k]}</button>
             ))}
           </nav>
@@ -80,6 +81,8 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
               <Specialists specialists={specialists} providers={providers} settings={settings} save={save} />
             ) : tab === "tools" ? (
               <Tools settings={settings} save={save} />
+            ) : tab === "connectors" ? (
+              <Connectors />
             ) : (
               <Engine settings={settings} save={save} />
             )}

@@ -69,6 +69,18 @@ scales reset to 0 at startup). See [ADR 0004](adr/0004-adapter-serving.md).
 | python | ask | separate process, `-I`, CPU 20 s, memory 512 MB (Linux), 30 s timeout; **network is not blocked** |
 | web_fetch | ask | http(s) only, private/loopback/link-local addresses refused, no redirects, 2 MB cap |
 
+In a project's chats the file tools work in that project's own folder (`$SPIKE_HOME/projects/<id>/files`).
+
+**Connectors (MCP).** `spike/connectors/` holds a small MCP client ([ADR 0005](adr/0005-mcp-client.md)), the
+curated catalog (`catalog.yaml`, pinned versions, licenses in [THIRD_PARTY](../THIRD_PARTY.md)) and the manager.
+An enabled connector's tools are named `mcp__<connector>__<tool>`, offered to every specialist and gated by the
+same broker: the connector's policy (ask by default) applies to each tool, and a per-tool policy overrides it.
+Secrets go to the keychain and reach the server only as its environment (stdio) or headers (HTTP).
+
+**OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
+orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
+tools, and passthrough for `<provider>/<model>`.
+
 ## Training and evaluation (offline, on the developer Mac)
 
 `training/` builds data, trains mlx-lm LoRA adapters and exports them to GGUF; `evals/` measures base vs.

@@ -128,3 +128,28 @@ export type Settings = {
 };
 
 export type ToolInfo = { name: string; description: string; risk: string; default_policy: string; policy: string };
+
+export type ConnectorInfo = {
+  id: string;
+  name: string;
+  transport: "stdio" | "http";
+  description: string;
+  command: string;
+  args: string[];
+  url: string;
+  preview: string;
+  header_names: string[];
+  secrets: { name: string; label?: string; url?: string; optional?: boolean }[];
+  license: string;
+  source: string;
+  paid: boolean;
+  requires: string;
+  note: string;
+  custom: boolean;
+  enabled: boolean;
+  policy: "allow" | "ask" | "deny";
+  status: "stopped" | "starting" | "running" | "error";
+  error: string | null;
+  secrets_set: Record<string, boolean>;
+  tools: { name: string; remote_name: string; description: string; policy: string }[];
+};

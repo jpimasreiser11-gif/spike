@@ -46,6 +46,24 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | transformers, datasets, huggingface_hub, safetensors, sentencepiece | Apache-2.0 | training data and export |
 | numpy | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) | training and export |
 
+## Connectors in the catalog (downloaded and run on the user's computer when enabled, not redistributed)
+
+Checked on 2026-10-17 against each package registry and repository; versions are pinned in
+`spike/connectors/catalog.yaml`.
+
+| Connector | Package / endpoint | Version | License | Source |
+|---|---|---|---|---|
+| Filesystem | npm `@modelcontextprotocol/server-filesystem` | 1.0.0 | MIT per the package README; the repository LICENSE licenses new contributions as Apache-2.0 (code from authors who have not relicensed stays MIT) and the npm metadata says "SEE LICENSE IN LICENSE" without shipping one | https://github.com/modelcontextprotocol/servers |
+| Memory | npm `@modelcontextprotocol/server-memory` | 1.0.0 | same as Filesystem | https://github.com/modelcontextprotocol/servers |
+| Fetch | PyPI `mcp-server-fetch` | 2026.10.10 | MIT (wheel ships the MIT LICENSE) | https://github.com/modelcontextprotocol/servers |
+| Git | PyPI `mcp-server-git` | 2026.10.10 | MIT (wheel ships the MIT LICENSE) | https://github.com/modelcontextprotocol/servers |
+| Playwright browser | npm `@playwright/mcp` | 0.0.83 | Apache-2.0 (registry and repository) | https://github.com/microsoft/playwright-mcp |
+| GitHub | hosted endpoint `https://api.githubcopilot.com/mcp/` | — | MIT (server code) | https://github.com/github/github-mcp-server |
+| Claude Code | the user's own `claude` CLI (`claude mcp serve`) | — | proprietary; SPIKE only starts the CLI the user installed | https://code.claude.com/docs/en/mcp |
+
+Not listed: the SQLite reference server (archived upstream with "no security guarantees") and `codex mcp-server`
+(removed from the Codex CLI; its replacement is not an MCP server).
+
 ## Python runtime dependencies (installed from PyPI, not vendored)
 
 | Package | Version checked | License |
@@ -59,6 +77,7 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | keyring (optional) | 25.7.0 | MIT |
 | pytest, pytest-asyncio, ruff (development only) | — | MIT |
 | openai (development only: tests of the `/v1` API) | 3.33.0 | Apache-2.0 |
+| mcp (development only: builds the MCP server the connector tests run against) | 2.3.0 | MIT |
 
 ## Web app (bundled into `web/dist`, which ships inside the Python package)
 

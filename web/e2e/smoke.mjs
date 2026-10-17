@@ -63,6 +63,13 @@ await page.locator("select").filter({ hasText: "DeepSeek" }).selectOption("deeps
 await page.screenshot({ path: `${out}/04-settings-providers.png` });
 await page.getByRole("tab", { name: "Especialistas" }).click();
 await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
+await page.getByRole("tab", { name: "Conectores" }).click();
+const fsCard = page.getByRole("dialog").locator('[data-connector="filesystem"]');
+await fsCard.getByRole("button", { name: "Activar" }).click();
+await fsCard.locator("code.cmd", { hasText: "@modelcontextprotocol/server-filesystem@1.0.0" }).waitFor();
+await page.screenshot({ path: `${out}/05b-settings-connectors.png` });
+await fsCard.getByRole("button", { name: "Cancelar" }).click();
+if (await fsCard.locator("code.cmd").count()) fail("connector confirmation did not close");
 await page.getByRole("tab", { name: "Motor local" }).click();
 await page.getByRole("dialog").getByText("Hardware").waitFor();
 await page.screenshot({ path: `${out}/05-settings-engine.png` });

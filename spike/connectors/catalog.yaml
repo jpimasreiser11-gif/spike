@@ -1,0 +1,83 @@
+# Curated MCP servers, one click to enable in Settings → Connectors. Every entry was checked on 2026-10-17 against
+# its package registry and repository (version, license, launch command); see THIRD_PARTY.md. Versions are pinned:
+# enabling an entry downloads exactly that release with npx/uvx and runs it on the user's computer.
+# Left out on purpose: the SQLite reference server (archived, "no security guarantees") and `codex mcp-server`
+# (removed from the Codex CLI; its replacement does not speak MCP).
+
+- id: filesystem
+  name: Filesystem
+  description: Read, write, move and search files, limited to the SPIKE workspace folder.
+  transport: stdio
+  command: npx
+  args: ["-y", "@modelcontextprotocol/server-filesystem@1.0.0", "{workspace}"]
+  license: MIT (package README); the repository licenses new contributions as Apache-2.0
+  source: https://github.com/modelcontextprotocol/servers
+  requires: Node.js (npx)
+
+- id: memory
+  name: Memory
+  description: A knowledge graph the model can store facts in and recall later, kept in SPIKE's data folder.
+  transport: stdio
+  command: npx
+  args: ["-y", "@modelcontextprotocol/server-memory@1.0.0"]
+  env: {MEMORY_FILE_PATH: "{data}/memory.jsonl"}
+  license: MIT (package README); the repository licenses new contributions as Apache-2.0
+  source: https://github.com/modelcontextprotocol/servers
+  requires: Node.js (npx)
+
+- id: fetch
+  name: Fetch
+  description: Fetch web pages as Markdown. Refuses private, loopback and link-local addresses by default.
+  transport: stdio
+  command: uvx
+  args: ["mcp-server-fetch@2026.10.10"]
+  license: MIT
+  source: https://github.com/modelcontextprotocol/servers
+  requires: uv (uvx)
+
+- id: git
+  name: Git
+  description: Status, diff, log, branches and commits of the git repository in the SPIKE workspace folder.
+  transport: stdio
+  command: uvx
+  args: ["mcp-server-git@2026.10.10", "--repository", "{workspace}"]
+  license: MIT
+  source: https://github.com/modelcontextprotocol/servers
+  requires: uv (uvx); the workspace folder must be a git repository
+  note: Early development upstream. Its tools can commit and reset; keep them on "Ask".
+
+- id: playwright
+  name: Playwright browser
+  description: Drive a headless browser (open pages, click, fill forms, read the page) in an isolated profile.
+  transport: stdio
+  command: npx
+  args: ["-y", "@playwright/mcp@0.0.83", "--headless", "--isolated"]
+  license: Apache-2.0
+  source: https://github.com/microsoft/playwright-mcp
+  requires: Node.js 18+ (npx); downloads a browser on first use
+  note: Not a security boundary (upstream README). One of its tools runs arbitrary code in the page; keep "Ask".
+
+- id: github
+  name: GitHub
+  description: Issues, pull requests, code and repositories through GitHub's hosted MCP server.
+  transport: http
+  url: https://api.githubcopilot.com/mcp/
+  headers: {Authorization: "Bearer {GITHUB_PERSONAL_ACCESS_TOKEN}"}
+  secrets:
+    - {name: GITHUB_PERSONAL_ACCESS_TOKEN, label: GitHub personal access token, url: "https://github.com/settings/personal-access-tokens"}
+  license: MIT
+  source: https://github.com/github/github-mcp-server
+  requires: a GitHub account and a personal access token
+  note: Runs on GitHub's servers under your account and GitHub's policies (whether a Copilot plan is needed was not verified).
+
+- id: claude-code
+  name: Claude Code
+  description: Claude Code's own tools (read and edit files, run commands) exposed to SPIKE.
+  transport: stdio
+  command: claude
+  args: ["mcp", "serve"]
+  license: proprietary (not redistributed; SPIKE only starts the CLI you installed)
+  source: https://code.claude.com/docs/en/mcp
+  paid: true
+  requires: the Claude Code CLI installed and your own Anthropic account (paid plan or API key)
+  note: Uses your Claude account. Claude Code leaves confirmations to the client, so SPIKE asks before each tool use.

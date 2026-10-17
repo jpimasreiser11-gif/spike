@@ -252,6 +252,7 @@ async def run_direct(state: AppState, spec: Specialist, app_instructions: str, c
 async def run_orchestrated(state: AppState, mode: str, app_instructions: str, conversation: list[Message],
                            req: Completion) -> AsyncIterator[Out]:
     await state.ensure_adapters()
+    await state.connectors.ensure_started()
     orchestrator = state.orchestrator(broker=HeadlessBroker(state.broker))
     opts = _options(state, mode, app_instructions, req)
     async for ev in orchestrator.run(conversation[:-1], conversation[-1].content, opts):

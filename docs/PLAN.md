@@ -83,7 +83,7 @@ claimed until measured.
 ## 14. Tools and connectors
 - **Decision**: built-in tools with per-tool allow/ask/deny: calculator, time, workspace read/list/write, sandboxed Python (rlimits, timeout; network not blocked, documented), web fetch (private IPs blocked).
 - **Acceptance**: permission card flow works end to end; tools refuse path traversal and private addresses.
-- **Status**: ✅ unit + e2e. MCP connectors ⬜ (planned after P2; must reuse the same permission broker).
+- **Status**: ✅ unit + e2e. MCP connectors ✅ (same permission broker; see point 25, A3).
 
 ## 15. Reverse engineering of the references
 - **Decision**: study public behaviour of claude.ai, Claude Code, Cowork and DeepSeek (layout, streaming, trace of tool use, permission prompts, settings structure); reproduce principles with SPIKE's own code and identity. REA is used only on software we own or are authorized to analyse. Findings in [RESEARCH.md](RESEARCH.md#product-references).
@@ -150,7 +150,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 |---|---|---|
 | A1 | OpenAI-compatible local API (`/v1/models`, `/v1/chat/completions`, streaming, tools), [integrations](INTEGRATIONS.md) | ✅ tests with the official `openai` client + real llama-server |
 | A2 | Projects: instructions, default specialist, own workspace and chats, files, zip export/import | ✅ API tests + browser smoke |
-| A3 | MCP client and one-click connector catalog | ⬜ |
+| A3 | MCP client and one-click connector catalog ([ADR 0005](adr/0005-mcp-client.md)) | ✅ tests vs the official SDK + real upstream servers; Playwright, GitHub and Claude Code entries not exercised (browser download, token, account) |
 | A4 | Skills engine (`SKILL.md`), MIT/Apache skills only | ⬜ |
 | A5 | Artifacts panel (sandboxed iframe) and document tools | ⬜ |
 | B1–B5 | Local RAG, privacy and spend controls, undo/replay, `spike tune`, SPIKE as an MCP server | ⬜ |

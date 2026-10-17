@@ -6,6 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from spike.connectors.manager import ConnectorManager
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
@@ -49,7 +50,9 @@ class AppState:
         self.installed_adapters: dict[str, set[str]] = {}
         self.runtime: LlamaServer | None = None
         self.broker = PermissionBroker(self.settings()["tool_policies"])
+        self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
         self.tools = default_registry(workspace_dir())
+        self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
         self._project_tools: dict[str, ToolRegistry] = {}
         self.catalog = self._load_catalog()
@@ -147,7 +150,9 @@ class AppState:
         if not project_id:
             return self.tools
         if project_id not in self._project_tools:
-            self._project_tools[project_id] = default_registry(self.project_files.folder(project_id))
+            registry = default_registry(self.project_files.folder(project_id))
+            registry.shared = self.connectors.tools
+            self._project_tools[project_id] = registry
         return self._project_tools[project_id]
 
     def orchestrator(self, override_provider: str | None = None, broker: PermissionBroker | None = None,

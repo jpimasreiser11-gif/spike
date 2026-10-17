@@ -6,6 +6,7 @@ import asyncio
 import json
 import re
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,22 @@ class ProjectPatch(BaseModel):
     mode: str | None = None
 
 
+class ConnectorPatch(BaseModel):
+    enabled: bool | None = None
+    policy: str | None = None
+    secrets: dict[str, str] | None = None
+
+
+class CustomConnectorIn(BaseModel):
+    id: str
+    name: str = Field(min_length=1, max_length=80)
+    transport: str = "stdio"
+    command: str = ""
+    args: list[str] = Field(default_factory=list)
+    url: str = ""
+    description: str = ""
+
+
 class DecisionIn(BaseModel):
     decision: str
 
@@ -98,7 +115,12 @@ def _hostname(value: str, url: bool) -> str | None:
 def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = None) -> FastAPI:
     """`allowed_hosts`: the names the server may be reached by. Any other Host or Origin header is refused, so a web
     page that points its own domain at 127.0.0.1 (DNS rebinding) or calls from another site cannot use SPIKE."""
-    app = FastAPI(title="SPIKE", version=__version__)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        await app.state.spike.connectors.close_all()  # MCP server processes end with SPIKE
+
+    app = FastAPI(title="SPIKE", version=__version__, lifespan=lifespan)
     app.state.spike = state or AppState()
 
     def st() -> AppState:
@@ -146,6 +168,43 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         broker = st().broker
         return [{"name": t.name, "description": t.description, "risk": t.risk, "default_policy": t.default_policy,
                  "policy": broker.policy_for(t)} for t in st().tools.all()]
+
+    # ---------------------------------------------------------------- connectors (MCP)
+    def connector_view(cid: str) -> dict:
+        definition = st().connectors.get(cid)
+        if definition is None:
+            raise HTTPException(404, "connector not found")
+        return st().connectors.public(definition, st().broker.policy_for)
+
+    @app.get("/api/connectors")
+    async def connectors() -> list[dict]:
+        return [st().connectors.public(d, st().broker.policy_for) for d in st().connectors.definitions()]
+
+    @app.post("/api/connectors")
+    async def add_connector(body: CustomConnectorIn) -> dict:
+        try:
+            definition = st().connectors.add_custom(body.model_dump())
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return connector_view(definition.id)
+
+    @app.put("/api/connectors/{cid}")
+    async def update_connector(cid: str, body: ConnectorPatch) -> dict:
+        connector_view(cid)
+        try:
+            await st().connectors.update(cid, enabled=body.enabled, policy=body.policy, secrets=body.secrets)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return connector_view(cid)
+
+    @app.delete("/api/connectors/{cid}")
+    async def delete_connector(cid: str) -> dict:
+        connector_view(cid)
+        try:
+            await st().connectors.remove_custom(cid)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return {"ok": True}
 
     # ---------------------------------------------------------------- providers
     @app.get("/api/presets")
@@ -415,6 +474,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                    if m["role"] in ("user", "assistant") and m["content"]]
         state.store.add_message(conv["id"], "user", body.message)
         await state.ensure_adapters(body.provider_id)
+        await state.connectors.ensure_started()
 
         async def stream() -> AsyncIterator[bytes]:
             yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"]})

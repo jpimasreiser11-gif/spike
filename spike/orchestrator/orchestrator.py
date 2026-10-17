@@ -83,7 +83,7 @@ class Orchestrator:
         return "\n\n".join(parts)
 
     def _tools_for(self, spec: Specialist, opts: OrchestratorOptions):
-        return self.tools.subset(spec.tools) if opts.tools_enabled else []
+        return self.tools.subset(spec.tools) + self.tools.shared_tools() if opts.tools_enabled else []
 
     def _route_event(self, decision: RouteDecision, specs: list[Specialist]) -> Event:
         return {
