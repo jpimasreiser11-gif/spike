@@ -356,7 +356,6 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
         "pubmedqa-artificial": [{**PUBMED, "pubid": i, "question": f"Does treatment {i} reduce mortality?"} for i in range(10)],
         "oasst2": [r for i in range(200) for r in (oasst(f"q{i}", None, "prompter", f"general question {i}"),
                                                     oasst(f"a{i}", f"q{i}", "assistant", "a general answer", rank=0))],
-        "smoltalk-constraints": [chat(f"constraint task {i}", "done") for i in range(50)],
         "medmcqa-eval": [med(1000, leaked)],
         "pubmedqa-labeled": [PUBMED],
         "mmlu-pro": [MMLU],
@@ -379,7 +378,8 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["dropped"]["contaminated"] == 1  # the leaked eval question never reaches training
     assert manifest["sources"]["medmcqa"]["kept"] == 40
-    assert manifest["sources"]["oasst2"]["built"] == 200 and "smoltalk-magpie-ultra" not in manifest["sources"]
+    assert manifest["sources"]["oasst2"]["built"] == 200
+    assert not any(name.startswith("smoltalk") for name in manifest["sources"])  # replay is human-written only
     counts = manifest["counts"]
     domain = counts["domain"]
     replay_in_mix = counts["train"] + counts["valid"] - domain
@@ -390,6 +390,33 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     assert mlx["lora_parameters"]["keys"][0] == "self_attn.q_proj" and mlx["mask_prompt"] is True
     lines = (out / "train.jsonl").read_text().splitlines()
     assert len(lines) == counts["train"] and all(json.loads(x)["messages"][-1]["role"] == "assistant" for x in lines)
+
+
+@pytest.mark.parametrize("source", ["smoltalk-constraints", "smoltalk-magpie-ultra"])
+def test_prepare_refuses_excluded_replay_sources(tmp_path, monkeypatch, source):
+    import prepare
+    import yaml
+
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    assert registry[source]["role"] == "excluded"
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
+    cfg["replay"]["sources"].append({"source": source, "max": 10})
+    (tmp_path / "cfg.yaml").write_text(yaml.safe_dump(cfg))
+    monkeypatch.setattr(prepare, "load_rows", lambda src, offset=0, limit=None: iter([]))
+    monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: "apache-2.0")
+    monkeypatch.setattr(sys, "argv", ["prepare.py", str(tmp_path / "cfg.yaml"), "--out", str(tmp_path)])
+    with pytest.raises(SystemExit, match=f"refusing source '{source}'"):
+        prepare.main()
+
+
+def test_no_training_config_uses_an_excluded_source():
+    import yaml
+
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    for path in (ROOT / "training" / "configs").glob("*.yaml"):
+        cfg = yaml.safe_load(path.read_text())
+        used = [s["source"] for s in cfg.get("domain_sources", []) + (cfg.get("replay") or {}).get("sources", [])]
+        assert all(registry[name]["role"] == "train" for name in used), path.name
 
 
 def test_shared_prompt_templates_do_not_count_as_contamination():

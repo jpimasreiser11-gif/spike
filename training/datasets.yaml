@@ -20,9 +20,9 @@ sources:
     config: smol-constraints
     split: train
     license: apache-2.0
-    role: train
+    role: excluded
     format: messages
-    provenance: Synthetic instruction-following with explicit constraints (distilabel). The dataset card does not name the generator model; confirm it before releasing adapter weights.
+    provenance: Synthetic instruction-following with explicit constraints (distilabel). Excluded because the Hub metadata declares no license (only the card text says Apache-2.0, and the license gate reads the metadata) and the card does not name the generator model.
   smoltalk-magpie-ultra:
     hub: HuggingFaceTB/smoltalk
     config: smol-magpie-ultra

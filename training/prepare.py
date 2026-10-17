@@ -89,6 +89,8 @@ def main() -> int:
 
     def checked(name: str, role: str) -> dict:
         src = registry[name]
+        if manifest["sources"].get(name, {}).get("role") == role:
+            return src
         declared = src["license"]
         hub = declared if args.skip_license_check else licenses.hub_license(src["hub"])
         ok, reason = licenses.check(hub, role)
@@ -99,6 +101,12 @@ def main() -> int:
         manifest["sources"][name] = {"hub": src["hub"], "license_hub": hub, "license_registry": declared,
                                      "role": role, "provenance": src.get("provenance", "")}
         return src
+
+    # 0. every license and registry role, before anything is downloaded
+    for name in cfg.get("decontaminate_against", []):
+        checked(name, "eval")
+    for entry in cfg.get("domain_sources", []) + cfg.get("replay", {}).get("sources", []):
+        checked(entry["source"], "train")
 
     # 1. contamination index from every eval set
     index = ContaminationIndex()

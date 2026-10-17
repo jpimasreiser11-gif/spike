@@ -24,7 +24,7 @@ with the data attributions below. No adapter has been released yet.
 | Dataset | Hub id | License | Role | Attribution / notes |
 |---|---|---|---|---|
 | OpenAssistant Conversations 2 | `OpenAssistant/oasst2` | Apache-2.0 | general replay | human-written, crowd-sourced (Köpf et al., 2023); English and Spanish messages only |
-| SmolTalk (smol-constraints) | `HuggingFaceTB/smoltalk` | Apache-2.0 | general replay | synthetic; the card does not name the generator model, to be confirmed before any adapter release |
+| SmolTalk (smol-constraints) | `HuggingFaceTB/smoltalk` | Apache-2.0 (card text only) | **excluded** | the Hub metadata declares no license and the card does not name the generator model; general replay is human-written OpenAssistant oasst2 only |
 | SmolTalk (smol-magpie-ultra) | `HuggingFaceTB/smoltalk` | Apache-2.0 | **excluded** | generated with Llama-3.1-405B-Instruct; the Llama 3.1 license (§1.b.i) requires "Llama" at the beginning of the name of any distributed model trained on its outputs, so SPIKE does not use it |
 | MedMCQA | `openlifescienceai/medmcqa` | Apache-2.0 | medicine train + eval | Pal et al., 2022 |
 | PubMedQA (pqa_artificial, pqa_labeled) | `qiaojin/PubMedQA` | MIT | medicine train / eval | Jin et al., 2019 |

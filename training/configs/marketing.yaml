@@ -18,8 +18,7 @@ distill:
 replay:
   ratio: 0.35
   sources:
-    - {source: oasst2, max: 4000}
-    - {source: smoltalk-constraints, max: 1500}
+    - {source: oasst2, max: 4000}        # human-written only
 decontaminate_against: [mmlu-pro]
 decontaminate_files: [evals/data/marketing_eval.jsonl]   # held-out pairwise prompts
 valid_fraction: 0.03
