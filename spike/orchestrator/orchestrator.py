@@ -10,6 +10,7 @@ from typing import Any
 
 from spike.agent.loop import AgentRun, Event, run_agent
 from spike.core.types import Message
+from spike.memory.service import Recall, memory_prompt
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
 from spike.providers.base import Provider
@@ -51,6 +52,7 @@ class OrchestratorOptions:
     project_instructions: str = ""
     skill_mode: str = "auto"  # auto (router for local models, model's choice for APIs) | router | model | off
     disabled_skills: list[str] = field(default_factory=list)
+    memory: Recall | None = None  # rules and notes recalled for this message (Neural Memory)
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -72,12 +74,17 @@ class Orchestrator:
         self.skills = skills
 
     # ------------------------------------------------------------------ prompts
-    def system_prompt(self, spec: Specialist, opts: OrchestratorOptions, extra: str = "") -> str:
+    def system_prompt(self, spec: Specialist, opts: OrchestratorOptions, extra: str = "",
+                      context_budget: int = 24_000) -> str:
         parts = [spec.system_prompt]
         if opts.custom_instructions.strip():
             parts.append("# Instructions from the user (always follow them)\n" + opts.custom_instructions.strip())
         if opts.project_instructions.strip():
             parts.append("# Project instructions\n" + opts.project_instructions.strip())
+        if opts.memory is not None:
+            section = memory_prompt(opts.memory, max(200, min(1500, context_budget // 6)))
+            if section:
+                parts.append(section)
         if opts.specialist_instructions.get(spec.id, "").strip():
             parts.append(f"# Instructions for {spec.name}\n" + opts.specialist_instructions[spec.id].strip())
         if opts.app_instructions.strip():
@@ -189,7 +196,7 @@ class Orchestrator:
         skill_text, skill_tools, skill_event = self._skills_for(spec, backend, user_text, opts)
         if skill_event:
             yield skill_event
-        messages = [Message(role="system", content=self.system_prompt(spec, opts, skill_text)), *history,
+        messages = [Message(role="system", content=self.system_prompt(spec, opts, skill_text, backend.context_budget)), *history,
                     Message(role="user", content=user_text)]
         async for ev in run_agent(
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
@@ -216,7 +223,7 @@ class Orchestrator:
         )
         skill_text, skill_tools, skill_event = self._skills_for(spec, backend, f"{task.instruction}\n{user_text}", opts)
         messages = [Message(role="system", content=self.system_prompt(spec, opts, "\n\n".join(
-                        p for p in (team_note, skill_text) if p))),
+                        p for p in (team_note, skill_text) if p), backend.context_budget)),
                     Message(role="user", content=content)]
         run = AgentRun()
         yield {"type": "subtask_start", "subtask": task.id, "specialist": spec.id, "name": spec.name,
@@ -255,7 +262,7 @@ class Orchestrator:
         core = self.catalog.core
         backend = self.resolve(core)
         messages = [
-            Message(role="system", content=self.system_prompt(core, opts, SYNTHESIS_INSTRUCTIONS)),
+            Message(role="system", content=self.system_prompt(core, opts, SYNTHESIS_INSTRUCTIONS, backend.context_budget)),
             *history,
             Message(role="user", content=f"{user_text}\n\n# Specialist reports\n{reports}"),
         ]

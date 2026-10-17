@@ -3,6 +3,7 @@ import { api } from "../api";
 import { t } from "../i18n";
 import type { PermissionState, RunState, Specialist } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
+import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
 import { SpecMark } from "./SpecMark";
@@ -107,6 +108,12 @@ export function AssistantMessage({ run, specialists, onPermission, projectId }: 
           {(run.skills ?? []).map((name) => (
             <span key={name} className="chip skill-chip" title={t.skill}>✦ {name}</span>
           ))}
+          {run.memory && (
+            <span className="chip memory-chip" tabIndex={0} title={[
+              ...(run.memory.rules ? [`${run.memory.rules} × ${M.kinds.rule}`] : []),
+              ...run.memory.notes.map((n) => `${M.kinds[n.kind] ?? n.kind}: ${n.preview}`),
+            ].join("\n")}>◆ {t.memoryUsed} · {run.memory.rules + run.memory.notes.length}</span>
+          )}
           {run.route?.method && run.route.method !== "user" && (
             <span className="route-meta">{run.route.mode} · {run.route.method}</span>
           )}

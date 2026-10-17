@@ -90,6 +90,14 @@ the web app offers it from `/api/workspace/files/…` or `/api/projects/{id}/fil
 code blocks, and written `.html`/`.svg` files, open in the artifact panel: an iframe with `sandbox="allow-scripts"`
 whose `srcdoc` starts with a strict Content-Security-Policy (`web/src/components/Artifact.tsx`).
 
+**Neural Memory.** `spike/memory/` keeps one SQLite file: memories (fact, decision, preference, rule, summary,
+document) scoped globally or to a project, split into chunks indexed by FTS5 and, when the embedding model is
+installed (`spike models pull qwen3-embedding-0.6b`), by vectors from a second llama-server started with
+`--embedding --pooling last`. Before each chat the app recalls the user's rules plus the chunks that match the
+message (BM25 and cosine rankings fused by reciprocal rank) and the orchestrator adds them to every specialist's
+system prompt within a sixth of its context budget. Project files are indexed on upload; every few messages a
+local model summarises the chat into a `summary` memory; `remember` and `recall` tools let Core save and search.
+
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.

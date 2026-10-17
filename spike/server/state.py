@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+import socket
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from spike.connectors.manager import ConnectorManager
+from spike.core.context import estimate_tokens
+from spike.core.types import ChatRequest, Message
+from spike.memory.extract import extract_text
+from spike.memory.service import Embedder, MemoryService, scopes_for
+from spike.memory.store import MemoryStore
+from spike.memory.tools import memory_tools
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
 from spike.providers.llamacpp import LlamaCppProvider
 from spike.providers.registry import PRESETS_BY_ID, create_provider
 from spike.runtime.hardware import detect, recommend
-from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
-from spike.runtime.paths import adapters_dir, spike_home, workspace_dir
+from spike.runtime.llamacpp_server import LlamaServer, ServerConfig, find_binary
+from spike.runtime.models import EMBEDDING_MODEL, MODELS
+from spike.runtime.paths import adapters_dir, models_dir, spike_home, workspace_dir
 from spike.skills.engine import BUNDLED, SkillLibrary
 from spike.specialists.catalog import Catalog, Specialist, load_catalog
 from spike.store.db import Store
@@ -36,11 +46,22 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "max_tokens": 2048,
     "custom_specialists": [],
     "skill_mode": "auto",
+    # Neural Memory: recall in chats; vectors from a local embedding model when installed ("off" = words only);
+    # chat summaries only when the summarising model is local, so memory never spends money
+    "memory": {"enabled": True, "embeddings": "auto", "auto_summary": True},
     "disabled_skills": [],
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
 }
 SETTING_KEYS = set(DEFAULT_SETTINGS)
+SUMMARY_EVERY = 6  # messages between automatic chat summaries
+SUMMARY_PROMPT = (
+    "You keep SPIKE's long-term memory. From the conversation below, write the durable things worth remembering "
+    "in later chats: facts about the user and their work, decisions taken, preferences, open tasks. At most 5 short "
+    "bullet points, in the conversation's language, with no greetings or small talk. If nothing is worth "
+    "remembering, reply exactly NONE."
+)
+log = logging.getLogger(__name__)
 
 
 class AppState:
@@ -54,7 +75,14 @@ class AppState:
         self.runtime: LlamaServer | None = None
         self.broker = PermissionBroker(self.settings()["tool_policies"])
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
+        self.memory = MemoryService(MemoryStore(self.home / "memory.db"), self._embedder)
+        self.embed_server: LlamaServer | None = None
+        self.embed_error: str | None = None
+        self._summarized: dict[str, int] = {}
+        self._background: set[asyncio.Task] = set()
         self.tools = default_registry(workspace_dir())
+        for tool in memory_tools(self.memory, None):
+            self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
         self._project_tools: dict[str, ToolRegistry] = {}
@@ -117,6 +145,7 @@ class AppState:
     def forget_project(self, project_id: str) -> None:
         self._project_tools.pop(project_id, None)
         self.project_files.remove(project_id)
+        self.memory.store.delete_scope(f"project:{project_id}")
 
     def invalidate_provider(self, pid: str) -> None:
         self._providers.pop(pid, None)
@@ -155,6 +184,8 @@ class AppState:
             return self.tools
         if project_id not in self._project_tools:
             registry = default_registry(self.project_files.folder(project_id))
+            for tool in memory_tools(self.memory, project_id):
+                registry.register(tool)
             registry.shared = self.connectors.tools
             self._project_tools[project_id] = registry
         return self._project_tools[project_id]
@@ -194,6 +225,113 @@ class AppState:
         for pid in self.providers_for_run(override_provider):
             if pid not in self.installed_adapters and self.provider_config(pid):
                 await self.refresh_adapters(pid)
+
+    # ------------------------------------------------------------------ memory
+    def memory_settings(self) -> dict[str, Any]:
+        return {**DEFAULT_SETTINGS["memory"], **(self.settings()["memory"] or {})}
+
+    def embedding_model(self) -> Path | None:
+        entry = MODELS[EMBEDDING_MODEL]
+        return next((p for q in entry.quants if (p := models_dir() / entry.filename(q)).is_file()), None)
+
+    async def _embedder(self) -> Embedder | None:
+        """The local embedding server, started on first use; None when memory search runs on words only."""
+        cfg = self.memory_settings()
+        path = self.embedding_model()
+        if not cfg["enabled"] or cfg["embeddings"] == "off" or path is None or find_binary() is None:
+            return None
+        if self.embed_server is None or not self.embed_server.running():
+            if self.embed_error:
+                return None  # it failed once: words only until the settings change or SPIKE restarts
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0))
+                port = sock.getsockname()[1]
+            server = LlamaServer(ServerConfig(model=path, port=port, context=4096, kv_cache_type="f16",
+                                              extra_args=["--embedding", "--pooling", "last", "-b", "4096",
+                                                          "-ub", "4096"]))
+            server.log_path = self.home / "logs" / "llama-embedding.log"
+            try:
+                await server.start(timeout_s=120)
+            except (OSError, RuntimeError, TimeoutError) as exc:
+                self.embed_error = str(exc)
+                return None
+            self.embed_server = server
+        return Embedder(self.embed_server.base_url, model=path.name, query_prefix=MODELS[EMBEDDING_MODEL].query_prefix)
+
+    def memory_status(self) -> dict[str, Any]:
+        path = self.embedding_model()
+        return {**self.memory_settings(), "stats": self.memory.store.stats(), "semantic": {
+            "model": path.name if path else None, "installed": path is not None,
+            "running": bool(self.embed_server and self.embed_server.running()), "error": self.embed_error,
+            "install": f"spike models pull {EMBEDDING_MODEL}"}}
+
+    def index_project_file(self, project_id: str, relative: str) -> bool:
+        """Put a project file's text in the project's memory, replacing an older version; False if unreadable."""
+        text = extract_text(self.project_files.path(project_id, relative))
+        scope, source = f"project:{project_id}", f"file:{relative}"
+        if text is None:
+            self.memory.store.delete_source(scope, source)
+            return False
+        self.memory.store.replace_source(scope, source, text, "document")
+        self.background(self.memory.index())
+        return True
+
+    def background(self, coro) -> None:
+        task = asyncio.ensure_future(coro)
+        self._background.add(task)
+        task.add_done_callback(self._background.discard)
+
+    async def maybe_summarize(self, conversation_id: str, override_provider: str | None = None) -> bool:
+        """Every few messages, save what a chat established as a 'summary' memory (local models only)."""
+        cfg = self.memory_settings()
+        conv = self.store.get_conversation(conversation_id)
+        if not conv or not cfg["enabled"] or not cfg["auto_summary"]:
+            return False
+        messages = [m for m in self.store.messages(conversation_id) if m["role"] in ("user", "assistant") and m["content"]]
+        scope, source = scopes_for(conv.get("project_id"))[0], f"conversation:{conversation_id}"
+        previous = self.memory.store.find_source(scope, source)
+        done = max(self._summarized.get(conversation_id, 0), (previous.meta.get("messages", 0) if previous else 0))
+        if len(messages) < SUMMARY_EVERY or len(messages) - done < SUMMARY_EVERY:
+            return False
+        pid, model = self.binding(self.catalog.specialists["core"], override_provider or conv.get("provider_id"))
+        provider = self.provider(pid)
+        if not provider.config.local:
+            return False
+        self._summarized[conversation_id] = len(messages)
+        lines, used = [], 0
+        for m in reversed(messages):  # the most recent part of the chat that fits
+            line = f"{m['role'].upper()}: {m['content']}"
+            if used + estimate_tokens(line) > 3000:
+                break
+            lines.insert(0, line)
+            used += estimate_tokens(line)
+        request = ChatRequest(messages=[Message(role="system", content=SUMMARY_PROMPT),
+                                        Message(role="user", content="\n\n".join(lines))],
+                              model=model, max_tokens=300, temperature=0.2, reasoning=False)
+        text = ""
+        try:
+            async for ev in provider.stream(request):
+                if ev.kind == "text":
+                    text += ev.text
+                elif ev.kind == "error":
+                    return False
+        except Exception as exc:  # a failed summary never breaks the chat
+            log.warning("memory: summary failed: %s", exc)
+            return False
+        text = text.strip()
+        if not text or text.upper().startswith("NONE"):
+            return False
+        self.memory.store.replace_source(scope, source, text, "summary",
+                                         {"messages": len(messages), "title": conv["title"]})
+        await self.memory.index()
+        return True
+
+    async def close(self) -> None:
+        for task in list(self._background):
+            task.cancel()
+        if self.embed_server:
+            await self.embed_server.stop()
+        await self.connectors.close_all()
 
     # ------------------------------------------------------------------ local runtime
     def runtime_config(self) -> ServerConfig:

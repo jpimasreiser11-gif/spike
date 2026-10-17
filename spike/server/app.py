@@ -52,6 +52,17 @@ class ChatIn(BaseModel):
     project_id: str | None = None  # for a new chat; an existing chat keeps its own project
 
 
+class MemoryIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20_000)
+    kind: str = "fact"
+    scope: str = "global"
+
+
+class MemoryPatch(BaseModel):
+    text: str | None = Field(default=None, min_length=1, max_length=20_000)
+    kind: str | None = None
+
+
 class NewConversation(BaseModel):
     project_id: str | None = None
 
@@ -127,7 +138,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
-        await app.state.spike.connectors.close_all()  # MCP server processes end with SPIKE
+        await app.state.spike.close()  # MCP servers, the embedding server and background tasks end with SPIKE
 
     app = FastAPI(title="SPIKE", version=__version__, lifespan=lifespan)
     app.state.spike = state or AppState()
@@ -414,9 +425,12 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def import_project_zip(request: Request) -> dict:
         blob = await read_body(request, MAX_ARCHIVE_BYTES)
         try:
-            return import_project(st().store, st().project_files, blob, {"auto", *st().catalog.specialists})
+            project = import_project(st().store, st().project_files, blob, {"auto", *st().catalog.specialists})
         except ProjectError as exc:
             raise HTTPException(400, str(exc)) from exc
+        for f in st().project_files.list(project["id"]):
+            st().index_project_file(project["id"], f["path"])
+        return project
 
     @app.get("/api/projects/{pid}")
     async def get_project(pid: str) -> dict:
@@ -445,9 +459,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         project_or_404(pid)
         data = await read_body(request, MAX_FILE_BYTES)
         try:
-            return st().project_files.write(pid, path, data)
+            saved = st().project_files.write(pid, path, data)
         except ProjectError as exc:
             raise HTTPException(400, str(exc)) from exc
+        return {**saved, "indexed": st().index_project_file(pid, saved["path"])}
 
     def existing_file(pid: str, path: str) -> Path:
         project_or_404(pid)
@@ -480,7 +495,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     @app.delete("/api/projects/{pid}/files/{path:path}")
     async def delete_project_file(pid: str, path: str) -> dict:
-        existing_file(pid, path).unlink()
+        target = existing_file(pid, path)
+        target.unlink()
+        relative = target.relative_to(st().project_files.folder(pid)).as_posix()
+        st().memory.store.delete_source(f"project:{pid}", f"file:{relative}")
         return {"ok": True}
 
     @app.get("/api/projects/{pid}/export")
@@ -521,6 +539,87 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def delete_conversation(cid: str) -> dict:
         st().store.delete_conversation(cid)
         return {"ok": True}
+
+    # ---------------------------------------------------------------- memory
+    def check_scope(scope: str) -> str:
+        if scope != "global" and not (scope.startswith("project:") and st().store.get_project(scope[8:])):
+            raise HTTPException(400, f"unknown memory scope '{scope}'")
+        return scope
+
+    @app.get("/api/memory")
+    async def list_memory(scope: str | None = None, kind: str | None = None, q: str | None = None,
+                          limit: int = 200) -> list[dict]:
+        store = st().memory.store
+        if q:
+            scopes = [check_scope(scope)] if scope else ["global", *(f"project:{p['id']}" for p in st().store.list_projects())]
+            vector, model = None, ""
+            try:
+                if (embedder := await st().memory.get_embedder()) is not None:
+                    await st().memory.index()
+                    vector, model = (await embedder.embed([q], query=True))[0], embedder.model
+            except Exception:  # the embedding server is down or misbehaves: search by words only
+                pass
+            hits = store.search(q, scopes, vector, model, k=min(limit, 50), kinds=[kind] if kind else None)
+            return [{**h.memory.public(), "match": h.text, "by": h.by} for h in hits]
+        return [m.public() for m in store.list(scope=check_scope(scope) if scope else None, kind=kind, limit=limit)]
+
+    @app.post("/api/memory")
+    async def add_memory(body: MemoryIn) -> dict:
+        try:
+            memory = st().memory.store.add(body.text, body.kind, check_scope(body.scope), meta={"by": "user"})
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        st().background(st().memory.index())
+        return memory.public()
+
+    @app.put("/api/memory/{mid}")
+    async def update_memory(mid: str, body: MemoryPatch) -> dict:
+        try:
+            memory = st().memory.store.update(mid, body.text, body.kind)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        if memory is None:
+            raise HTTPException(404, "memory not found")
+        st().background(st().memory.index())
+        return memory.public()
+
+    @app.delete("/api/memory/{mid}")
+    async def delete_memory(mid: str) -> dict:
+        if not st().memory.store.delete(mid):
+            raise HTTPException(404, "memory not found")
+        return {"ok": True}
+
+    @app.delete("/api/memory")
+    async def clear_memory(scope: str) -> dict:
+        store = st().memory.store
+        return {"deleted": store.clear() if scope == "all" else store.delete_scope(check_scope(scope))}
+
+    @app.get("/api/memory-status")
+    async def memory_status() -> dict:
+        return st().memory_status()
+
+    @app.get("/api/memory-export")
+    async def export_memory(scope: str | None = None) -> Response:
+        items = st().memory.store.export(check_scope(scope) if scope else None)
+        return Response(json.dumps({"format": "spike-memory", "version": 1, "memories": items}, ensure_ascii=False,
+                                   indent=1), media_type="application/json",
+                        headers={"Content-Disposition": 'attachment; filename="spike-memory.json"'})
+
+    @app.post("/api/memory-import")
+    async def import_memory(request: Request) -> dict:
+        try:
+            data = json.loads(await read_body(request, 50 * 1024**2))
+            items = data["memories"] if isinstance(data, dict) else data
+            if not isinstance(items, list):
+                raise ValueError("expected a list of memories")
+            for item in items:
+                if isinstance(item, dict):
+                    check_scope(str(item.get("scope") or "global"))
+            added = st().memory.store.import_items(items)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise HTTPException(400, f"invalid memory file: {exc}") from exc
+        st().background(st().memory.index())
+        return {"imported": added}
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")
@@ -581,8 +680,14 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
             final_text, error, cancelled = "", None, True
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
+            options = state.options(mode, project)
             try:
-                async for ev in orchestrator.run(history, body.message, state.options(mode, project)):
+                if state.memory_settings()["enabled"]:
+                    options.memory = await state.memory.recall(body.message, project["id"] if project else None)
+                    if (memory_event := options.memory.event()) is not None:
+                        meta["memory"] = memory_event
+                        yield _sse(memory_event)
+                async for ev in orchestrator.run(history, body.message, options):
                     kind = ev["type"]
                     if kind == "route":
                         meta["route"] = ev
@@ -609,6 +714,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 meta["error"] = error
                 meta["cancelled"] = cancelled
                 state.store.add_message(conv["id"], "assistant", final_text, meta)
+                if not error and not cancelled:
+                    state.background(state.maybe_summarize(conv["id"], body.provider_id))
 
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

@@ -14,6 +14,7 @@ automatically at download time and SPIKE refuses anything outside its allowlist
 | Qwen3.5-4B (GGUF, default Q4_K_M) | `unsloth/Qwen3.5-4B-GGUF`, quantized from `Qwen/Qwen3.5-4B` | Apache-2.0 | base model for every specialist |
 | Qwen3.5-2B (GGUF) | `unsloth/Qwen3.5-2B-GGUF` | Apache-2.0 | optional smaller base |
 | Qwen3.5-4B (safetensors) | `Qwen/Qwen3.5-4B` | Apache-2.0 | LoRA training base (mlx-lm) and adapter export |
+| Qwen3-Embedding-0.6B (GGUF Q8_0) | `Qwen/Qwen3-Embedding-0.6B-GGUF` (official) | Apache-2.0 | Neural Memory search by meaning (optional) |
 | Qwen3.6-35B-A3B (MLX 4-bit) | `mlx-community/Qwen3.6-35B-A3B-4bit` | Apache-2.0 | local teacher for marketing distillation (optional) |
 
 SPIKE adapters trained from these bases are derivative works and are released under Apache-2.0 together
@@ -89,6 +90,7 @@ Not listed: the SQLite reference server (archived upstream with "no security gua
 | pydantic | 2.14.1 | MIT |
 | PyYAML | 6.0.3 | MIT |
 | psutil | 7.2.2 | BSD-3-Clause |
+| numpy | 2.5.4 | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) |
 | keyring (optional) | 25.7.0 | MIT |
 | pytest, pytest-asyncio, ruff (development only) | — | MIT |
 | openai (development only: tests of the `/v1` API) | 3.33.0 | Apache-2.0 |

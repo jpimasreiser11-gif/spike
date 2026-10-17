@@ -14,7 +14,7 @@ specialists:
     adapter: null
     adapter_status: none
     sensitive: false
-    tools: [calculator, current_time, web_fetch, read_file, list_dir, write_file, python, create_docx, create_xlsx, create_pptx, create_pdf]
+    tools: [calculator, current_time, web_fetch, read_file, list_dir, write_file, python, create_docx, create_xlsx, create_pptx, create_pdf, remember, recall]
     keywords: {}
     system_prompt: |
       You are Spike Core, the general assistant of the SPIKE system. Be accurate, direct and useful.

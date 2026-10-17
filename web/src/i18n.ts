@@ -47,6 +47,7 @@ const es = {
   artifact: "Artefacto",
   artifactIsolated: "Aislado: sin acceso a SPIKE, a tus datos ni a internet.",
   filesCreated: "Archivos creados",
+  memoryUsed: "Memoria",
 };
 
 type Dict = typeof es;
@@ -100,6 +101,7 @@ const en: Dict = {
   artifact: "Artifact",
   artifactIsolated: "Isolated: no access to SPIKE, your data or the internet.",
   filesCreated: "Files created",
+  memoryUsed: "Memory",
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

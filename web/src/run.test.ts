@@ -81,3 +81,12 @@ describe("files written by tools", () => {
     expect(stored.tools[0].file).toBe("informes/q3.docx");
   });
 });
+
+describe("memory", () => {
+  it("shows what an answer recalled, live and from history", () => {
+    const ev = { type: "memory", rules: 1, semantic: false, notes: [{ id: "m1", kind: "fact", source: "", preview: "paga a 60 días", by: ["words"] }] };
+    expect(applyEvent(emptyRun(), ev).memory?.notes[0].preview).toBe("paga a 60 días");
+    const stored = runFromStored({ role: "assistant", content: "ok", meta: { memory: ev } } as any);
+    expect(stored.memory?.rules).toBe(1);
+  });
+});

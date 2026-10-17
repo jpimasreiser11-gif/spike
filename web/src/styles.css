@@ -353,3 +353,13 @@ a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-i
 @media (max-width: 860px) {
   .artifact-panel { position: fixed; inset: 0; z-index: 30; flex-basis: auto; }
 }
+
+/* memory */
+.memory-chip { background: var(--surface-2); color: var(--text-2); cursor: help; }
+.memory-add { display: grid; gap: 6px; padding: 10px; border: 1px dashed var(--border-strong); border-radius: 10px; }
+.memory-add textarea, .memory-edit textarea { width: 100%; }
+.memory-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; }
+.memory-edit { display: grid; gap: 6px; margin-top: 6px; }
+.grow { flex: 1; min-width: 160px; }
+.badge.kind-rule { background: var(--mint); color: var(--ink); }
+.btn.small { padding: 2px 10px; font-size: 12.5px; }

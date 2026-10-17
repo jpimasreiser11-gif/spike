@@ -86,6 +86,8 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
       const names = (ev.names as string[]).filter((n) => !(state.skills ?? []).includes(n));
       return names.length ? { ...state, skills: [...(state.skills ?? []), ...names] } : state;
     }
+    case "memory":
+      return { ...state, memory: { rules: ev.rules, semantic: ev.semantic, notes: ev.notes } };
     case "context_trimmed":
       return { ...state, trimmed: ev.dropped };
     case "error":
@@ -113,6 +115,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.route) run.route = meta.route;
   if (meta.plan) run.plan = meta.plan;
   if (meta.skills?.length) run.skills = meta.skills;
+  if (meta.memory) run.memory = { rules: meta.memory.rules, semantic: meta.memory.semantic, notes: meta.memory.notes };
   for (const [id, st] of Object.entries<any>(meta.subtasks || {})) {
     const planned = meta.plan?.subtasks?.find((t: any) => t.id === id);
     run.order.push(id);

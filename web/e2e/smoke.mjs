@@ -110,6 +110,21 @@ await page.keyboard.press("Enter");
 await page.locator(".skill-chip", { hasText: "financial-ratio-analysis" }).waitFor({ timeout: 10000 });
 await page.screenshot({ path: `${out}/07b-skill.png` });
 
+// memory: a note added in Settings is recalled in a later chat and shown on the answer
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Memoria" }).click();
+await page.getByLabel("Algo que SPIKE debe recordar…").fill("El cliente Norte paga a 60 días");
+await page.getByRole("dialog").getByRole("button", { name: "Añadir" }).click();
+await page.locator('.memory-item[data-memory="fact"]', { hasText: "El cliente Norte paga a 60 días" }).waitFor();
+await page.getByLabel("Buscar en la memoria…").fill("cliente norte");
+await page.locator(".memory-item", { hasText: "palabras" }).waitFor();
+await page.screenshot({ path: `${out}/07e-memory-settings.png` });
+await page.keyboard.press("Escape");
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("¿A cuántos días paga el cliente Norte?");
+await page.keyboard.press("Enter");
+await page.locator(".memory-chip", { hasText: "Memoria · 1" }).waitFor({ timeout: 10000 });
+
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();

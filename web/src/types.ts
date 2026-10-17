@@ -101,6 +101,7 @@ export type RunState = {
   elapsed?: number;
   trimmed?: number;
   skills?: string[];
+  memory?: MemoryUse;
 };
 
 export type ChatEvent = { type: string; [key: string]: any };
@@ -129,6 +130,7 @@ export type Settings = {
   custom_specialists: unknown[];
   skill_mode: "auto" | "router" | "model" | "off";
   disabled_skills: string[];
+  memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean };
 };
 
 export type ToolInfo = { name: string; description: string; risk: string; default_policy: string; policy: string };
@@ -167,4 +169,32 @@ export type SkillInfo = {
   keywords: string[];
   resources: string[];
   enabled: boolean;
+};
+
+/** What a chat answer recalled from memory (the "memory" event). */
+export type MemoryUse = {
+  rules: number;
+  semantic: boolean;
+  notes: { id: string; kind: string; source: string; preview: string; by: string[] }[];
+};
+
+export type MemoryItem = {
+  id: string;
+  scope: string;
+  kind: "fact" | "decision" | "preference" | "rule" | "summary" | "document";
+  text: string;
+  source: string;
+  created: number;
+  updated: number;
+  meta: Record<string, unknown>;
+  match?: string;
+  by?: string[];
+};
+
+export type MemoryStatus = {
+  enabled: boolean;
+  embeddings: "auto" | "off";
+  auto_summary: boolean;
+  stats: { memories: number; by_kind: Record<string, number>; chunks: number; embedded: number };
+  semantic: { model: string | null; installed: boolean; running: boolean; error: string | null; install: string };
 };

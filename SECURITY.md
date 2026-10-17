@@ -38,6 +38,11 @@ acknowledge reports within 7 days.
   `data:`/`blob:` media (`connect-src 'none'`), and the server refuses requests with `Origin: null` when it runs with
   its host allow-list (`spike serve`). Document tools ask before writing, stay inside the workspace, and refuse
   spreadsheet formulas that reach outside the file (DDE, `WEBSERVICE`, `CALL`, …).
+- Memory lives in `$SPIKE_HOME/memory.db` on your computer. Deleting a memory removes its text, word index and
+  vectors, and SQLite's `secure_delete` overwrites the freed pages. The `remember` tool asks before saving, so a
+  page the model read cannot plant a note silently; notes are given to the model as information, and only rules
+  you wrote are presented as instructions. Chat summaries are only made with a local model, and the `/v1` API
+  never receives your memory.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

@@ -32,9 +32,10 @@ _Last update: 2026-10-17, commit on `main` in the development repository (not ye
 | Connectors (MCP): own client over stdio and Streamable HTTP; tools behind the broker (allow, per-tool deny, ask approved through the API); secrets only as server env; broken servers reported; one-click catalog in Settings | client tests against a server built with the official MCP SDK 2.3.0 over both transports; 9 API tests with a real uvicorn server; real upstream servers started from the catalog in the build container and one tool called on each: Filesystem 1.0.0 (14 tools), Memory 1.0.0 (9), Fetch 2026.10.10 (1, listed only), Git 2026.10.10 (12); browser smoke opens the catalog | `pytest tests/test_mcp_client.py tests/test_connectors.py` |
 | Skills (Agent Skills `SKILL.md`): loader with spec validation, lexical router per specialist for local models, catalog + `load_skill` tool for API models, body cut to a quarter of the context (8K case tested), user skills override built-ins, zip import, packs (custom specialists + skills + connectors, no secrets) | 21 tests (8 routing cases in Spanish and English); browser smoke: Skills tab and a finance answer tagged with its skill | `pytest tests/test_skills.py` |
 | Artifacts and documents: `create_docx`, `create_xlsx`, `create_pptx`, `create_pdf` (ask before writing, stay in the workspace, formulas that reach outside the file refused, Unicode PDF font), written files offered as downloads, HTML/SVG answers previewed in a sandboxed panel (`allow-scripts` only, CSP with `connect-src 'none'`) | 9 tests open the generated files again with python-docx, openpyxl, python-pptx and pypdf; 3 web unit tests; browser smoke: a probe page in the panel reports `storage:blocked parent:blocked api:blocked`, sends no request, the CSP refusal is logged, `.html` and `.docx` downloads arrive | `pytest tests/test_documents.py`, `node web/e2e/smoke.mjs` |
+| Neural Memory: one local store (SQLite) for facts, decisions, preferences, the user's rules, chat summaries and project files; hybrid search (FTS5 BM25 + vectors, reciprocal rank fusion); rules always applied, notes recalled within a sixth of the context; deleting removes chunks, word index and vectors from the file; project files indexed on upload and forgotten on delete; summaries only from a local model; `remember` asks first | 14 tests (search by meaning with a stand-in embedder, budget at 200/600/1500 tokens, the deleted text absent from the raw database file, embeddings over HTTP from a real llama-server with the tiny model); 1 web unit test; browser smoke: a note added in Settings is recalled and shown on the next answer | `pytest tests/test_memory.py` |
 | Benchmark harness end to end (TTFT, tok/s, RSS, build info) | runs against the tiny model; **its numbers are meaningless for quality or speed** | `spike bench --model <tiny.gguf>` |
 
-Total at this update: 177 Python tests (incl. the llama.cpp integration tests) and 10 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+Total at this update: 192 Python tests (incl. the llama.cpp integration tests) and 11 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
 
 ## Measured with real weights
 
@@ -77,12 +78,22 @@ hit the 512-token limit. The adapter verdict comes from base and adapter evaluat
 kept); MedMCQA keeps 12,609 of 24,000 rows (short explanations and multi-answer questions dropped); 21 examples
 removed for sharing a 13-gram with an eval set.
 
+**Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
+2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
+with gradient checkpointing peaks at 11 GB with 128-token sequences, 23 GB at 768 and over 27 GB at 1024 (out of
+memory), about 19 MB per token. The recipe is now batch 1 × 16 accumulation (same effective batch and updates)
+and at most 768 tokens per example, longer chats dropped rather than truncated (4.0 % of medicine's): 18.7 GB
+peak RSS, no swap growth. Speed: 64 examples in 647 s (≈ 9.5 s each), because mlx-lm trains Qwen3.5's
+Gated DeltaNet layers with a per-token loop (its Metal kernel has no backward pass); one medicine epoch (25,010
+examples) would take ≈ 66 h. A chunked, differentiable delta-rule implementation is being written test-first.
+
 ## Built, not yet measured with real weights
 
 - Qwen3.5-4B inference speed, TTFT and peak RSS on a 16 GB CPU-only x86 machine (Apple Silicon measured above).
-- Any trained adapter: medicine is training on the Mac; finance and marketing follow.
+- Any trained adapter: medicine is blocked on training speed (above); finance and marketing follow.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
+- Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.
 - Live calls to external providers (needs the user's keys; never done without explicit configuration).
 - Installers on fresh macOS and Windows machines (Homebrew and winget paths not exercised; Linux path verified above).
 - The first GitHub Actions run.
@@ -98,7 +109,9 @@ removed for sharing a 13-gram with an eval set.
 1. **No model weights in the build container**: its network policy blocks huggingface.co, so real-model
    benchmarks and evals must run on joan's Mac (or the environment must allow huggingface.co; the container
    itself is a 4-core x86 machine with 15.7 GB RAM, a good proxy for the 16 GB CPU-only target).
-2. **Publication**: joan chose a private GitHub repository `spike`; waiting for joan to create it (sessions cannot
+2. **Training speed on the Mac**: ≈ 66 h per medicine epoch with mlx-lm's per-token Gated DeltaNet backward
+   (measured above). Long runs wait for the faster implementation or for joan's go-ahead on a shorter recipe.
+3. **Publication**: joan chose a private GitHub repository `spike`; waiting for joan to create it (sessions cannot
    create repositories). Nothing has been pushed.
 
 ## Next steps (in order)

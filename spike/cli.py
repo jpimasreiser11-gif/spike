@@ -84,7 +84,7 @@ def cmd_models(args: argparse.Namespace) -> int:
 
     if args.action == "list":
         for m in MODELS.values():
-            print(f"{m.id:12} {m.repo:28} quants={','.join(m.quants)} license={m.license}  {m.notes}")
+            print(f"{m.id:20} {m.repo:32} quants={','.join(m.quants)} license={m.license}  {m.notes}")
         print("\nDownloaded:")
         for p in local_models():
             print(f"  {p}  {p.stat().st_size / 1024**3:.2f} GB")

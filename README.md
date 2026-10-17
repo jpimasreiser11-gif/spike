@@ -27,6 +27,8 @@ Local first, open source (Apache-2.0), and able to use external API models with 
   OpenAI-compatible server. Paid providers stay blocked until you allow them; keys live in your OS keychain.
 - **Tools with permissions.** Calculator, workspace files, sandboxed Python and web fetch, each allow / ask /
   deny, with an inline permission prompt.
+- **Memory.** SPIKE remembers facts, decisions, your rules, chat summaries and project files, finds them by
+  words and meaning, and shows what it used; everything is local and editable.
 - **Artifacts and documents.** HTML and SVG answers open in an isolated side panel; Word, Excel, PowerPoint and
   PDF files are written to your workspace and offered as downloads.
 - **Projects.** Instructions, a default specialist, files and chats per project; file tools work in the

@@ -153,7 +153,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | A3 | MCP client and one-click connector catalog ([ADR 0005](adr/0005-mcp-client.md)) | ✅ tests vs the official SDK + real upstream servers; Playwright, GitHub and Claude Code entries not exercised (browser download, token, account) |
 | A4 | Skills engine (`SKILL.md`), MIT/Apache skills only, packs | ✅ tests + browser smoke; 🟡 which skills a 4B model follows is unmeasured |
 | A5 | Artifacts panel (sandboxed iframe) and document tools (docx, xlsx, pptx, pdf) | ✅ tests that reopen each file + browser smoke proving the sandbox (no storage, no parent, no API) |
-| B1 | Neural Memory: facts, decisions, corrections, chat summaries and documents in one store (SQLite, hybrid BM25 + vectors from llama-server embeddings), retrieved within the token budget; view, correct, export and delete in the UI | ⬜ |
+| B1 | Neural Memory: facts, decisions, corrections, chat summaries and documents in one store (SQLite, hybrid BM25 + vectors from llama-server embeddings), retrieved within the token budget; view, correct, export and delete in the UI | ✅ tests + browser smoke; 🟡 ranking quality with the real embedding model unmeasured |
 | B2–B5 | Privacy and spend controls, undo/replay, `spike tune`, SPIKE as an MCP server | ⬜ |
 | B6 | Evolution level 1: a user's correction becomes a memory rule applied in later chats | ⬜ |
 | C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ⬜ |
@@ -190,3 +190,33 @@ Order of the next rounds, after the medicine verdict:
    domain.
 7. Without training: domain RAG over permissive sources and tools (calculator and Python for finance, guideline
    search for medicine), measured with the same evals.
+
+## 27. Third review batch and launch (adopted 2026-10-17)
+**E — Evolution, built next to B.** Nothing changes the shipped behaviour without passing the local evals.
+| Item | Scope |
+|---|---|
+| E1 | Correction learning: an approved correction becomes a memory rule (B6) and an evaluable example in a local set |
+| E2 | Routing learning: route corrections feed the router's dev set; new weights only if the protected test (0.92) does not drop |
+| E3 | Failure library: cause + verified fix, kept locally, exportable as an issue |
+| E4 | Benchmark generation: failures become candidate eval questions, reviewed by a person and decontaminated |
+| E5 | Regression protection extended to the router, prompts and skills |
+| E6 | Versioning and rollback: active adapter/prompt/router version recorded from the run/export/summary files, `spike models history`, automatic return to the previous version when the new one fails its eval or the user rejects it |
+
+**Cheap additions to B/C:** answer contracts (`response_format` with validation in `/v1` and the UI), temporary chats
+(nothing saved, no memory), branch a chat when a message is edited, human handoff (the agent pauses with a question
+and resumes), Blueprint as Forge's first phase, proof package export, opt-in folder indexing in Neural Memory,
+citation inspector, deterministic visual critic (Playwright + axe-core, MPL-2.0), dependency doctor (pip-audit,
+Apache-2.0), data-to-software template after Analytics, `spike skills validate` / `spike connectors validate` in CI,
+`spike bench --share` (anonymous JSON for an issue, no telemetry), docs/COMPATIBILITY.md, versioned JSON Schemas.
+
+**As skills, no new code:** decision simulator, test inventor, migration architect, performance profiler,
+localization, SVG vector designer, experiment designer, synthetic data (Faker), system diagnostic.
+
+**After launch or not now:** parallel minds, reverse studio, architecture explorer, parallel prototypes, 3D, game,
+audio and subtitle studios, knowledge graph, notebooks, prompt evolution, tool strategy learning, personal adapters;
+no desktop control with the local model, device lab or multi-user review rooms.
+
+**v0.1 launch does not wait for C.** Before the repository goes public (the founder decides, from the founder's
+accounts): measured numbers on a 16 GB x86 machine without GPU, an accepted adapter or an honest status, install in
+≤ 3 commands tested on clean macOS, Linux and Windows, CI green on GitHub, a real 30–60 s demo recording, adapters
+and model cards on Hugging Face, release notes, final security and license review.

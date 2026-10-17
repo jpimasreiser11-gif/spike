@@ -23,6 +23,8 @@ class ModelEntry:
     quants: tuple[str, ...]
     default_quant: str
     notes: str = ""
+    kind: str = "chat"  # "chat" or "embedding"
+    query_prefix: str = ""  # embedding models: text put before a search query (not before stored passages)
 
     def filename(self, quant: str) -> str:
         return self.filename_template.format(quant=quant)
@@ -41,7 +43,17 @@ MODELS: dict[str, ModelEntry] = {
         license="apache-2.0", quants=("Q4_K_M", "Q8_0"), default_quant="Q4_K_M",
         notes="Fallback for machines with 8 GB of RAM or less.",
     ),
+    # Neural Memory's semantic search. Official GGUF by Qwen; llama.cpp usage per the model card:
+    # `--embedding --pooling last`, and an instruction before queries only.
+    "qwen3-embedding-0.6b": ModelEntry(
+        id="qwen3-embedding-0.6b", repo="Qwen/Qwen3-Embedding-0.6B-GGUF",
+        filename_template="Qwen3-Embedding-0.6B-{quant}.gguf", license="apache-2.0", quants=("Q8_0", "f16"),
+        default_quant="Q8_0", kind="embedding",
+        query_prefix="Instruct: Given a question, retrieve notes and passages that help answer it\nQuery: ",
+        notes="Memory search by meaning (Neural Memory); 100+ languages, 639 MB.",
+    ),
 }
+EMBEDDING_MODEL = "qwen3-embedding-0.6b"
 
 ALLOWED_LICENSES = {"apache-2.0", "mit", "bsd-3-clause", "cc-by-4.0"}
 
