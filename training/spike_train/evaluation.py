@@ -75,6 +75,17 @@ def score(item: Item, response: str) -> tuple[str | None, bool]:
     raise ValueError(item.kind)
 
 
+def rescore(predictions: list[dict], items: dict[str, Item]) -> list[dict]:
+    """Score saved responses again with the current extractors (for a fixed parser: no new generation).
+    Every prediction must match an item, otherwise KeyError: a rescore never drops rows silently."""
+    out = []
+    for p in predictions:
+        item = items[p["item"]]
+        parsed, correct = score(item, p["response"])
+        out.append({**p, "parsed": parsed, "correct": correct})
+    return out
+
+
 def _accuracy(rows: list[dict]) -> dict[str, Any]:
     n = len(rows)
     correct = sum(r["correct"] for r in rows)

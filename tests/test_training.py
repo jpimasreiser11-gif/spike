@@ -27,9 +27,11 @@ from spike_train.data import (  # noqa: E402
 from spike_train.distill import Task, verify  # noqa: E402
 from spike_train.evaluation import (  # noqa: E402
     Client,
+    Item,
     check_acceptance,
     make_item,
     pairwise_summary,
+    rescore,
     score,
     summarize,
 )
@@ -208,6 +210,26 @@ def test_extract_choice(text, expected):
     assert extract_choice(text, 4) == expected
 
 
+# Response endings seen in the first Qwen3.5-4B baseline run (evals/results/baseline-mac-20261017).
+@pytest.mark.parametrize("text,expected", [
+    ("*   D. $Lfh$: Incorrect order.\n*   E-J: extra symbols.\n\nThe correct translation is $Lhf$.\n\nA", "A"),
+    ("Therefore, the correct option is **F**.\n\n**F**", "F"),
+    ("Therefore, option B is the correct description.\n\nB", "B"),
+    ("Therefore, the correct option is **C**.\n\n**Answer:** C", "C"),
+    ("...the slave of the passions.\n\n**Answer:** G", "G"),
+    ("*   J: $Bc$ - Matches our derivation perfectly.\n\nThe correct option is **J**.", "J"),
+    ("The answer is a matter of definition, so I pick B. because it fits", "B"),
+    ("Therefore, the par value is reduced to $2.\n\n**Correct Option:** I", "I"),
+    ("*   Option G is incorrect because masking applies to sound.", None),
+])
+def test_extract_choice_real_endings(text, expected):
+    assert extract_choice(text, 10) == expected
+
+
+def test_extract_yes_no_bold_answer():
+    assert extract_yes_no("**Answer:** no. Larger trials could still say yes.") == "no"
+
+
 def test_extract_yes_no_and_number():
     assert extract_yes_no("The trial shows benefit.\nAnswer: no") == "no"
     assert extract_yes_no("<think>yes?</think>Probably maybe.") == "maybe"
@@ -269,6 +291,21 @@ def test_summarize_and_acceptance():
     acceptance["regression"]["max_drop_points"] = 0.5
     assert not check_acceptance(s, acceptance, "spike-medicine")[0]
     assert not check_acceptance(s, {"primary": {"suite": "finance", "min_gain_points": 3}}, "spike-medicine")[0]
+
+
+def test_rescore_recomputes_parsed_and_correct_from_saved_responses():
+    items = {"t/1": Item("t/1", "t", "q", "mcq", "A", 10), "t/2": Item("t/2", "t", "q", "yesno", "no")}
+    rows = [
+        {"item": "t/1", "variant": "base", "gold": "A", "parsed": "D", "correct": False,
+         "response": "D. wrong option text\n\nA"},
+        {"item": "t/2", "variant": "base", "gold": "no", "parsed": "yes", "correct": False,
+         "response": "**Answer:** no. Trials could say yes."},
+    ]
+    out = rescore(rows, items)
+    assert [(r["parsed"], r["correct"]) for r in out] == [("A", True), ("no", True)]
+    assert rows[0]["parsed"] == "D"  # the input rows are not modified
+    with pytest.raises(KeyError):
+        rescore([{**rows[0], "item": "t/missing"}], items)
 
 
 def test_pairwise_summary():

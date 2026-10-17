@@ -13,19 +13,29 @@ def strip_think(text: str) -> str:
 
 
 def extract_choice(text: str, n_options: int = 10) -> str | None:
-    """Return the final option letter. Prefers an explicit 'Answer: X' line, else the last standalone letter."""
+    """Return the final option letter, trying in order: the last 'Answer: X' (markdown allowed, letters are
+    upper case only so 'the answer is a ...' is not read as A), a last line that is only the letter
+    ('**B**'), the last 'option is X' or 'Option: X', and the last standalone 'X.' or 'X)'."""
     letters = "ABCDEFGHIJ"[:n_options]
     body = strip_think(text)
-    explicit = re.findall(rf"(?i)answer\s*(?:is)?\s*[:：]?\s*\(?\**([{letters}])\b", body)
+    deco = r"[\s*_(\[]*"
+    explicit = re.findall(rf"(?i:\banswer)(?:\s+(?i:is))?\s*[:：]?{deco}([{letters}])(?![A-Za-z])", body)
     if explicit:
-        return explicit[-1].upper()
+        return explicit[-1]
+    lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
+    if lines and (m := re.fullmatch(rf"{deco}([{letters}])[\s*_)\].:]*", lines[-1])):
+        return m.group(1)
+    stated = re.findall(rf"(?i:\b(?:option|choice))(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}([{letters}])(?![A-Za-z])",
+                        body)
+    if stated:
+        return stated[-1]
     loose = re.findall(rf"\b([{letters}])[\.\)]\s", body + " ")
-    return loose[-1].upper() if loose else None
+    return loose[-1] if loose else None
 
 
 def extract_yes_no(text: str) -> str | None:
     body = strip_think(text).lower()
-    m = re.findall(r"answer\s*[:：]?\s*\**(yes|no|maybe)\b", body)
+    m = re.findall(r"answer\s*[:：]?[\s*_]*(yes|no|maybe)\b", body)
     if m:
         return m[-1]
     m = re.findall(r"\b(yes|no|maybe)\b", body)
