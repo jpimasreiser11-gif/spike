@@ -18,6 +18,8 @@ replay:
   sources:
     - {source: oasst2, max: 9000}
     - {source: smoltalk-constraints, max: 4000}
+eval:
+  max_tokens: 2048                    # base and adapter share it; at 512 21 % of base answers were cut off
 decontaminate_against: [medmcqa-eval, pubmedqa-labeled, mmlu-pro]
 valid_fraction: 0.02
 seed: 0

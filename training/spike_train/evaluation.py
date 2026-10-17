@@ -164,6 +164,22 @@ def pairwise_summary(verdicts: list[str]) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------ llama-server client
+EVAL_OPTIONS = {"max_tokens": "--max-tokens"}
+
+
+def eval_args(config: dict[str, Any]) -> list[str]:
+    """run_eval.py arguments fixed by a training config's `eval` block, so an adapter's evaluation settings
+    are part of its recipe. Base and adapter are scored in the same run and therefore share them."""
+    out: list[str] = []
+    for key, value in (config.get("eval") or {}).items():
+        if key not in EVAL_OPTIONS:
+            raise ValueError(f"unknown eval option '{key}' (known: {', '.join(EVAL_OPTIONS)})")
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError(f"eval.{key} must be a positive integer, got {value!r}")
+        out += [EVAL_OPTIONS[key], str(value)]
+    return out
+
+
 def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))

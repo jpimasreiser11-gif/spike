@@ -29,6 +29,7 @@ from spike_train.evaluation import (  # noqa: E402
     Client,
     Item,
     check_acceptance,
+    eval_args,
     make_item,
     pairwise_summary,
     rescore,
@@ -270,6 +271,24 @@ def test_items_and_scoring():
 def preds(variant, results, suite="medicine", task="t"):
     return [{"suite": suite, "task": task, "item": f"{task}/{i}", "variant": variant, "correct": c,
              "parsed": "A", "finish_reason": "stop"} for i, c in enumerate(results)]
+
+
+def test_eval_args_come_from_the_training_config():
+    assert eval_args({}) == []  # run_eval.py keeps its own default
+    assert eval_args({"eval": {"max_tokens": 2048}}) == ["--max-tokens", "2048"]
+    with pytest.raises(ValueError):
+        eval_args({"eval": {"max_tokens": 0}})
+    with pytest.raises(ValueError):
+        eval_args({"eval": {"temperature": 0.7}})  # unknown keys are not silently ignored
+
+
+def test_medicine_eval_uses_2048_tokens_through_run_specialist():
+    import yaml
+
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
+    assert eval_args(cfg) == ["--max-tokens", "2048"]
+    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text()
+    assert "spike_train.evaluation import eval_args" in script and '"${eval_extra[@]}"' in script
 
 
 def test_summarize_and_acceptance():
