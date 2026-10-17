@@ -85,12 +85,18 @@ memory), about 19 MB per token. The recipe is now batch 1 × 16 accumulation (sa
 and at most 768 tokens per example, longer chats dropped rather than truncated (4.0 % of medicine's): 18.7 GB
 peak RSS, no swap growth. Speed: 64 examples in 647 s (≈ 9.5 s each), because mlx-lm trains Qwen3.5's
 Gated DeltaNet layers with a per-token loop (its Metal kernel has no backward pass); one medicine epoch (25,010
-examples) would take ≈ 66 h. A chunked, differentiable delta-rule implementation is being written test-first.
+examples) would have taken ≈ 66 h. Fixed with a chunked, differentiable delta rule
+(`training/spike_train/gated_delta_chunked.py`, 16-token chunks, training path only): on the same 64 medicine
+chats 112.5 s vs 647 s (5.7×, 110 vs 21 tok/s), train loss 1.675 vs 1.672, val loss 0.564 vs 0.566, peak RSS
+11.4 GB; on real Qwen3.5-4B activations the 24 linear-attention layers match mlx-lm's loop within 4.9e-4, and one
+LoRA step's gradients have min cosine 0.998. Projected full medicine epoch ≈ 10 h (estimate from that rate, not
+yet measured).
 
 ## Built, not yet measured with real weights
 
 - Qwen3.5-4B inference speed, TTFT and peak RSS on a 16 GB CPU-only x86 machine (Apple Silicon measured above).
-- Any trained adapter: medicine is blocked on training speed (above); finance and marketing follow.
+- Any trained adapter: medicine is ready to run on the Mac (waiting for joan's go-ahead on one ≈ 10 h run or
+  ≈ 3 h slices resumed from checkpoints); finance and marketing follow.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.
@@ -107,11 +113,9 @@ examples) would take ≈ 66 h. A chunked, differentiable delta-rule implementati
 ## Blockers
 
 1. **No model weights in the build container**: its network policy blocks huggingface.co, so real-model
-   benchmarks and evals must run on joan's Mac (or the environment must allow huggingface.co; the container
-   itself is a 4-core x86 machine with 15.7 GB RAM, a good proxy for the 16 GB CPU-only target).
-2. **Training speed on the Mac**: ≈ 66 h per medicine epoch with mlx-lm's per-token Gated DeltaNet backward
-   (measured above). Long runs wait for the faster implementation or for joan's go-ahead on a shorter recipe.
-3. **Publication**: joan chose a private GitHub repository `spike`; waiting for joan to create it (sessions cannot
+   benchmarks and evals run on joan's Mac. joan has since allowed huggingface.co in a newer cloud environment, and
+   the 16 GB CPU-only measurement is running there; its numbers go here once they exist.
+2. **Publication**: joan chose a private GitHub repository `spike`; waiting for joan to create it (sessions cannot
    create repositories). Nothing has been pushed.
 
 ## Next steps (in order)
