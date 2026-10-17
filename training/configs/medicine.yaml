@@ -24,11 +24,11 @@ valid_fraction: 0.02
 seed: 0
 train:
   epochs: 1.0                         # prepare.py turns this into mlx-lm `iters` (micro-batches) from the data size
-  batch_size: 4
-  grad_accumulation_steps: 4
+  batch_size: 1                       # 4 x 2048 tokens ran out of Metal memory on a 36 GB Mac
+  grad_accumulation_steps: 16         # effective batch 16, same number of optimizer updates
   learning_rate: 1.0e-4
   lr_schedule: {name: cosine_decay, warmup: 100, arguments: [1.0e-4, auto, 1.0e-5]}
-  max_seq_length: 2048
+  max_seq_length: 768                 # Metal peak grows ~19 MB/token in training (Qwen3.5-4B, 36 GB Mac); longer chats are dropped
   grad_checkpoint: true
   mask_prompt: true
   num_layers: -1

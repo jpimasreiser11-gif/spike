@@ -352,7 +352,7 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
 
     leaked = "which drug is first line for uncomplicated hypertension in a young adult with no other conditions today"
     rows = {
-        "medmcqa": [med(i) for i in range(40)] + [med(99, leaked)],
+        "medmcqa": [med(i) for i in range(40)] + [med(99, leaked)] + [med(98, "LONG " + "word " * 30)],
         "pubmedqa-artificial": [{**PUBMED, "pubid": i, "question": f"Does treatment {i} reduce mortality?"} for i in range(10)],
         "oasst2": [r for i in range(200) for r in (oasst(f"q{i}", None, "prompter", f"general question {i}"),
                                                     oasst(f"a{i}", f"q{i}", "assistant", "a general answer", rank=0))],
@@ -370,6 +370,8 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
         return iter(data[offset: None if limit is None else offset + limit])
 
     monkeypatch.setattr(prepare, "load_rows", fake_rows)
+    monkeypatch.setattr(prepare, "load_token_counter", lambda base_model: lambda chat: (
+        100_000 if "LONG" in chat["messages"][1]["content"] else 100))
     monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: {
         s["hub"]: s["license"] for s in registry.values()}[repo])
     monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training/configs/medicine.yaml"), "--out", str(tmp_path)])
@@ -377,6 +379,7 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     out = tmp_path / "medicine"
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["dropped"]["contaminated"] == 1  # the leaked eval question never reaches training
+    assert manifest["dropped"]["too_long"] == 1  # longer than max_seq_length: dropped, never truncated
     assert manifest["sources"]["medmcqa"]["kept"] == 40
     assert manifest["sources"]["oasst2"]["built"] == 200
     assert not any(name.startswith("smoltalk") for name in manifest["sources"])  # replay is human-written only
@@ -407,6 +410,22 @@ def test_prepare_refuses_excluded_replay_sources(tmp_path, monkeypatch, source):
     monkeypatch.setattr(sys, "argv", ["prepare.py", str(tmp_path / "cfg.yaml"), "--out", str(tmp_path)])
     with pytest.raises(SystemExit, match=f"refusing source '{source}'"):
         prepare.main()
+
+
+def test_training_configs_fit_a_36gb_mac_with_the_same_effective_batch():
+    """batch 4 x 2048 tokens ran out of Metal memory on the first step: training memory grows ~19 MB per token
+    (measured 11 GB at 128 tokens, 23 GB at 768). Batch 1 x 16 accumulation keeps the effective batch and the
+    update count; prepare.py drops chats longer than max_seq_length instead of letting mlx-lm truncate them."""
+    import prepare
+    import yaml
+
+    for path in (ROOT / "training" / "configs").glob("*.yaml"):
+        train = yaml.safe_load(path.read_text())["train"]
+        assert train["batch_size"] == 1 and train["grad_accumulation_steps"] == 16, path.name
+        assert train["max_seq_length"] <= 768, path.name  # measured: 18.7 GB peak RSS at 768, OOM at 1024
+        sched = prepare.training_schedule(train, 26050)
+        assert sched["iters"] // 16 == prepare.training_schedule({**train, "batch_size": 4,
+                                                                   "grad_accumulation_steps": 4}, 26050)["iters"] // 4
 
 
 def test_no_training_config_uses_an_excluded_source():

@@ -48,6 +48,14 @@ def load_rows(src: dict, offset: int = 0, limit: int | None = None):
         yield row
 
 
+def load_token_counter(base_model: str):
+    """Tokens of a chat as the trainer sees it (the base model's chat template), for the length filter."""
+    from transformers import AutoTokenizer
+
+    tok = AutoTokenizer.from_pretrained(base_model)
+    return lambda chat: len(tok(tok.apply_chat_template(chat["messages"], tokenize=False))["input_ids"])
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     h.update(path.read_bytes())
@@ -85,7 +93,7 @@ def main() -> int:
     out = Path(args.out) / cfg["specialist"]
     out.mkdir(parents=True, exist_ok=True)
     manifest: dict = {"specialist": cfg["specialist"], "config": cfg, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                      "sources": {}, "dropped": {"format_or_quality": 0, "duplicate": 0, "contaminated": 0}}
+                      "sources": {}, "dropped": {"format_or_quality": 0, "duplicate": 0, "contaminated": 0, "too_long": 0}}
 
     def checked(name: str, role: str) -> dict:
         src = registry[name]
@@ -126,6 +134,16 @@ def main() -> int:
             index.add(row["prompt"])
         manifest["sources"][f"file:{rel}"] = {"role": "eval", "indexed_prompts": len(rows), "sha256": sha256(ROOT / rel)}
 
+    # mlx-lm would truncate longer chats, cutting off the answer (or all of it, giving a NaN loss): drop them
+    max_len = cfg["train"].get("max_seq_length")
+    n_tokens = load_token_counter(cfg["base_model"]) if max_len else None
+
+    def too_long(chat: dict) -> bool:
+        if n_tokens and n_tokens(chat) > max_len:
+            manifest["dropped"]["too_long"] += 1
+            return True
+        return False
+
     def collect(entries: list[dict], sys_prompt: str | None) -> list[dict]:
         chats = []
         for entry in entries:
@@ -146,6 +164,8 @@ def main() -> int:
                 if chat is None or not passes_quality(chat):
                     manifest["dropped"]["format_or_quality"] += 1
                     continue
+                if too_long(chat):
+                    continue
                 if index.contaminated(text_of(chat)):
                     manifest["dropped"]["contaminated"] += 1
                     continue
@@ -159,7 +179,7 @@ def main() -> int:
         for line in Path(path).read_text(encoding="utf-8").splitlines():
             chat = json.loads(line)
             chat.pop("meta", None)
-            if passes_quality(chat) and not index.contaminated(text_of(chat)):
+            if passes_quality(chat) and not too_long(chat) and not index.contaminated(text_of(chat)):
                 domain.append(chat)
         manifest["sources"][f"distilled:{Path(path).name}"] = {"role": "train", "license_hub": "teacher-output (Apache-2.0 teacher)"}
     replay = collect(cfg.get("replay", {}).get("sources", []), None)
