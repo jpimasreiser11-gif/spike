@@ -20,6 +20,7 @@ class ToolResult:
     ok: bool
     content: str
     data: dict[str, Any] = field(default_factory=dict)
+    private: list[str] = field(default_factory=list)  # parts of `content` that are the user's file contents
 
 
 class Tool(ABC):

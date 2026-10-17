@@ -104,3 +104,24 @@ def test_runtime_start_without_model_is_explained(env):
     client, _, _ = env
     r = client.post("/api/runtime/start")
     assert r.status_code == 400 and "No local model configured" in r.json()["detail"]
+
+
+def test_retry_and_edit_replace_the_rest_of_the_chat(env):
+    client, state, scripts = env
+    client.get("/api/providers")
+    scripts["spike-local"]._script = [text("primera"), text("segunda"), text("editada")]
+    first = events_of(client.post("/api/chat", json={"message": "hola"}))
+    conv = next(e for e in first if e["type"] == "conversation")
+    cid, uid = conv["id"], conv["user_message_id"]
+    retry = events_of(client.post("/api/chat", json={"message": "hola", "conversation_id": cid, "replace_from": uid}))
+    assert retry[-1]["type"] == "done" and retry[-1]["text"] == "segunda"
+    assert [(m["role"], m["content"]) for m in state.store.messages(cid)] == [("user", "hola"), ("assistant", "segunda")]
+    assert [m.content for m in scripts["spike-local"].requests[1].messages if m.role != "system"] == ["hola"]
+    uid = next(e for e in retry if e["type"] == "conversation")["user_message_id"]
+    events_of(client.post("/api/chat", json={"message": "hola otra vez", "conversation_id": cid, "replace_from": uid}))
+    assert [m["content"] for m in state.store.messages(cid)] == ["hola otra vez", "editada"]
+    assistant = state.store.messages(cid)[1]["id"]
+    for bad in ({"replace_from": assistant, "conversation_id": cid}, {"replace_from": "nope", "conversation_id": cid},
+                {"replace_from": uid}):
+        assert client.post("/api/chat", json={"message": "x", **bad}).status_code == 400
+    assert len(state.store.list_conversations()) == 1  # a refused retry creates no chat

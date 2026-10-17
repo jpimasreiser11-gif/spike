@@ -22,6 +22,8 @@ class Message:
     tool_calls: list[ToolCall] = field(default_factory=list)
     tool_call_id: str | None = None
     name: str | None = None  # tool name for role="tool"
+    # parts of `content` that are the user's file contents; a provider not allowed to see files gets a notice instead
+    private: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -58,7 +60,7 @@ class ChatRequest:
     reasoning: bool | None = None  # request thinking mode when the model supports it
 
 
-EventKind = Literal["text", "reasoning", "tool_call", "usage", "done", "error"]
+EventKind = Literal["text", "reasoning", "tool_call", "usage", "notice", "done", "error"]
 
 
 @dataclass
@@ -68,6 +70,7 @@ class StreamEvent:
     tool_call: ToolCall | None = None
     usage: dict[str, Any] | None = None
     finish_reason: str | None = None
+    notice: dict[str, Any] | None = None  # kind="notice": something SPIKE did to the request, for the UI
 
 
 class ProviderError(RuntimeError):
@@ -76,3 +79,7 @@ class ProviderError(RuntimeError):
 
 class PaidCallBlocked(ProviderError):
     """Raised when a paid provider is used without the user's explicit authorization."""
+
+
+class SpendLimitReached(ProviderError):
+    """Raised when a provider has used up the monthly limit the user set for it."""

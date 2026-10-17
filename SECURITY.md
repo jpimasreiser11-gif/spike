@@ -21,6 +21,15 @@ acknowledge reports within 7 days.
   file readable only by the current user (mode 0600, **not encrypted**) and the UI says which backend is active.
   Keys are never written to the SQLite database or returned by the API.
 - Paid providers cannot be called until the user enables `allow_paid` for that provider.
+- Every provider call goes through one guard (`spike/providers/guard.py`). A remote provider gets the contents of
+  your files only if you enable "send your files' contents" for it (off by default): file passages that memory
+  recalled, results of `read_file`, of `recall` hits from files and of file connectors (filesystem, git, GitHub,
+  Claude Code), and answers a model wrote after reading your files (in the same run or earlier in the chat) are
+  replaced by a notice before the request is built. A test checks the requests on the wire. Not covered: text you
+  type or paste yourself, the output of the `python` tool (you approve each script) and custom connectors.
+  Optional monthly limits per provider (tokens, or spend at the prices you enter) stop calls before they are
+  sent, and every call is written to a local call log (provider, model, tokens, files sent or withheld, status;
+  Settings → Privacy), kept 400 days.
 - Tools: file tools are confined to the workspace directory; `write_file`, `python` and `web_fetch` ask for
   permission by default. `web_fetch` refuses private, loopback and link-local addresses and redirects.
   The Python tool runs in a separate process with CPU, memory (Linux) and time limits but **without network

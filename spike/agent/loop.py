@@ -25,6 +25,7 @@ class AgentRun:
     error: str | None = None
     steps: int = 0
     finish_reason: str | None = None  # of the last model call ("length" = cut by max_tokens)
+    private: bool = False  # the model saw the user's file contents, so what it wrote may quote them
 
 
 async def run_agent(
@@ -51,6 +52,8 @@ async def run_agent(
     for step in range(max_steps):
         run.steps = step + 1
         fitted, dropped = fit_messages(history, context_budget)
+        # only a model that actually gets the files can quote them (a guarded provider may withhold them)
+        run.private = run.private or (getattr(provider, "receives_files", True) and any(m.private for m in fitted))
         if dropped:
             yield {"type": "context_trimmed", "dropped": dropped, **tag}
         request = ChatRequest(
@@ -71,6 +74,8 @@ async def run_agent(
             elif ev.kind == "usage" and ev.usage:
                 run.usage.append(ev.usage)
                 yield {"type": "usage", "usage": ev.usage, **tag}
+            elif ev.kind == "notice" and ev.notice:
+                yield {**ev.notice, **tag}
             elif ev.kind == "done":
                 run.finish_reason = ev.finish_reason
             elif ev.kind == "error":
@@ -88,7 +93,7 @@ async def run_agent(
         for call in calls:
             yield {"type": "tool_call", "id": call.id, "name": call.name, "arguments": call.arguments, **tag}
             tool = by_name.get(call.name)
-            file = None  # a workspace file the tool wrote, for the UI to offer
+            file, private = None, []  # a workspace file the tool wrote; parts of the result that are file contents
             if tool is None:
                 result_text, ok = f"error: tool '{call.name}' is not available to this specialist", False
             else:
@@ -108,12 +113,12 @@ async def run_agent(
                     if decision == "deny":
                         result_text, ok = "error: the user denied this tool call", False
                     else:
-                        result_text, ok, file = await _execute(tool, call)
+                        result_text, ok, file, private = await _execute(tool, call)
                 else:
-                    result_text, ok, file = await _execute(tool, call)
+                    result_text, ok, file, private = await _execute(tool, call)
             yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000],
                    **({"file": file} if file else {}), **tag}
-            tool_msg = Message(role="tool", content=result_text, tool_call_id=call.id, name=call.name)
+            tool_msg = Message(role="tool", content=result_text, tool_call_id=call.id, name=call.name, private=private)
             history.append(tool_msg)
             run.messages.append(tool_msg)
 
@@ -121,10 +126,10 @@ async def run_agent(
     yield {"type": "error", "message": run.error, **tag}
 
 
-async def _execute(tool: Tool, call: ToolCall) -> tuple[str, bool, str | None]:
+async def _execute(tool: Tool, call: ToolCall) -> tuple[str, bool, str | None, list[str]]:
     try:
         result = await tool.run(call.arguments)
     except Exception as exc:  # a tool bug must not kill the conversation
-        return f"error: {exc.__class__.__name__}: {exc}", False, None
+        return f"error: {exc.__class__.__name__}: {exc}", False, None, []
     file = result.data.get("file") if result.ok else None
-    return result.content, result.ok, file if isinstance(file, str) else None
+    return result.content, result.ok, file if isinstance(file, str) else None, [p for p in result.private if p]

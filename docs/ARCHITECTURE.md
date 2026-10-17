@@ -54,6 +54,12 @@ scales reset to 0 at startup). See [ADR 0004](adr/0004-adapter-serving.md).
 - Paid providers (every remote preset) refuse to send a request unless the user enabled `allow_paid` for
   that provider: no cost without explicit configuration. `/test` only lists models.
 - API keys are stored in the OS keychain (`keyring`), never in SQLite or responses.
+- `GuardedProvider` (`spike/providers/guard.py`) wraps every provider the app creates. Messages carry `private`
+  parts (file contents: a `read_file` result, a file passage memory recalled into the system prompt, a report or
+  earlier answer written by a model that saw files); for a remote provider without `share_files` each part is
+  replaced by a notice, and a part that is not found word for word withholds its whole message. The guard also
+  checks the monthly limits before a call and writes every call (tokens from the provider's usage, or an estimate)
+  to the `calls` table.
 - Capabilities (streaming, native tools, JSON schema, adapters, reasoning, context) are declared per
   provider; when a feature is missing SPIKE emulates it only if reliable (tool calls) and otherwise reports
   the limitation.

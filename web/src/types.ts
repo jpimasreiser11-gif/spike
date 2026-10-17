@@ -30,6 +30,8 @@ export type ProviderInfo = {
   paid: boolean;
   allow_paid: boolean;
   local: boolean;
+  share_files?: boolean;
+  limits?: Limits;
   has_key: boolean;
   preset?: string | null;
   capabilities_effective: Record<string, unknown> | null;
@@ -102,6 +104,7 @@ export type RunState = {
   trimmed?: number;
   skills?: string[];
   memory?: MemoryUse;
+  privacy?: Record<string, number>; // provider name -> file passages withheld from it
 };
 
 export type ChatEvent = { type: string; [key: string]: any };
@@ -197,4 +200,36 @@ export type MemoryStatus = {
   auto_summary: boolean;
   stats: { memories: number; by_kind: Record<string, number>; chunks: number; embedded: number };
   semantic: { model: string | null; installed: boolean; running: boolean; error: string | null; install: string };
+};
+
+/** Monthly limits of one provider; prices per million tokens, in the user's own currency. */
+export type Limits = { monthly_tokens?: number | null; monthly_cost?: number | null; price_in?: number | null; price_out?: number | null };
+
+export type CallRow = {
+  id: number;
+  ts: number;
+  provider_id: string;
+  provider: string;
+  model: string;
+  local: boolean;
+  status: "ok" | "error" | "blocked" | "cancelled";
+  tokens_in: number;
+  tokens_out: number;
+  estimated: boolean;
+  cost: number | null;
+  files_sent: number;
+  files_withheld: number;
+  detail: string;
+};
+
+export type UsageRow = {
+  provider_id: string;
+  name: string;
+  local: boolean;
+  limits: Limits;
+  calls: number;
+  tokens_in: number;
+  tokens_out: number;
+  cost: number;
+  estimated: number;
 };

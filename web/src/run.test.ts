@@ -90,3 +90,13 @@ describe("memory", () => {
     expect(stored.memory?.rules).toBe(1);
   });
 });
+
+describe("privacy", () => {
+  it("keeps the most passages withheld per provider, live and stored", () => {
+    let run = applyEvent(emptyRun(), { type: "privacy", provider: "OpenAI", withheld: 1 });
+    run = applyEvent(run, { type: "privacy", provider: "OpenAI", withheld: 3 });
+    run = applyEvent(run, { type: "privacy", provider: "OpenAI", withheld: 2 });
+    expect(run.privacy).toEqual({ OpenAI: 3 });
+    expect(runFromStored({ role: "assistant", content: "ok", meta: { privacy: { DeepSeek: 1 } } } as any).privacy).toEqual({ DeepSeek: 1 });
+  });
+});

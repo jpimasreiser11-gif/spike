@@ -127,7 +127,7 @@ class ReadFile(Tool):
         except (PermissionError, FileNotFoundError, IsADirectoryError, KeyError, ValueError) as exc:
             return ToolResult(ok=False, content=f"error: {exc}")
         suffix = f"\n[truncated {len(text) - limit} chars]" if len(text) > limit else ""
-        return ToolResult(ok=True, content=text[:limit] + suffix)
+        return ToolResult(ok=True, content=text[:limit] + suffix, private=[text[:limit]])
 
 
 class ListDir(Tool):

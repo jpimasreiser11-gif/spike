@@ -363,3 +363,24 @@ a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-i
 .grow { flex: 1; min-width: 160px; }
 .badge.kind-rule { background: var(--mint); color: var(--ink); }
 .btn.small { padding: 2px 10px; font-size: 12.5px; }
+
+/* privacy, call log, retry and edit */
+.privacy-chip { background: var(--surface-2); color: var(--text-2); cursor: help; }
+.check .hint { color: var(--text-2); }
+.limits summary { cursor: pointer; color: var(--text-2); }
+.limits[open] { display: grid; gap: 8px; }
+.usage-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+table.calls { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.calls th, table.calls td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+table.calls th { background: var(--surface-2); font-weight: 600; }
+table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--danger); }
+.retry { display: inline-flex; align-items: center; gap: 6px; position: relative; flex-wrap: wrap; }
+.retry-menu { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.msg.user { align-items: flex-start; gap: 4px; }
+.msg.user .edit-btn { opacity: 0; transition: opacity .15s; }
+.msg.user:hover .edit-btn, .msg.user .edit-btn:focus-visible { opacity: 1; }
+@media (hover: none) { .msg.user .edit-btn { opacity: 1; } }
+.msg.user.editing { flex-direction: column; align-items: stretch; gap: 8px; }
+.msg.user.editing .row { justify-content: flex-end; }
+.bubble-edit { width: 100%; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: 14px; padding: 10px 14px; font: inherit; resize: vertical; }

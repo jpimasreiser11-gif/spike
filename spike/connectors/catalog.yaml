@@ -8,6 +8,7 @@
   name: Filesystem
   description: Read, write, move and search files, limited to the SPIKE workspace folder.
   transport: stdio
+  files: true
   command: npx
   args: ["-y", "@modelcontextprotocol/server-filesystem@1.0.0", "{workspace}"]
   license: MIT (package README); the repository licenses new contributions as Apache-2.0
@@ -39,6 +40,7 @@
   name: Git
   description: Status, diff, log, branches and commits of the git repository in the SPIKE workspace folder.
   transport: stdio
+  files: true
   command: uvx
   args: ["mcp-server-git@2026.10.10", "--repository", "{workspace}"]
   license: MIT
@@ -61,6 +63,7 @@
   name: GitHub
   description: Issues, pull requests, code and repositories through GitHub's hosted MCP server.
   transport: http
+  files: true
   url: https://api.githubcopilot.com/mcp/
   headers: {Authorization: "Bearer {GITHUB_PERSONAL_ACCESS_TOKEN}"}
   secrets:
@@ -74,6 +77,7 @@
   name: Claude Code
   description: Claude Code's own tools (read and edit files, run commands) exposed to SPIKE.
   transport: stdio
+  files: true
   command: claude
   args: ["mcp", "serve"]
   license: proprietary (not redistributed; SPIKE only starts the CLI you installed)

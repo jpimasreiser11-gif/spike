@@ -32,6 +32,19 @@ await page.locator(".msg.assistant .markdown").first().waitFor();
 await page.waitForFunction(() => document.querySelector(".msg-actions") !== null, null, { timeout: 10000 });
 if (!(await page.locator(".conv").count())) fail("conversation not listed in sidebar");
 
+// 1b. retry on the same model, then edit the question: each replaces the turn instead of adding one
+await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
+await page.getByRole("menuitem", { name: "El mismo modelo" }).click();
+await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 1 && document.querySelectorAll(".msg.user").length === 1, null, { timeout: 10000 })
+  .catch(() => fail("retry should replace the answer"));
+await page.locator(".msg.user").first().hover();
+await page.locator(".msg.user").first().getByRole("button", { name: "Editar" }).click();
+await page.getByLabel("Editar").fill("Hola de nuevo, ¿quién eres?");
+await page.locator(".msg.user.editing").getByRole("button", { name: "Enviar" }).click();
+await page.locator(".msg.user .bubble", { hasText: "Hola de nuevo" }).waitFor({ timeout: 10000 });
+await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 1 && document.querySelectorAll(".msg.user").length === 1, null, { timeout: 10000 })
+  .catch(() => fail("edit should replace the turn"));
+
 // 2. multi-specialist plan with synthesis
 await page.locator("#composer-input").fill("Plan a marketing campaign for an ETF and estimate the ROI of the investment");
 await page.keyboard.press("Enter");
@@ -63,7 +76,16 @@ await page.getByRole("button", { name: "Ajustes" }).click();
 await page.getByRole("dialog").waitFor();
 await page.getByRole("tab", { name: "Proveedores" }).click();
 await page.locator("select").filter({ hasText: "DeepSeek" }).selectOption("deepseek");
+await page.getByRole("dialog").locator(".card.dashed input[type=password]").fill("sk-e2e-not-a-real-key");
+await page.getByRole("dialog").getByRole("button", { name: "Añadir proveedor" }).click();
+const dsCard = page.getByRole("dialog").locator(".card", { hasText: "api.deepseek.com" });
+await dsCard.locator("label.check.warn input").click();
+await dsCard.locator("label.check.warn input:checked").waitFor({ timeout: 5000 });
+await dsCard.getByText("Topes mensuales").click();
+await dsCard.getByLabel("Tokens al mes").fill("500000");
+await dsCard.getByLabel("Tokens al mes").blur();
 await page.screenshot({ path: `${out}/04-settings-providers.png` });
+if (await dsCard.locator("label.check input").nth(1).isChecked()) fail("a new remote provider must not get file contents by default");
 await page.getByRole("tab", { name: "Especialistas" }).click();
 await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
 await page.getByRole("tab", { name: "Skills" }).click();
@@ -88,19 +110,31 @@ await dlg.getByLabel("Instrucciones del proyecto").fill("Responde citando fuente
 await dlg.getByLabel("Especialista por defecto").selectOption("medicine");
 await dlg.getByRole("button", { name: "Crear" }).click();
 await page.locator(".project-panel h2", { hasText: "Tesis" }).waitFor();
-await page.getByTestId("project-upload").setInputFiles({ name: "datos.csv", mimeType: "text/csv", buffer: Buffer.from("a,b\n1,2\n") });
+await page.getByTestId("project-upload").setInputFiles({ name: "datos.csv", mimeType: "text/csv", buffer: Buffer.from("producto,ventas\nNorte,120\nSur,95\n") });
 await page.locator(".file-list a", { hasText: "datos.csv" }).waitFor();
 await page.screenshot({ path: `${out}/06-project.png` });
 const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exportar (.zip)" }).click()]);
 if (!download.suggestedFilename().endsWith(".spike-project.zip")) fail("export filename: " + download.suggestedFilename());
-await page.locator("#composer-input").fill("Resume los datos");
+await page.locator("#composer-input").fill("Resume las ventas por producto");
 await page.keyboard.press("Enter");
 await page.getByText("Respuesta del proyecto").waitFor({ timeout: 10000 });
+// the same turn on DeepSeek: the file passage memory found is withheld, and the answer says so
+await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
+await page.getByRole("menuitem", { name: "DeepSeek" }).click();
+await page.locator(".privacy-chip", { hasText: "Archivos protegidos" }).waitFor({ timeout: 10000 });
 await page.waitForFunction(() => document.querySelectorAll(".conv").length === 1, null, { timeout: 5000 }).catch(() => fail("project chat list should hold only the project's chat"));
 await page.screenshot({ path: `${out}/07-project-chat.png` });
 await page.getByRole("button", { name: "Todos los chats" }).click();
 await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).waitFor();
-if (await page.locator(".conv-title", { hasText: "Resume los datos" }).count()) fail("project chat leaked into the main list");
+if (await page.locator(".conv-title", { hasText: "Resume las ventas" }).count()) fail("project chat leaked into the main list");
+
+// privacy: the call log shows the DeepSeek call with the file passage withheld
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Privacidad" }).click();
+await page.locator("table.calls tr", { hasText: "DeepSeek" }).filter({ hasText: "protegidos" }).first().waitFor({ timeout: 5000 });
+await page.getByTestId("usage-deepseek").filter({ hasText: "500.000 tope" }).waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07f-privacy.png` });
+await page.keyboard.press("Escape");
 
 // skills: a finance question gets the ratio-analysis skill, shown on the answer
 await page.getByRole("button", { name: "Nuevo chat" }).click();
@@ -117,7 +151,7 @@ await page.getByLabel("Algo que SPIKE debe recordar…").fill("El cliente Norte 
 await page.getByRole("dialog").getByRole("button", { name: "Añadir" }).click();
 await page.locator('.memory-item[data-memory="fact"]', { hasText: "El cliente Norte paga a 60 días" }).waitFor();
 await page.getByLabel("Buscar en la memoria…").fill("cliente norte");
-await page.locator(".memory-item", { hasText: "palabras" }).waitFor();
+await page.locator('.memory-item[data-memory="fact"]', { hasText: "palabras" }).waitFor();
 await page.screenshot({ path: `${out}/07e-memory-settings.png` });
 await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();

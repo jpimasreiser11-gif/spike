@@ -1,4 +1,4 @@
-"""Local persistence: conversations, messages, settings and provider configurations (SQLite)."""
+"""Local persistence: conversations, messages, settings, provider configurations and the call log (SQLite)."""
 
 from __future__ import annotations
 
@@ -26,7 +26,16 @@ CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, instructions TEXT NOT NULL DEFAULT '', mode TEXT NOT NULL DEFAULT 'auto',
   created REAL NOT NULL, updated REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS calls (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, provider_id TEXT NOT NULL, provider TEXT NOT NULL,
+  model TEXT NOT NULL DEFAULT '', local INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL,
+  tokens_in INTEGER NOT NULL DEFAULT 0, tokens_out INTEGER NOT NULL DEFAULT 0, estimated INTEGER NOT NULL DEFAULT 0,
+  cost REAL, files_sent INTEGER NOT NULL DEFAULT 0, files_withheld INTEGER NOT NULL DEFAULT 0,
+  detail TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS calls_by_provider ON calls(provider_id, ts);
 """
+CALL_LOG_DAYS = 400  # older entries of the call log are dropped when SPIKE starts
 PROJECT_FIELDS = {"name", "instructions", "mode"}
 
 
@@ -41,7 +50,8 @@ class Store:
         columns = {r["name"] for r in self._conn.execute("PRAGMA table_info(conversations)")}
         if "project_id" not in columns:  # databases created before projects existed
             self._conn.execute("ALTER TABLE conversations ADD COLUMN project_id TEXT")
-            self._conn.commit()
+        self._conn.execute("DELETE FROM calls WHERE ts < ?", (time.time() - CALL_LOG_DAYS * 86400,))
+        self._conn.commit()
         self._lock = threading.Lock()
 
     def _exec(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
@@ -94,6 +104,14 @@ class Store:
             self._exec("UPDATE conversations SET updated=? WHERE id=?", (now, cid))
         return {"id": mid, "conversation_id": cid, "role": role, "content": content, "meta": meta or {}, "created": now}
 
+    def delete_messages_from(self, cid: str, mid: str) -> bool:
+        """Delete one message and every later one of its chat (editing or retrying a turn); False if not found."""
+        rows = self._exec("SELECT created FROM messages WHERE id=? AND conversation_id=?", (mid, cid))
+        if not rows:
+            return False
+        self._exec("DELETE FROM messages WHERE conversation_id=? AND created>=?", (cid, rows[0]["created"]))
+        return True
+
     def messages(self, cid: str) -> list[dict]:
         rows = self._exec("SELECT * FROM messages WHERE conversation_id=? ORDER BY created", (cid,))
         return [{**dict(r), "meta": json.loads(r["meta"])} for r in rows]
@@ -118,6 +136,30 @@ class Store:
 
     def delete_provider(self, pid: str) -> None:
         self._exec("DELETE FROM providers WHERE id=?", (pid,))
+
+    # -------------------------------------------------------------- call log
+    def log_call(self, provider_id: str, provider: str, status: str, model: str = "", local: bool = False,
+                 tokens_in: int = 0, tokens_out: int = 0, estimated: bool = False, cost: float | None = None,
+                 files_sent: int = 0, files_withheld: int = 0, detail: str = "") -> None:
+        self._exec("INSERT INTO calls (ts, provider_id, provider, model, local, status, tokens_in, tokens_out, "
+                   "estimated, cost, files_sent, files_withheld, detail) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                   (time.time(), provider_id, provider, model, int(local), status, tokens_in, tokens_out,
+                    int(estimated), cost, files_sent, files_withheld, detail))
+
+    def calls(self, limit: int = 200, remote_only: bool = False) -> list[dict]:
+        where = "WHERE local=0" if remote_only else ""
+        rows = self._exec(f"SELECT * FROM calls {where} ORDER BY id DESC LIMIT ?", (limit,))
+        return [{**dict(r), "local": bool(r["local"]), "estimated": bool(r["estimated"])} for r in rows]
+
+    def usage_since(self, provider_id: str, since: float) -> dict[str, float]:
+        row = self._exec("SELECT COUNT(*) AS calls, COALESCE(SUM(tokens_in),0) AS tokens_in, "
+                         "COALESCE(SUM(tokens_out),0) AS tokens_out, COALESCE(SUM(cost),0) AS cost, "
+                         "COALESCE(SUM(estimated),0) AS estimated FROM calls "
+                         "WHERE provider_id=? AND ts>=? AND status!='blocked'", (provider_id, since))[0]
+        return dict(row)
+
+    def clear_calls(self) -> None:
+        self._exec("DELETE FROM calls")
 
     # -------------------------------------------------------------- projects
     def create_project(self, name: str, instructions: str = "", mode: str = "auto") -> dict:

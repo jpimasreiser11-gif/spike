@@ -24,6 +24,7 @@ class ProviderConfig:
     paid: bool = False  # remote providers may bill the user
     allow_paid: bool = False  # explicit user authorization for paid calls
     local: bool = False
+    share_files: bool = False  # a remote provider receives the user's file contents only when the user allows it
     headers: dict[str, str] = field(default_factory=dict)
     capabilities: dict[str, Any] = field(default_factory=dict)  # user overrides
     timeout_s: float = 600.0

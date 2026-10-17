@@ -10,7 +10,7 @@ from typing import Any
 
 from spike.agent.loop import AgentRun, Event, run_agent
 from spike.core.types import Message
-from spike.memory.service import Recall, memory_prompt
+from spike.memory.service import Recall, memory_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
 from spike.providers.base import Provider
@@ -76,13 +76,19 @@ class Orchestrator:
     # ------------------------------------------------------------------ prompts
     def system_prompt(self, spec: Specialist, opts: OrchestratorOptions, extra: str = "",
                       context_budget: int = 24_000) -> str:
+        return self.system_message(spec, opts, extra, context_budget).content
+
+    def system_message(self, spec: Specialist, opts: OrchestratorOptions, extra: str = "",
+                       context_budget: int = 24_000) -> Message:
+        """The system message; its `private` parts are the passages of the user's files that memory recalled."""
         parts = [spec.system_prompt]
+        files: list[str] = []
         if opts.custom_instructions.strip():
             parts.append("# Instructions from the user (always follow them)\n" + opts.custom_instructions.strip())
         if opts.project_instructions.strip():
             parts.append("# Project instructions\n" + opts.project_instructions.strip())
         if opts.memory is not None:
-            section = memory_prompt(opts.memory, max(200, min(1500, context_budget // 6)))
+            section, files = memory_section(opts.memory, max(200, min(1500, context_budget // 6)))
             if section:
                 parts.append(section)
         if opts.specialist_instructions.get(spec.id, "").strip():
@@ -91,7 +97,7 @@ class Orchestrator:
             parts.append("# Instructions from the application calling SPIKE\n" + opts.app_instructions.strip())
         if extra:
             parts.append(extra)
-        return "\n\n".join(parts)
+        return Message(role="system", content="\n\n".join(parts), private=files)
 
     def _tools_for(self, spec: Specialist, opts: OrchestratorOptions):
         return self.tools.subset(spec.tools) + self.tools.shared_tools() if opts.tools_enabled else []
@@ -185,6 +191,7 @@ class Orchestrator:
             "text": final.text,
             "error": final.error,
             "finish_reason": final.finish_reason,
+            "private": final.private,
             "specialists": decision.specialists,
             "elapsed_s": round(time.perf_counter() - started, 3),
         }
@@ -196,7 +203,7 @@ class Orchestrator:
         skill_text, skill_tools, skill_event = self._skills_for(spec, backend, user_text, opts)
         if skill_event:
             yield skill_event
-        messages = [Message(role="system", content=self.system_prompt(spec, opts, skill_text, backend.context_budget)), *history,
+        messages = [self.system_message(spec, opts, skill_text, backend.context_budget), *history,
                     Message(role="user", content=user_text)]
         async for ev in run_agent(
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
@@ -208,23 +215,28 @@ class Orchestrator:
 
     # ------------------------------------------------------------------ multi specialist
     async def _run_subtask(self, task: Subtask, history: list[Message], user_text: str, results: dict[str, str],
-                           owners: dict[str, str], opts: OrchestratorOptions) -> AsyncIterator[Event]:
+                           owners: dict[str, str], opts: OrchestratorOptions,
+                           tainted: set[str]) -> AsyncIterator[Event]:
         spec = self.catalog.get(task.specialist)
         backend = self.resolve(spec)
         team_note = ("You are one member of a team of specialists. Answer only your assigned subtask, "
                      "thoroughly and precisely; another model will merge the team's work.")
         deps = "\n\n".join(f"## Result from {self.catalog.get(owners[d]).name}\n{results[d]}"
                            for d in task.depends_on if d in results)
-        recent = "\n".join(f"{m.role}: {m.content[:1500]}" for m in history[-6:] if m.role in ("user", "assistant"))
+        # what other models wrote after reading the user's files stays as private as the files
+        private = [results[d] for d in task.depends_on if d in results and d in tainted]
+        recent_msgs = [m for m in history[-6:] if m.role in ("user", "assistant")]
+        recent = "\n".join(f"{m.role}: {m.content[:1500]}" for m in recent_msgs)
+        private += [m.content[:1500] for m in recent_msgs if m.private]
         content = (
             (f"# Conversation so far\n{recent}\n\n" if recent else "")
             + f"# Overall user request\n{user_text}\n\n# Your subtask\n{task.instruction}"
             + (f"\n\n# Inputs from other specialists\n{deps}" if deps else "")
         )
         skill_text, skill_tools, skill_event = self._skills_for(spec, backend, f"{task.instruction}\n{user_text}", opts)
-        messages = [Message(role="system", content=self.system_prompt(spec, opts, "\n\n".join(
-                        p for p in (team_note, skill_text) if p), backend.context_budget)),
-                    Message(role="user", content=content)]
+        messages = [self.system_message(spec, opts, "\n\n".join(p for p in (team_note, skill_text) if p),
+                                        backend.context_budget),
+                    Message(role="user", content=content, private=private)]
         run = AgentRun()
         yield {"type": "subtask_start", "subtask": task.id, "specialist": spec.id, "name": spec.name,
                "instruction": task.instruction}
@@ -239,20 +251,24 @@ class Orchestrator:
         ):
             yield ev
         results[task.id] = run.text if not run.error else f"(failed: {run.error})\n{run.text}"
+        if run.private:
+            tainted.add(task.id)
         yield {"type": "subtask_end", "subtask": task.id, "specialist": spec.id, "ok": run.error is None,
                "elapsed_s": round(time.perf_counter() - t0, 3)}
 
     async def _run_plan(self, plan: Plan, history: list[Message], user_text: str, opts: OrchestratorOptions,
                         final: AgentRun) -> AsyncIterator[Event]:
         results: dict[str, str] = {}
+        tainted: set[str] = set()  # subtasks whose model read the user's files
         owners = {t.id: t.specialist for t in plan.subtasks}
         for level in topological_levels(plan.subtasks):
             if opts.parallel and len(level) > 1:
-                async for ev in _merge([self._run_subtask(t, history, user_text, results, owners, opts) for t in level]):
+                async for ev in _merge([self._run_subtask(t, history, user_text, results, owners, opts, tainted)
+                                    for t in level]):
                     yield ev
             else:
                 for task in level:
-                    async for ev in self._run_subtask(task, history, user_text, results, owners, opts):
+                    async for ev in self._run_subtask(task, history, user_text, results, owners, opts, tainted):
                         yield ev
 
         reports = "\n\n".join(
@@ -262,9 +278,10 @@ class Orchestrator:
         core = self.catalog.core
         backend = self.resolve(core)
         messages = [
-            Message(role="system", content=self.system_prompt(core, opts, SYNTHESIS_INSTRUCTIONS, backend.context_budget)),
+            self.system_message(core, opts, SYNTHESIS_INSTRUCTIONS, backend.context_budget),
             *history,
-            Message(role="user", content=f"{user_text}\n\n# Specialist reports\n{reports}"),
+            Message(role="user", content=f"{user_text}\n\n# Specialist reports\n{reports}",
+                    private=[results[t] for t in tainted if results.get(t)]),
         ]
         yield {"type": "synthesis_start"}
         async for ev in run_agent(

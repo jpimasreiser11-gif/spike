@@ -40,6 +40,7 @@ class ConnectorDef:
     license: str = ""
     source: str = ""
     paid: bool = False
+    files: bool = False  # its results can carry the user's file contents (kept from providers not allowed them)
     requires: str = ""
     note: str = ""
     custom: bool = False
@@ -78,7 +79,8 @@ class McpTool(Tool):
             result = await self.client.call_tool(self.remote_name, args)
         except McpError as exc:
             return ToolResult(ok=False, content=f"error: {self.connector.name}: {exc}")
-        return ToolResult(ok=not result.is_error, content=result.text[:100_000])
+        content = result.text[:100_000]
+        return ToolResult(ok=not result.is_error, content=content, private=[content] if self.connector.files else [])
 
 
 @dataclass

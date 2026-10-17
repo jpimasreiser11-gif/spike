@@ -240,7 +240,7 @@ async def run_direct(state: AppState, spec: Specialist, app_instructions: str, c
     orchestrator = state.orchestrator()
     backend = orchestrator.resolve(spec)
     opts = _options(state, spec.id, app_instructions, req)
-    messages, _ = fit_messages([Message(role="system", content=orchestrator.system_prompt(spec, opts)), *conversation],
+    messages, _ = fit_messages([orchestrator.system_message(spec, opts), *conversation],
                                backend.context_budget)
     request = ChatRequest(messages=messages, model=backend.model, adapter=backend.adapter,
                           temperature=opts.temperature, top_p=req.top_p, max_tokens=opts.max_tokens, tools=req.tools,

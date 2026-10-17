@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
-import type { Preset, ProviderInfo, Settings, Specialist, ToolInfo } from "../types";
+import type { Limits, Preset, ProviderInfo, Settings, Specialist, ToolInfo } from "../types";
 import { Connectors } from "./Connectors";
 import { Memory } from "./Memory";
+import { Privacy } from "./Privacy";
 import { Skills } from "./Skills";
 import { IconClose, IconTrash } from "./Icons";
 import { SpecMark } from "./SpecMark";
 
 const L = lang === "es"
   ? {
-      title: "Ajustes", general: "General", providers: "Proveedores", specialists: "Especialistas", tools: "Herramientas", skills: "Skills", connectors: "Conectores", memory: "Memoria", engine: "Motor local",
+      title: "Ajustes", general: "General", providers: "Proveedores", specialists: "Especialistas", tools: "Herramientas", skills: "Skills", connectors: "Conectores", memory: "Memoria", privacy: "Privacidad", engine: "Motor local",
       instructions: "Instrucciones personalizadas", instructionsHint: "Se aplican a todos los especialistas y proveedores. SPIKE las añade a su propio prompt de sistema, así que funcionan igual con modelos locales y externos.",
       planner: "Planificador con IA para tareas de varias disciplinas", parallel: "Ejecutar subtareas en paralelo (recomendado solo con APIs externas)", toolsOn: "Permitir herramientas",
       temperature: "Temperatura (vacío = la del modelo)", maxTokens: "Máximo de tokens por respuesta", reasoning: "Modo razonamiento", rDefault: "Por defecto del modelo", rOn: "Activado", rOff: "Desactivado",
@@ -20,9 +21,12 @@ const L = lang === "es"
       adapterStatus: "Adaptador", specInstr: "Instrucciones de este especialista", policy: "Política", allow: "Permitir", ask: "Preguntar", deny: "Bloquear",
       hw: "Hardware", rec: "Recomendado", modelPath: "Ruta del modelo GGUF", ctx: "Contexto (tokens)", start: "Iniciar", stop: "Detener", status: "Estado", running: "En marcha", stoppedS: "Parado",
       secrets: "Almacén de claves", pull: "Descarga el modelo base con: spike models pull", keyLink: "Obtener clave",
+      shareFiles: "Enviar el contenido de tus archivos a este proveedor", shareHint: "Desactivado: SPIKE cambia el contenido de tus archivos (y las respuestas escritas a partir de ellos) por un aviso antes de enviar nada.",
+      limits: "Topes mensuales", monthlyTokens: "Tokens al mes", priceIn: "Precio por millón de tokens de entrada", priceOut: "Precio por millón de tokens de salida", monthlyCost: "Gasto máximo al mes", noLimit: "sin tope", noPrice: "sin precio",
+      limitsHint: "Precios en tu moneda, tal como te los cobra el proveedor. Al llegar a un tope, SPIKE deja de llamar a este proveedor hasta el mes siguiente.",
     }
   : {
-      title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", skills: "Skills", connectors: "Connectors", memory: "Memory", engine: "Local engine",
+      title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", skills: "Skills", connectors: "Connectors", memory: "Memory", privacy: "Privacy", engine: "Local engine",
       instructions: "Custom instructions", instructionsHint: "Applied to every specialist and provider. SPIKE adds them to its own system prompt, so they work the same with local and external models.",
       planner: "AI planner for multi-domain tasks", parallel: "Run subtasks in parallel (recommended only with external APIs)", toolsOn: "Allow tools",
       temperature: "Temperature (empty = model default)", maxTokens: "Max tokens per answer", reasoning: "Reasoning mode", rDefault: "Model default", rOn: "On", rOff: "Off",
@@ -32,9 +36,12 @@ const L = lang === "es"
       adapterStatus: "Adapter", specInstr: "Instructions for this specialist", policy: "Policy", allow: "Allow", ask: "Ask", deny: "Block",
       hw: "Hardware", rec: "Recommended", modelPath: "GGUF model path", ctx: "Context (tokens)", start: "Start", stop: "Stop", status: "Status", running: "Running", stoppedS: "Stopped",
       secrets: "Key storage", pull: "Download the base model with: spike models pull", keyLink: "Get a key",
+      shareFiles: "Send your files' contents to this provider", shareHint: "Off: SPIKE replaces your files' contents (and answers written from them) with a notice before sending anything.",
+      limits: "Monthly limits", monthlyTokens: "Tokens per month", priceIn: "Price per million input tokens", priceOut: "Price per million output tokens", monthlyCost: "Maximum spend per month", noLimit: "no limit", noPrice: "no price",
+      limitsHint: "Prices in your currency, as the provider bills you. When a limit is reached, SPIKE stops calling this provider until next month.",
     };
 
-type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "connectors" | "memory" | "engine";
+type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "connectors" | "memory" | "privacy" | "engine";
 
 export function SettingsDialog({ onClose, specialists, providers, reloadProviders }: {
   onClose: () => void;
@@ -70,7 +77,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
         </div>
         <div className="modal-body">
           <nav className="tabs" role="tablist">
-            {(["general", "providers", "specialists", "tools", "skills", "connectors", "memory", "engine"] as Tab[]).map((k) => (
+            {(["general", "providers", "specialists", "tools", "skills", "connectors", "memory", "privacy", "engine"] as Tab[]).map((k) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{L[k]}</button>
             ))}
           </nav>
@@ -89,6 +96,8 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
               <Connectors />
             ) : tab === "memory" ? (
               <Memory settings={settings} save={save} />
+            ) : tab === "privacy" ? (
+              <Privacy />
             ) : (
               <Engine settings={settings} save={save} />
             )}
@@ -177,6 +186,12 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
           {p.paid && (
             <label className="check warn"><input type="checkbox" checked={p.allow_paid} onChange={(e) => patch(p.id, { allow_paid: e.target.checked })} />{L.allowPaid}<small>{L.paidWarn}</small></label>
           )}
+          {!p.local && (
+            <>
+              <label className="check"><input type="checkbox" checked={!!p.share_files} onChange={(e) => patch(p.id, { share_files: e.target.checked })} />{L.shareFiles}<small className="hint">{L.shareHint}</small></label>
+              <LimitsEditor limits={p.limits ?? {}} save={(limits) => patch(p.id, { limits })} />
+            </>
+          )}
           <div className="card-actions">
             <button className="btn" onClick={() => test(p.id)}>{L.test}</button>
             {tests[p.id] && <span className="small">{tests[p.id]}</span>}
@@ -213,6 +228,26 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
         )}
       </div>
     </div>
+  );
+}
+
+function LimitsEditor({ limits, save }: { limits: Limits; save: (l: Limits) => void }) {
+  const field = (key: keyof Limits, label: string, step: string) => (
+    <label className="field"><span>{label}</span>
+      <input type="number" min={key === "monthly_tokens" ? "1" : "0"} step={step} placeholder={key.startsWith("price") ? L.noPrice : L.noLimit} defaultValue={limits[key] ?? ""} aria-label={label}
+        onBlur={(e) => {
+          const value = e.target.value === "" ? null : Number(e.target.value);
+          if (value !== (limits[key] ?? null)) save({ ...limits, [key]: value });
+        }} />
+    </label>
+  );
+  return (
+    <details className="limits">
+      <summary className="small">{L.limits}</summary>
+      <div className="row">{field("monthly_tokens", L.monthlyTokens, "1000")}{field("monthly_cost", L.monthlyCost, "0.01")}</div>
+      <div className="row">{field("price_in", L.priceIn, "0.01")}{field("price_out", L.priceOut, "0.01")}</div>
+      <small className="muted">{L.limitsHint}</small>
+    </details>
   );
 }
 

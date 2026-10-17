@@ -3,7 +3,7 @@ import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
-import { IconBack, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload } from "./components/Icons";
+import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { SettingsDialog } from "./components/SettingsDialog";
@@ -12,7 +12,30 @@ import { t } from "./i18n";
 import { applyEvent, emptyRun, runFromStored } from "./run";
 import type { Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
-type Item = { kind: "user"; text: string } | { kind: "assistant"; run: RunState };
+type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
+
+/** A sent message, editable in place: sending the edit replaces it and everything after it. */
+function UserMessage({ text, onEdit }: { text: string; onEdit?: (text: string) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  if (draft !== null) {
+    return (
+      <div className="msg user editing">
+        <textarea className="bubble-edit" aria-label={t.edit} rows={Math.min(10, draft.split("\n").length + 1)} value={draft}
+          autoFocus onChange={(e) => setDraft(e.target.value)} />
+        <div className="row">
+          <button className="btn" onClick={() => setDraft(null)}>{t.cancel}</button>
+          <button className="btn primary" disabled={!draft.trim()} onClick={() => { onEdit?.(draft.trim()); setDraft(null); }}>{t.resend}</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="msg user">
+      {onEdit && <button className="icon-btn edit-btn" onClick={() => setDraft(text)} title={t.edit} aria-label={t.edit}><IconEdit size={14} /></button>}
+      <div className="bubble"><Markdown text={text} /></div>
+    </div>
+  );
+}
 
 function useTheme(): [string, () => void] {
   const [theme, setTheme] = useState<string>(() => {
@@ -106,7 +129,7 @@ export default function App() {
     setActiveId(id);
     setArtifact(null);
     setMode(conv.mode || "auto");
-    setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content } : { kind: "assistant", run: runFromStored(m) })));
+    setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content, id: m.id } : { kind: "assistant", run: runFromStored(m) })));
     if (window.innerWidth <= 860) setSidebar(false);
   };
 
@@ -148,16 +171,23 @@ export default function App() {
       return next;
     });
 
-  const send = async (text: string) => {
-    setItems((prev) => [...prev, { kind: "user", text }, { kind: "assistant", run: { ...emptyRun(), status: "running" } }]);
+  /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
+  const send = async (text: string, from?: number, provider: string | null = providerId) => {
+    const replaced = from !== undefined ? items[from] : undefined;
+    const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
+    if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
+    setItems((prev) => [...(from !== undefined ? prev.slice(0, from) : prev), { kind: "user", text },
+      { kind: "assistant", run: { ...emptyRun(), status: "running" } }]);
     setBusy(true);
     stick.current = true;
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      await streamChat({ message: text, conversation_id: activeId, mode, provider_id: providerId, project_id: project?.id ?? null }, (ev) => {
+      await streamChat({ message: text, conversation_id: activeId, mode, provider_id: provider, project_id: project?.id ?? null,
+                         replace_from: replaceFrom ?? null }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
+          setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
           loadConversations();
         } else updateLast((r) => applyEvent(r, ev));
       }, controller.signal);
@@ -181,8 +211,9 @@ export default function App() {
   };
 
   const empty = items.length === 0;
+  const lastUser = items.map((it) => it.kind).lastIndexOf("user");
   const composer = (
-    <Composer onSend={send} onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode}
+    <Composer onSend={(text) => send(text)} onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode}
       providerId={providerId} setProviderId={setProviderId} specialists={specialists.filter((s) => s.id !== "core")}
       providers={providers} followUp={!empty} autoFocus />
   );
@@ -271,9 +302,12 @@ export default function App() {
               <div className="thread-inner">
                 {items.map((it, i) =>
                   it.kind === "user" ? (
-                    <div key={i} className="msg user"><div className="bubble"><Markdown text={it.text} /></div></div>
+                    <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined} />
                   ) : (
-                    <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id} />
+                    <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id}
+                      providers={providers}
+                      onRetry={!busy && i === items.length - 1 && lastUser === i - 1 && items[lastUser].kind === "user"
+                        ? (pid) => send((items[lastUser] as { text: string }).text, lastUser, pid ?? providerId) : undefined} />
                   ),
                 )}
               </div>

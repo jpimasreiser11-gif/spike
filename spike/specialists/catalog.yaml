@@ -66,7 +66,7 @@ specialists:
     adapter: spike-finance
     adapter_status: planned
     sensitive: true
-    tools: [calculator, python, web_fetch, create_xlsx, create_pdf]
+    tools: [calculator, python, read_file, list_dir, web_fetch, create_xlsx, create_pdf]
     keywords:
       finance: 3
       financial: 3
@@ -119,7 +119,7 @@ specialists:
     adapter: spike-medicine
     adapter_status: planned
     sensitive: true
-    tools: [calculator, web_fetch]
+    tools: [calculator, read_file, list_dir, web_fetch]
     keywords:
       medicine: 3
       medical: 3
@@ -173,7 +173,7 @@ specialists:
     adapter: spike-law
     adapter_status: planned
     sensitive: true
-    tools: [web_fetch, read_file, create_docx]
+    tools: [web_fetch, read_file, list_dir, create_docx]
     keywords:
       law: 3
       legal: 3
@@ -215,7 +215,7 @@ specialists:
     adapter: spike-marketing
     adapter_status: planned
     sensitive: false
-    tools: [web_fetch, calculator, create_pptx, create_docx]
+    tools: [web_fetch, read_file, list_dir, calculator, create_pptx, create_docx]
     keywords:
       marketing: 4
       brand: 3
@@ -259,7 +259,7 @@ specialists:
     adapter: spike-science
     adapter_status: planned
     sensitive: false
-    tools: [calculator, python]
+    tools: [calculator, python, read_file, list_dir]
     keywords:
       physics: 4
       chemistry: 4
@@ -325,7 +325,7 @@ specialists:
     adapter: spike-math
     adapter_status: planned
     sensitive: false
-    tools: [calculator, python]
+    tools: [calculator, python, read_file]
     keywords:
       math: 4
       mathematics: 4
@@ -368,7 +368,7 @@ specialists:
     adapter: spike-education
     adapter_status: planned
     sensitive: false
-    tools: [calculator, web_fetch, create_pptx, create_pdf]
+    tools: [calculator, read_file, list_dir, web_fetch, create_pptx, create_pdf]
     keywords:
       explain like: 3
       teach me: 4
@@ -440,7 +440,7 @@ specialists:
     adapter: spike-business
     adapter_status: planned
     sensitive: false
-    tools: [calculator, web_fetch, python, create_xlsx, create_pptx, create_docx]
+    tools: [calculator, read_file, list_dir, web_fetch, python, create_xlsx, create_pptx, create_docx]
     keywords:
       business plan: 4
       business model: 4

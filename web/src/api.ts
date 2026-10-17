@@ -64,7 +64,10 @@ export class SSEParser {
 }
 
 export async function streamChat(
-  body: { message: string; conversation_id?: string | null; mode: string; provider_id?: string | null; project_id?: string | null },
+  body: {
+    message: string; conversation_id?: string | null; mode: string; provider_id?: string | null; project_id?: string | null;
+    replace_from?: string | null; // a user message: it and everything after it are replaced (edit, retry)
+  },
   onEvent: (ev: ChatEvent) => void,
   signal: AbortSignal,
 ): Promise<void> {

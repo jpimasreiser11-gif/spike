@@ -1,10 +1,10 @@
 import { useContext, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
-import type { PermissionState, RunState, Specialist } from "../types";
+import type { PermissionState, ProviderInfo, RunState, Specialist } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { M } from "./Memory";
-import { IconChevron, IconCopy, IconFile, IconTool } from "./Icons";
+import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
 import { SpecMark } from "./SpecMark";
 
@@ -81,11 +81,40 @@ function Files({ files, projectId }: { files: string[]; projectId?: string }) {
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission, projectId }: {
+/** Run the turn again, on the same model or on another provider the user picks (never a paid one they did not allow). */
+function Retry({ providers, onRetry, failed }: { providers: ProviderInfo[]; onRetry: (pid: string | null) => void; failed: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="retry">
+      <button className="icon-btn" onClick={() => setOpen(!open)} title={t.retry} aria-label={t.retry} aria-expanded={open}>
+        <IconRetry size={15} />
+      </button>
+      {failed && !open && <button className="link-btn small" onClick={() => setOpen(true)}>{t.localFailedHint}</button>}
+      {open && (
+        <span className="retry-menu" role="menu" aria-label={t.retryWith}>
+          <button role="menuitem" className="btn small" onClick={() => { setOpen(false); onRetry(null); }}>{t.sameModel}</button>
+          {providers.map((p) => {
+            const blocked = p.paid && !p.allow_paid;
+            return (
+              <button key={p.id} role="menuitem" className="btn small" disabled={blocked} title={blocked ? t.noPaidPermission : p.model}
+                onClick={() => { setOpen(false); onRetry(p.id); }}>
+                {p.name}{blocked ? ` · ${t.noPaidPermission}` : ""}
+              </button>
+            );
+          })}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
   projectId?: string;
+  providers?: ProviderInfo[];
+  onRetry?: (providerId: string | null) => void; // only on the chat's last answer
 }) {
   const [copied, setCopied] = useState(false);
   const live = run.status === "running" || run.status === "planning" || run.status === "synthesizing";
@@ -113,6 +142,11 @@ export function AssistantMessage({ run, specialists, onPermission, projectId }: 
               ...(run.memory.rules ? [`${run.memory.rules} × ${M.kinds.rule}`] : []),
               ...run.memory.notes.map((n) => `${M.kinds[n.kind] ?? n.kind}: ${n.preview}`),
             ].join("\n")}>◆ {t.memoryUsed} · {run.memory.rules + run.memory.notes.length}</span>
+          )}
+          {run.privacy && Object.keys(run.privacy).length > 0 && (
+            <span className="chip privacy-chip" tabIndex={0} title={`${t.withheldTitle} ${Object.keys(run.privacy).join(", ")}`}>
+              <IconLock size={13} /> {t.withheld}
+            </span>
           )}
           {run.route?.method && run.route.method !== "user" && (
             <span className="route-meta">{run.route.mode} · {run.route.method}</span>
@@ -167,11 +201,12 @@ export function AssistantMessage({ run, specialists, onPermission, projectId }: 
       {run.error && <div className="error-box" role="alert">{t.error}: {run.error}</div>}
       {run.status === "stopped" && <div className="notice">{t.stopped}</div>}
 
-      {!live && run.text && (
+      {!live && (run.text || onRetry) && (
         <div className="msg-actions">
-          <button className="icon-btn" onClick={() => { navigator.clipboard?.writeText(run.text); setCopied(true); setTimeout(() => setCopied(false), 1500); }} title={t.copy} aria-label={t.copy}>
+          {run.text && <button className="icon-btn" onClick={() => { navigator.clipboard?.writeText(run.text); setCopied(true); setTimeout(() => setCopied(false), 1500); }} title={t.copy} aria-label={t.copy}>
             <IconCopy size={15} />
-          </button>
+          </button>}
+          {onRetry && <Retry providers={providers} onRetry={onRetry} failed={run.status === "error"} />}
           {copied && <span className="muted small">{t.copied}</span>}
           {run.elapsed !== undefined && <span className="muted small">{run.elapsed.toFixed(1)} s</span>}
           {sensitive && <span className="muted small disclaimer">{t.disclaimerSensitive}</span>}

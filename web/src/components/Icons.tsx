@@ -107,3 +107,21 @@ export const IconEye = ({ size }: P) => (
     <circle cx="12" cy="12" r="3" />
   </svg>
 );
+export const IconRetry = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.6M20 4v4.6h-4.6" />
+    <path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.4M4 20v-4.6h4.6" />
+  </svg>
+);
+export const IconEdit = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="M14 6l4 4" />
+  </svg>
+);
+export const IconLock = ({ size }: P) => (
+  <svg {...base(size)}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </svg>
+);

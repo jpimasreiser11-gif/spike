@@ -19,6 +19,7 @@ from spike.memory.tools import memory_tools
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
+from spike.providers.guard import GuardedProvider, month_start
 from spike.providers.llamacpp import LlamaCppProvider
 from spike.providers.registry import PRESETS_BY_ID, create_provider
 from spike.runtime.hardware import detect, recommend
@@ -126,7 +127,7 @@ class AppState:
     def provider_config(self, pid: str) -> dict[str, Any] | None:
         return next((c for c in self.provider_configs() if c["id"] == pid), None)
 
-    def provider(self, pid: str) -> Provider:
+    def provider(self, pid: str) -> GuardedProvider:
         if pid in self._providers:
             return self._providers[pid]
         raw = self.provider_config(pid)
@@ -136,11 +137,20 @@ class AppState:
             id=raw["id"], kind=raw["kind"], name=raw["name"], base_url=raw["base_url"], model=raw.get("model", ""),
             api_key=self.secrets.get(f"provider:{pid}"), paid=bool(raw.get("paid")),
             allow_paid=bool(raw.get("allow_paid")), local=bool(raw.get("local")),
+            share_files=bool(raw.get("share_files")),
             headers=dict(raw.get("headers") or {}), capabilities=dict(raw.get("capabilities") or {}),
         )
-        provider = self.provider_factory(cfg)
+        provider = GuardedProvider(self.provider_factory(cfg), self.store,
+                                   lambda: dict((self.provider_config(pid) or {}).get("limits") or {}))
         self._providers[pid] = provider
         return provider
+
+    def usage(self) -> list[dict[str, Any]]:
+        """This month's use of each provider, next to the limits the user set for it."""
+        since = month_start()
+        return [{"provider_id": c["id"], "name": c["name"], "local": bool(c.get("local")),
+                 "limits": dict(c.get("limits") or {}), **self.store.usage_since(c["id"], since)}
+                for c in self.provider_configs()]
 
     def forget_project(self, project_id: str) -> None:
         self._project_tools.pop(project_id, None)
@@ -161,7 +171,7 @@ class AppState:
         return out
 
     async def refresh_adapters(self, pid: str) -> set[str]:
-        provider = self.provider(pid)
+        provider = self.provider(pid).inner
         if isinstance(provider, LlamaCppProvider):
             try:
                 self.installed_adapters[pid] = set(await provider.adapters(refresh=True))

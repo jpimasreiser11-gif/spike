@@ -48,6 +48,16 @@ const es = {
   artifactIsolated: "Aislado: sin acceso a SPIKE, a tus datos ni a internet.",
   filesCreated: "Archivos creados",
   memoryUsed: "Memoria",
+  withheld: "Archivos protegidos",
+  withheldTitle: "SPIKE no envió el contenido de tus archivos a",
+  retry: "Reintentar",
+  retryWith: "Reintentar con",
+  sameModel: "El mismo modelo",
+  noPaidPermission: "sin permiso de pago",
+  localFailedHint: "¿Probar con otro modelo?",
+  edit: "Editar",
+  resend: "Enviar",
+  cancel: "Cancelar",
 };
 
 type Dict = typeof es;
@@ -102,6 +112,16 @@ const en: Dict = {
   artifactIsolated: "Isolated: no access to SPIKE, your data or the internet.",
   filesCreated: "Files created",
   memoryUsed: "Memory",
+  withheld: "Files protected",
+  withheldTitle: "SPIKE did not send your files' contents to",
+  retry: "Retry",
+  retryWith: "Retry with",
+  sameModel: "The same model",
+  noPaidPermission: "paid requests not allowed",
+  localFailedHint: "Try another model?",
+  edit: "Edit",
+  resend: "Send",
+  cancel: "Cancel",
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

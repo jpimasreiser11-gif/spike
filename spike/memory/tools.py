@@ -58,7 +58,8 @@ class Recall(Tool):
             return ToolResult(ok=True, content="nothing found in memory")
         lines = [f"- [{h.memory.kind}{' ' + h.memory.source if h.memory.source else ''}] {h.text.strip()[:1200]}"
                  for h in found.hits]
-        return ToolResult(ok=True, content="\n".join(lines))
+        files = [line for line, h in zip(lines, found.hits, strict=True) if h.memory.kind == "document"]
+        return ToolResult(ok=True, content="\n".join(lines), private=files)
 
 
 def memory_tools(memory: MemoryService, project_id: str | None) -> list[Tool]:

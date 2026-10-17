@@ -31,6 +31,15 @@ from spike.server.state import AppState
 from spike.tools.builtin import Workspace
 
 
+class Limits(BaseModel):
+    """Monthly limits for one provider; prices are what the user pays per million tokens, in their own currency."""
+
+    monthly_tokens: int | None = Field(default=None, ge=1)
+    monthly_cost: float | None = Field(default=None, ge=0)
+    price_in: float | None = Field(default=None, ge=0)
+    price_out: float | None = Field(default=None, ge=0)
+
+
 class ProviderIn(BaseModel):
     id: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{0,40}$")
     preset: str | None = None
@@ -41,6 +50,8 @@ class ProviderIn(BaseModel):
     api_key: str | None = None
     paid: bool | None = None
     allow_paid: bool | None = None
+    share_files: bool | None = None
+    limits: Limits | None = None
     capabilities: dict[str, Any] | None = None
 
 
@@ -50,6 +61,7 @@ class ChatIn(BaseModel):
     mode: str = "auto"
     provider_id: str | None = None
     project_id: str | None = None  # for a new chat; an existing chat keeps its own project
+    replace_from: str | None = None  # a user message of this chat: it and everything after it are replaced (edit, retry)
 
 
 class MemoryIn(BaseModel):
@@ -334,6 +346,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             "model": body.model or (preset.example_model if preset else ""),
             "paid": body.paid if body.paid is not None else (preset.paid if preset else not local),
             "allow_paid": bool(body.allow_paid), "local": local, "preset": body.preset,
+            "share_files": bool(body.share_files), "limits": body.limits.model_dump() if body.limits else {},
             "capabilities": body.capabilities if body.capabilities is not None else dict(preset.capabilities if preset else {}),
         }
         st().store.save_provider(config)
@@ -346,10 +359,12 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         config = st().provider_config(pid)
         if not config:
             raise HTTPException(404, "provider not found")
-        for key in ("name", "base_url", "model", "paid", "allow_paid", "capabilities"):
+        for key in ("name", "base_url", "model", "paid", "allow_paid", "share_files", "capabilities"):
             value = getattr(body, key)
             if value is not None:
                 config[key] = value
+        if body.limits is not None:
+            config["limits"] = body.limits.model_dump()
         st().store.save_provider(config)
         if body.api_key is not None:
             if body.api_key:
@@ -380,6 +395,20 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             return {"ok": False, "error": str(exc) or exc.__class__.__name__}
         adapters = sorted(await st().refresh_adapters(pid))
         return {"ok": True, "models": models[:200], "adapters": adapters}
+
+    # ---------------------------------------------------------------- call log and spending
+    @app.get("/api/calls")
+    async def calls(limit: int = 200, remote: bool = False) -> list[dict]:
+        return st().store.calls(min(max(limit, 1), 2000), remote_only=remote)
+
+    @app.delete("/api/calls")
+    async def clear_calls() -> dict:
+        st().store.clear_calls()
+        return {"ok": True}
+
+    @app.get("/api/usage")
+    async def usage() -> list[dict]:
+        return st().usage()
 
     # ---------------------------------------------------------------- settings
     @app.get("/api/settings")
@@ -661,6 +690,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         if body.project_id and not state.store.get_project(body.project_id):
             raise HTTPException(400, f"unknown project '{body.project_id}'")
         conv = state.store.get_conversation(body.conversation_id) if body.conversation_id else None
+        if body.replace_from and conv is None:
+            raise HTTPException(400, "replace_from needs an existing conversation")
         mode = body.mode
         if conv is None:
             project = state.store.get_project(body.project_id) if body.project_id else None
@@ -669,14 +700,21 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             conv = state.store.create_conversation(title=_title_from(body.message), mode=mode,
                                                    provider_id=body.provider_id, project_id=body.project_id)
         project = state.store.get_project(conv["project_id"]) if conv.get("project_id") else None
-        history = [Message(role=m["role"], content=m["content"]) for m in state.store.messages(conv["id"])
-                   if m["role"] in ("user", "assistant") and m["content"]]
-        state.store.add_message(conv["id"], "user", body.message)
+        if body.replace_from:
+            target = next((m for m in state.store.messages(conv["id"]) if m["id"] == body.replace_from), None)
+            if target is None or target["role"] != "user":
+                raise HTTPException(400, "replace_from must be a user message of this conversation")
+            state.store.delete_messages_from(conv["id"], body.replace_from)
+        history = [Message(role=m["role"], content=m["content"],
+                           private=[m["content"]] if m["meta"].get("private") else [])  # answers that quote files
+                   for m in state.store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
+        user_message = state.store.add_message(conv["id"], "user", body.message)
         await state.ensure_adapters(body.provider_id)
         await state.connectors.ensure_started()
 
         async def stream() -> AsyncIterator[bytes]:
-            yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"]})
+            yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"],
+                        "user_message_id": user_message["id"]})
             meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
             final_text, error, cancelled = "", None, True
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
@@ -702,9 +740,14 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         meta.setdefault("skills", []).extend(n for n in ev["names"] if n not in meta.get("skills", []))
                     elif kind == "usage":
                         meta["usage"].append(ev.get("usage"))
+                    elif kind == "privacy":
+                        seen = meta.setdefault("privacy", {})
+                        seen[ev["provider"]] = max(seen.get(ev["provider"], 0), ev["withheld"])
                     elif kind == "done":
                         final_text, error = ev["text"], ev.get("error")
                         meta["elapsed_s"] = ev.get("elapsed_s")
+                        if ev.get("private"):
+                            meta["private"] = True
                         cancelled = False
                     yield _sse(ev)
             except Exception as exc:  # never leave the client hanging without a reason
