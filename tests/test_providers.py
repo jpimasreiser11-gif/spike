@@ -144,9 +144,10 @@ async def test_llamacpp_selects_adapter_per_request():
     p = LlamaCppProvider(cfg, client=client_for(handler))
     await collect(p, ChatRequest(messages=[Message(role="user", content="q")], adapter="spike-medicine", reasoning=False))
     await collect(p, ChatRequest(messages=[Message(role="user", content="q")]))
-    assert bodies[0]["lora"] == [{"id": 1, "scale": 1.0}]
+    # explicit scale for every loaded adapter: llama-server treats `[]` as "use global scales", not "base"
+    assert bodies[0]["lora"] == [{"id": 0, "scale": 0.0}, {"id": 1, "scale": 1.0}]
     assert bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
-    assert bodies[1]["lora"] == []  # base model only
+    assert bodies[1]["lora"] == [{"id": 0, "scale": 0.0}, {"id": 1, "scale": 0.0}]  # base model only
 
     events = await collect(p, ChatRequest(messages=[Message(role="user", content="q")], adapter="spike-law"))
     assert events[0].kind == "error" and "not loaded" in events[0].text

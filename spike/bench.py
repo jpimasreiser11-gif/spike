@@ -20,6 +20,7 @@ import httpx
 import psutil
 
 from spike import __version__
+from spike.providers.llamacpp import explicit_lora
 from spike.runtime.hardware import detect
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
 
@@ -63,7 +64,9 @@ async def prompt_tokens(client: httpx.AsyncClient, base: str, n: int) -> list[in
 
 async def one_run(client: httpx.AsyncClient, base: str, tokens: list[int], gen: int, lora: list) -> dict[str, Any]:
     body = {"prompt": tokens, "n_predict": gen, "stream": True, "cache_prompt": False, "temperature": 0.0,
-            "ignore_eos": True, "lora": lora}
+            "ignore_eos": True}
+    if lora:
+        body["lora"] = lora
     t0 = time.perf_counter()
     ttft = None
     timings: dict[str, Any] = {}
@@ -119,10 +122,11 @@ async def run_benchmark(args: Any) -> dict[str, Any]:
             props = (await client.get(f"{base}/props")).json()
             report["llama_cpp_build"] = props.get("build_info")
             report["idle_rss_mb"] = server.memory_rss_mb()
-            variants: list[tuple[str, list]] = [("base", [])]
+            ids = range(len(adapters))  # explicit scales: an empty list means "global scales", not "base"
+            variants: list[tuple[str, list]] = [("base", explicit_lora(ids, None))]
             if adapters:
-                variants.append((adapters[0].stem, [{"id": 0, "scale": 1.0}]))
-            await one_run(client, base, await prompt_tokens(client, base, 32), 8, [])  # warm-up
+                variants.append((adapters[0].stem, explicit_lora(ids, 0)))
+            await one_run(client, base, await prompt_tokens(client, base, 32), 8, variants[0][1])  # warm-up
             for n in contexts:
                 tokens = await prompt_tokens(client, base, n)
                 for name, lora in variants:

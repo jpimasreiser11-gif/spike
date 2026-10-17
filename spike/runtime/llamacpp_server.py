@@ -24,6 +24,7 @@ class ServerConfig:
     host: str = "127.0.0.1"
     port: int = 8737
     context: int = 32768
+    parallel: int = 1  # one slot: the prompt cache is not keyed by adapter (see providers/llamacpp.py)
     threads: int | None = None
     gpu_layers: int = 0
     kv_cache_type: str = "q8_0"
@@ -34,7 +35,7 @@ class ServerConfig:
     def command(self, binary: Path) -> list[str]:
         cmd = [
             str(binary), "-m", str(self.model), "--host", self.host, "--port", str(self.port),
-            "-c", str(self.context), "--parallel", "1", "--jinja", "-ngl", str(self.gpu_layers),
+            "-c", str(self.context), "--parallel", str(self.parallel), "--jinja", "-ngl", str(self.gpu_layers),
             "--flash-attn", self.flash_attn, "--metrics", "--no-webui",
         ]
         if self.kv_cache_type != "f16":
@@ -103,12 +104,24 @@ class LlamaServer:
                     r = await client.get(self.base_url + "/health")
                     if r.status_code == 200:
                         self.load_seconds = round(time.perf_counter() - self.started_at, 3)
+                        if self.config.adapters:
+                            await self._disable_adapters_by_default(client)
                         return
                 except httpx.HTTPError:
                     pass
                 await asyncio.sleep(0.25)
         await self.stop()
         raise TimeoutError(f"llama-server did not become healthy within {timeout_s:.0f}s; see {self.log_path}")
+
+    async def _disable_adapters_by_default(self, client: httpx.AsyncClient) -> None:
+        """`--lora` loads adapters with global scale 1.0, and requests without an explicit `lora` list use
+        the global scales. Set them to 0 so such requests run the plain base model."""
+        url = self.base_url + "/lora-adapters"
+        loaded = (await client.get(url)).json()
+        (await client.post(url, json=[{"id": a["id"], "scale": 0.0} for a in loaded])).raise_for_status()
+        if any(a["scale"] != 0.0 for a in (await client.get(url)).json()):
+            await self.stop()
+            raise RuntimeError("could not reset global LoRA scales to 0")
 
     async def stop(self, timeout_s: float = 10.0) -> None:
         if not self.process:

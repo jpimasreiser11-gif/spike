@@ -35,10 +35,43 @@ def vocab() -> tuple[list[bytes], list[float], list[int]]:
     return tokens, scores, [int(t) for t in types]
 
 
-def write_model(path: Path, seed: int = 0) -> None:
+def model_tensors(seed: int = 0) -> dict[str, np.ndarray]:
+    """Random weights in GGUF layout: a linear weight is (out_features, in_features), as in Hugging Face."""
     rng = np.random.default_rng(seed)
+    n_vocab = len(vocab()[0])
+    head_dim = N_EMBD // N_HEAD
+    tensors: dict[str, np.ndarray] = {}
+
+    def t(name: str, *shape: int) -> None:
+        tensors[name] = (rng.standard_normal(shape) * 0.02).astype(np.float32)
+
+    t("token_embd.weight", n_vocab, N_EMBD)
+    tensors["output_norm.weight"] = np.ones(N_EMBD, dtype=np.float32)
+    t("output.weight", n_vocab, N_EMBD)
+    for i in range(N_LAYER):
+        tensors[f"blk.{i}.attn_norm.weight"] = np.ones(N_EMBD, dtype=np.float32)
+        t(f"blk.{i}.attn_q.weight", N_EMBD, N_EMBD)
+        t(f"blk.{i}.attn_k.weight", N_HEAD_KV * head_dim, N_EMBD)
+        t(f"blk.{i}.attn_v.weight", N_HEAD_KV * head_dim, N_EMBD)
+        t(f"blk.{i}.attn_output.weight", N_EMBD, N_EMBD)
+        tensors[f"blk.{i}.ffn_norm.weight"] = np.ones(N_EMBD, dtype=np.float32)
+        t(f"blk.{i}.ffn_gate.weight", N_FF, N_EMBD)
+        t(f"blk.{i}.ffn_up.weight", N_FF, N_EMBD)
+        t(f"blk.{i}.ffn_down.weight", N_EMBD, N_FF)
+    return tensors
+
+
+def hf_config() -> dict:
+    """The Hugging Face config that describes the same tiny model (used by llama.cpp's LoRA converter)."""
+    return {"architectures": ["LlamaForCausalLM"], "model_type": "llama", "hidden_size": N_EMBD,
+            "intermediate_size": N_FF, "num_hidden_layers": N_LAYER, "num_attention_heads": N_HEAD,
+            "num_key_value_heads": N_HEAD_KV, "rms_norm_eps": 1e-5, "vocab_size": len(vocab()[0]),
+            "max_position_embeddings": CTX, "rope_theta": 10000.0, "tie_word_embeddings": False,
+            "torch_dtype": "float32", "hidden_act": "silu"}
+
+
+def write_model(path: Path, seed: int = 0, tensors: dict[str, np.ndarray] | None = None) -> None:
     tokens, scores, types = vocab()
-    n_vocab = len(tokens)
     w = gguf.GGUFWriter(str(path), "llama")
     w.add_name("spike-tiny-test")
     w.add_context_length(CTX)
@@ -59,24 +92,8 @@ def write_model(path: Path, seed: int = 0) -> None:
     w.add_unk_token_id(0)
     w.add_add_bos_token(False)
     w.add_chat_template(CHAT_TEMPLATE)
-
-    def t(name: str, *shape: int) -> None:
-        w.add_tensor(name, (rng.standard_normal(shape) * 0.02).astype(np.float32))
-
-    t("token_embd.weight", n_vocab, N_EMBD)
-    w.add_tensor("output_norm.weight", np.ones(N_EMBD, dtype=np.float32))
-    t("output.weight", n_vocab, N_EMBD)
-    head_dim = N_EMBD // N_HEAD
-    for i in range(N_LAYER):
-        w.add_tensor(f"blk.{i}.attn_norm.weight", np.ones(N_EMBD, dtype=np.float32))
-        t(f"blk.{i}.attn_q.weight", N_EMBD, N_EMBD)
-        t(f"blk.{i}.attn_k.weight", N_HEAD_KV * head_dim, N_EMBD)
-        t(f"blk.{i}.attn_v.weight", N_HEAD_KV * head_dim, N_EMBD)
-        t(f"blk.{i}.attn_output.weight", N_EMBD, N_EMBD)
-        w.add_tensor(f"blk.{i}.ffn_norm.weight", np.ones(N_EMBD, dtype=np.float32))
-        t(f"blk.{i}.ffn_gate.weight", N_FF, N_EMBD)
-        t(f"blk.{i}.ffn_up.weight", N_FF, N_EMBD)
-        t(f"blk.{i}.ffn_down.weight", N_EMBD, N_FF)
+    for name, value in (tensors or model_tensors(seed)).items():
+        w.add_tensor(name, value)
     w.write_header_to_file()
     w.write_kv_data_to_file()
     w.write_tensors_to_file()

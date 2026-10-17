@@ -1,21 +1,30 @@
 """llama.cpp `llama-server` backend: one base model in memory, specialist LoRA adapters selected per request.
 
-Prompt-cache safety: llama-server's prompt cache is not keyed by the LoRA configuration, so KV entries
-computed with one adapter can be reused by a request using another adapter (verified on llama.cpp
-62318cd, see tests/test_llamacpp_integration.py). SPIKE therefore pins requests to slot 0, serializes
-them, and only enables `cache_prompt` when the adapter is the same as in the previous request.
+Adapter selection (verified against llama.cpp 62318cd source and tests/test_llamacpp_integration.py):
+  * An empty or missing `lora` field does not mean "no adapter": the server falls back to the global
+    adapter scales, which are 1.0 for every `--lora` file. SPIKE therefore always sends an explicit scale
+    for every loaded adapter (1.0 for the selected one, 0.0 for the rest), and LlamaServer resets the
+    global scales to 0 at startup for clients that send nothing.
+  * With an explicit list the server clears the slot's prompt cache when the adapter set changes; on the
+    fallback path it does not, so a cached prefix computed with one adapter could be reused without it.
+    As defense in depth SPIKE also pins requests to slot 0, serializes them and only enables
+    `cache_prompt` when the adapter is the same as in the previous request.
 """
 
 from __future__ import annotations
 
 import asyncio
-
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 from spike.core.types import Capabilities, ChatRequest, ProviderError, StreamEvent
 from spike.providers.base import raise_for_status
 from spike.providers.openai_compat import OpenAICompatProvider
+
+
+def explicit_lora(ids: Iterable[int], selected: int | None) -> list[dict[str, Any]]:
+    return [{"id": i, "scale": 1.0 if i == selected else 0.0} for i in sorted(ids)]
 
 
 class LlamaCppProvider(OpenAICompatProvider):
@@ -42,12 +51,11 @@ class LlamaCppProvider(OpenAICompatProvider):
         return self._adapters
 
     async def resolve_lora(self, adapter: str | None) -> list[dict[str, Any]]:
-        if adapter is None:
-            return []
+        """Explicit scale for every loaded adapter; see the module docstring for why `[]` is unsafe."""
         table = await self.adapters()
-        if adapter not in table:
+        if adapter is not None and adapter not in table:
             raise ProviderError(f"Adapter '{adapter}' is not loaded in llama-server (loaded: {sorted(table) or 'none'}).")
-        return [{"id": table[adapter], "scale": 1.0}]
+        return explicit_lora(table.values(), table.get(adapter) if adapter else None)
 
     async def health(self) -> dict[str, Any]:
         response = await self.client.get(self.server_root + "/health")
@@ -59,9 +67,8 @@ class LlamaCppProvider(OpenAICompatProvider):
         if request.reasoning is not None:
             body["chat_template_kwargs"] = {"enable_thinking": bool(request.reasoning)}
         lora = getattr(request, "_resolved_lora", None)
-        # Always send the list: adapters omitted from it run at scale 0, so a request without an
-        # adapter is guaranteed to use the plain base model even if a global scale was set.
-        body["lora"] = lora or []
+        if lora:  # no adapters loaded -> nothing to select
+            body["lora"] = lora
         return body
 
     async def stream(self, request: ChatRequest):  # type: ignore[override]
