@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, streamChat } from "./api";
+import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
 import { IconBack, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload } from "./components/Icons";
@@ -58,6 +59,7 @@ export default function App() {
   const [project, setProject] = useState<Project | null>(null);
   const [projectDialog, setProjectDialog] = useState<Project | "new" | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [artifact, setArtifact] = useState<ArtifactDoc | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("auto");
@@ -102,6 +104,7 @@ export default function App() {
     if (busy) return;
     const conv = await api.get<Conversation & { messages: StoredMessage[] }>(`/api/conversations/${id}`);
     setActiveId(id);
+    setArtifact(null);
     setMode(conv.mode || "auto");
     setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content } : { kind: "assistant", run: runFromStored(m) })));
     if (window.innerWidth <= 860) setSidebar(false);
@@ -111,6 +114,7 @@ export default function App() {
     if (busy) abortRef.current?.abort();
     setActiveId(null);
     setItems([]);
+    setArtifact(null);
     if (project) setMode(project.mode);
   };
 
@@ -119,6 +123,7 @@ export default function App() {
     setProject(p);
     setActiveId(null);
     setItems([]);
+    setArtifact(null);
     setMode(p?.mode ?? "auto");
     if (window.innerWidth <= 860) setSidebar(false);
   };
@@ -183,7 +188,8 @@ export default function App() {
   );
 
   return (
-    <div className={`app ${sidebar ? "with-sidebar" : ""}`}>
+    <ArtifactContext.Provider value={setArtifact}>
+    <div className={`app ${sidebar ? "with-sidebar" : ""} ${artifact ? "with-artifact" : ""}`}>
       <aside className="sidebar" aria-label="Conversations">
         <div className="sidebar-top">
           <div className="brand"><img src="/spike-mark.png" alt="" width={30} height={30} /><span className="wordmark">SPIKE</span></div>
@@ -267,7 +273,7 @@ export default function App() {
                   it.kind === "user" ? (
                     <div key={i} className="msg user"><div className="bubble"><Markdown text={it.text} /></div></div>
                   ) : (
-                    <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} />
+                    <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id} />
                   ),
                 )}
               </div>
@@ -276,6 +282,8 @@ export default function App() {
           </>
         )}
       </main>
+
+      {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
 
       {projectDialog && (
         <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} onClose={() => setProjectDialog(null)}
@@ -288,5 +296,6 @@ export default function App() {
           specialists={specialists} providers={providers} reloadProviders={loadProviders} />
       )}
     </div>
+    </ArtifactContext.Provider>
   );
 }

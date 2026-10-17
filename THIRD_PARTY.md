@@ -93,6 +93,16 @@ Not listed: the SQLite reference server (archived upstream with "no security gua
 | pytest, pytest-asyncio, ruff (development only) | — | MIT |
 | openai (development only: tests of the `/v1` API) | 3.33.0 | Apache-2.0 |
 | mcp (development only: builds the MCP server the connector tests run against) | 2.3.0 | MIT |
+| python-docx (optional, `docs` extra: Word documents) | 1.2.0 | MIT |
+| openpyxl (optional, `docs`: Excel workbooks) | 3.1.5 | MIT |
+| python-pptx (optional, `docs`: PowerPoint decks) | 1.0.2 | MIT |
+| reportlab (optional, `docs`: PDF) | 5.0.1 | BSD-3-Clause style ("BSD license", © ReportLab Inc.) |
+| lxml, Pillow, XlsxWriter, et-xmlfile, charset-normalizer, typing_extensions (pulled in by the `docs` libraries) | 6.1.3, 13.0.0, 3.2.9, 2.0.0, 3.5.2, 4.16.0 | BSD-3-Clause, MIT-CMU, BSD-2-Clause, MIT, MIT, PSF-2.0 |
+| pypdf (development only: tests read the generated PDFs back) | 6.21.1 | BSD-3-Clause |
+
+PDFs embed a subset of the first Unicode font found on the user's system (DejaVu Sans on Linux, Arial Unicode
+on macOS, Arial on Windows, or `SPIKE_PDF_FONT`); SPIKE ships no font files for this, and falls back to the
+built-in Helvetica (Latin-1 only) when none is found.
 
 ## Web app (bundled into `web/dist`, which ships inside the Python package)
 

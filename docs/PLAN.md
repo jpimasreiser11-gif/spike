@@ -152,6 +152,41 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | A2 | Projects: instructions, default specialist, own workspace and chats, files, zip export/import | ✅ API tests + browser smoke |
 | A3 | MCP client and one-click connector catalog ([ADR 0005](adr/0005-mcp-client.md)) | ✅ tests vs the official SDK + real upstream servers; Playwright, GitHub and Claude Code entries not exercised (browser download, token, account) |
 | A4 | Skills engine (`SKILL.md`), MIT/Apache skills only, packs | ✅ tests + browser smoke; 🟡 which skills a 4B model follows is unmeasured |
-| A5 | Artifacts panel (sandboxed iframe) and document tools | ⬜ |
-| B1–B5 | Local RAG, privacy and spend controls, undo/replay, `spike tune`, SPIKE as an MCP server | ⬜ |
-| C1–C6 | Browser via Playwright MCP, Forge, `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
+| A5 | Artifacts panel (sandboxed iframe) and document tools (docx, xlsx, pptx, pdf) | ✅ tests that reopen each file + browser smoke proving the sandbox (no storage, no parent, no API) |
+| B1 | Neural Memory: facts, decisions, corrections, chat summaries and documents in one store (SQLite, hybrid BM25 + vectors from llama-server embeddings), retrieved within the token budget; view, correct, export and delete in the UI | ⬜ |
+| B2–B5 | Privacy and spend controls, undo/replay, `spike tune`, SPIKE as an MCP server | ⬜ |
+| B6 | Evolution level 1: a user's correction becomes a memory rule applied in later chats | ⬜ |
+| C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ⬜ |
+| C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace | ⬜ |
+| C3–C6 | `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
+| C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ⬜ |
+| C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ⬜ |
+| D | Motion (video from code: animated HTML/SVG, Motion Canvas or Manim, rendered with ffmpeg; not Remotion, whose license is not OSI) and Evolution levels 2–3 (prompt/skill optimisation against local evals, opt-in corrections as retraining data; nothing ships without passing the eval) | ⬜ |
+
+## 26. Specialist improvement loop (adopted 2026-10-17)
+The founder asked to keep training and improving the specialists even when a first round does not pass. Fixed rules:
+- **No outputs of Claude, GPT or Gemini as training data.** Their terms forbid using outputs to train competing
+  models (Anthropic Commercial Terms D.4). Those APIs stay available only as user-configured providers at run time.
+- **One heavy job at a time on the Mac** (training, eval server, conversion or teacher), and RAM is watched: memory
+  pressure, swap and the process RSS are logged during each run; peak memory and the final batch size are reported
+  with the result. If a run swaps or pressure rises, the batch size goes down (4 → 2 → 1) and the run resumes from
+  its last checkpoint.
+- Every round is accepted or rejected by the config's acceptance criteria. A round that does not improve the
+  measurement is discarded and recorded in [STATUS](STATUS.md).
+
+Order of the next rounds, after the medicine verdict:
+1. Verified distillation (`training/distill.py`) from open teachers whose license allows using outputs:
+   Qwen3.6-35B-A3B (Apache-2.0), then gpt-oss-20b (Apache-2.0); only answers that match the gold label are kept.
+   Each teacher's license and the serving provider's terms are checked first, like the dataset license gate.
+2. Error-driven data: group the failed eval questions by topic and error type, then add targeted data for them
+   from the verified teacher and permissive sources, keeping the decontamination against the eval set.
+3. Rejection sampling from the 4B model itself: sample several answers with the adapter, keep the verified ones,
+   train again.
+4. Preference training (DPO/ORPO) after SFT, pairing a verified answer with the model's own wrong one, only with a
+   permissively licensed implementation that supports Qwen3.5 on MLX (to be checked before use).
+5. Verified reasoning traces (`--keep-reasoning`) where thinking helps (math, finance, diagnosis), with the latency
+   cost measured.
+6. More signal per example: sources with long explanations instead of part of MedMCQA, and Spanish data in every
+   domain.
+7. Without training: domain RAG over permissive sources and tools (calculator and Python for finance, guideline
+   search for medicine), measured with the same evals.

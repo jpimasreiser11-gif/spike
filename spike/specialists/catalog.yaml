@@ -14,7 +14,7 @@ specialists:
     adapter: null
     adapter_status: none
     sensitive: false
-    tools: [calculator, current_time, web_fetch, read_file, list_dir, write_file, python]
+    tools: [calculator, current_time, web_fetch, read_file, list_dir, write_file, python, create_docx, create_xlsx, create_pptx, create_pdf]
     keywords: {}
     system_prompt: |
       You are Spike Core, the general assistant of the SPIKE system. Be accurate, direct and useful.
@@ -66,7 +66,7 @@ specialists:
     adapter: spike-finance
     adapter_status: planned
     sensitive: true
-    tools: [calculator, python, web_fetch]
+    tools: [calculator, python, web_fetch, create_xlsx, create_pdf]
     keywords:
       finance: 3
       financial: 3
@@ -173,7 +173,7 @@ specialists:
     adapter: spike-law
     adapter_status: planned
     sensitive: true
-    tools: [web_fetch, read_file]
+    tools: [web_fetch, read_file, create_docx]
     keywords:
       law: 3
       legal: 3
@@ -215,7 +215,7 @@ specialists:
     adapter: spike-marketing
     adapter_status: planned
     sensitive: false
-    tools: [web_fetch, calculator]
+    tools: [web_fetch, calculator, create_pptx, create_docx]
     keywords:
       marketing: 4
       brand: 3
@@ -292,7 +292,7 @@ specialists:
     adapter: spike-data
     adapter_status: planned
     sensitive: false
-    tools: [python, read_file, list_dir, calculator]
+    tools: [python, read_file, list_dir, calculator, create_xlsx]
     keywords:
       sql: 4
       query: 2
@@ -368,7 +368,7 @@ specialists:
     adapter: spike-education
     adapter_status: planned
     sensitive: false
-    tools: [calculator, web_fetch]
+    tools: [calculator, web_fetch, create_pptx, create_pdf]
     keywords:
       explain like: 3
       teach me: 4
@@ -402,7 +402,7 @@ specialists:
     adapter: spike-writing
     adapter_status: planned
     sensitive: false
-    tools: [read_file, write_file, web_fetch]
+    tools: [read_file, write_file, web_fetch, create_docx, create_pdf]
     keywords:
       essay: 4
       rewrite: 4
@@ -440,7 +440,7 @@ specialists:
     adapter: spike-business
     adapter_status: planned
     sensitive: false
-    tools: [calculator, web_fetch, python]
+    tools: [calculator, web_fetch, python, create_xlsx, create_pptx, create_docx]
     keywords:
       business plan: 4
       business model: 4

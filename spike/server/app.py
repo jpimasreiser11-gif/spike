@@ -25,8 +25,10 @@ from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
+from spike.runtime.paths import workspace_dir
 from spike.server.openai_api import create_router
 from spike.server.state import AppState
+from spike.tools.builtin import Workspace
 
 
 class ProviderIn(BaseModel):
@@ -461,6 +463,18 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def get_project_file(pid: str, path: str):
         target = existing_file(pid, path)
         # a download, never a page: an uploaded .html must not run with the app's origin
+        return FileResponse(target, media_type="application/octet-stream", filename=target.name,
+                            headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
+
+    @app.get("/api/workspace/files/{path:path}")
+    async def get_workspace_file(path: str):
+        """Files the tools wrote outside a project (documents, pages), offered as downloads."""
+        try:
+            target = Workspace(workspace_dir()).resolve(path)
+        except PermissionError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        if not target.is_file():
+            raise HTTPException(404, "file not found")
         return FileResponse(target, media_type="application/octet-stream", filename=target.name,
                             headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
 

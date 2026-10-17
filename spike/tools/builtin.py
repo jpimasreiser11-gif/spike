@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 import httpx
 
 from spike.tools.base import Tool, ToolRegistry, ToolResult
+from spike.tools.documents import document_tools
 
 # --------------------------------------------------------------------------- calculator
 _BIN = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
@@ -168,7 +169,8 @@ class WriteFile(Tool):
             path.write_text(content, encoding="utf-8")
         except (PermissionError, KeyError, IsADirectoryError) as exc:
             return ToolResult(ok=False, content=f"error: {exc}")
-        return ToolResult(ok=True, content=f"wrote {len(content)} chars to {path.relative_to(self.workspace.root)}")
+        rel = path.relative_to(self.workspace.root).as_posix()
+        return ToolResult(ok=True, content=f"wrote {len(content)} chars to {rel}", data={"file": rel})
 
 
 # --------------------------------------------------------------------------- python
@@ -285,4 +287,5 @@ def default_registry(workspace_root: Path) -> ToolRegistry:
     ws = Workspace(workspace_root)
     return ToolRegistry([
         Calculator(), CurrentTime(), ReadFile(ws), ListDir(ws), WriteFile(ws), PythonRunner(), WebFetch(),
+        *document_tools(ws),
     ])

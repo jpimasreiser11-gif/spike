@@ -11,8 +11,9 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { Marked } from "marked";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useContext, useEffect, useMemo, useRef } from "react";
 import { t } from "../i18n";
+import { ArtifactContext, artifactFromCode } from "./Artifact";
 
 for (const [name, lang] of Object.entries({ bash, css, javascript, json, python, rust, sql, typescript, xml, yaml })) {
   hljs.registerLanguage(name, lang);
@@ -31,13 +32,16 @@ const marked = new Marked({
       const language = (lang || "").trim().split(/\s+/)[0];
       const valid = language && hljs.getLanguage(language);
       const html = valid ? hljs.highlight(text, { language }).value : hljs.highlightAuto(text).value;
-      return `<div class="code-block"><div class="code-head"><span>${valid ? language : ""}</span><button class="code-copy" type="button">${t.copy}</button></div><pre><code class="hljs">${html}</code></pre></div>`;
+      const page = ["html", "svg"].includes(language.toLowerCase());
+      const preview = page ? `<button class="code-preview" type="button" data-lang="${language.toLowerCase()}">${t.preview}</button>` : "";
+      return `<div class="code-block"><div class="code-head"><span>${valid ? language : ""}</span><span class="code-actions">${preview}<button class="code-copy" type="button">${t.copy}</button></span></div><pre><code class="hljs">${html}</code></pre></div>`;
     },
   },
 });
 
 function MarkdownImpl({ text }: { text: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const openArtifact = useContext(ArtifactContext);
   const html = useMemo(() => {
     const raw = marked.parse(text, { async: false }) as string;
     return DOMPurify.sanitize(raw, { ADD_ATTR: ["target"] });
@@ -51,6 +55,12 @@ function MarkdownImpl({ text }: { text: string }) {
       a.setAttribute("rel", "noopener noreferrer");
     });
     const onClick = (e: Event) => {
+      const preview = (e.target as HTMLElement).closest(".code-preview") as HTMLButtonElement | null;
+      if (preview && openArtifact) {
+        const code = preview.closest(".code-block")?.querySelector("code")?.textContent ?? "";
+        openArtifact(artifactFromCode(code, preview.dataset.lang ?? "html"));
+        return;
+      }
       const btn = (e.target as HTMLElement).closest(".code-copy") as HTMLButtonElement | null;
       if (!btn) return;
       const code = btn.closest(".code-block")?.querySelector("code")?.textContent ?? "";
@@ -61,7 +71,7 @@ function MarkdownImpl({ text }: { text: string }) {
     };
     el.addEventListener("click", onClick);
     return () => el.removeEventListener("click", onClick);
-  }, [html]);
+  }, [html, openArtifact]);
 
   return <div ref={ref} className="markdown" dangerouslySetInnerHTML={{ __html: html }} />;
 }

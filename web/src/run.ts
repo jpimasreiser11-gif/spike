@@ -67,7 +67,7 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
     case "tool_result":
       return {
         ...state,
-        tools: state.tools.map((t) => (t.id === ev.id ? { ...t, result: ev.content, ok: ev.ok } : t)),
+        tools: state.tools.map((t) => (t.id === ev.id ? { ...t, result: ev.content, ok: ev.ok, file: ev.file } : t)),
       };
     case "permission_request":
       return {
@@ -130,7 +130,7 @@ export function runFromStored(m: StoredMessage): RunState {
     if (ev.type === "tool_call") run.tools.push({ id: ev.id, name: ev.name, arguments: ev.arguments, specialist: ev.specialist });
     if (ev.type === "tool_result") {
       const t = run.tools.find((x) => x.id === ev.id);
-      if (t) Object.assign(t, { result: ev.content, ok: ev.ok });
+      if (t) Object.assign(t, { result: ev.content, ok: ev.ok, file: ev.file });
     }
   }
   return run;

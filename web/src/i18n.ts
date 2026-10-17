@@ -40,6 +40,13 @@ const es = {
   contextTrimmed: "mensajes antiguos omitidos para caber en el contexto",
   disclaimerSensitive: "Información, no consejo profesional personalizado. Verifica decisiones importantes.",
   skill: "Skill aplicada a esta respuesta",
+  preview: "Vista previa",
+  code: "Código",
+  download: "Descargar",
+  close: "Cerrar",
+  artifact: "Artefacto",
+  artifactIsolated: "Aislado: sin acceso a SPIKE, a tus datos ni a internet.",
+  filesCreated: "Archivos creados",
 };
 
 type Dict = typeof es;
@@ -86,6 +93,13 @@ const en: Dict = {
   contextTrimmed: "older messages omitted to fit the context",
   disclaimerSensitive: "Information, not personalized professional advice. Verify important decisions.",
   skill: "Skill applied to this answer",
+  preview: "Preview",
+  code: "Code",
+  download: "Download",
+  close: "Close",
+  artifact: "Artifact",
+  artifactIsolated: "Isolated: no access to SPIKE, your data or the internet.",
+  filesCreated: "Files created",
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

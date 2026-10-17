@@ -20,6 +20,18 @@ from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
 from spike.server.state import AppState  # noqa: E402
 
+# An artifact that probes its sandbox: it reports whether it could read storage, reach the parent page or call
+# SPIKE's API. The browser test expects all three blocked.
+PROBE_PAGE = """<!doctype html><html><head><title>Prueba de aislamiento</title></head><body>
+<h1>Hola desde un artefacto</h1><p id="out">...</p>
+<script>
+const r = [];
+try { localStorage.getItem("spike-theme"); r.push("storage:open"); } catch (e) { r.push("storage:blocked"); }
+try { r.push(parent.document.title !== undefined ? "parent:open" : "parent:blocked"); } catch (e) { r.push("parent:blocked"); }
+fetch("/api/conversations").then(() => r.push("api:open"), () => r.push("api:blocked"))
+  .finally(() => { document.getElementById("out").textContent = r.join(" "); });
+</script></body></html>"""
+
 
 class DemoProvider(Provider):
     def default_capabilities(self):
@@ -44,7 +56,15 @@ class DemoProvider(Provider):
                               arguments={"path": "notas.md", "content": "# Notas\n"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
-        if last.role == "user" and "# Project instructions" in system:
+        tools = {t.name for t in request.tools or []}
+        if last.role == "user" and "word" in last.content.lower() and "create_docx" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c2", name="create_docx", arguments={
+                "path": "informes/informe.docx", "content": "# Informe\n\n- Ventas: **+12 %**\n"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "página" in last.content.lower():
+            answer = "Aquí tienes la página:\n\n```html\n" + PROBE_PAGE + "\n```"
+        elif last.role == "user" and "# Project instructions" in system:
             answer = "Respuesta del proyecto: sigo sus instrucciones y uso sus archivos."
         elif last.role == "tool":
             answer = f"He creado el archivo. Resultado de la herramienta: `{last.content}`"
@@ -72,7 +92,8 @@ def main() -> None:
     os.environ["SPIKE_WORKSPACE"] = str(home / "ws")
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg))
-    uvicorn.run(create_app(state), host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
+    app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
+    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
 
 
 if __name__ == "__main__":

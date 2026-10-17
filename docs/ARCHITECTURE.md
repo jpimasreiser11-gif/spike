@@ -83,6 +83,13 @@ keywords and description (bindings restrict which specialists may use it) and pu
 prompt, cut to a quarter of the context budget; API models get the list of names and descriptions and a
 `load_skill` tool. Packs (`/api/pack/*`) move custom specialists, user skills and custom connectors, never secrets.
 
+**Artifacts and documents.** `spike/tools/documents.py` writes .docx, .xlsx, .pptx and .pdf files into the
+workspace (or the project's folder) from a small Markdown subset or structured rows and slides; the optional
+`docs` extra provides the libraries. A tool result that wrote a file carries `file` in its `tool_result` event, and
+the web app offers it from `/api/workspace/files/…` or `/api/projects/{id}/files/…` as a download. HTML and SVG
+code blocks, and written `.html`/`.svg` files, open in the artifact panel: an iframe with `sandbox="allow-scripts"`
+whose `srcdoc` starts with a strict Content-Security-Policy (`web/src/components/Artifact.tsx`).
+
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.

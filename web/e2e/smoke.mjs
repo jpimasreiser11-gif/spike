@@ -14,8 +14,11 @@ const fail = (msg) => { console.error("FAIL:", msg); process.exitCode = 1; };
 const ctx = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "es-ES", colorScheme: "light" });
 const page = await ctx.newPage();
 const errors = [];
+const artifactLogs = []; // what the sandboxed artifact tried and the browser refused, kept apart from app errors
 page.on("pageerror", (e) => errors.push(String(e)));
-page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+page.on("console", (m) => m.type() === "error" && (m.location().url.startsWith("about:srcdoc") || m.text().includes("Content Security Policy") ? artifactLogs : errors).push(m.text()));
+const frameRequests = [];
+page.on("request", (r) => r.frame() !== page.mainFrame() && frameRequests.push(r.url()));
 
 await page.goto(base);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
@@ -106,6 +109,37 @@ await page.locator("#composer-input").fill("Calcula el margen EBITDA y el ROE");
 await page.keyboard.press("Enter");
 await page.locator(".skill-chip", { hasText: "financial-ratio-analysis" }).waitFor({ timeout: 10000 });
 await page.screenshot({ path: `${out}/07b-skill.png` });
+
+// artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
+await page.locator("#composer-input").fill("Hazme una página de prueba");
+await page.keyboard.press("Enter");
+await page.locator(".code-preview").first().click({ timeout: 10000 });
+await page.locator(".artifact-panel").getByText("Prueba de aislamiento").waitFor();
+const probe = page.frameLocator(".artifact-frame").locator("#out");
+await probe.filter({ hasText: "api:" }).waitFor({ timeout: 5000 });
+const verdict = await probe.innerText();
+if (verdict !== "storage:blocked parent:blocked api:blocked") fail("artifact sandbox: " + verdict);
+if (frameRequests.length) fail("the artifact sent requests: " + frameRequests.join(", "));
+if (!artifactLogs.some((l) => l.includes("connect-src"))) fail("expected the CSP to refuse the artifact's fetch");
+await page.screenshot({ path: `${out}/07c-artifact.png` });
+const [page_dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Descargar" }).click()]);
+if (page_dl.suggestedFilename() !== "prueba-de-aislamiento.html") fail("artifact download name: " + page_dl.suggestedFilename());
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
+// documents: the Word tool asks first, then its file is offered as a download
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();
+await page.locator("#composer-input").fill("Redacta el informe en Word");
+await page.keyboard.press("Enter");
+await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
+const docLink = page.locator(".file-chip a", { hasText: "informe.docx" });
+await docLink.waitFor({ timeout: 10000 });
+const [doc_dl] = await Promise.all([page.waitForEvent("download"), docLink.click()]);
+const docBytes = fs.readFileSync(await doc_dl.path());
+if (docBytes.subarray(0, 2).toString() !== "PK") fail("downloaded .docx is not a zip package");
+await page.screenshot({ path: `${out}/07d-document.png` });
 
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });

@@ -88,6 +88,7 @@ async def run_agent(
         for call in calls:
             yield {"type": "tool_call", "id": call.id, "name": call.name, "arguments": call.arguments, **tag}
             tool = by_name.get(call.name)
+            file = None  # a workspace file the tool wrote, for the UI to offer
             if tool is None:
                 result_text, ok = f"error: tool '{call.name}' is not available to this specialist", False
             else:
@@ -107,10 +108,11 @@ async def run_agent(
                     if decision == "deny":
                         result_text, ok = "error: the user denied this tool call", False
                     else:
-                        result_text, ok = await _execute(tool, call)
+                        result_text, ok, file = await _execute(tool, call)
                 else:
-                    result_text, ok = await _execute(tool, call)
-            yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000], **tag}
+                    result_text, ok, file = await _execute(tool, call)
+            yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000],
+                   **({"file": file} if file else {}), **tag}
             tool_msg = Message(role="tool", content=result_text, tool_call_id=call.id, name=call.name)
             history.append(tool_msg)
             run.messages.append(tool_msg)
@@ -119,9 +121,10 @@ async def run_agent(
     yield {"type": "error", "message": run.error, **tag}
 
 
-async def _execute(tool: Tool, call: ToolCall) -> tuple[str, bool]:
+async def _execute(tool: Tool, call: ToolCall) -> tuple[str, bool, str | None]:
     try:
         result = await tool.run(call.arguments)
     except Exception as exc:  # a tool bug must not kill the conversation
-        return f"error: {exc.__class__.__name__}: {exc}", False
-    return result.content, result.ok
+        return f"error: {exc.__class__.__name__}: {exc}", False, None
+    file = result.data.get("file") if result.ok else None
+    return result.content, result.ok, file if isinstance(file, str) else None

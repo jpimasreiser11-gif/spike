@@ -32,6 +32,12 @@ acknowledge reports within 7 days.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
   and size before anything is written.
+- Artifacts (HTML or SVG a model wrote) run in an iframe with `sandbox="allow-scripts"` and no
+  `allow-same-origin`, so they get an opaque origin: no access to the app's storage, cookies or window, no forms,
+  popups or top navigation. A Content-Security-Policy placed before the page's markup allows only inline code and
+  `data:`/`blob:` media (`connect-src 'none'`), and the server refuses requests with `Origin: null` when it runs with
+  its host allow-list (`spike serve`). Document tools ask before writing, stay inside the workspace, and refuse
+  spreadsheet formulas that reach outside the file (DDE, `WEBSERVICE`, `CALL`, …).
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

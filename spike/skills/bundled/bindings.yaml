@@ -2,7 +2,7 @@
 # specialists: which specialists may use the skill (empty = any). keywords: words that select it (es + en).
 test-driven-development:
   specialists: [code]
-  keywords: [tdd, test, tests, prueba, pruebas, unitario, unit, implementar, implement, funcionalidad, feature]
+  keywords: [tdd, test, tests, unitario, unitarios, unit test, pruebas unitarias, pruebas primero, test first, red green refactor]
 systematic-debugging:
   specialists: [code, data]
   keywords: [bug, error, fallo, falla, debug, depurar, crash, excepción, exception, traceback, roto, broken]

@@ -27,6 +27,8 @@ Local first, open source (Apache-2.0), and able to use external API models with 
   OpenAI-compatible server. Paid providers stay blocked until you allow them; keys live in your OS keychain.
 - **Tools with permissions.** Calculator, workspace files, sandboxed Python and web fetch, each allow / ask /
   deny, with an inline permission prompt.
+- **Artifacts and documents.** HTML and SVG answers open in an isolated side panel; Word, Excel, PowerPoint and
+  PDF files are written to your workspace and offered as downloads.
 - **Projects.** Instructions, a default specialist, files and chats per project; file tools work in the
   project's own folder; export and import a project as one zip.
 - **Skills and connectors.** Agent Skills (`SKILL.md`) chosen per request for small local models, MCP
@@ -50,7 +52,7 @@ recommended, ~3 GB disk for the model.
 
 ```bash
 git clone <repository-url> spike && cd spike     # PyPI package after the first release
-(cd web && npm ci && npm run build) && pipx install .
+(cd web && npm ci && npm run build) && pipx install ".[docs]"
 brew install llama.cpp                   # macOS / Linux with Homebrew; other platforms: official llama.cpp releases
 spike doctor                             # what this machine can run, and with how much context
 spike models pull qwen3.5-4b             # Q4_K_M by default, license and SHA-256 checked

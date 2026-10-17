@@ -68,3 +68,16 @@ describe("applyEvent", () => {
     expect(stored.skills).toEqual(["campaign-brief"]);
   });
 });
+
+describe("files written by tools", () => {
+  it("keeps the file of a successful tool result, live and from history", () => {
+    let s = applyEvent(emptyRun(), { type: "tool_call", id: "c1", name: "create_docx", arguments: {} });
+    s = applyEvent(s, { type: "tool_result", id: "c1", name: "create_docx", ok: true, content: "wrote", file: "informes/q3.docx" });
+    expect(s.tools[0].file).toBe("informes/q3.docx");
+    const stored = runFromStored({ role: "assistant", content: "ok", meta: { tools: [
+      { type: "tool_call", id: "c1", name: "create_docx", arguments: {} },
+      { type: "tool_result", id: "c1", ok: true, content: "wrote", file: "informes/q3.docx" },
+    ] } } as any);
+    expect(stored.tools[0].file).toBe("informes/q3.docx");
+  });
+});

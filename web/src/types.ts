@@ -76,6 +76,7 @@ export type ToolState = {
   specialist?: string;
   result?: string;
   ok?: boolean;
+  file?: string; // workspace path of a file the tool wrote
 };
 
 export type PermissionState = {

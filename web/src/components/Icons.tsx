@@ -90,3 +90,20 @@ export const IconBack = ({ size }: P) => (
     <path d="M15 6l-6 6 6 6" />
   </svg>
 );
+export const IconFile = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5" />
+  </svg>
+);
+export const IconDownload = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+  </svg>
+);
+export const IconEye = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);

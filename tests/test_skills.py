@@ -69,6 +69,7 @@ def test_invalid_skills_are_rejected(tmp_path, front, error):
     ("marketing", "Prepara una campaña de lanzamiento con canales y KPI", "campaign-brief"),
     ("code", "Write an MCP server for my notes app", "mcp-builder"),
     ("core", "Hola, ¿qué tal estás?", None),
+    ("code", "Hazme una página de prueba", None),  # "prueba" alone is not about tests
     ("code", "Calcula el margen EBITDA y el ROE", None),  # finance skill is not bound to Code
 ])
 def test_router_selects_the_skill(specialist, prompt, expected):

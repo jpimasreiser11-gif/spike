@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
 import type { PermissionState, RunState, Specialist } from "../types";
-import { IconChevron, IconCopy, IconTool } from "./Icons";
+import { ArtifactContext, artifactFromCode } from "./Artifact";
+import { IconChevron, IconCopy, IconFile, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
 import { SpecMark } from "./SpecMark";
 
@@ -56,16 +57,41 @@ function Permission({ p, onDecided }: { p: PermissionState; onDecided: (id: stri
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission }: {
+/** Download URL of a file a tool wrote: in the project's folder, or in the workspace. */
+export const fileUrl = (path: string, projectId?: string) =>
+  `${projectId ? `/api/projects/${projectId}/files` : "/api/workspace/files"}/${path.split("/").map(encodeURIComponent).join("/")}`;
+
+function Files({ files, projectId }: { files: string[]; projectId?: string }) {
+  const openArtifact = useContext(ArtifactContext);
+  const preview = async (path: string) => {
+    const r = await fetch(fileUrl(path, projectId));
+    if (r.ok && openArtifact) openArtifact({ ...artifactFromCode(await r.text(), path.endsWith(".svg") ? "svg" : "html"), filename: path.split("/").pop() || path });
+  };
+  return (
+    <div className="file-chips" aria-label={t.filesCreated}>
+      {files.map((path) => (
+        <span key={path} className="file-chip">
+          <IconFile size={15} />
+          <a href={fileUrl(path, projectId)} download title={path}>{path.split("/").pop()}</a>
+          {/\.(html?|svg)$/i.test(path) && <button type="button" className="link-btn" onClick={() => preview(path)}>{t.preview}</button>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function AssistantMessage({ run, specialists, onPermission, projectId }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
+  projectId?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const live = run.status === "running" || run.status === "planning" || run.status === "synthesizing";
   const routeSpecs = run.route?.specialists ?? [];
   const sensitive = routeSpecs.some((r) => specialists.find((s) => s.id === r.id)?.sensitive);
   const pending = run.permissions.filter((p) => p.status === "pending" || p.status === "sending");
+  const files = [...new Set(run.tools.filter((x) => x.ok && x.file).map((x) => x.file as string))];
 
   return (
     <div className="msg assistant">
@@ -128,6 +154,8 @@ export function AssistantMessage({ run, specialists, onPermission }: {
           <span className="muted">{run.status === "planning" ? t.planning : run.status === "synthesizing" ? t.synthesizing : t.thinking}</span>
         </div>
       ) : null}
+
+      {files.length > 0 && <Files files={files} projectId={projectId} />}
 
       {run.error && <div className="error-box" role="alert">{t.error}: {run.error}</div>}
       {run.status === "stopped" && <div className="notice">{t.stopped}</div>}
