@@ -12,7 +12,15 @@ from spike.orchestrator.planner import Subtask, extract_json, topological_levels
 from spike.orchestrator.router import LexicalRouter, normalize
 from spike.specialists.catalog import load_catalog
 from spike.tools.base import PermissionBroker
-from spike.tools.builtin import Calculator, PythonRunner, ReadFile, WebFetch, Workspace, default_registry, safe_eval
+from spike.tools.builtin import (
+    Calculator,
+    PythonRunner,
+    ReadFile,
+    WebFetch,
+    Workspace,
+    default_registry,
+    safe_eval,
+)
 from tests.helpers import ScriptedProvider, call, text
 
 CATALOG = load_catalog()

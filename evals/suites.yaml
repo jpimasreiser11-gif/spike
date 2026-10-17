@@ -1,0 +1,38 @@
+# Evaluation suites. Each task reads an eval-only source from training/datasets.yaml, takes a seeded random
+# sample of `n` items (all items when n is omitted) and is answered by every variant with the same prompt.
+# `general` is the regression suite: categories outside every specialist domain trained so far.
+suites:
+  medicine:
+    specialist: medicine
+    tasks:
+      - {name: medmcqa-val, source: medmcqa-eval, n: 1000}
+      - {name: pubmedqa-labeled, source: pubmedqa-labeled, n: 500}
+      - {name: mmlu-pro-health, source: mmlu-pro, categories: [health]}
+  finance:
+    specialist: finance
+    tasks:
+      - {name: mmlu-pro-business, source: mmlu-pro, categories: [business]}
+      - {name: mmlu-pro-economics, source: mmlu-pro, categories: [economics]}
+  law:
+    specialist: law
+    tasks:
+      - {name: mmlu-pro-law, source: mmlu-pro, categories: [law], n: 600}
+  math:
+    specialist: math
+    tasks:
+      - {name: gsm8k, source: gsm8k, n: 500}
+      - {name: mmlu-pro-math, source: mmlu-pro, categories: [math], n: 600}
+  science:
+    specialist: science
+    tasks:
+      - {name: mmlu-pro-physics, source: mmlu-pro, categories: [physics], n: 400}
+      - {name: mmlu-pro-chemistry, source: mmlu-pro, categories: [chemistry], n: 400}
+      - {name: mmlu-pro-biology, source: mmlu-pro, categories: [biology], n: 400}
+  code:
+    specialist: code
+    tasks:
+      - {name: mmlu-pro-cs, source: mmlu-pro, categories: [computer science]}
+  general:
+    specialist: core
+    tasks:
+      - {name: mmlu-pro-general, source: mmlu-pro, categories: [history, philosophy, psychology, other], n: 800}

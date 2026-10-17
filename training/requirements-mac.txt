@@ -1,0 +1,16 @@
+# Training and evaluation on Apple Silicon (macOS). Install in a separate virtualenv:
+#   python3 -m venv .venv-train && . .venv-train/bin/activate && pip install -r training/requirements-mac.txt
+# Exact versions used for a run are recorded in training/runs/<specialist>/run.json.
+mlx-lm            # LoRA training; needs a release with mlx_lm/models/qwen3_5.py (train.sh checks)
+datasets          # dataset download (licenses re-checked by prepare.py)
+huggingface_hub
+pyyaml
+numpy
+httpx
+psutil
+# llama.cpp's convert_lora_to_gguf.py (used by export_adapter.py)
+torch
+transformers
+safetensors
+sentencepiece
+gguf

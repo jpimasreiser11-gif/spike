@@ -7,6 +7,7 @@ not encrypted; the UI says which backend is active so users can make an informed
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -62,10 +63,8 @@ class SecretStore:
 
     def delete(self, name: str) -> None:
         if self._keyring:
-            try:
+            with contextlib.suppress(Exception):  # deleting a missing secret is not an error
                 self._keyring.delete_password(SERVICE, name)
-            except Exception:
-                pass
             return
         data = self._load()
         if data.pop(name, None) is not None:

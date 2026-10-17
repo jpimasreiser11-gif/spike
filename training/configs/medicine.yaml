@@ -1,0 +1,38 @@
+# Spike Medicine adapter recipe.
+specialist: medicine
+base_model: Qwen/Qwen3.5-4B          # Apache-2.0; mlx-lm loads and trains it in bf16 (no QLoRA, see ADR 0002)
+hypothesis: >
+  LoRA on explanation-rich medical MCQ data plus PubMed reasoning improves medical QA accuracy of the 4B base
+  without degrading general knowledge.
+acceptance:
+  primary: {suite: medicine, min_gain_points: 3.0, max_p_value: 0.05}
+  regression: {suite: general, max_drop_points: 1.5}
+domain_sources:
+  - {source: medmcqa, max: 24000}
+  - {source: pubmedqa-artificial, max: 6000}
+distill:                              # optional: verified teacher answers on held-out training questions
+  enabled: false
+  tasks_from: {source: medmcqa, offset: 24000, max: 4000}
+replay:
+  ratio: 0.3                          # share of general data in the training mix (anti-forgetting)
+  sources:
+    - {source: smoltalk-magpie-ultra, max: 9000}
+    - {source: smoltalk-constraints, max: 3000}
+decontaminate_against: [medmcqa-eval, pubmedqa-labeled, mmlu-pro]
+valid_fraction: 0.02
+seed: 0
+train:
+  epochs: 1.0                         # prepare.py turns this into mlx-lm `iters` (micro-batches) from the data size
+  batch_size: 4
+  grad_accumulation_steps: 4
+  learning_rate: 1.0e-4
+  lr_schedule: {name: cosine_decay, warmup: 100, arguments: [1.0e-4, auto, 1.0e-5]}
+  max_seq_length: 2048
+  grad_checkpoint: true
+  mask_prompt: true
+  num_layers: -1
+  lora_parameters:
+    rank: 16
+    scale: 2.0                        # mlx scale == PEFT alpha / r  (alpha 32 at r 16)
+    dropout: 0.05
+    keys: [self_attn.q_proj, self_attn.k_proj, self_attn.v_proj, self_attn.o_proj, mlp.gate_proj, mlp.up_proj, mlp.down_proj]

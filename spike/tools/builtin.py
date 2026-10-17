@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import contextlib
 import datetime as dt
 import html
 import ipaddress
@@ -188,10 +189,8 @@ class PythonRunner(Tool):
 
         resource.setrlimit(resource.RLIMIT_CPU, (20, 20))
         mem = self.memory_mb * 1024 * 1024
-        try:
+        with contextlib.suppress(ValueError, OSError):  # macOS does not enforce RLIMIT_AS
             resource.setrlimit(resource.RLIMIT_AS, (mem, mem))
-        except (ValueError, OSError):  # macOS does not enforce RLIMIT_AS
-            pass
         os.setsid()
 
     async def run(self, args: dict[str, Any]) -> ToolResult:

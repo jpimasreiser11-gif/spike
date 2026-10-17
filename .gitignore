@@ -11,7 +11,7 @@ build/
 tests/fixtures/out/
 training/runs/
 training/data/
-evals/results/raw/
+evals/results/*/predictions.jsonl
 .DS_Store
 *.gguf
 *.safetensors

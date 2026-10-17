@@ -6,7 +6,15 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
-from spike.core.types import Capabilities, ChatRequest, Message, PaidCallBlocked, ProviderError, StreamEvent, ToolCall
+from spike.core.types import (
+    Capabilities,
+    ChatRequest,
+    Message,
+    PaidCallBlocked,
+    ProviderError,
+    StreamEvent,
+    ToolCall,
+)
 from spike.providers.base import Provider, iter_sse, raise_for_status
 
 API_VERSION = "2023-06-01"
