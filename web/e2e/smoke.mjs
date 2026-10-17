@@ -352,12 +352,41 @@ await domains.getByRole("button", { name: "Eliminar boe.es" }).click();
 await domains.getByText("Aún no hay dominios con regla.").waitFor();
 await page.keyboard.press("Escape");
 
+// Forge: the task becomes a blueprint the user edits and approves; the team runs it, the checker sends the writer
+// back once, and the report lists the criteria and the saved file
+await page.getByRole("button", { name: "Forge", exact: true }).click();
+await page.getByLabel("Tarea").fill("Calcula el IVA de 120 € y escribe un informe");
+await page.screenshot({ path: `${out}/07g-forge.png` });
+await page.getByRole("button", { name: "Preparar el plan" }).click();
+const step2 = page.locator('[data-step="t2"]');
+await step2.getByLabel("Archivos que guarda (separados por comas)").waitFor({ timeout: 10000 });
+if (await step2.getByLabel("Archivos que guarda (separados por comas)").inputValue() !== "informe.md") fail("blueprint deliverable not shown");
+if (await page.locator('[data-step="t1"]').getByLabel("Papel").inputValue() !== "research") fail("blueprint role not shown");
+const criteriaBox = page.getByLabel("Criterios de aceptación (uno por línea)");
+await criteriaBox.fill((await criteriaBox.inputValue()) + "\nMenciona el IVA del 21 %");
+await page.screenshot({ path: `${out}/07h-blueprint.png`, fullPage: true });
+await page.getByRole("button", { name: "Aprobar y ejecutar" }).click();
+for (let i = 0; i < 2; i++) { // the writer saves informe.md, is sent back once, and saves it again
+  await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
+  await page.locator(".permission.done").nth(i).waitFor({ timeout: 5000 });
+}
+const report = page.locator(".forge-report");
+await report.getByText("2/2 criterios cumplidos").waitFor({ timeout: 10000 });
+await report.getByRole("link", { name: "informe.md" }).waitFor();
+if (!(await page.locator(".trace").getByText("ronda 2").count())) fail("the sent-back step is not shown");
+if ((await page.locator(".trace .role-verify").count()) < 2) fail("expected two checker passes in the trace");
+await page.screenshot({ path: `${out}/07i-forge-report.png`, fullPage: true });
+
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
 const dp = await dark.newPage();
 await dp.goto(base);
 await dp.getByText("How can I help you today?").waitFor();
 await dp.screenshot({ path: `${out}/08-welcome-dark-en.png` });
+await dp.locator(".conv-title", { hasText: "Calcula el IVA de 120" }).click(); // a stored Forge answer, rebuilt
+await dp.locator(".forge-report").getByText("2/2 criteria met").waitFor({ timeout: 5000 });
+if ((await dp.locator(".trace .role-verify").count()) < 2) fail("stored Forge answer lost its checker passes");
+await dp.screenshot({ path: `${out}/08b-forge-dark-en.png` });
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-ES", isMobile: true, hasTouch: true });
 const mp = await mobile.newPage();
 await mp.goto(base);

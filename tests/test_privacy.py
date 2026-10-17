@@ -243,7 +243,8 @@ async def test_a_specialist_report_written_from_a_file_is_withheld_from_a_remote
     store = Store(tmp_path / "s.db")
     local = ScriptedProvider([call("read_file", {"path": "notas.txt"}), text("Dice ", SECRET)], name="local")
     local.config.local = True
-    remote = ScriptedProvider([text(json.dumps(plan)), text("ESLOGAN"), text("FINAL")], name="remote")
+    remote = ScriptedProvider([text(json.dumps(plan)), text("ESLOGAN"), text('{"results": []}'), text("FINAL")],
+                              name="remote")
     guarded_local, guarded_remote = GuardedProvider(local, store), GuardedProvider(remote, store)
 
     def resolve(spec):
@@ -258,5 +259,6 @@ async def test_a_specialist_report_written_from_a_file_is_withheld_from_a_remote
     sent = [m.content for r in remote.requests for m in r.messages]
     assert all(SECRET not in c for c in sent)
     assert "[file content withheld" in remote.requests[1].messages[-1].content  # dependency input to marketing
-    assert "[file content withheld" in remote.requests[2].messages[-1].content  # the synthesis
+    assert "[file content withheld" in remote.requests[2].messages[-1].content  # the checker
+    assert "[file content withheld" in remote.requests[3].messages[-1].content  # the synthesis
     assert events[-1]["text"] == "FINAL" and events[-1]["private"] is False

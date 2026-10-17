@@ -450,3 +450,30 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .browser-domains { display: grid; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
 .domain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .domain-list li { display: flex; align-items: center; gap: 8px; }
+
+/* Collective roles and the checker */
+.role { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 0 6px; margin-right: 6px; border: 1px solid var(--border); color: var(--text-2); background: var(--surface-2); }
+.role-research { color: var(--text); background: var(--surface-2); border-color: var(--border-strong); }
+.role-execute { color: var(--green-dark); background: var(--accent-soft); border-color: var(--ground); }
+.role-verify { color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 35%, var(--border)); }
+.round { color: var(--text-2); font-weight: 500; }
+.returned-note { margin: 0 0 8px; color: var(--warn); }
+.checker.live { padding: 6px 2px; color: var(--text-2); }
+.checker-body p { margin: 4px 0; }
+.ok-text { color: var(--green-dark); }
+.forge-report { border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: var(--surface); }
+.forge-report-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.forge-report ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.criteria li.ok > span:first-child { color: var(--green-dark); }
+.criteria li.bad > span:first-child { color: var(--danger); }
+
+/* Forge screen */
+.forge { width: min(760px, 100%); margin: 0 auto; padding: 24px 16px 48px; overflow-y: auto; display: grid; gap: 12px; align-content: start; }
+.forge-head { display: flex; align-items: center; gap: 8px; }
+.forge-head h1 { margin: 0; font-size: 24px; }
+.forge .step { display: grid; gap: 8px; }
+.forge .deps { display: flex; gap: 14px; flex-wrap: wrap; }
+.forge .deps .check { align-items: center; gap: 6px; color: var(--text); }
+.forge .deps input { width: auto; }
+.side-btn.forge-btn { margin: -4px 12px 6px; padding: 8px 13px; }
+.side-btn.forge-btn.active { background: var(--surface-2); }

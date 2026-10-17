@@ -190,12 +190,16 @@ async def test_orchestrator_single_specialist_uses_adapter_and_custom_instructio
     assert events[-1]["type"] == "done" and events[-1]["text"] == "Take 500 mg."
 
 
+CHECKED = '{"results": []}'  # the checker finds nothing to send back
+
+
 async def test_orchestrator_multi_with_llm_plan_and_synthesis(tmp_path):
     plan = {"subtasks": [
         {"id": "t1", "specialist": "marketing", "instruction": "Campaign plan", "depends_on": []},
         {"id": "t2", "specialist": "finance", "instruction": "ROI estimate", "depends_on": ["t1"]},
     ]}
-    provider = ScriptedProvider([text(json.dumps(plan)), text("CAMPAIGN"), text("ROI 12%"), text("FINAL")])
+    provider = ScriptedProvider([text(json.dumps(plan)), text("CAMPAIGN"), text("ROI 12%"), text(CHECKED),
+                                 text("FINAL")])
     orch = make_orchestrator(provider, tmp_path)
     events = [e async for e in orch.run([], "Plan a marketing campaign for our ETF and estimate the ROI of the investment",
                                         OrchestratorOptions())]
@@ -204,12 +208,14 @@ async def test_orchestrator_multi_with_llm_plan_and_synthesis(tmp_path):
     assert provider.requests[0].json_schema is not None  # planner uses constrained output
     assert provider.requests[2].adapter == "spike-finance"
     assert "CAMPAIGN" in provider.requests[2].messages[1].content  # dependency output passed on
-    assert "ROI 12%" in provider.requests[3].messages[-1].content  # synthesis sees reports
+    assert "ROI 12%" in provider.requests[3].messages[-1].content  # the checker sees the results
+    assert next(e for e in events if e["type"] == "verify")["returned"] == []
+    assert "ROI 12%" in provider.requests[4].messages[-1].content  # synthesis sees reports
     assert events[-1]["text"] == "FINAL"
 
 
 async def test_orchestrator_planner_fallback_on_invalid_json(tmp_path):
-    provider = ScriptedProvider([text("I cannot do JSON"), text("A"), text("B"), text("MERGED")])
+    provider = ScriptedProvider([text("I cannot do JSON"), text("A"), text("B"), text(CHECKED), text("MERGED")])
     orch = make_orchestrator(provider, tmp_path)
     events = [e async for e in orch.run([], "Draft the terms of service contract and the marketing landing page copy",
                                         OrchestratorOptions())]
@@ -231,8 +237,8 @@ async def test_orchestrator_parallel_merges_events(tmp_path):
         {"id": "t1", "specialist": "law", "instruction": "a", "depends_on": []},
         {"id": "t2", "specialist": "marketing", "instruction": "b", "depends_on": []},
     ]}
-    provider = ScriptedProvider([text(json.dumps(plan)), text("L"), text("M"), text("F")])
+    provider = ScriptedProvider([text(json.dumps(plan)), text("L"), text("M"), text(CHECKED), text("F")])
     orch = make_orchestrator(provider, tmp_path)
     events = [e async for e in orch.run([], "contract clause and marketing campaign", OrchestratorOptions(parallel=True))]
     ends = [e for e in events if e["type"] == "subtask_end"]
-    assert len(ends) == 2 and all(e["ok"] for e in ends)
+    assert len(ends) == 2 and all(e["ok"] for e in ends) and events[-1]["text"] == "F"

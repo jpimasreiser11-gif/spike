@@ -3,7 +3,8 @@ import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
-import { IconBack, IconEdit, IconFolder, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
+import { Forge } from "./components/Forge";
+import { IconBack, IconEdit, IconFolder, IconForge, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { Replay } from "./components/Replay";
@@ -11,7 +12,7 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
-import type { ChatEvent, Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
+import type { Blueprint, ChatEvent, Conversation, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
 type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
 
@@ -94,6 +95,7 @@ export default function App() {
   const [providerId, setProviderId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [forgeOpen, setForgeOpen] = useState(false);
   const [engine, setEngine] = useState<{ running: boolean } | null>(null);
   const [fatal, setFatal] = useState("");
   const [theme, toggleTheme] = useTheme();
@@ -130,6 +132,7 @@ export default function App() {
 
   const openConversation = async (id: string) => {
     if (busy) return;
+    setForgeOpen(false);
     const conv = await api.get<Conversation & { messages: StoredMessage[] }>(`/api/conversations/${id}`);
     setActiveId(id);
     setArtifact(null);
@@ -141,6 +144,7 @@ export default function App() {
 
   const newChat = () => {
     if (busy) abortRef.current?.abort();
+    setForgeOpen(false);
     setActiveId(null);
     setItems([]);
     setArtifact(null);
@@ -180,7 +184,7 @@ export default function App() {
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
   const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object,
-                    specialist?: string) => {
+                    specialist?: string, forge?: Blueprint) => {
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -194,7 +198,7 @@ export default function App() {
     try {
       await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
-                         ...(schema ? { response_schema: schema } : {}) }, (ev) => {
+                         ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}) }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));
@@ -240,6 +244,16 @@ export default function App() {
     }
   };
 
+  /** Run an approved Forge blueprint as a new chat: the team's trace and the report show up as its answer. */
+  const runForge = (task: string, blueprint: Blueprint, provider: string | null) => {
+    setForgeOpen(false);
+    setActiveId(null);
+    setItems([]);
+    setArtifact(null);
+    setTemporary(false);
+    send(task, undefined, provider, null, undefined, undefined, blueprint);
+  };
+
   const onPermission = (id: string, status: PermissionState["status"]) =>
     updateLast((r) => ({ ...r, permissions: r.permissions.map((p) => (p.id === id ? { ...p, status } : p)) }));
 
@@ -266,6 +280,7 @@ export default function App() {
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label="Close sidebar"><IconSidebar /></button>
         </div>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
+        <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
@@ -321,7 +336,9 @@ export default function App() {
 
         {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}
 
-        {empty ? (
+        {forgeOpen ? (
+          <Forge specialists={specialists} providers={providers} projectId={project?.id} onRun={runForge} onClose={() => setForgeOpen(false)} />
+        ) : empty ? (
           <section className="welcome">
             {project ? (
               <ProjectPanel project={project} specialists={specialists} onEdit={() => setProjectDialog(project)} />

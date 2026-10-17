@@ -49,6 +49,10 @@ acknowledge reports within 7 days.
   passed to the browser when it starts, which Playwright MCP says is not a security boundary, and the browser
   runs with an isolated profile (no saved logins); the page snapshots it saves go to the workspace folder
   `.playwright-mcp/`.
+- Forge runs a blueprint only after you approve it, and its steps save files through the same file tools and
+  permission prompts as any chat. `spike forge eval` runs its checks as Python in a subprocess with CPU and memory
+  limits, in a temporary folder per task, and some checks import the module the model wrote; during the eval the
+  file tools and `python` run without asking and `web_fetch` is refused.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
   and size before anything is written.

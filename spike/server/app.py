@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from spike import __version__
 from spike.contracts import schema_error
 from spike.core.types import Message
+from spike.forge.blueprint import from_user as blueprint_from_user
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
@@ -74,6 +75,13 @@ class ChatIn(BaseModel):
     replace_from: str | None = None  # a user message of this chat: it and everything after it are replaced (edit, retry)
     temporary: bool = False  # for a new chat: kept in memory only, no SPIKE memory read or written, gone on restart
     response_schema: dict[str, Any] | None = None  # answer contract: the answer is JSON following this JSON Schema
+    forge: dict[str, Any] | None = None  # a Forge blueprint the user approved: the team runs it and checks it
+
+
+class BlueprintIn(BaseModel):
+    task: str = Field(min_length=1, max_length=20_000)
+    provider_id: str | None = None
+    project_id: str | None = None
 
 
 class MemoryIn(BaseModel):
@@ -961,6 +969,18 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         await st().stop_runtime()
         return {"running": False}
 
+    # ---------------------------------------------------------------- forge
+    @app.post("/api/forge/blueprint")
+    async def forge_blueprint(body: BlueprintIn) -> dict:
+        """Draft a Forge blueprint for the user to review and approve; nothing runs yet."""
+        state = st()
+        if body.provider_id and not state.provider_config(body.provider_id):
+            raise HTTPException(400, f"unknown provider '{body.provider_id}'")
+        if body.project_id and not state.store.get_project(body.project_id):
+            raise HTTPException(400, f"unknown project '{body.project_id}'")
+        await state.ensure_adapters(body.provider_id)
+        return (await state.blueprint(body.task, body.provider_id, body.project_id)).to_dict()
+
     # ---------------------------------------------------------------- chat
     @app.post("/api/chat")
     async def chat(body: ChatIn) -> StreamingResponse:
@@ -979,6 +999,16 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, "replace_from needs an existing conversation")
         if body.response_schema is not None and (problem := schema_error(body.response_schema)) is not None:
             raise HTTPException(400, problem)
+        blueprint = None
+        if body.forge is not None:
+            if body.response_schema is not None:
+                raise HTTPException(400, "a Forge task cannot also have an answer contract")
+            try:
+                blueprint = blueprint_from_user(body.forge, state.catalog)
+            except ValueError as exc:
+                raise HTTPException(400, f"blueprint: {exc}") from exc
+            if blueprint.deliverables and not state.settings()["tools_enabled"]:
+                raise HTTPException(400, "this blueprint saves files, which needs tools: turn them on in Settings")
         mode = body.mode
         if conv is None:
             project = state.store.get_project(body.project_id) if body.project_id else None
@@ -1009,6 +1039,9 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             options = state.options(mode, project)
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
             options.json_schema = body.response_schema
+            options.forge = blueprint
+            if blueprint is not None:
+                meta["forge"] = {"blueprint": blueprint.to_dict()}
             started = time.perf_counter()
 
             def record(ev: dict[str, Any]) -> None:
@@ -1042,6 +1075,14 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         meta["route"] = ev
                     elif kind == "plan":
                         meta["plan"] = ev
+                    elif kind == "subtask_start":
+                        meta["subtasks"].setdefault(ev["subtask"], {"specialist": ev.get("specialist"), "text": "",
+                                                                    "role": ev.get("role"), "round": ev.get("round"),
+                                                                    "task": ev.get("task")})
+                    elif kind == "verify":
+                        meta.setdefault("verify", []).append({k: v for k, v in ev.items() if k != "type"})
+                    elif kind == "forge_report":
+                        meta.setdefault("forge", {})["report"] = {k: v for k, v in ev.items() if k != "type"}
                     elif kind == "delta" and "subtask" in ev:
                         meta["subtasks"].setdefault(ev["subtask"], {"specialist": ev.get("specialist"), "text": ""})
                         meta["subtasks"][ev["subtask"]]["text"] += ev["text"]

@@ -8,7 +8,8 @@
         │                         └─ SecretStore: OS keychain, or a 0600 file fallback
         ▼
  Orchestrator (spike/orchestrator)
-   1 lexical router ─► 2 JSON-schema planner (only multi/ambiguous) ─► 3 subtask DAG ─► 4 synthesis
+   1 lexical router ─► 2 JSON-schema planner (only multi/ambiguous) ─► 3 subtask DAG ─► 4 checker ─► 5 synthesis
+   (Forge: an approved blueprint replaces 1–2; its deliverables and criteria are checked in 4)
         │ each subtask = (provider, model, adapter, system prompt + user instructions)
         ▼
  Agent loop (spike/agent) ── tools (spike/tools) ── PermissionBroker: allow / ask / deny per tool
@@ -32,7 +33,10 @@
    and a token budget (`spike/core/context.py` keeps system prompt and latest turn, drops the oldest turns).
 5. The agent loop streams text and reasoning, executes tool calls (native, or emulated with `<tool_call>`
    blocks for providers without native tools) and pauses on `ask` tools until the user answers in the UI.
-6. Core synthesizes when more than one specialist contributed. Every step is an SSE event; the assistant
+6. A multi-step plan is checked (`orchestrator/verify.py`): one constrained-JSON call to core marks each result ok or
+   says what to fix; a result with a fix, and every subtask that used it, runs again with the note, at most twice.
+   SPIKE itself checks that each deliverable file was saved. A checker answer that is not valid JSON sends nothing
+   back and the run says it could not verify. Core then synthesizes (the integrator). Every step is an SSE event; the assistant
    message is stored with its route, plan, subtasks, tool calls, usage and timing.
 
 ## Specialists
@@ -133,6 +137,16 @@ drop on dev or test, and the overlay is applied in `AppState._load_catalog`. Run
 from the chat route. `checks.py` is `spike evolve check`; `adapters.py` installs an adapter only when
 `acceptance.py` (a test-checked copy of the training rule) passes, keeps every file in `adapters/history` by
 checksum and rolls back by hard link.
+
+**Collective and Forge (C2).** Planner subtasks carry a role (`research` or `execute`); the checker and the
+integrator are fixed stages after any multi-step plan. Forge (`spike/forge/`) adds a first phase: `POST
+/api/forge/blueprint` drafts goal, requirements, steps (specialist, role, instruction, dependencies, files to save)
+and acceptance criteria with constrained JSON; the user edits and approves it in the Forge screen, and `POST
+/api/chat` with `forge` runs it (`Blueprint.from_user` validates it strictly: known specialists, earlier
+dependencies, relative paths, no file saved twice). A step that saves files gets the file tools it needs for the
+run. The checker also judges each criterion; the answer ends with a `forge_report` (criteria, deliverables, rounds,
+what stayed unresolved). `spike forge eval` runs the ten tasks of `spike/forge/tasks.jsonl` in empty folders, with
+their checks run by SPIKE (Python in a limited subprocess), against the core model alone with `--baseline`.
 
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own

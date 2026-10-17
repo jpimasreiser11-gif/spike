@@ -196,6 +196,47 @@ def cmd_evolve(args: argparse.Namespace) -> int:
     return asyncio.run(run())
 
 
+def cmd_forge(args: argparse.Namespace) -> int:
+    """Run the Forge test tasks and report each mode's success rate (`spike forge eval`)."""
+    from spike.forge import evaluate
+    from spike.server.state import AppState
+
+    tasks = evaluate.load_tasks(Path(args.tasks) if args.tasks else evaluate.TASKS)
+    if args.only:
+        wanted = set(args.only.split(","))
+        tasks = [t for t in tasks if t["id"] in wanted]
+    modes = ["forge", "baseline"] if args.baseline else ["forge"]
+
+    async def run() -> int:
+        state = AppState()
+        try:
+            if args.start_local:
+                await state.start_runtime()
+            for pid in state.providers_for_run(args.provider):
+                await state.refresh_adapters(pid)
+            base = state.orchestrator(args.provider)
+            core = base.resolve(base.catalog.core)
+            meta = {"provider": core.provider.config.name, "model": core.model or core.provider.config.model,
+                    "local": core.provider.config.local, "tasks": len(tasks)}
+
+            def progress(r: dict) -> None:
+                print(f"{'pass' if r['passed'] else 'FAIL'} {r['mode']:<8} {r['id']:<10} {r['elapsed_s']:>6.1f}s"
+                      + "".join(f"\n       {f['check']}: {f['why']}" for f in r["failed"])
+                      + (f"\n       error: {r['error']}" if r["error"] else ""), file=sys.stderr)
+
+            report = await evaluate.evaluate(base, tasks, modes, meta, progress)
+        finally:
+            await state.close()
+        for mode, s in report["summary"].items():
+            print(f"{mode:<8} {s['passed']}/{s['n']} = {s['rate']:.0%}  (95 % CI {s['ci95'][0]:.0%}–{s['ci95'][1]:.0%})")
+        if args.out:
+            Path(args.out).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(f"wrote {args.out}")
+        return 0
+
+    return asyncio.run(run())
+
+
 def cmd_adapters(args: argparse.Namespace) -> int:
     from spike.evolution import adapters
     from spike.server.state import AppState
@@ -349,6 +390,16 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--replay", action="store_true", help="check: answer the accepted eval candidates again")
     ev.add_argument("--json", action="store_true")
     ev.set_defaults(func=cmd_evolve)
+
+    fg = sub.add_parser("forge", help="run the Forge test tasks and measure their success rate")
+    fg.add_argument("action", choices=["eval"])
+    fg.add_argument("--provider", help="provider for every role (default: the app's bindings)")
+    fg.add_argument("--baseline", action="store_true", help="also run each task with the core model alone")
+    fg.add_argument("--only", help="comma-separated task ids")
+    fg.add_argument("--tasks", help="another tasks file (JSONL)")
+    fg.add_argument("--start-local", action="store_true", help="start the local engine first")
+    fg.add_argument("--out", help="write the JSON report here")
+    fg.set_defaults(func=cmd_forge)
 
     ad = sub.add_parser("adapters", help="install a trained adapter if its eval results pass acceptance")
     ad.add_argument("action", choices=["install"])

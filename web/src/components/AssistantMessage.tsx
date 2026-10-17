@@ -1,7 +1,8 @@
 import { useContext, useState } from "react";
 import { ApiError, api } from "../api";
 import { t } from "../i18n";
-import type { Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState } from "../types";
+import { teamSteps } from "../run";
+import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
@@ -192,6 +193,57 @@ function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided:
   );
 }
 
+function Checker({ v, run }: { v: VerifyState; run: RunState }) {
+  const name = (sid: string) => run.subtasks[sid]?.name ?? sid;
+  const summary = v.method === "unavailable" ? t.checkerUnavailable : v.returned.length ? `${t.checkerReturned} ${v.returned.map((r) => name(r.subtask)).join(", ")}` : t.checkerOk;
+  return (
+    <Collapsible title={<><span className="role role-verify">{t.roles.verify}</span><b>{t.round} {v.round}</b> <span className={v.method === "unavailable" ? "muted" : v.returned.length ? "bad" : "ok-text"}>{v.returned.length ? "↩" : v.method === "unavailable" ? "?" : "✓"} {summary}</span></>}>
+      <div className="checker-body small">
+        {v.returned.map((r) => <p key={r.subtask}><b>{name(r.subtask)}</b>: {r.fix}</p>)}
+        {v.checks.map((c) => <p key={c.path}>{c.ok ? "✓" : "✕"} <code>{c.path}</code> {c.ok ? `${c.bytes} B` : t.fileMissing}</p>)}
+        {v.criteria.map((c, i) => <p key={i}>{c.ok === null ? "?" : c.ok ? "✓" : "✕"} {c.text}{c.note && <span className="muted"> · {c.note}</span>}</p>)}
+        {v.method === "unavailable" && v.note && <p className="muted">{v.note}</p>}
+      </div>
+    </Collapsible>
+  );
+}
+
+/** The end of a Forge task: each approved criterion as the checker found it, and the files the team saved. */
+function ForgeReportCard({ report, projectId, replay }: { report: ForgeReport; projectId?: string; replay?: boolean }) {
+  const met = report.criteria.filter((c) => c.ok).length;
+  return (
+    <div className="forge-report" aria-label={t.forgeReport}>
+      <div className="forge-report-head">
+        <b>{t.forgeReport}</b>
+        {report.criteria.length > 0 && <span className={`badge ${met === report.criteria.length ? "ok" : "warn"}`}>{met}/{report.criteria.length} {t.criteriaMet}</span>}
+        <span className="muted small">{report.rounds} {report.rounds === 1 ? t.checkPass : t.checkPasses}</span>
+      </div>
+      {!report.verified && <p className="small warn-text">{t.checkerUnavailable}{report.note ? ` (${report.note})` : ""}</p>}
+      {report.criteria.length > 0 && (
+        <ul className="criteria">
+          {report.criteria.map((c, i) => (
+            <li key={i} className={c.ok ? "ok" : c.ok === false ? "bad" : "muted"}>
+              <span aria-hidden>{c.ok ? "✓" : c.ok === false ? "✕" : "?"}</span> {c.text}{c.note && <span className="muted"> · {c.note}</span>}
+              <span className="sr-only">{c.ok ? t.met : c.ok === false ? t.notMet : t.notChecked}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {report.deliverables.length > 0 && (
+        <ul className="deliverables">
+          {report.deliverables.map((d) => (
+            <li key={d.path}>
+              {d.ok ? "✓" : "✕"} {d.ok && !replay ? <a href={fileUrl(d.path, projectId)} download>{d.path}</a> : <code>{d.path}</code>}
+              <span className="muted small"> {d.ok ? `${d.bytes} B` : t.fileMissing}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {report.unresolved.length > 0 && <p className="small bad">{t.unresolved}: {report.unresolved.map((r) => r.fix).join(" · ")}</p>}
+    </div>
+  );
+}
+
 /** Download URL of a file a tool wrote: in the project's folder, or in the workspace. */
 export const fileUrl = (path: string, projectId?: string) =>
   `${projectId ? `/api/projects/${projectId}/files` : "/api/workspace/files"}/${path.split("/").map(encodeURIComponent).join("/")}`;
@@ -268,7 +320,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   messageId?: string; // the user's message this answers, for what it taught SPIKE
 }) {
   const [copied, setCopied] = useState(false);
-  const live = run.status === "running" || run.status === "planning" || run.status === "synthesizing";
+  const live = run.status === "running" || run.status === "planning" || run.status === "verifying" || run.status === "synthesizing";
   const routeSpecs = run.route?.specialists ?? [];
   const sensitive = routeSpecs.some((r) => specialists.find((s) => s.id === r.id)?.sensitive);
   const pending = [...run.permissions.filter((p) => p.status === "pending" || p.status === "sending"),
@@ -306,23 +358,26 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
         </div>
       )}
 
-      {(run.order.length > 0 || run.tools.length > 0 || run.reasoning) && (
+      {(run.order.length > 0 || run.tools.length > 0 || run.reasoning || run.status === "verifying") && (
         <div className="trace">
           {run.reasoning && (
             <Collapsible title={t.reasoning} live={live && !run.text}>
               <div className="reasoning">{run.reasoning}</div>
             </Collapsible>
           )}
-          {run.order.map((id) => {
-            const st = run.subtasks[id];
+          {teamSteps(run).map((step) => {
+            if (step.kind === "verify") return <Checker key={`v${step.v.round}`} v={step.v} run={run} />;
+            const st = run.subtasks[step.id];
             return (
-              <Collapsible key={id} live={!st.done} title={<><b>{st.name}</b> <span className="muted">{st.instruction.slice(0, 90)}</span>{st.done && st.elapsed !== undefined && <span className="muted"> · {st.elapsed.toFixed(1)}s</span>}</>}>
+              <Collapsible key={step.id} live={!st.done} title={<>{st.role && <span className={`role role-${st.role}`}>{t.roles[st.role]}</span>}<b>{st.name}</b>{(st.round ?? 1) > 1 && <span className="round"> · {t.round} {st.round}</span>} <span className="muted">{st.instruction.slice(0, 90)}</span>{st.done && st.elapsed !== undefined && <span className="muted"> · {st.elapsed.toFixed(1)}s</span>}</>}>
+                {st.feedback && <p className="returned-note small">↩ {t.sentBack}: {st.feedback}</p>}
                 <Markdown text={st.text || "…"} />
               </Collapsible>
             );
           })}
-          {run.tools.map((tool) => (
-            <Collapsible key={tool.id} live={tool.result === undefined} title={<><IconTool size={13} /> <code>{tool.name}</code>{tool.ok === false && <span className="bad"> ✕</span>}</>}>
+          {run.status === "verifying" && <div className="checker live small"><span className="role role-verify">{t.roles.verify}</span> {t.verifying}</div>}
+          {run.tools.map((tool, i) => (
+            <Collapsible key={`${tool.id}-${i}`} live={tool.result === undefined} title={<><IconTool size={13} /> <code>{tool.name}</code>{tool.ok === false && <span className="bad"> ✕</span>}</>}>
               <div className="tool-io">
                 <div className="label">{t.tool}</div>
                 <pre>{JSON.stringify(tool.arguments, null, 2)}</pre>
@@ -355,9 +410,11 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       ) : live && pending.length === 0 ? (
         <div className="typing" aria-live="polite">
           <span className="dot" /><span className="dot" /><span className="dot" />
-          <span className="muted">{run.status === "planning" ? t.planning : run.status === "synthesizing" ? t.synthesizing : t.thinking}</span>
+          <span className="muted">{run.status === "planning" ? t.planning : run.status === "verifying" ? t.verifying : run.status === "synthesizing" ? t.synthesizing : t.thinking}</span>
         </div>
       ) : null}
+
+      {run.forge?.report && <ForgeReportCard report={run.forge.report} projectId={projectId} replay={replay} />}
 
       {files.length > 0 && !replay && <Files files={files} projectId={projectId} />}
 

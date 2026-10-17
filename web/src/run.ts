@@ -1,4 +1,4 @@
-import type { ChatEvent, RunState, StoredMessage } from "./types";
+import type { ChatEvent, ForgeReport, RunState, StoredMessage, VerifyState } from "./types";
 
 export const emptyRun = (): RunState => ({
   status: "idle",
@@ -36,6 +36,9 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
             instruction: ev.instruction,
             text: "",
             done: false,
+            role: ev.role,
+            round: ev.round,
+            feedback: ev.feedback,
           },
         },
       };
@@ -46,6 +49,16 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
         ...state,
         subtasks: { ...state.subtasks, [ev.subtask]: { ...st, done: true, ok: ev.ok, elapsed: ev.elapsed_s } },
       };
+    }
+    case "verify_start":
+      return { ...state, status: "verifying" };
+    case "verify": {
+      const { type: _type, ...v } = ev;
+      return { ...state, status: "running", verify: [...(state.verify ?? []), v as VerifyState] };
+    }
+    case "forge_report": {
+      const { type: _type, ...report } = ev;
+      return { ...state, forge: { ...state.forge, report: report as ForgeReport } };
     }
     case "synthesis_start":
       return { ...state, status: "synthesizing" };
@@ -64,11 +77,13 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
         ...state,
         tools: [...state.tools, { id: ev.id, name: ev.name, arguments: ev.arguments, specialist: ev.specialist }],
       };
-    case "tool_result":
-      return {
-        ...state,
-        tools: state.tools.map((t) => (t.id === ev.id ? { ...t, result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone } : t)),
-      };
+    case "tool_result": {
+      const i = state.tools.findIndex((t) => t.id === ev.id && t.result === undefined); // ids can repeat across turns
+      if (i < 0) return state;
+      const tools = state.tools.slice();
+      tools[i] = { ...tools[i], result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone };
+      return { ...state, tools };
+    }
     case "permission_request":
       return {
         ...state,
@@ -135,11 +150,13 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.events?.length) run.events = meta.events;
   if (meta.learn) run.learn = meta.learn;
   if (meta.contract) run.contract = meta.contract;
+  if (meta.verify?.length) run.verify = meta.verify;
+  if (meta.forge?.report) run.forge = { report: meta.forge.report };
   if (meta.questions?.length) {
     run.questions = meta.questions.map((q: any) => ({ ...q, options: q.options ?? [], status: q.answer == null ? "unanswered" : "answered" }));
   }
   for (const [id, st] of Object.entries<any>(meta.subtasks || {})) {
-    const planned = meta.plan?.subtasks?.find((t: any) => t.id === id);
+    const planned = meta.plan?.subtasks?.find((t: any) => t.id === (st.task ?? id));
     run.order.push(id);
     run.subtasks[id] = {
       id,
@@ -149,12 +166,14 @@ export function runFromStored(m: StoredMessage): RunState {
       text: st.text,
       done: true,
       ok: true,
+      role: st.role ?? planned?.role,
+      round: st.round,
     };
   }
   for (const ev of meta.tools || []) {
     if (ev.type === "tool_call") run.tools.push({ id: ev.id, name: ev.name, arguments: ev.arguments, specialist: ev.specialist });
     if (ev.type === "tool_result") {
-      const t = run.tools.find((x) => x.id === ev.id);
+      const t = run.tools.find((x) => x.id === ev.id && x.result === undefined); // ids can repeat across turns
       if (t) Object.assign(t, { result: ev.content, ok: ev.ok, file: ev.file, checkpoint: ev.checkpoint, undone: ev.undone });
     }
   }
@@ -173,4 +192,18 @@ export function recordEvent(events: ChatEvent[] = [], ev: ChatEvent, t: number):
     return [...events.slice(0, -1), { ...last, text: last.text + ev.text }];
   }
   return [...events, { ...ev, t }];
+}
+
+type TeamStep = { kind: "sub"; id: string } | { kind: "verify"; v: VerifyState };
+
+/** The team's steps in the order they ran: each checker pass after the round it checked. */
+export function teamSteps(run: RunState): TeamStep[] {
+  const steps: TeamStep[] = [];
+  const passes = [...(run.verify ?? [])];
+  for (const id of run.order) {
+    const round = run.subtasks[id]?.round ?? 1;
+    while (passes.length && passes[0].round < round) steps.push({ kind: "verify", v: passes.shift() as VerifyState });
+    steps.push({ kind: "sub", id });
+  }
+  return [...steps, ...passes.map((v) => ({ kind: "verify" as const, v }))];
 }

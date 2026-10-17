@@ -20,6 +20,11 @@ instructions, all on CPUs where each LLM call costs seconds.
 4. **Synthesis** by core only when more than one specialist contributed.
 5. Every step streams as events (route, plan, subtask deltas, tool calls) that the UI shows as a trace.
 
+Added 2026-10-17 (Collective, C2): planner subtasks have a role (research or execute), and a checker runs after
+every multi-step plan: one constrained-JSON call to core per pass, sending a result with a concrete fix (and what
+used it) back at most twice; deliverable files are checked by SPIKE itself. The cost is one more short call per pass
+on CPU; whether it improves answers is measured by `spike forge eval --baseline`, not assumed.
+
 Rejected: an LLM routing call on every message (adds a full model call to every turn on CPU); several
 full models in memory (each 4B Q4 model is ~2.7 GB plus its own KV cache, against ~40 MB per adapter).
 

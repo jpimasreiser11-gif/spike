@@ -69,7 +69,24 @@ export type SubtaskState = {
   done: boolean;
   ok?: boolean;
   elapsed?: number;
+  role?: "research" | "execute";
+  round?: number; // 2 and 3: the checker sent this step back
+  feedback?: string; // what the checker asked to fix
 };
+
+export type Criterion = { text: string; ok: boolean | null; note: string }; // ok null: not checked
+export type FileCheck = { subtask: string; path: string; ok: boolean; bytes: number };
+export type Returned = { subtask: string; fix: string };
+
+/** One pass of the checker over a multi-step run (Collective). */
+export type VerifyState = { round: number; method: "llm" | "unavailable"; note: string; returned: Returned[]; criteria: Criterion[]; checks: FileCheck[] };
+
+export type ForgeReport = { verified: boolean; note: string; criteria: Criterion[]; deliverables: FileCheck[]; rounds: number; unresolved: Returned[] };
+
+export type BlueprintStep = { id: string; specialist: string; role: "research" | "execute"; instruction: string; depends_on: string[]; deliverables: string[] };
+
+/** A Forge task as the core model drafted it; the user edits and approves it before anything runs. */
+export type Blueprint = { goal: string; requirements: string[]; steps: BlueprintStep[]; criteria: string[]; method: string; note: string };
 
 export type ToolState = {
   id: string;
@@ -105,7 +122,7 @@ export type QuestionState = {
 };
 
 export type RunState = {
-  status: "idle" | "planning" | "running" | "synthesizing" | "done" | "error" | "stopped";
+  status: "idle" | "planning" | "running" | "verifying" | "synthesizing" | "done" | "error" | "stopped";
   route?: { mode: string; method: string; confidence: number; specialists: RouteSpecialist[] };
   plan?: { method: string; note: string; subtasks: { id: string; specialist: string; instruction: string }[] };
   subtasks: Record<string, SubtaskState>;
@@ -124,6 +141,8 @@ export type RunState = {
   learn?: Learn;
   questions?: QuestionState[];
   contract?: { valid: boolean; attempts: number; errors: string[] }; // the answer had to be JSON for a schema
+  verify?: VerifyState[];
+  forge?: { report?: ForgeReport };
 };
 
 /** What the user's message taught SPIKE: notes saved at once ("recuerda que…"), or a rule proposed from a correction. */

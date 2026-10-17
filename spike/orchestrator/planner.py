@@ -1,4 +1,8 @@
-"""Stage-2 planner: asks the core model for a small, validated task graph over the available specialists."""
+"""Stage-2 planner: asks the core model for a small, validated task graph over the available specialists.
+
+Each subtask has a role (Collective): `research` gathers what others need, `execute` produces part of the answer.
+The verifier and the integrator are not planned: they run after every multi-step plan (see orchestrator.py).
+"""
 
 from __future__ import annotations
 
@@ -10,6 +14,8 @@ from spike.core.types import ChatRequest, Message
 from spike.providers.base import Provider
 from spike.specialists.catalog import Catalog
 
+ROLES = ("research", "execute")
+
 
 @dataclass
 class Subtask:
@@ -17,12 +23,14 @@ class Subtask:
     specialist: str
     instruction: str
     depends_on: list[str] = field(default_factory=list)
+    role: str = "execute"
+    deliverables: list[str] = field(default_factory=list)  # files this subtask must save (Forge)
 
 
 @dataclass
 class Plan:
     subtasks: list[Subtask]
-    method: str  # "llm" | "fallback"
+    method: str  # "llm" | "fallback" | "blueprint"
     note: str = ""
 
 
@@ -39,10 +47,11 @@ def plan_schema(specialist_ids: list[str], max_subtasks: int) -> dict:
                     "properties": {
                         "id": {"type": "string"},
                         "specialist": {"type": "string", "enum": specialist_ids},
+                        "role": {"type": "string", "enum": list(ROLES)},
                         "instruction": {"type": "string"},
                         "depends_on": {"type": "array", "items": {"type": "string"}},
                     },
-                    "required": ["id", "specialist", "instruction", "depends_on"],
+                    "required": ["id", "specialist", "role", "instruction", "depends_on"],
                     "additionalProperties": False,
                 },
             }
@@ -61,9 +70,12 @@ def planner_prompt(catalog: Catalog, candidates: list[str], max_subtasks: int) -
         "You are the planner of SPIKE, a team of specialist models. Split the user's request into the fewest "
         f"subtasks needed (1 to {max_subtasks}), each owned by exactly one specialist. Use one subtask when one "
         "specialist can answer everything. Each instruction must be self-contained and say exactly what to "
-        "produce. Use depends_on only when a subtask needs another subtask's output.\n\n"
+        "produce. Use depends_on only when a subtask needs another subtask's output. Give each subtask a role: "
+        "research (find the facts, figures or sources others need; others depend on it) or execute (produce a "
+        "part of the answer). A checker reviews the results afterwards and another model merges them.\n\n"
         f"Specialists:\n{roster}\n\nA keyword pre-router suggested: {hint}. Override it when it is wrong.\n"
-        'Reply with JSON only: {"subtasks": [{"id": "t1", "specialist": "...", "instruction": "...", "depends_on": []}]}'
+        'Reply with JSON only: {"subtasks": [{"id": "t1", "specialist": "...", "role": "execute", "instruction": '
+        '"...", "depends_on": []}]}'
     )
 
 
@@ -92,7 +104,8 @@ def validate_plan(obj: dict | None, catalog: Catalog, max_subtasks: int) -> list
         if spec not in catalog.specialists or not instruction or sid in seen:
             return None
         deps = [str(d) for d in raw.get("depends_on") or [] if str(d) in seen]  # only backward edges: acyclic
-        subtasks.append(Subtask(id=sid, specialist=spec, instruction=instruction, depends_on=deps))
+        role = raw.get("role") if raw.get("role") in ROLES else "execute"
+        subtasks.append(Subtask(id=sid, specialist=spec, instruction=instruction, depends_on=deps, role=role))
         seen.add(sid)
     return subtasks
 

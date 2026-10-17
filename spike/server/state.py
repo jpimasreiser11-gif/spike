@@ -18,6 +18,7 @@ from spike.core.types import ChatRequest, Message
 from spike.evolution.router_learning import apply_overlay
 from spike.evolution.service import Evolution
 from spike.evolution.store import EvolutionStore
+from spike.forge.blueprint import Blueprint, make_blueprint
 from spike.memory.extract import extract_text
 from spike.memory.learn import correction_rule, explicit_memories
 from spike.memory.service import Embedder, MemoryService, scopes_for
@@ -244,6 +245,14 @@ class AppState:
             return Backend(provider=provider, model=model, adapter=adapter, context_budget=budget)
 
         return Orchestrator(self.catalog, resolve, self.tools_for(project_id), broker or self.broker, skills=self.skills)
+
+    async def blueprint(self, task: str, provider_id: str | None = None, project_id: str | None = None) -> Blueprint:
+        """A Forge blueprint drafted by the core model of this run, for the user to review."""
+        orchestrator = self.orchestrator(provider_id, project_id=project_id)
+        core = orchestrator.resolve(self.catalog.core)
+        candidates = orchestrator.router.route(task).specialists
+        return await make_blueprint(core.provider, self.catalog, task, [c for c in candidates if c != "core"],
+                                    model=core.model)
 
     def options(self, mode: str, project: dict[str, Any] | None = None) -> OrchestratorOptions:
         s = self.settings()

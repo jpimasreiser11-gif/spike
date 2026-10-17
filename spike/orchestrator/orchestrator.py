@@ -1,4 +1,8 @@
-"""The SPIKE orchestrator: route -> (plan) -> run specialists -> synthesize, streaming every step."""
+"""The SPIKE orchestrator: route -> (plan) -> run specialists -> verify -> synthesize, streaming every step.
+
+A multi-step plan runs as a team (Collective): researchers and executors from the plan, then a checker that can send
+work back (verify.py), then the integrator that writes the answer. A Forge run takes its plan from the blueprint the
+user approved, saves the deliverables and has them checked against the approved criteria."""
 
 from __future__ import annotations
 
@@ -7,7 +11,8 @@ import json
 import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from spike.agent.loop import AgentRun, Checkpointer, Event, run_agent
 from spike.contracts import check, repair_prompt
@@ -16,10 +21,24 @@ from spike.core.types import ChatRequest, Message
 from spike.memory.service import Recall, memory_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
+from spike.orchestrator.verify import (
+    MAX_ROUNDS,
+    RESULT_CHARS,
+    Verdict,
+    dependents,
+    file_checks,
+    parse_verdict,
+    verifier_prompt,
+    verify_message,
+    verify_schema,
+)
 from spike.providers.base import Provider
 from spike.skills.engine import LoadSkill, SkillLibrary, catalog_prompt, skill_prompt
 from spike.specialists.catalog import Catalog, Specialist
 from spike.tools.base import PermissionBroker, Tool, ToolRegistry
+
+if TYPE_CHECKING:
+    from spike.forge.blueprint import Blueprint
 
 
 @dataclass
@@ -58,6 +77,8 @@ class OrchestratorOptions:
     memory: Recall | None = None  # rules and notes recalled for this message (Neural Memory)
     checkpoints: Checkpointer | None = None  # copies of files before tools change them (undo), for app chats
     json_schema: dict[str, Any] | None = None  # answer contract: one specialist answers JSON following this schema
+    verify: bool = True  # a checker reviews multi-step results and can send work back (Collective)
+    forge: Blueprint | None = None  # an approved Forge blueprint: its steps are the plan, its criteria are checked
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -66,6 +87,11 @@ SYNTHESIS_INSTRUCTIONS = (
     "every important caveat and uncertainty the specialists raised, do not add facts they did not provide "
     "unless you are confident, and do not mention internal subtask ids."
 )
+FORGE_SYNTHESIS = (
+    "This is a Forge task. The deliverables are files the team already saved: name each one and say what it holds, "
+    "without pasting whole files. Say plainly which acceptance criteria the checker could not confirm."
+)
+FILE_TOOLS = {".docx": "create_docx", ".xlsx": "create_xlsx", ".pptx": "create_pptx", ".pdf": "create_pdf"}
 
 
 class Orchestrator:
@@ -158,7 +184,12 @@ class Orchestrator:
     # ------------------------------------------------------------------ main entry
     async def run(self, history: list[Message], user_text: str, opts: OrchestratorOptions) -> AsyncIterator[Event]:
         started = time.perf_counter()
-        if opts.mode != "auto":
+        plan: Plan | None = None
+        if opts.forge is not None:
+            used = list(dict.fromkeys(t.specialist for t in opts.forge.steps))
+            decision = RouteDecision(mode="forge", specialists=used, confidence=1.0, method="blueprint")
+            plan = Plan(subtasks=opts.forge.steps, method="blueprint", note=opts.forge.note)
+        elif opts.mode != "auto":
             spec = self.catalog.get(opts.mode)
             decision = RouteDecision(mode="single" if spec.id != "core" else "direct", specialists=[spec.id],
                                      confidence=1.0, method="user")
@@ -167,8 +198,7 @@ class Orchestrator:
 
         if opts.json_schema is not None and len(decision.specialists) > 1:
             decision.mode, decision.specialists = "single", decision.specialists[:1]  # one answer, one contract
-        plan: Plan | None = None
-        if opts.mode == "auto" and opts.use_planner and decision.mode == "multi":
+        if opts.forge is None and opts.mode == "auto" and opts.use_planner and decision.mode == "multi":
             core = self.resolve(self.catalog.core)
             yield {"type": "status", "message": "planning"}
             plan = await make_plan(core.provider, self.catalog, user_text, decision.specialists,
@@ -186,7 +216,7 @@ class Orchestrator:
         yield self._route_event(decision, specs)
 
         final = AgentRun()
-        if opts.json_schema is not None:
+        if opts.json_schema is not None and opts.forge is None:
             async for ev in self._run_contract(specs[0], history, user_text, opts, final):
                 yield ev
         elif plan is None:
@@ -196,7 +226,8 @@ class Orchestrator:
         else:
             yield {"type": "plan", "method": plan.method, "note": plan.note,
                    "subtasks": [{"id": t.id, "specialist": t.specialist, "instruction": t.instruction,
-                                 "depends_on": t.depends_on} for t in plan.subtasks]}
+                                 "depends_on": t.depends_on, "role": t.role, "deliverables": t.deliverables}
+                                for t in plan.subtasks]}
             async for ev in self._run_plan(plan, history, user_text, opts, final):
                 yield ev
 
@@ -270,14 +301,32 @@ class Orchestrator:
         yield {"type": "delta", "text": final.text, **tag}
         yield {"type": "contract", "valid": not errors, "attempts": attempt, "errors": errors, **tag}
 
-    # ------------------------------------------------------------------ multi specialist
+    # ------------------------------------------------------------------ multi specialist (Collective)
+    def _files_root(self) -> Path | None:
+        """The folder the file tools write to (the workspace, or a project's folder)."""
+        workspace = getattr(self.tools.get("write_file"), "workspace", None)
+        return getattr(workspace, "root", None)
+
+    def _deliverable_tools(self, task: Subtask, have: list[Tool]) -> list[Tool]:
+        """The file tools a step needs to save its deliverables, when its specialist does not have them."""
+        if not task.deliverables:
+            return []
+        names = {"write_file", *(FILE_TOOLS[Path(p).suffix.lower()] for p in task.deliverables
+                                 if Path(p).suffix.lower() in FILE_TOOLS)}
+        present = {t.name for t in have}
+        return [tool for n in sorted(names) if n not in present and (tool := self.tools.get(n)) is not None]
+
     async def _run_subtask(self, task: Subtask, history: list[Message], user_text: str, results: dict[str, str],
-                           owners: dict[str, str], opts: OrchestratorOptions,
-                           tainted: set[str]) -> AsyncIterator[Event]:
+                           owners: dict[str, str], opts: OrchestratorOptions, tainted: set[str],
+                           round_: int = 1, feedback: str = "") -> AsyncIterator[Event]:
         spec = self.catalog.get(task.specialist)
         backend = self.resolve(spec)
+        sid = task.id if round_ == 1 else f"{task.id}.r{round_}"
         team_note = ("You are one member of a team of specialists. Answer only your assigned subtask, "
-                     "thoroughly and precisely; another model will merge the team's work.")
+                     "thoroughly and precisely; a checker will review it and another model will merge the team's work.")
+        if task.deliverables:
+            team_note += ("\nSave these files with your file tools, at exactly these paths in the working folder: "
+                          + ", ".join(task.deliverables) + ". Then reply with a short summary of what each file holds.")
         deps = "\n\n".join(f"## Result from {self.catalog.get(owners[d]).name}\n{results[d]}"
                            for d in task.depends_on if d in results)
         # what other models wrote after reading the user's files stays as private as the files
@@ -290,28 +339,90 @@ class Orchestrator:
             + f"# Overall user request\n{user_text}\n\n# Your subtask\n{task.instruction}"
             + (f"\n\n# Inputs from other specialists\n{deps}" if deps else "")
         )
+        if feedback:
+            previous = results.get(task.id, "")
+            content += (f"\n\n# The checker sent your work back\n{feedback}\n\n# Your previous result\n"
+                        f"{previous[:RESULT_CHARS]}\n\nGive your complete corrected result.")
+            if task.id in tainted:
+                private.append(previous[:RESULT_CHARS])
         skill_text, skill_tools, skill_event = self._skills_for(spec, backend, f"{task.instruction}\n{user_text}", opts)
         messages = [self.system_message(spec, opts, "\n\n".join(p for p in (team_note, skill_text) if p),
                                         backend.context_budget),
                     Message(role="user", content=content, private=private)]
+        tools = self._tools_for(spec, opts) + skill_tools
+        tools += self._deliverable_tools(task, tools) if opts.tools_enabled else []
         run = AgentRun()
-        yield {"type": "subtask_start", "subtask": task.id, "specialist": spec.id, "name": spec.name,
-               "instruction": task.instruction}
+        info = {"subtask": sid, "task": task.id, "specialist": spec.id, "role": task.role, "round": round_}
+        yield {"type": "subtask_start", **info, "name": spec.name, "instruction": task.instruction,
+               **({"feedback": feedback} if feedback else {})}
         if skill_event:
-            yield {**skill_event, "subtask": task.id}
+            yield {**skill_event, "subtask": sid}
         t0 = time.perf_counter()
         async for ev in run_agent(
-            backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=run,
+            backend.provider, messages, tools=tools, broker=self.broker, run=run,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
-            tag={"subtask": task.id, "specialist": spec.id}, checkpoints=opts.checkpoints,
+            tag={"subtask": sid, "specialist": spec.id}, checkpoints=opts.checkpoints,
         ):
             yield ev
         results[task.id] = run.text if not run.error else f"(failed: {run.error})\n{run.text}"
         if run.private:
             tainted.add(task.id)
-        yield {"type": "subtask_end", "subtask": task.id, "specialist": spec.id, "ok": run.error is None,
+        yield {"type": "subtask_end", **info, "ok": run.error is None,
                "elapsed_s": round(time.perf_counter() - t0, 3)}
+
+    async def _ask_checker(self, plan: Plan, user_text: str, results: dict[str, str], criteria: list[str],
+                           checks: list[dict[str, Any]], tainted: set[str], usage: list[Event]) -> Verdict:
+        core = self.resolve(self.catalog.core)
+        ids = [t.id for t in plan.subtasks]
+        names = {s.id: s.name for s in self.catalog.specialists.values()}
+        request = ChatRequest(
+            messages=[Message(role="system", content=verifier_prompt(criteria)),
+                      Message(role="user", content=verify_message(user_text, plan.subtasks, results, names, criteria,
+                                                                  checks),
+                              private=[results[t][:RESULT_CHARS] for t in tainted if results.get(t)])],
+            model=core.model, adapter=core.adapter, temperature=0.0, max_tokens=1200,
+            json_schema=verify_schema(ids, len(criteria)), reasoning=False,
+        )
+        unchecked = [{"text": c, "ok": None, "note": ""} for c in criteria]
+        try:
+            text, events = await core.provider.complete(request)
+        except Exception as exc:
+            return Verdict(method="unavailable", criteria=unchecked, note=f"checker unavailable: {exc}")
+        usage += [{"type": "usage", "usage": e.usage, "specialist": "core", "role": "verifier"}
+                  for e in events if e.kind == "usage" and e.usage]
+        return parse_verdict(text, ids, criteria) or Verdict(method="unavailable", criteria=unchecked,
+                                                              note="checker output was invalid")
+
+    async def _check(self, plan: Plan, history: list[Message], user_text: str, results: dict[str, str],
+                     owners: dict[str, str], opts: OrchestratorOptions, tainted: set[str],
+                     outcome: list[Any]) -> AsyncIterator[Event]:
+        """Check the results; send back what has a problem (with what used it) at most MAX_ROUNDS times. The last
+        verdict and its file checks are left in `outcome`."""
+        criteria = opts.forge.criteria if opts.forge is not None else []
+        root = self._files_root() if opts.forge is not None else None
+        verdict, checks = Verdict(method="unavailable"), []
+        for round_ in range(1, MAX_ROUNDS + 2):
+            checks = file_checks(plan.subtasks, root)
+            yield {"type": "verify_start", "round": round_}
+            usage: list[Event] = []
+            verdict = await self._ask_checker(plan, user_text, results, criteria, checks, tainted, usage)
+            for ev in usage:
+                yield ev
+            for c in checks:
+                if not c["ok"]:
+                    note = f"The file {c['path']} was not saved: save it with your file tool at exactly that path."
+                    verdict.returned[c["subtask"]] = " ".join(x for x in (verdict.returned.get(c["subtask"]), note) if x)
+            yield verdict.event(round_, checks)
+            if not verdict.returned or round_ > MAX_ROUNDS:
+                break
+            redo = dependents(plan.subtasks, set(verdict.returned))
+            for task in [t for t in plan.subtasks if t.id in redo]:  # the plan's order respects dependencies
+                feedback = verdict.returned.get(task.id) or "A result you used was revised; update yours to match it."
+                async for ev in self._run_subtask(task, history, user_text, results, owners, opts, tainted,
+                                                  round_ + 1, feedback):
+                    yield ev
+        outcome[:] = [verdict, checks, round_]
 
     async def _run_plan(self, plan: Plan, history: list[Message], user_text: str, opts: OrchestratorOptions,
                         final: AgentRun) -> AsyncIterator[Event]:
@@ -328,25 +439,41 @@ class Orchestrator:
                     async for ev in self._run_subtask(task, history, user_text, results, owners, opts, tainted):
                         yield ev
 
+        outcome: list[Any] = []
+        if opts.verify or opts.forge is not None:
+            async for ev in self._check(plan, history, user_text, results, owners, opts, tainted, outcome):
+                yield ev
+        verdict: Verdict | None = outcome[0] if outcome else None
+
         reports = "\n\n".join(
             f"## {self.catalog.get(t.specialist).name} — {t.instruction}\n{results.get(t.id, '')}"
             for t in plan.subtasks
         )
+        if verdict is not None and verdict.criteria:
+            reports += "\n\n# The checker's verdict on the acceptance criteria\n" + "\n".join(
+                f"- {c['text']}: {'met' if c['ok'] else 'not met' if c['ok'] is False else 'not checked'}"
+                + (f" ({c['note']})" if c["note"] else "") for c in verdict.criteria)
         core = self.catalog.core
         backend = self.resolve(core)
+        instructions = SYNTHESIS_INSTRUCTIONS + (f"\n{FORGE_SYNTHESIS}" if opts.forge is not None else "")
         messages = [
-            self.system_message(core, opts, SYNTHESIS_INSTRUCTIONS, backend.context_budget),
+            self.system_message(core, opts, instructions, backend.context_budget),
             *history,
             Message(role="user", content=f"{user_text}\n\n# Specialist reports\n{reports}",
                     private=[results[t] for t in tainted if results.get(t)]),
         ]
-        yield {"type": "synthesis_start"}
+        yield {"type": "synthesis_start", "role": "integrator"}
         async for ev in run_agent(
             backend.provider, messages, tools=[], broker=self.broker, run=final, adapter=backend.adapter,
             model=backend.model, temperature=opts.temperature, max_tokens=opts.max_tokens,
             context_budget=backend.context_budget, reasoning=opts.reasoning, tag={"specialist": "core"},
         ):
             yield ev
+        if opts.forge is not None and verdict is not None:
+            _, checks, rounds = outcome
+            yield {"type": "forge_report", "verified": verdict.method == "llm", "note": verdict.note,
+                   "criteria": verdict.criteria, "deliverables": checks, "rounds": rounds,
+                   "unresolved": [{"subtask": k, "fix": v} for k, v in verdict.returned.items()]}
 
 
 async def _merge(generators: list[AsyncIterator[Event]]) -> AsyncIterator[Event]:

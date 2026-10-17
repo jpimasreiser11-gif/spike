@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SSEParser } from "./api";
-import { applyEvent, emptyRun, recordEvent, runAt, runFromStored } from "./run";
+import { applyEvent, emptyRun, recordEvent, runAt, runFromStored, teamSteps } from "./run";
 
 describe("SSEParser", () => {
   it("handles events split across chunks and CRLF", () => {
@@ -43,6 +43,40 @@ describe("applyEvent", () => {
     const run = applyEvent(emptyRun(), { type: "permission_request", id: "p2", tool: "mcp__playwright__browser_navigate", risk: "network",
       arguments: { url: "https://boe.es" }, reason: "opens boe.es", code: "open", once: false, domain: "boe.es" });
     expect(run.permissions[0]).toMatchObject({ reason: "opens boe.es", code: "open", once: false, domain: "boe.es", status: "pending" });
+  });
+  it("orders the team's steps with each checker pass after the round it checked", () => {
+    const events = [
+      { type: "subtask_start", subtask: "t1", task: "t1", specialist: "data", name: "Spike Data", instruction: "a", role: "research", round: 1 },
+      { type: "subtask_start", subtask: "t2", task: "t2", specialist: "writing", name: "Spike Writing", instruction: "b", role: "execute", round: 1 },
+      { type: "verify_start", round: 1 },
+      { type: "verify", round: 1, method: "llm", note: "", returned: [{ subtask: "t2", fix: "save informe.md" }], criteria: [], checks: [] },
+      { type: "subtask_start", subtask: "t2.r2", task: "t2", specialist: "writing", name: "Spike Writing", instruction: "b", role: "execute", round: 2, feedback: "save informe.md" },
+      { type: "verify", round: 2, method: "llm", note: "", returned: [], criteria: [{ text: "c", ok: true, note: "" }], checks: [] },
+      { type: "forge_report", verified: true, note: "", criteria: [{ text: "c", ok: true, note: "" }], deliverables: [], rounds: 2, unresolved: [] },
+    ];
+    const run = events.reduce(applyEvent, emptyRun());
+    expect(teamSteps(run).map((s) => (s.kind === "sub" ? s.id : `check${s.v.round}`))).toEqual(["t1", "t2", "check1", "t2.r2", "check2"]);
+    expect(run.subtasks["t2.r2"]).toMatchObject({ role: "execute", round: 2, feedback: "save informe.md" });
+    expect(run.forge?.report?.rounds).toBe(2);
+    expect(applyEvent(emptyRun(), { type: "verify_start", round: 1 }).status).toBe("verifying");
+  });
+  it("rebuilds the checker passes and the Forge report of a stored answer", () => {
+    const run = runFromStored({ id: "m", role: "assistant", content: "ok", meta: {
+      plan: { subtasks: [{ id: "t1", specialist: "data", instruction: "a", role: "research" }] },
+      subtasks: { t1: { specialist: "data", text: "x", role: "research", round: 1, task: "t1" }, "t1.r2": { specialist: "data", text: "y", round: 2, task: "t1" } },
+      verify: [{ round: 1, method: "llm", note: "", returned: [{ subtask: "t1", fix: "z" }], criteria: [], checks: [] }],
+      forge: { report: { verified: true, note: "", criteria: [], deliverables: [], rounds: 2, unresolved: [] } },
+    } } as any);
+    expect(run.subtasks["t1.r2"]).toMatchObject({ instruction: "a", role: "research", round: 2 });
+    expect(teamSteps(run).map((s) => s.kind)).toEqual(["sub", "verify", "sub"]);
+    expect(run.forge?.report?.rounds).toBe(2);
+  });
+  it("gives each result to its own call when a provider repeats tool call ids", () => {
+    let run = applyEvent(emptyRun(), { type: "tool_call", id: "c1", name: "write_file", arguments: { path: "a" } });
+    run = applyEvent(run, { type: "tool_result", id: "c1", content: "wrote a", ok: true });
+    run = applyEvent(run, { type: "tool_call", id: "c1", name: "write_file", arguments: { path: "b" } });
+    run = applyEvent(run, { type: "tool_result", id: "c1", content: "wrote b", ok: true });
+    expect(run.tools.map((t) => t.result)).toEqual(["wrote a", "wrote b"]);
   });
   it("tracks permission requests and errors", () => {
     let run = applyEvent(emptyRun(), { type: "permission_request", id: "p1", tool: "python", risk: "execute", arguments: {} });

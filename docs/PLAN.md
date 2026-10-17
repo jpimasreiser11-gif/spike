@@ -160,7 +160,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | B5 | SPIKE as an MCP server | ✅ (protocol tested with the official SDK; not tried in Claude Code, Cursor or Codex) |
 | B6 | Evolution level 1: a user's correction becomes a memory rule applied in later chats | ✅ (fixed patterns; corrections need the user's OK) |
 | C1 | Browser via the Playwright MCP connector, per-domain permissions, confirmation before submitting forms | ✅ tested with Playwright MCP 0.0.83 and Chromium (local install, not the `npx` download) |
-| C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace | ⬜ |
+| C2 | Forge on Collective: role planner (researcher, executor, verifier, integrator), mandatory verifier that can send work back (max 2 rounds), per-role trace; Blueprint first; local/API executor; ~10 test tasks with a measured success rate before announcing it | ✅ built and tested with a scripted model; 🟡 success rate with real weights not measured yet (`spike forge eval --baseline`), so Forge is not announced |
 | C3–C6 | `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |
 | C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ⬜ |
 | C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ⬜ |
@@ -207,7 +207,7 @@ Order of the next rounds, after the medicine verdict:
 
 **Cheap additions to B/C:** answer contracts (`response_format` with validation in `/v1` and the UI) ✅, temporary chats
 (nothing saved, no memory) ✅, branch a chat when a message is edited ✅, human handoff (the agent pauses with a question
-and resumes) ✅, Blueprint as Forge's first phase, proof package export ✅, opt-in folder indexing in Neural Memory,
+and resumes) ✅, Blueprint as Forge's first phase ✅, proof package export ✅, opt-in folder indexing in Neural Memory,
 citation inspector, deterministic visual critic (Playwright + axe-core, MPL-2.0), dependency doctor (pip-audit,
 Apache-2.0), data-to-software template after Analytics, `spike skills validate` / `spike connectors validate` in CI,
 `spike bench --share` (anonymous JSON for an issue, no telemetry), docs/COMPATIBILITY.md, versioned JSON Schemas.

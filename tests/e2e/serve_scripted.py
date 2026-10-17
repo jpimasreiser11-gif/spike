@@ -35,6 +35,28 @@ fetch("/api/conversations").then(() => r.push("api:open"), () => r.push("api:blo
 </script></body></html>"""
 
 
+BLUEPRINT = {"goal": "Informe del IVA de 120 €", "requirements": ["IVA del 21 %"], "criteria": [
+    "El informe da el total con IVA"], "steps": [
+    {"id": "t1", "specialist": "finance", "role": "research", "instruction": "Calcula el IVA de una base de 120 €",
+     "depends_on": [], "deliverables": []},
+    {"id": "t2", "specialist": "writing", "role": "execute", "instruction": "Escribe informe.md con el total con IVA",
+     "depends_on": ["t1"], "deliverables": ["informe.md"]}]}
+SENT_BACK: set[str] = set()  # Forge tasks whose first check already sent work back
+
+
+def checker_answer(request) -> str:
+    """The checker: a Forge task's writer is sent back once, then everything passes."""
+    criteria = request.json_schema["properties"].get("criteria")
+    n = criteria["items"]["properties"]["n"]["maximum"] if criteria else 0
+    task = request.messages[-1].content.split("\n\n")[0]
+    results = []
+    if n and task not in SENT_BACK:
+        SENT_BACK.add(task)
+        results = [{"id": "t2", "ok": False, "fix": "Añade el total con IVA (145,20 €) al informe."}]
+    return json.dumps({"results": results, **({"criteria": [{"n": i, "ok": True, "note": ""}
+                                                           for i in range(1, n + 1)]} if n else {})})
+
+
 class DemoProvider(Provider):
     def default_capabilities(self):
         return Capabilities(native_tools=True, adapters=False)
@@ -45,6 +67,15 @@ class DemoProvider(Provider):
     async def stream(self, request):
         system = request.messages[0].content if request.messages else ""
         last = request.messages[-1]
+        props = (request.json_schema or {}).get("properties", {})
+        if "steps" in props:  # a Forge blueprint
+            yield StreamEvent(kind="text", text=json.dumps(BLUEPRINT))
+            yield StreamEvent(kind="done")
+            return
+        if "results" in props:  # the checker of a multi-step run
+            yield StreamEvent(kind="text", text=checker_answer(request))
+            yield StreamEvent(kind="done")
+            return
         if request.json_schema is not None and "subtasks" not in json.dumps(request.json_schema):
             yield StreamEvent(kind="text", text='```json\n{"pais": "España", "iva": 21}\n```')  # an answer contract
             yield StreamEvent(kind="done")
@@ -57,12 +88,17 @@ class DemoProvider(Provider):
             yield StreamEvent(kind="text", text=json.dumps(plan))
             yield StreamEvent(kind="done")
             return
+        tools = {t.name for t in request.tools or []}
+        if last.role == "user" and "Save these files" in system and "write_file" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c5", name="write_file", arguments={
+                "path": "informe.md", "content": "# Informe\n\nBase 120 €, IVA 25,20 €, total con IVA 145,20 €.\n"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "archivo" in last.content.lower() and request.tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c1", name="write_file",
                               arguments={"path": "notas.md", "content": "# Notas\n"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
-        tools = {t.name for t in request.tools or []}
         if last.role == "user" and "word" in last.content.lower() and "create_docx" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c2", name="create_docx", arguments={
                 "path": "informes/informe.docx", "content": "# Informe\n\n- Ventas: **+12 %**\n"}))
@@ -91,6 +127,8 @@ class DemoProvider(Provider):
                       "de 2.000 €, el ROI bruto sería del **12 %** (cálculo: `(56.000 - 50.000) / 50.000`).")
         elif "Spike Marketing" in system.split("\n")[0]:
             answer = "1. Público: inversores minoristas de 25-40 años.\n2. Canales: newsletter, YouTube y SEO.\n3. Mensaje: *diversificación sencilla y barata*."
+        elif "This is a Forge task" in system:
+            answer = "Listo: guardé **informe.md** con la base, el IVA (25,20 €) y el total con IVA (145,20 €)."
         elif "Specialist reports" in last.content:
             answer = ("## Plan de lanzamiento\n\n| Fase | Acción | KPI |\n|---|---|---|\n| 1 | Newsletter + SEO | CTR > 3 % |\n"
                       "| 2 | Vídeos en YouTube | CAC < 40 € |\n\n**ROI esperado:** ~12 % en el primer año, con supuestos explícitos.\n\n"

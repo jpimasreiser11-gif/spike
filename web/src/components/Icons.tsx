@@ -131,3 +131,8 @@ export const IconTimer = ({ size }: P) => (
     <path d="M12 9v4l2.5 2M10 2h4" />
   </svg>
 );
+export const IconForge = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M13 4l7 7-3 3-7-7zM11.5 9.5L4 17l3 3 7.5-7.5" />
+  </svg>
+);
