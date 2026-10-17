@@ -39,6 +39,7 @@ const es = {
   reasoning: "Razonamiento",
   contextTrimmed: "mensajes antiguos omitidos para caber en el contexto",
   disclaimerSensitive: "Información, no consejo profesional personalizado. Verifica decisiones importantes.",
+  skill: "Skill aplicada a esta respuesta",
 };
 
 type Dict = typeof es;
@@ -84,6 +85,7 @@ const en: Dict = {
   reasoning: "Reasoning",
   contextTrimmed: "older messages omitted to fit the context",
   disclaimerSensitive: "Information, not personalized professional advice. Verify important decisions.",
+  skill: "Skill applied to this answer",
 };
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";

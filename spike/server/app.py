@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import shutil
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -19,6 +20,8 @@ from pydantic import BaseModel, Field
 
 from spike import __version__
 from spike.core.types import Message
+from spike.packs import MAX_BYTES as MAX_PACK_BYTES
+from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
@@ -77,6 +80,10 @@ class CustomConnectorIn(BaseModel):
     args: list[str] = Field(default_factory=list)
     url: str = ""
     description: str = ""
+
+
+class SkillPatch(BaseModel):
+    enabled: bool
 
 
 class DecisionIn(BaseModel):
@@ -168,6 +175,85 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         broker = st().broker
         return [{"name": t.name, "description": t.description, "risk": t.risk, "default_policy": t.default_policy,
                  "policy": broker.policy_for(t)} for t in st().tools.all()]
+
+    # ---------------------------------------------------------------- skills and packs
+    def skill_or_404(name: str):
+        skill = st().skills.get(name)
+        if skill is None:
+            raise HTTPException(404, "skill not found")
+        return skill
+
+    @app.get("/api/skills")
+    async def skills() -> list[dict]:
+        disabled = set(st().settings()["disabled_skills"])
+        return [s.public(s.name not in disabled) for s in st().skills.all()]
+
+    @app.get("/api/skills/{name}")
+    async def get_skill(name: str) -> dict:
+        skill = skill_or_404(name)
+        return skill.public(name not in st().settings()["disabled_skills"]) | {"body": skill.body()}
+
+    @app.put("/api/skills/{name}")
+    async def toggle_skill(name: str, body: SkillPatch) -> dict:
+        skill = skill_or_404(name)
+        disabled = [n for n in st().settings()["disabled_skills"] if n != name] + ([] if body.enabled else [name])
+        st().update_settings({"disabled_skills": disabled})
+        return skill.public(body.enabled)
+
+    @app.post("/api/skills/import")
+    async def import_skills(request: Request) -> dict:
+        blob = await read_body(request, MAX_PACK_BYTES)
+        try:
+            names = install_skills_zip(blob, st().home / "skills")
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        st().skills.reload()
+        return {"names": names}
+
+    @app.delete("/api/skills/{name}")
+    async def delete_skill(name: str) -> dict:
+        skill = skill_or_404(name)
+        if skill.source != "user":
+            raise HTTPException(400, "built-in skills can be disabled, not deleted")
+        shutil.rmtree(skill.path)
+        st().skills.reload()
+        return {"ok": True}
+
+    @app.get("/api/pack/export")
+    async def pack_export() -> Response:
+        state = st()
+        user_skills = [s.path for s in state.skills.all() if s.source == "user"]
+        blob = export_pack(state.settings()["custom_specialists"], state.store.get_setting("custom_connectors", []),
+                           user_skills)
+        return Response(blob, media_type="application/zip",
+                        headers={"Content-Disposition": 'attachment; filename="spike-pack.zip"'})
+
+    @app.post("/api/pack/import")
+    async def pack_import(request: Request) -> dict:
+        state = st()
+        blob = await read_body(request, MAX_PACK_BYTES)
+        try:
+            manifest, skill_names = read_pack(blob, state.home / "skills")
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        state.skills.reload()
+        current = state.settings()["custom_specialists"]
+        new_specs = [s for s in manifest.get("specialists") or []
+                     if isinstance(s, dict) and s.get("id") and s["id"] not in state.catalog.specialists]
+        if new_specs:
+            try:
+                state.update_settings({"custom_specialists": current + new_specs})
+            except (ValueError, KeyError) as exc:
+                state.update_settings({"custom_specialists": current})
+                raise HTTPException(400, f"invalid specialist in pack: {exc}") from exc
+        added_connectors = []
+        for raw in manifest.get("connectors") or []:
+            try:
+                state.connectors.add_custom({k: v for k, v in raw.items() if k != "headers"})
+                added_connectors.append(raw["id"])
+            except (ValueError, KeyError, TypeError):
+                continue  # already present or invalid: skipped, never overwritten
+        return {"specialists": [s["id"] for s in new_specs], "skills": skill_names, "connectors": added_connectors}
 
     # ---------------------------------------------------------------- connectors (MCP)
     def connector_view(cid: str) -> dict:
@@ -493,6 +579,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         meta["subtasks"][ev["subtask"]]["text"] += ev["text"]
                     elif kind in ("tool_call", "tool_result"):
                         meta["tools"].append(ev)
+                    elif kind == "skill":
+                        meta.setdefault("skills", []).extend(n for n in ev["names"] if n not in meta.get("skills", []))
                     elif kind == "usage":
                         meta["usage"].append(ev.get("usage"))
                     elif kind == "done":

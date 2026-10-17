@@ -57,4 +57,14 @@ describe("applyEvent", () => {
     expect(run.status).toBe("done");
     expect(run.route?.specialists[0].name).toBe("Spike Law");
   });
+  it("records the skills a run used, once each, live and from history", () => {
+    let r = emptyRun();
+    for (const ev of [
+      { type: "skill", names: ["financial-ratio-analysis"], mode: "router", specialist: "finance" },
+      { type: "skill", names: ["financial-ratio-analysis"], mode: "router", specialist: "finance", subtask: "t2" },
+    ]) r = applyEvent(r, ev);
+    expect(r.skills).toEqual(["financial-ratio-analysis"]);
+    const stored = runFromStored({ id: "m", role: "assistant", content: "x", created: 0, meta: { skills: ["campaign-brief"] } });
+    expect(stored.skills).toEqual(["campaign-brief"]);
+  });
 });

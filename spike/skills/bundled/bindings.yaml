@@ -1,0 +1,23 @@
+# SPIKE's routing hints for the upstream skills, kept apart so their files stay verbatim copies.
+# specialists: which specialists may use the skill (empty = any). keywords: words that select it (es + en).
+test-driven-development:
+  specialists: [code]
+  keywords: [tdd, test, tests, prueba, pruebas, unitario, unit, implementar, implement, funcionalidad, feature]
+systematic-debugging:
+  specialists: [code, data]
+  keywords: [bug, error, fallo, falla, debug, depurar, crash, excepción, exception, traceback, roto, broken]
+writing-plans:
+  specialists: [code, business]
+  keywords: [plan, planificar, roadmap, pasos, steps, especificación, spec, requisitos, requirements]
+verification-before-completion:
+  specialists: [code]
+  keywords: [verificar, verify, comprobar, check, terminado, done, completado, complete, listo]
+frontend-design:
+  specialists: [code]
+  keywords: [diseño, design, interfaz, ui, frontend, css, landing, página web, web page, componente, component]
+mcp-builder:
+  specialists: [code]
+  keywords: [mcp, servidor mcp, mcp server, model context protocol, conector, connector]
+webapp-testing:
+  specialists: [code]
+  keywords: [playwright, e2e, navegador, browser, captura, screenshot, webapp, aplicación web]

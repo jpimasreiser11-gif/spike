@@ -30,9 +30,10 @@ _Last update: 2026-10-17, commit on `main` in the development repository (not ye
 | OpenAI-compatible API `/v1` (models list, orchestrated and single-specialist completions, streaming chunks, client tool calls round trip, passthrough, approval-needing tools refused without blocking, token / loopback-only / Origin / Host checks) | 17 tests with the official `openai` Python client 3.33.0 over real HTTP; end to end against a real llama-server (tiny random model): `spike-finance` loaded the `spike-finance` adapter, streaming and usage correct | `pytest tests/test_openai_api.py` |
 | Projects (own instructions and default specialist, isolated workspace for file tools, files, chats kept in their project, zip export → import identical, unsafe archives refused) | 6 API tests; browser smoke step (create, upload, export download, project chat) | `pytest tests/test_projects.py`, `node web/e2e/smoke.mjs` |
 | Connectors (MCP): own client over stdio and Streamable HTTP; tools behind the broker (allow, per-tool deny, ask approved through the API); secrets only as server env; broken servers reported; one-click catalog in Settings | client tests against a server built with the official MCP SDK 2.3.0 over both transports; 9 API tests with a real uvicorn server; real upstream servers started from the catalog in the build container and one tool called on each: Filesystem 1.0.0 (14 tools), Memory 1.0.0 (9), Fetch 2026.10.10 (1, listed only), Git 2026.10.10 (12); browser smoke opens the catalog | `pytest tests/test_mcp_client.py tests/test_connectors.py` |
+| Skills (Agent Skills `SKILL.md`): loader with spec validation, lexical router per specialist for local models, catalog + `load_skill` tool for API models, body cut to a quarter of the context (8K case tested), user skills override built-ins, zip import, packs (custom specialists + skills + connectors, no secrets) | 21 tests (8 routing cases in Spanish and English); browser smoke: Skills tab and a finance answer tagged with its skill | `pytest tests/test_skills.py` |
 | Benchmark harness end to end (TTFT, tok/s, RSS, build info) | runs against the tiny model; **its numbers are meaningless for quality or speed** | `spike bench --model <tiny.gguf>` |
 
-Total at this update: 146 Python tests (incl. the llama.cpp integration tests) and 5 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+Total at this update: 167 Python tests (incl. the llama.cpp integration tests) and 6 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
 
 ## Measured with real weights
 
@@ -80,6 +81,7 @@ removed for sharing a 13-gram with an eval set.
 - Qwen3.5-4B inference speed, TTFT and peak RSS on a 16 GB CPU-only x86 machine (Apple Silicon measured above).
 - Any trained adapter: medicine is training on the Mac; finance and marketing follow.
 - End-to-end quality of orchestrated answers; long-context accuracy.
+- Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Live calls to external providers (needs the user's keys; never done without explicit configuration).
 - Installers on fresh macOS and Windows machines (Homebrew and winget paths not exercised; Linux path verified above).
 - The first GitHub Actions run.

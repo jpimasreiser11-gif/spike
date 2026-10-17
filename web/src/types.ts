@@ -99,6 +99,7 @@ export type RunState = {
   error?: string;
   elapsed?: number;
   trimmed?: number;
+  skills?: string[];
 };
 
 export type ChatEvent = { type: string; [key: string]: any };
@@ -125,6 +126,8 @@ export type Settings = {
     port: number;
   };
   custom_specialists: unknown[];
+  skill_mode: "auto" | "router" | "model" | "off";
+  disabled_skills: string[];
 };
 
 export type ToolInfo = { name: string; description: string; risk: string; default_policy: string; policy: string };
@@ -152,4 +155,15 @@ export type ConnectorInfo = {
   error: string | null;
   secrets_set: Record<string, boolean>;
   tools: { name: string; remote_name: string; description: string; policy: string }[];
+};
+
+export type SkillInfo = {
+  name: string;
+  description: string;
+  source: "bundled" | "user";
+  license: string;
+  specialists: string[];
+  keywords: string[];
+  resources: string[];
+  enabled: boolean;
 };

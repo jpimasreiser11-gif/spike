@@ -151,7 +151,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | A1 | OpenAI-compatible local API (`/v1/models`, `/v1/chat/completions`, streaming, tools), [integrations](INTEGRATIONS.md) | ✅ tests with the official `openai` client + real llama-server |
 | A2 | Projects: instructions, default specialist, own workspace and chats, files, zip export/import | ✅ API tests + browser smoke |
 | A3 | MCP client and one-click connector catalog ([ADR 0005](adr/0005-mcp-client.md)) | ✅ tests vs the official SDK + real upstream servers; Playwright, GitHub and Claude Code entries not exercised (browser download, token, account) |
-| A4 | Skills engine (`SKILL.md`), MIT/Apache skills only | ⬜ |
+| A4 | Skills engine (`SKILL.md`), MIT/Apache skills only, packs | ✅ tests + browser smoke; 🟡 which skills a 4B model follows is unmeasured |
 | A5 | Artifacts panel (sandboxed iframe) and document tools | ⬜ |
 | B1–B5 | Local RAG, privacy and spend controls, undo/replay, `spike tune`, SPIKE as an MCP server | ⬜ |
 | C1–C6 | Browser via Playwright MCP, Forge, `spike dev`, Design, finance (real orders off by default, one-by-one confirmation, paper trading first), MCP Apps | ⬜ |

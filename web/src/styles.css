@@ -317,3 +317,9 @@ code.cmd { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-
 .field.inline select { width: auto; }
 .btn.align-end { align-self: flex-end; }
 .error-box.small-pre { white-space: pre-wrap; font-size: 12.5px; max-height: 9em; overflow: auto; }
+
+/* skills */
+.skill-chip { color: var(--green-dark); background: var(--accent-soft); border-color: var(--ground); }
+.flash-box { border: 1px solid var(--ground); background: var(--accent-soft); color: var(--green-dark); border-radius: 10px; padding: 6px 12px; font-size: 13.5px; }
+a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-items: center; }
+.row .btn { display: inline-flex; align-items: center; gap: 6px; }

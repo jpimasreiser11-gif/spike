@@ -29,6 +29,8 @@ Local first, open source (Apache-2.0), and able to use external API models with 
   deny, with an inline permission prompt.
 - **Projects.** Instructions, a default specialist, files and chats per project; file tools work in the
   project's own folder; export and import a project as one zip.
+- **Skills and connectors.** Agent Skills (`SKILL.md`) chosen per request for small local models, MCP
+  connectors from a reviewed one-click catalog, both behind the same permissions.
 - **Works with your tools.** An OpenAI-compatible endpoint (`/v1`) lets Aider, OpenCode, Continue, open-design
   or any OpenAI SDK use `spike-auto` or a single specialist ([integrations](docs/INTEGRATIONS.md)).
 - **Measured, not announced.** Exact-answer evals with confidence intervals and McNemar tests, acceptance

@@ -46,6 +46,21 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | transformers, datasets, huggingface_hub, safetensors, sentencepiece | Apache-2.0 | training data and export |
 | numpy | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) | training and export |
 
+## Skills shipped with SPIKE (`spike/skills/bundled/`, redistributed as verbatim copies with their licenses)
+
+Fetched on 2026-10-17 from each repository's `main` branch (raw.githubusercontent.com); each skill folder carries
+the upstream license file. SPIKE's routing hints for them live separately in `bindings.yaml`.
+
+| Skill | Source | License |
+|---|---|---|
+| test-driven-development (+ writing-good-tests.md), systematic-debugging (+ 3 reference files), writing-plans, verification-before-completion | [obra/superpowers](https://github.com/obra/superpowers) | MIT, © 2025 Jesse Vincent (`LICENSE` in each folder) |
+| frontend-design, mcp-builder (+ 4 reference files), webapp-testing (+ scripts/with_server.py and 3 examples) | [anthropics/skills](https://github.com/anthropics/skills) | Apache-2.0 (`LICENSE.txt` in each folder) |
+| medical-evidence-summary, financial-ratio-analysis, campaign-brief | written for SPIKE | Apache-2.0 |
+
+Not shipped: anthropics/skills `docx`, `pdf`, `pptx`, `xlsx` (source-available, not open source) and
+`skill-creator` (depends on sub-agents and many resource files); Superpowers `brainstorming` (needs its
+browser companion).
+
 ## Connectors in the catalog (downloaded and run on the user's computer when enabled, not redistributed)
 
 Checked on 2026-10-17 against each package registry and repository; versions are pinned in

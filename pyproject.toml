@@ -51,7 +51,7 @@ pythonpath = ["."]
 
 [tool.ruff]
 line-length = 110
-extend-exclude = ["brand"]   # brand/tools are the brand pipeline's own scripts
+extend-exclude = ["brand", "spike/skills/bundled"]   # the brand pipeline's scripts; verbatim upstream skills
 target-version = "py311"
 
 [tool.ruff.lint]

@@ -63,6 +63,8 @@ await page.locator("select").filter({ hasText: "DeepSeek" }).selectOption("deeps
 await page.screenshot({ path: `${out}/04-settings-providers.png` });
 await page.getByRole("tab", { name: "Especialistas" }).click();
 await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
+await page.getByRole("tab", { name: "Skills" }).click();
+await page.getByRole("dialog").locator('[data-skill="financial-ratio-analysis"]').waitFor();
 await page.getByRole("tab", { name: "Conectores" }).click();
 const fsCard = page.getByRole("dialog").locator('[data-connector="filesystem"]');
 await fsCard.getByRole("button", { name: "Activar" }).click();
@@ -96,6 +98,14 @@ await page.screenshot({ path: `${out}/07-project-chat.png` });
 await page.getByRole("button", { name: "Todos los chats" }).click();
 await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).waitFor();
 if (await page.locator(".conv-title", { hasText: "Resume los datos" }).count()) fail("project chat leaked into the main list");
+
+// skills: a finance question gets the ratio-analysis skill, shown on the answer
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Finance" }).click();
+await page.locator("#composer-input").fill("Calcula el margen EBITDA y el ROE");
+await page.keyboard.press("Enter");
+await page.locator(".skill-chip", { hasText: "financial-ratio-analysis" }).waitFor({ timeout: 10000 });
+await page.screenshot({ path: `${out}/07b-skill.png` });
 
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });

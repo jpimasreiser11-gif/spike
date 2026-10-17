@@ -15,6 +15,7 @@ from spike.providers.registry import PRESETS_BY_ID, create_provider
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
 from spike.runtime.paths import adapters_dir, spike_home, workspace_dir
+from spike.skills.engine import BUNDLED, SkillLibrary
 from spike.specialists.catalog import Catalog, Specialist, load_catalog
 from spike.store.db import Store
 from spike.store.secrets import SecretStore
@@ -34,6 +35,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "temperature": None,
     "max_tokens": 2048,
     "custom_specialists": [],
+    "skill_mode": "auto",
+    "disabled_skills": [],
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
 }
@@ -56,6 +59,7 @@ class AppState:
         self.project_files = ProjectFiles(self.home / "projects")
         self._project_tools: dict[str, ToolRegistry] = {}
         self.catalog = self._load_catalog()
+        self.skills = SkillLibrary([(BUNDLED, "bundled"), (self.home / "skills", "user")])
         if not self.store.list_providers():
             self._seed_providers()
 
@@ -170,13 +174,14 @@ class AppState:
             budget = max(2048, max_ctx - (settings["max_tokens"] or 2048) - 512)
             return Backend(provider=provider, model=model, adapter=adapter, context_budget=budget)
 
-        return Orchestrator(self.catalog, resolve, self.tools_for(project_id), broker or self.broker)
+        return Orchestrator(self.catalog, resolve, self.tools_for(project_id), broker or self.broker, skills=self.skills)
 
     def options(self, mode: str, project: dict[str, Any] | None = None) -> OrchestratorOptions:
         s = self.settings()
         return OrchestratorOptions(
             mode=mode, custom_instructions=s["custom_instructions"], specialist_instructions=s["specialist_instructions"],
             project_instructions=(project or {}).get("instructions", ""),
+            skill_mode=s["skill_mode"], disabled_skills=list(s["disabled_skills"]),
             use_planner=s["use_planner"], parallel=s["parallel"], temperature=s["temperature"],
             max_tokens=s["max_tokens"], reasoning=s["reasoning"], tools_enabled=s["tools_enabled"],
         )

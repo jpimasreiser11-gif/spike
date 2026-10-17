@@ -13,8 +13,9 @@ from spike.core.types import Message
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
 from spike.providers.base import Provider
+from spike.skills.engine import LoadSkill, SkillLibrary, catalog_prompt, skill_prompt
 from spike.specialists.catalog import Catalog, Specialist
-from spike.tools.base import PermissionBroker, ToolRegistry
+from spike.tools.base import PermissionBroker, Tool, ToolRegistry
 
 
 @dataclass
@@ -48,6 +49,8 @@ class OrchestratorOptions:
     tools_enabled: bool = True
     app_instructions: str = ""  # system prompt of an application calling SPIKE through the /v1 API
     project_instructions: str = ""
+    skill_mode: str = "auto"  # auto (router for local models, model's choice for APIs) | router | model | off
+    disabled_skills: list[str] = field(default_factory=list)
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -60,12 +63,13 @@ SYNTHESIS_INSTRUCTIONS = (
 
 class Orchestrator:
     def __init__(self, catalog: Catalog, resolve: BackendResolver, tools: ToolRegistry, broker: PermissionBroker,
-                 router: LexicalRouter | None = None):
+                 router: LexicalRouter | None = None, skills: SkillLibrary | None = None):
         self.catalog = catalog
         self.resolve = resolve
         self.tools = tools
         self.broker = broker
         self.router = router or LexicalRouter(catalog)
+        self.skills = skills
 
     # ------------------------------------------------------------------ prompts
     def system_prompt(self, spec: Specialist, opts: OrchestratorOptions, extra: str = "") -> str:
@@ -84,6 +88,29 @@ class Orchestrator:
 
     def _tools_for(self, spec: Specialist, opts: OrchestratorOptions):
         return self.tools.subset(spec.tools) + self.tools.shared_tools() if opts.tools_enabled else []
+
+    def _skills_for(self, spec: Specialist, backend: Backend, text: str,
+                    opts: OrchestratorOptions) -> tuple[str, list[Tool], Event | None]:
+        """(system prompt section, extra tools, event) for the skills of this run."""
+        if self.skills is None or opts.skill_mode == "off":
+            return "", [], None
+        mode = opts.skill_mode
+        if mode == "auto":
+            mode = "router" if backend.provider.config.local else "model"
+        if mode == "model" and not opts.tools_enabled:
+            mode = "router"
+        disabled = set(opts.disabled_skills)
+        if mode == "router":
+            picked = self.skills.select(text, spec.id, disabled)
+            if not picked:
+                return "", [], None
+            budget = max(256, min(3000, backend.context_budget // 4))
+            return ("\n\n".join(skill_prompt(s, budget) for s in picked), [],
+                    {"type": "skill", "names": [s.name for s in picked], "mode": "router", "specialist": spec.id})
+        available = self.skills.available(spec.id, disabled)
+        if not available:
+            return "", [], None
+        return catalog_prompt(available), [LoadSkill(available)], None
 
     def _route_event(self, decision: RouteDecision, specs: list[Specialist]) -> Event:
         return {
@@ -159,10 +186,13 @@ class Orchestrator:
     async def _run_single(self, spec: Specialist, history: list[Message], user_text: str,
                           opts: OrchestratorOptions, final: AgentRun) -> AsyncIterator[Event]:
         backend = self.resolve(spec)
-        messages = [Message(role="system", content=self.system_prompt(spec, opts)), *history,
+        skill_text, skill_tools, skill_event = self._skills_for(spec, backend, user_text, opts)
+        if skill_event:
+            yield skill_event
+        messages = [Message(role="system", content=self.system_prompt(spec, opts, skill_text)), *history,
                     Message(role="user", content=user_text)]
         async for ev in run_agent(
-            backend.provider, messages, tools=self._tools_for(spec, opts), broker=self.broker, run=final,
+            backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
             tag={"specialist": spec.id},
@@ -184,14 +214,18 @@ class Orchestrator:
             + f"# Overall user request\n{user_text}\n\n# Your subtask\n{task.instruction}"
             + (f"\n\n# Inputs from other specialists\n{deps}" if deps else "")
         )
-        messages = [Message(role="system", content=self.system_prompt(spec, opts, team_note)),
+        skill_text, skill_tools, skill_event = self._skills_for(spec, backend, f"{task.instruction}\n{user_text}", opts)
+        messages = [Message(role="system", content=self.system_prompt(spec, opts, "\n\n".join(
+                        p for p in (team_note, skill_text) if p))),
                     Message(role="user", content=content)]
         run = AgentRun()
         yield {"type": "subtask_start", "subtask": task.id, "specialist": spec.id, "name": spec.name,
                "instruction": task.instruction}
+        if skill_event:
+            yield {**skill_event, "subtask": task.id}
         t0 = time.perf_counter()
         async for ev in run_agent(
-            backend.provider, messages, tools=self._tools_for(spec, opts), broker=self.broker, run=run,
+            backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=run,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
             tag={"subtask": task.id, "specialist": spec.id},

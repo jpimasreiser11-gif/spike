@@ -78,6 +78,9 @@ export function AssistantMessage({ run, specialists, onPermission }: {
               {s.profile_only && <span className="chip-note">β</span>}
             </span>
           ))}
+          {(run.skills ?? []).map((name) => (
+            <span key={name} className="chip skill-chip" title={t.skill}>✦ {name}</span>
+          ))}
           {run.route?.method && run.route.method !== "user" && (
             <span className="route-meta">{run.route.mode} · {run.route.method}</span>
           )}

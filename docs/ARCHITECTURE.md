@@ -77,6 +77,12 @@ An enabled connector's tools are named `mcp__<connector>__<tool>`, offered to ev
 same broker: the connector's policy (ask by default) applies to each tool, and a per-tool policy overrides it.
 Secrets go to the keychain and reach the server only as its environment (stdio) or headers (HTTP).
 
+**Skills.** `spike/skills/engine.py` loads Agent Skills folders (`SKILL.md`) from `spike/skills/bundled/` and
+`$SPIKE_HOME/skills/`. For local models a lexical router picks at most one skill per specialist run from its
+keywords and description (bindings restrict which specialists may use it) and puts its body in the system
+prompt, cut to a quarter of the context budget; API models get the list of names and descriptions and a
+`load_skill` tool. Packs (`/api/pack/*`) move custom specialists, user skills and custom connectors, never secrets.
+
 **OpenAI-compatible API.** `spike/server/openai_api.py` serves `/v1` ([integrations](INTEGRATIONS.md)): the
 orchestrator for `spike-auto`, one specialist for `spike-<id>`, direct mode when the client brings its own
 tools, and passthrough for `<provider>/<model>`.
