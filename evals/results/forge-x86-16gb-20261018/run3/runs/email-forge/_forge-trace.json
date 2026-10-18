@@ -1,0 +1,75 @@
+{
+  "blueprint": {
+    "goal": "Redactar un correo electrónico de disculpa de 150 palabras o menos dirigido a Laura Gómez informando sobre el retraso en el envío del pedido 4512 hasta el 15 de noviembre.",
+    "requirements": [
+      "El correo debe dirigirse explícitamente a Laura Gómez.",
+      "Debe mencionar el pedido con el número 4512.",
+      "Debe explicar el retraso desde el 8 de noviembre hasta el 15 de noviembre.",
+      "El tono debe ser profesional y apologetic.",
+      "La longitud del texto no debe superar las 150 palabras.",
+      "El resultado final debe guardarse en el archivo 'email.md'."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "writing",
+        "instruction": "Redactar un correo electrónico de disculpa dirigido a Laura Gómez sobre el retraso del pedido 4512 (entrega prevista para el 15 de noviembre en lugar del 8 de noviembre), asegurando que el texto tenga como máximo 150 palabras, mantenga un tono profesional y apologetic, y guarde el contenido final en el archivo 'email.md'.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "email.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo 'email.md' debe contener el texto del correo.",
+      "El destinatario debe ser Laura Gómez.",
+      "El correo debe referirse al pedido 4512.",
+      "La fecha de entrega mencionada debe ser el 15 de noviembre.",
+      "La longitud del texto debe ser menor o igual a 150 palabras.",
+      "El tono debe ser adecuado para una disculpa comercial."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo 'email.md' debe contener el texto del correo.",
+          "ok": true,
+          "note": "The file email.md exists and contains the email text."
+        },
+        {
+          "text": "El destinatario debe ser Laura Gómez.",
+          "ok": true,
+          "note": "The recipient is addressed as Laura Gómez."
+        },
+        {
+          "text": "El correo debe referirse al pedido 4512.",
+          "ok": true,
+          "note": "The email refers to order #4512."
+        },
+        {
+          "text": "La fecha de entrega mencionada debe ser el 15 de noviembre.",
+          "ok": true,
+          "note": "The delivery date mentioned is November 15."
+        },
+        {
+          "text": "La longitud del texto debe ser menor o igual a 150 palabras.",
+          "ok": true,
+          "note": "The text length is 78 words, which is <= 150 words."
+        },
+        {
+          "text": "El tono debe ser adecuado para una disculpa comercial.",
+          "ok": true,
+          "note": "The tone is professional and apologetic."
+        }
+      ]
+    }
+  ]
+}

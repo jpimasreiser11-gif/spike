@@ -1,0 +1,27 @@
+{
+  "publico": "Cocineros casuales 18-45 años que buscan recetas rápidas, saludables y personalizadas. Se desplazan en apps de delivery, Instagram y TikTok buscando ideas de comida. Buscan ahorrar tiempo y mejorar su alimentación sin complicaciones.",
+  "canales": [
+    {
+      "nombre": "Instagram",
+      "justificacion": "Visual y visualmente atractivo. Ideal para mostrar presentaciones de platos y contenido de cocina. Los usuarios de recetas buscan inspiración visual.",
+      "formato": "Stories y Reels",
+      "frecuencia": "5 días/semana",
+      "share_budget": 40
+    },
+    {
+      "nombre": "Google Search",
+      "justificacion": "Captura usuarios con intención de búsqueda. Cuando alguien busca 'recetas fáciles' o 'receta de almuerzo saludable', intercepta la decisión.",
+      "formato": "SEM y Shopping Ads",
+      "frecuencia": "Continuo",
+      "share_budget": 40
+    },
+    {
+      "nombre": "TikTok",
+      "justificacion": "Alcance masivo entre público joven 18-35. Formato de contenido vertical y dinámico perfecto para mostrar recetas paso a paso.",
+      "formato": "Video ads nativos",
+      "frecuencia": "3 días/semana",
+      "share_budget": 20
+    }
+  ],
+  "mensaje": "Tus recetas favoritas en segundos. Descarga la app y cocina como un profesional en minutos."
+}

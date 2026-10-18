@@ -1,0 +1,69 @@
+{
+  "blueprint": {
+    "goal": "Crear un archivo Python llamado slug.py que contenga una función slugify() capaz de convertir texto en un formato URL seguro eliminando tildes, normalizando caracteres y estandarizando guiones.",
+    "requirements": [
+      "La función debe convertir todo el texto a minúsculas.",
+      "La función debe eliminar tildes de caracteres latinos (ej: á→a, é→e, ñ→n).",
+      "La función debe reemplazar cualquier secuencia de caracteres que no sea letra o dígito por un único guion (-).",
+      "La función debe eliminar los guiones que aparezcan al inicio o al final del resultado.",
+      "El código debe estar contenido en un archivo llamado slug.py.",
+      "La función debe manejar correctamente caracteres con acentos y caracteres especiales como signos de exclamación o comas."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "code",
+        "instruction": "Crear un archivo llamado slug.py que defina una función slugify(texto). La función debe importar un diccionario de mapeo de caracteres con tildes (ej: {'á': 'a', 'é': 'e', 'ñ': 'n', ...}). Debe normalizar el texto a minúsculas, aplicar el mapeo para quitar tildes, usar una expresión regular para reemplazar cualquier carácter no alfanumérico por un guion, y finalmente usar re.sub para eliminar guiones iniciales y finales antes de devolver el resultado.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "slug.py"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo slug.py debe existir y ser ejecutable sin errores.",
+      "La función slugify('¡Hola, Señor Pérez!') debe devolver exactamente 'hola-senor-perez'.",
+      "La función slugify('Prueba-123-') debe devolver 'prueba-123'.",
+      "La función slugify('Test') debe devolver 'test'.",
+      "El código debe incluir comentarios explicando el mapeo de caracteres y la lógica de limpieza."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo slug.py debe existir y ser ejecutable sin errores.",
+          "ok": true,
+          "note": "El archivo slug.py existe, es ejecutable sin errores y cumple con todos los requisitos de la función slugify, incluyendo el manejo de tildes, normalización a minúsculas, reemplazo de caracteres no alfanuméricos por guiones y eliminación de guiones iniciales y finales. Los comentarios explican claramente el mapeo de caracteres y la lógica de limpieza."
+        },
+        {
+          "text": "La función slugify('¡Hola, Señor Pérez!') debe devolver exactamente 'hola-senor-perez'.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La función slugify('Prueba-123-') debe devolver 'prueba-123'.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La función slugify('Test') debe devolver 'test'.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El código debe incluir comentarios explicando el mapeo de caracteres y la lógica de limpieza.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

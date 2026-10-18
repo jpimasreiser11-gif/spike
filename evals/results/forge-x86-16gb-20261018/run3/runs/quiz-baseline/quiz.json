@@ -1,0 +1,27 @@
+[
+  {
+    "pregunta": "¿Cuál es el planeta más grande del sistema solar?",
+    "opciones": ["Tierra", "Júpiter", "Saturno", "Marte"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué planeta es conocido como el planeta rojo?",
+    "opciones": ["Marte", "Júpiter", "Saturno", "Urano"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cuál es el único planeta donde conocemos vida?",
+    "opciones": ["Marte", "Saturno", "Tierra", "Júpiter"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué es el planeta con más anillos?",
+    "opciones": ["Júpiter", "Saturno", "Neptuno", "Urano"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Cuál es el planeta más cercano al Sol?",
+    "opciones": ["Venus", "Mercurio", "Marte", "Tierra"],
+    "correcta": 1
+  }
+]

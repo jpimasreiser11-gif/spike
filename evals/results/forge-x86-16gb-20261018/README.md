@@ -1,6 +1,7 @@
 # Forge vs the core model alone, 16 GB x86, CPU only
 
-Two runs: run 1 (this folder's `forge-eval.json`) and run 2 (`run2/`, with every task's files).
+Three runs: run 1 (this folder's `forge-eval.json`), run 2 (`run2/`) and run 3 (`run3/`), the last two with
+every task's files.
 
 ## Run 1
 
@@ -53,6 +54,26 @@ saw the team's summaries and file sizes and re-did sums in its head: it rejected
 in two of three rounds and a correct invoice total (569.30 €) once, sent back work that had hit the step limit with its file
 saved, and asked for quiz.json's content because it could not see it.
 
-Both runs together, without run 1's cafeteria: Forge 15/19, the core model alone 17/19 (2 tasks only Forge passed,
+Both runs together, without run 1's cafeteria: Forge 15/19, the core model alone 16/19 (2 tasks only Forge passed,
 3 only the core passed). No difference is shown; Forge costs 6.5–8.3 times the time.
+
+## Run 3
+
+SPIKE at commit `0d3b244`, after the fixes run 2 pointed to: the checker reads the saved text files and may call a
+number wrong only by showing the calculation, the last allowed agent step answers without tools, a one-step plan
+answers with its own summary, and the planner and steps keep the task's formats word for word.
+
+| mode | passed | 95 % CI | total time |
+|---|---|---|---|
+| Forge | 8/10 | 49–94 % | 13,012 s (3.6 h) |
+| core model alone | 9/10 | 60–98 % | 3,546 s (59 min) |
+
+Forge failed `slug` (`NameError: name 'ACCENTOS' is not defined`, a typo for `ACENTOS` that the checker passed) and
+`campana` (objects again). The core model alone failed `ventas` (it never saved ventas.csv). The checker sent work
+back in one task (prestamo, once) instead of 4–5, so the false rejections are gone, but Forge's total time did not
+drop: slug, cafeteria and ventas each took 34–50 minutes in a single round. The core model alone was slower than in
+runs 1–2 (shared VM), so the 3.7× ratio is not a speed-up.
+
+All three runs, without run 1's cafeteria: Forge 23/29, the core model alone 25/29 (3 task runs only Forge passed, 5
+only the core passed; McNemar exact p ≈ 0.73). With this model Forge does not beat the model alone.
 

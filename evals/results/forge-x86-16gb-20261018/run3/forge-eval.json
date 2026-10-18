@@ -1,0 +1,240 @@
+{
+  "date_utc": "2026-10-18T19:48:08Z",
+  "spike_version": "0.1.0",
+  "platform": "Linux x86_64",
+  "provider": "SPIKE local (llama.cpp)",
+  "model": "spike-base",
+  "local": true,
+  "tasks": 10,
+  "summary": {
+    "forge": {
+      "passed": 8,
+      "n": 10,
+      "rate": 0.8,
+      "ci95": [
+        0.4902,
+        0.9433
+      ]
+    },
+    "baseline": {
+      "passed": 9,
+      "n": 10,
+      "rate": 0.9,
+      "ci95": [
+        0.5958,
+        0.9821
+      ]
+    }
+  },
+  "results": [
+    {
+      "id": "fizzbuzz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 919.7,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "fizzbuzz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 128.2
+    },
+    {
+      "id": "slug",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "slugify da los resultados esperados",
+          "why": "NameError: name 'ACCENTOS' is not defined. Did you mean: 'ACENTOS'?"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 2974.4,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "slug",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 504.2
+    },
+    {
+      "id": "primos",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 309.9,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "primos",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 105.5
+    },
+    {
+      "id": "facturas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1386.1,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 1
+    },
+    {
+      "id": "facturas",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 291.9
+    },
+    {
+      "id": "prestamo",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1350.1,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 2
+    },
+    {
+      "id": "prestamo",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 241.6
+    },
+    {
+      "id": "email",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 478.2,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "email",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 254.3
+    },
+    {
+      "id": "campana",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "campana.json tiene publico, canales (3 o más) y mensaje corto",
+          "why": "AssertionError: [{'nombre': 'Instagram', 'justificacion': 'Visual y visualmente atractivo. Ideal para mostrar presentaciones de platos y contenido de cocina. Los usuarios de recetas buscan inspiración visual.', 'formato': 'Stories y Reels', 'frecuencia': '5 días/semana', 'share_budget': 40}, {'nombr"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 540.3,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "campana",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 155.3
+    },
+    {
+      "id": "quiz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 783.6,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "quiz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 498.1
+    },
+    {
+      "id": "cafeteria",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 2022.7,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "cafeteria",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 437.1
+    },
+    {
+      "id": "ventas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 2247.3,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 1
+    },
+    {
+      "id": "ventas",
+      "mode": "baseline",
+      "passed": false,
+      "failed": [
+        {
+          "check": "ventas.csv tiene 12 meses con ventas enteras",
+          "why": "FileNotFoundError: [Errno 2] No such file or directory: 'ventas.csv'"
+        },
+        {
+          "check": "resumen.md da el total, el mejor mes y la media de ventas.csv",
+          "why": "FileNotFoundError: [Errno 2] No such file or directory: 'ventas.csv'"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 929.8
+    }
+  ]
+}

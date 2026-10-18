@@ -1,0 +1,27 @@
+pass forge    fizzbuzz    919.7s
+pass baseline fizzbuzz    128.2s
+FAIL forge    slug       2974.4s
+       slugify da los resultados esperados: NameError: name 'ACCENTOS' is not defined. Did you mean: 'ACENTOS'?
+pass baseline slug        504.2s
+pass forge    primos      309.9s
+pass baseline primos      105.5s
+pass forge    facturas   1386.1s
+pass baseline facturas    291.9s
+pass forge    prestamo   1350.1s
+pass baseline prestamo    241.6s
+pass forge    email       478.2s
+pass baseline email       254.3s
+FAIL forge    campana     540.3s
+       campana.json tiene publico, canales (3 o más) y mensaje corto: AssertionError: [{'nombre': 'Instagram', 'justificacion': 'Visual y visualmente atractivo. Ideal para mostrar presentaciones de platos y contenido de cocina. Los usuarios de recetas buscan inspiración visual.', 'formato': 'Stories y Reels', 'frecuencia': '5 días/semana', 'share_budget': 40}, {'nombr
+pass baseline campana     155.3s
+pass forge    quiz        783.6s
+pass baseline quiz        498.1s
+pass forge    cafeteria  2022.7s
+pass baseline cafeteria   437.1s
+pass forge    ventas     2247.3s
+FAIL baseline ventas      929.8s
+       ventas.csv tiene 12 meses con ventas enteras: FileNotFoundError: [Errno 2] No such file or directory: 'ventas.csv'
+       resumen.md da el total, el mejor mes y la media de ventas.csv: FileNotFoundError: [Errno 2] No such file or directory: 'ventas.csv'
+forge    8/10 = 80%  (95 % CI 49%–94%)
+baseline 9/10 = 90%  (95 % CI 60%–98%)
+wrote /root/w/out/run3/forge-eval.json

@@ -42,9 +42,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.
 
-- Forge measured twice on the 16 GB x86 machine with the base model: 6/10 and 9/10 tasks against 9/10 and 8/10
-  for the core model alone, and 6.5-8.3x slower, so no gain is shown and it is not announced. Its checker now reads
-  the saved files and does not overrule numbers from its own estimates (not measured yet).
+- Forge measured three times on the 16 GB x86 machine with the base model: 6, 9 and 8 of 10 tasks against 9, 8
+  and 9 for the core model alone, and 3.7-8.3x slower, so no gain is shown and it is not announced. Its checker now
+  reads the saved files and no longer overrules correct numbers with its own estimates (work sent back in 1 task
+  instead of 4-5).
 - An agent that reaches its tool-step limit gets one last call to answer instead of ending in an error.
 
 ### Not measured yet

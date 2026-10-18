@@ -1,0 +1,68 @@
+{
+  "blueprint": {
+    "goal": "Guardar en el archivo primos.txt los 20 primeros números primos, separados por comas y en una sola línea.",
+    "requirements": [
+      "El archivo debe llamarse primos.txt.",
+      "Debe contener exactamente 20 números primos.",
+      "Los números deben estar separados únicamente por comas (sin espacios explícitos entre ellos, salvo si se interpreta la coma como separador estándar de texto, pero la instrucción dice 'separados por comas', lo que usualmente implica formato CSV simple o lista separada por comas).",
+      "Todos los números deben estar en una sola línea.",
+      "Los números deben ser correctos (verdaderos números primos)."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "code",
+        "instruction": "Generar una lista de los primeros 20 números primos, formatearlos como una cadena separada por comas en una sola línea, y guardar el resultado en el archivo relativo primos.txt.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "primos.txt"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo primos.txt existe.",
+      "El archivo contiene exactamente 20 números.",
+      "Todos los números en el archivo son primos.",
+      "Los números están separados por comas.",
+      "Todos los números están en una sola línea."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo primos.txt existe.",
+          "ok": true,
+          "note": "El archivo primos.txt existe."
+        },
+        {
+          "text": "El archivo contiene exactamente 20 números.",
+          "ok": true,
+          "note": "El archivo contiene exactamente 20 números."
+        },
+        {
+          "text": "Todos los números en el archivo son primos.",
+          "ok": true,
+          "note": "Todos los números son primos."
+        },
+        {
+          "text": "Los números están separados por comas.",
+          "ok": true,
+          "note": "Los números están separados por comas."
+        },
+        {
+          "text": "Todos los números están en una sola línea.",
+          "ok": true,
+          "note": "Todos los números están en una sola línea."
+        }
+      ]
+    }
+  ]
+}

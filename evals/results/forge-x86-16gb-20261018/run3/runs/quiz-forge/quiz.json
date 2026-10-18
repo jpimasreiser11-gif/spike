@@ -1,0 +1,27 @@
+[
+  {
+    "pregunta": "¿Cuántos planetas hay en el Sistema Solar?",
+    "opciones": ["7", "8", "9", "10"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué es el Sol?",
+    "opciones": ["Una estrella", "Un planeta", "Una luna", "Una cometa"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cómo se llama el planeta más grande?",
+    "opciones": ["Júpiter", "Saturno", "Tierra", "Marte"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Qué es la Luna?",
+    "opciones": ["Un planeta", "Una estrella", "Una luna", "Un asteroide"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué es un cometa?",
+    "opciones": ["Un objeto con hielo", "Un planeta", "Una estrella", "Un satélite"],
+    "correcta": 0
+  }
+]

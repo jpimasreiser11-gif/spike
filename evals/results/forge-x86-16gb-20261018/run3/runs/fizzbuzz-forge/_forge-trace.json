@@ -1,0 +1,65 @@
+{
+  "blueprint": {
+    "goal": "Crear un archivo Python llamado fizzbuzz.py que contenga una función fizzbuzz(n) devolviendo una lista de cadenas según las reglas deFizzBuzz.",
+    "requirements": [
+      "La función debe recibir un entero n como argumento.",
+      "La función debe devolver una lista de cadenas de longitud n.",
+      "Si un índice es múltiplo de 3, la cadena debe ser 'Fizz'.",
+      "Si un índice es múltiplo de 5, la cadena debe ser 'Buzz'.",
+      "Si un índice es múltiplo de 3 y 5, la cadena debe ser 'FizzBuzz'.",
+      "En todos los demás casos, la cadena debe ser la representación en texto del índice.",
+      "El archivo debe guardarse con el nombre fizzbuzz.py.",
+      "La función debe manejar casos donde n sea menor que 1 devolviendo una lista vacía o manejando el error de forma explícita (se asumirá manejo de entrada válida para simplificar, pero la función debe ser robusta)."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "code",
+        "instruction": "Crear un archivo llamado fizzbuzz.py que contenga la definición de la función fizzbuzz(n) siguiendo las reglas especificadas: iterar desde 1 hasta n, verificar divisibilidad por 3 y 5, y construir la lista de resultados correspondiente.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "fizzbuzz.py"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo fizzbuzz.py debe existir y ser válido sintácticamente.",
+      "La función fizzbuzz(15) debe devolver exactamente la lista: ['1', '2', 'Fizz', '4', 'Buzz', 'Fizz', '7', '8', 'Fizz', 'Buzz', '11', 'Fizz', '13', '14', 'FizzBuzz'].",
+      "La función debe manejar correctamente los casos de múltiplos de 3, 5 y ambos simultáneamente.",
+      "No debe haber errores de sintaxis ni lógica en el código generado."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo fizzbuzz.py debe existir y ser válido sintácticamente.",
+          "ok": true,
+          "note": "The file fizzbuzz.py exists, is syntactically valid, implements the correct logic for multiples of 3, 5, and both, and returns the expected list for fizzbuzz(15)."
+        },
+        {
+          "text": "La función fizzbuzz(15) debe devolver exactamente la lista: ['1', '2', 'Fizz', '4', 'Buzz', 'Fizz', '7', '8', 'Fizz', 'Buzz', '11', 'Fizz', '13', '14', 'FizzBuzz'].",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La función debe manejar correctamente los casos de múltiplos de 3, 5 y ambos simultáneamente.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "No debe haber errores de sintaxis ni lógica en el código generado.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}
