@@ -1,0 +1,139 @@
+name: Installers
+
+# Runs the real installers, including the ~2.7 GB model download, and asks the installed SPIKE for one answer.
+# It is slow and macOS minutes cost 10x in this private repo, so it never runs on pull requests or on every push:
+# only by hand, or on main when an installer or this file changes.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/install.sh
+      - scripts/install.ps1
+      - .github/workflows/installers.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: Install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Homebrew on PATH (Linux), as for a user who has it
+        if: runner.os == 'Linux'
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "$HOMEBREW_PREFIX/bin" >> "$GITHUB_PATH"
+          echo "$HOMEBREW_PREFIX/sbin" >> "$GITHUB_PATH"
+          brew --version
+      - name: scripts/install.sh --yes
+        if: runner.os != 'Windows'
+        run: bash scripts/install.sh --yes
+      - name: scripts/install.ps1 -Yes
+        if: runner.os == 'Windows'
+        run: pwsh -File scripts/install.ps1 -Yes
+
+      # Each step is a new process: it sees neither the installer's PATH nor winget's, so add them here.
+      - name: SPIKE on PATH (pipx's app folder)
+        shell: bash
+        run: |
+          python - >> "$GITHUB_PATH" <<'PY'
+          import os, pathlib
+          print(os.environ.get("PIPX_BIN_DIR") or pathlib.Path.home() / ".local" / "bin")
+          PY
+      - name: llama-server on PATH (winget's folder)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $found = Get-Command llama-server -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($found) { Write-Host "already on PATH: $($found.Source)"; exit 0 }
+          $folders = "$env:LOCALAPPDATA\Microsoft\WinGet\Links", "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
+          $found = Get-ChildItem $folders -Filter llama-server.exe -Recurse -ErrorAction SilentlyContinue
+          $found = $found | Select-Object -First 1
+          if (-not $found) { throw 'llama-server.exe is not on PATH or under the WinGet folders' }
+          Write-Host "found: $($found.FullName)"
+          Add-Content -Path $env:GITHUB_PATH -Value $found.DirectoryName
+
+      - name: spike doctor --strict
+        shell: bash
+        run: spike doctor --strict --json
+      - name: The model is on disk
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          files = sorted((pathlib.Path.home() / ".spike" / "models").glob("*.gguf"))
+          print(*files, sep="\n")
+          assert files and all(f.stat().st_size > 10**9 for f in files), "no model file, or one under 1 GB"
+          PY
+      - name: One answer from the local model through SPIKE
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, shutil, subprocess, sys, time, urllib.error, urllib.request
+
+
+          def call(method, path, body=None, timeout=60):
+              data = None if body is None else json.dumps(body).encode()
+              request = urllib.request.Request("http://127.0.0.1:8740" + path, data=data, method=method,
+                                               headers={"Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(request, timeout=timeout) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as exc:
+                  sys.exit(f"{method} {path}: HTTP {exc.code} {exc.read().decode(errors='replace')}")
+
+
+          # --no-local: start the app first, so the engine settings below are in place before llama-server loads
+          spike = shutil.which("spike") or sys.exit("spike is not on PATH")
+          server = subprocess.Popen([spike, "serve", "--no-local"], stdin=subprocess.DEVNULL)
+          try:
+              for _ in range(60):
+                  try:
+                      call("GET", "/api/health")
+                      break
+                  except OSError:  # not listening yet
+                      time.sleep(1)
+              else:
+                  sys.exit("spike serve did not answer within 60 s")
+              local = call("GET", "/api/settings")["local_runtime"]
+              assert local["model"], "spike models pull did not set the local model"
+              # Short answer, thinking off (it would use up the 32 tokens), CPU only and a small context:
+              # CI runners have no GPU worth using and little memory.
+              call("PUT", "/api/settings", {"reasoning": False, "tools_enabled": False, "max_tokens": 32,
+                                            "local_runtime": {**local, "gpu_layers": 0, "context": 2048}})
+              print("engine:", call("POST", "/api/runtime/start", timeout=600))
+              reply = call("POST", "/v1/chat/completions", timeout=600, body={
+                  "model": "spike-core", "max_tokens": 32,
+                  "messages": [{"role": "user", "content": "Answer with one word: what is the capital of France?"}]})
+              answer = reply["choices"][0]["message"]["content"].strip()
+              print("answer:", answer)
+              assert "paris" in answer.lower(), "the local model did not answer the question"
+          finally:
+              try:
+                  call("POST", "/api/runtime/stop")
+              except (OSError, SystemExit):
+                  pass
+              server.terminate()
+          PY
+      - name: llama-server log
+        if: failure()
+        shell: bash
+        run: tail -n 60 "$HOME/.spike/logs/llama-server.log" || true

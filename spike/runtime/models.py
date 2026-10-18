@@ -77,7 +77,8 @@ async def download(
     dest_dir: Path | None = None,
     progress: Callable[[int, int], None] | None = None,
     client: httpx.AsyncClient | None = None,
-) -> Path:
+) -> tuple[Path, bool]:
+    """Download a model; returns (file, whether the Hub's SHA-256 was checked). The Hub may give no hash."""
     entry = MODELS[model_id]
     quant = quant or entry.default_quant
     if quant not in entry.quants:
@@ -91,7 +92,7 @@ async def download(
         if info["license"] and info["license"].lower() not in ALLOWED_LICENSES:
             raise PermissionError(f"{entry.repo} has license '{info['license']}', which is not on SPIKE's allowlist")
         if dest.exists() and info["sha256"] and sha256_file(dest) == info["sha256"]:
-            return dest
+            return dest, True
         part = dest.with_suffix(dest.suffix + ".part")
         offset = part.stat().st_size if part.exists() else 0
         headers = {"Range": f"bytes={offset}-"} if offset else {}
@@ -113,7 +114,7 @@ async def download(
                 part.unlink(missing_ok=True)
                 raise ValueError(f"checksum mismatch for {filename}: expected {info['sha256']}, got {digest}")
         part.rename(dest)
-        return dest
+        return dest, bool(info["sha256"])
     finally:
         if own_client:
             await client.aclose()

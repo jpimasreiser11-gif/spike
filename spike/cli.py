@@ -51,8 +51,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     hw = detect()
     rec = recommend(hw)
+    binary = find_binary()
     report: dict = {"spike": __version__, "hardware": hw.to_dict(), "recommendation": asdict(rec),
-                    "llama_server": str(find_binary() or "not found"), "models": []}
+                    "llama_server": str(binary or "not found"), "models": []}
     for path in [Path(args.model)] if args.model else local_models():
         info = read_gguf(path)
         ctx = args.context or rec.context
@@ -78,6 +79,15 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                   f"tokens ≈ {m['estimated_total_gb']} GB (estimate; measure with `spike bench`)")
         if not report["models"]:
             print("  No local models yet. Run: spike models pull")
+    if args.strict:  # for scripts and installers: exit 1 when SPIKE cannot answer locally yet
+        missing = []
+        if not binary:
+            missing.append("llama-server was not found (install llama.cpp or set SPIKE_LLAMA_SERVER)")
+        if not report["models"] and not args.no_model_check:
+            missing.append("no local model (run: spike models pull)")
+        for line in missing:
+            print(f"error: {line}", file=sys.stderr)
+        return 1 if missing else 0
     return 0
 
 
@@ -102,18 +112,18 @@ def cmd_models(args: argparse.Namespace) -> int:
     import httpx
 
     try:
-        path = asyncio.run(download(args.model, args.quant, progress=progress))
+        path, verified = asyncio.run(download(args.model, args.quant, progress=progress))
     except httpx.HTTPError as exc:
         print(f"\nerror: could not download {args.model} from the Hugging Face Hub: {exc}", file=sys.stderr)
         return 1
     except (FileNotFoundError, PermissionError, ValueError) as exc:  # missing file, license refused, bad checksum
         print(f"\nerror: {exc}", file=sys.stderr)
         return 1
-    print(f"\nsaved {path} (sha256 verified)")
+    print(f"\nsaved {path} " + ("(sha256 verified)" if verified else "(the Hub gave no SHA-256 to check)"))
     from spike.server.state import AppState
 
     state = AppState()
-    runtime = state.settings()["local_runtime"]
+    runtime = dict(state.settings()["local_runtime"])  # a copy: unset settings hand out the shared defaults
     if not runtime.get("model"):
         runtime["model"] = str(path)
         state.update_settings({"local_runtime": runtime})
@@ -500,6 +510,8 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--model")
     d.add_argument("--context", type=int)
     d.add_argument("--json", action="store_true")
+    d.add_argument("--strict", action="store_true", help="exit 1 when llama-server or a local model is missing")
+    d.add_argument("--no-model-check", action="store_true", help="with --strict: do not require a local model")
     d.set_defaults(func=cmd_doctor)
 
     m = sub.add_parser("models", help="list or download models")
