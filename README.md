@@ -9,9 +9,9 @@ Local first, open source (Apache-2.0), and able to use external API models with 
 ---
 
 > **Project status: early, honest.** The app, orchestrator, provider layer, local runtime and the full
-> training/evaluation pipeline are built and tested. **No specialist adapter has been trained yet**, and the
-> real model has not yet been benchmarked on target hardware. Until an adapter passes its acceptance tests,
-> each specialist runs as a prompt profile on the base model and the app marks it β.
+> training/evaluation pipeline are built and tested. **No specialist adapter has been trained yet.** Until an
+> adapter passes its acceptance tests, each specialist runs as a prompt profile on the base model and the app
+> marks it β.
 > Details with evidence: [docs/STATUS.md](docs/STATUS.md).
 
 ## What SPIKE is
@@ -46,6 +46,20 @@ Local first, open source (Apache-2.0), and able to use external API models with 
 </table>
 
 Scope, data and evaluation of each one: [docs/SPECIALISTS.md](docs/SPECIALISTS.md).
+
+## Speed on real hardware (measured)
+
+Qwen3.5-4B Q4_K_M, llama.cpp, KV cache q8_0, 128 generated tokens, median of 3 runs:
+
+| machine | prompt | time to first word | generation | memory |
+|---|---|---|---|---|
+| 16 GB x86, 4 cores, CPU only | 1K tokens | 52 s | 6.2 tok/s | 3.6 GiB resident |
+| | 8K tokens | 13 min | 5.1 tok/s | 3.6 GiB resident |
+| Apple M4 Max, Metal | 1K tokens | 0.9 s | 82 tok/s | 3.6 GiB |
+| | 8K tokens | 7.2 s | 80 tok/s | 3.6 GiB |
+
+On a CPU-only computer SPIKE starts at an 8K context: a 32K prompt took over 1.5 h there. Raw reports and
+method: [docs/STATUS.md](docs/STATUS.md#measured-with-real-weights).
 
 ## Quick start
 

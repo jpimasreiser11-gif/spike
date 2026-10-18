@@ -79,6 +79,9 @@ class Recommendation:
     notes: list[str]
 
 
+CPU_CONTEXT = 8192
+
+
 def recommend(hw: HardwareInfo) -> Recommendation:
     """Pick settings that leave headroom for the OS and the user's other apps.
 
@@ -99,5 +102,12 @@ def recommend(hw: HardwareInfo) -> Recommendation:
     if hw.arch in ("x86_64", "AMD64") and "avx2" not in hw.cpu_flags and hw.os == "Linux":
         notes.append("CPU without AVX2 detected: llama.cpp will run, but several times slower.")
     gpu_layers = 99 if hw.apple_silicon else 0  # Metal on Apple Silicon; CPU elsewhere by default
+    if not gpu_layers and context > CPU_CONTEXT:
+        # Measured on a 4-core x86 with 16 GB (evals/results/bench-x86-16gb-20261018): memory is fine at 32K, but a
+        # prompt that long takes over 1.5 h before the first word; 8K takes about 13 min. Raise it in Settings on a
+        # faster CPU.
+        context = CPU_CONTEXT
+        notes.append("CPU only: context set to 8K because long prompts are slow without a GPU; raise it in Settings "
+                     "if your CPU is fast.")
     return Recommendation(quant=quant, context=context, kv_cache_type="q8_0", threads=threads,
                           gpu_layers=gpu_layers, notes=notes)

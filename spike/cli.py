@@ -427,6 +427,8 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--threads", type=int)
     b.add_argument("--gpu-layers", type=int, default=0, help="0 = CPU only (the 16 GB target); 99 = Metal")
     b.add_argument("--kv", default="q8_0")
+    b.add_argument("--server-context", type=int, default=0,
+                   help="llama-server context for every length (default: longest prompt + gen + 256)")
     b.add_argument("--port", type=int, default=8799)
     b.add_argument("--out", help="write the JSON report here")
     b.set_defaults(func=cmd_bench)

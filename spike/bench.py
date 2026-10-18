@@ -120,7 +120,7 @@ async def run_benchmark(args: Any) -> dict[str, Any]:
     contexts = [int(x) for x in str(args.contexts).split(",") if x]
     model = Path(args.model).expanduser()
     adapters = [Path(a).expanduser() for a in args.adapter]
-    config = ServerConfig(model=model, adapters=adapters, port=args.port, context=max(contexts) + args.gen + 256,
+    config = ServerConfig(model=model, adapters=adapters, port=args.port, context=getattr(args, "server_context", 0) or max(contexts) + args.gen + 256,
                           threads=args.threads, gpu_layers=args.gpu_layers, kv_cache_type=args.kv)
     server = LlamaServer(config)
     hw = detect()

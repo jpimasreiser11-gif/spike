@@ -2,7 +2,7 @@
 
 Threads and KV cache type are measured (generation and prompt speed, peak memory of the real process). The
 context length is not measured: it is the largest that fits a share of this machine's RAM by the GGUF's own
-numbers, and the report says so.
+numbers (at most 8K without a GPU, where long prompts are slow), and the report says so.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import httpx
 
 from spike.bench import RSSSampler, one_run, prompt_tokens
 from spike.runtime.gguf import kv_cache_bytes, read_gguf
-from spike.runtime.hardware import HardwareInfo, detect, recommend
+from spike.runtime.hardware import CPU_CONTEXT, HardwareInfo, detect, recommend
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
 
 CONTEXTS = (8192, 16384, 32768, 65536)
@@ -114,6 +114,8 @@ async def tune(model: Path, *, quick: bool = False, hw: HardwareInfo | None = No
         if f16 and f16["gen_tok_s"] >= best["gen_tok_s"] * F16_GAIN:
             kv = "f16"
     context = pick_context(model, kv, hw)
+    if not rec.gpu_layers and context["context"] > CPU_CONTEXT:
+        context = {**context, "context": CPU_CONTEXT, "cpu_cap": True}  # long prompts are too slow on CPU (recommend)
     chosen = {"threads": best["threads"], "kv_cache_type": kv, "gpu_layers": rec.gpu_layers,
               "context": context["context"]}
     report = {"date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "seconds": round(time.time() - started),

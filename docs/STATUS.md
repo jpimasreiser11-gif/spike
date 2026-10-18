@@ -53,7 +53,7 @@ _Last update: 2026-10-17, commit on `main` in the development repository (not ye
 | MCP Apps (C6, SEP-1865, spec 2026-01-26): SPIKE's MCP client announces the `io.modelcontextprotocol/ui` extension; a connector tool that names a `ui://` view shows its result in that view in the chat; tools whose visibility is only `app` never reach the model; only views a tool declared are served, and only as `text/html;profile=mcp-app`; the view runs in an `allow-scripts` iframe (opaque origin) under a CSP built from the declared domains, keeping only public https/wss origins (localhost, IP addresses, `.local` and non-https are dropped and shown); JSON-RPC over postMessage: `ui/initialize` with host context and SPIKE's colours, tool input and result, `tools/call` (same connector, `app` visibility, the tool's policy: "ask" waits for the user's click in the card, "deny" refuses), `resources/read` (same connector, 256 KB), `ui/open-link` (asks), `ui/message` (written into the text box, the user sends it), `ui/update-model-context` (goes with the next message as data, not instructions), `ui/request-display-mode` (inline/fullscreen), size changes, teardown; every view call goes to an audit log (`$SPIKE_HOME/connectors/apps-audit.jsonl`); Settings → Conectores lists each connector's views and app-only tools. Deviation: a web host should use a sandbox proxy on another origin; SPIKE runs on one local origin, so the view gets an opaque origin instead (stricter: no storage or cookies for the view) | 8 tests against a real MCP server built with the official SDK (the capability is announced; metadata, visibility and the deprecated key; CSP cleaning and policy; app pages only; app-only tools stay away from the model and results carry the view, also after a reload; undeclared views refused; a view's calls: approval, model-only and blocked tools, other views, reads; audit; view context for one turn only); 3 web unit tests (the policy in its own head, malformed messages dropped, context text); browser smoke: the view gets input and result, cannot reach SPIKE's API or the parent page, an app-only call waits for Permitir, a link waits and is cancelled, its context reaches the next answer, the audit log has the calls | `pytest tests/test_mcp_apps.py`, `node web/e2e/smoke.mjs` |
 | Benchmark harness end to end (TTFT, tok/s, RSS, build info) | runs against the tiny model; **its numbers are meaningless for quality or speed** | `spike bench --model <tiny.gguf>` |
 
-Total at this update: 407 Python tests (incl. the llama.cpp integration tests and the real browser test; 1 skipped here: it needs MLX, Mac only) and 25 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
+Total at this update: 409 Python tests (incl. the llama.cpp integration tests and the real browser test; 1 skipped here: it needs MLX, Mac only) and 25 web tests pass; lint clean (`ruff check .`); browser smoke `E2E OK`.
 
 ## Measured with real weights
 
@@ -73,7 +73,20 @@ Homebrew llama-server b11669-620d2225c (not the CI-pinned 62318cd), KV cache q8_
 
 Evidence: `evals/results/bench-mac-20261017/bench-{cpu-ngl0,metal-ngl99}.json`. CPU RSS includes the mmap'd
 model file and, by inference (not measured), llama.cpp's repacked CPU copy of the weights; `spike bench` now
-records `peak_rss_anon_mb` on Linux to separate them. This is an Apple CPU, not the 16 GB x86 target.
+records `peak_rss_anon_mb` on Linux to separate them. This is an Apple CPU; the 16 GB x86 target follows.
+
+**The 16 GB target, CPU only** (x86 cloud VM: Xeon with AVX-512, 4 cores, 15.7 GB, no swap; llama.cpp
+b11709-62318cd57, the CI pin; same model and KV cache; `--server-context 33152`; median of 3 runs):
+
+| context | TTFT | prompt tok/s | generation tok/s | peak RSS | peak anonymous RSS |
+|---|---|---|---|---|---|
+| 1K | 52 s | 19.6 | 6.2 | 6,274 MiB | 3,654 MiB |
+| 8K | 773 s | 10.6 | 5.1 | 6,276 MiB | 3,656 MiB |
+| 32K (1 run of 3 so far) | 6,143 s | 5.3 | 1.3 | 6,295 MiB | 3,675 MiB |
+
+Evidence: `evals/results/bench-x86-16gb-20261018/`. Memory fits easily (3.6 GiB must stay resident even at 32K);
+up to 8K is usable, 32K is not interactive on 4 cores, so CPU-only machines now start at an 8K context. The VM
+is shared: 1K prompt speed varied 12–41 tok/s across runs, generation 5.9–6.6 tok/s.
 
 **Baseline accuracy, no adapter** ("baseline@512 (rescored)", Metal, greedy, thinking off, max_tokens 512,
 specialist system prompts; generated with the old extractor and re-scored from the saved responses after the
@@ -112,7 +125,6 @@ yet measured).
 
 ## Built, not yet measured with real weights
 
-- Qwen3.5-4B inference speed, TTFT and peak RSS on a 16 GB CPU-only x86 machine (Apple Silicon measured above).
 - Any trained adapter: medicine is ready to run on the Mac (waiting for joan's go-ahead on one ≈ 10 h run or
   ≈ 3 h slices resumed from checkpoints); finance and marketing follow.
 - End-to-end quality of orchestrated answers; long-context accuracy.
@@ -127,12 +139,13 @@ yet measured).
 - KV cache of Qwen3.5-4B: 32 KiB/token f16, ≈ 17 KiB q8_0 → 32K context ≈ 1.0 GiB f16 / 0.53 GiB q8_0.
 - Adapter size rank 16 on the chosen targets: ≈ 21M parameters ≈ 42 MB f16.
 - 16 GB budget at 32K, Q4_K_M: 2.74 GB weights + 0.53 GiB KV + ~0.5 GB buffers + 13 adapters (0.55 GB) ≈ 4.4 GB.
+  Measured without adapters: 3,675 MiB (3.6 GiB) anonymous peak at 32K on x86 (above).
 
 ## Blockers
 
 1. **No model weights in the build container**: its network policy blocks huggingface.co, so real-model
-   benchmarks and evals run on joan's Mac. joan has since allowed huggingface.co in a newer cloud environment, and
-   the 16 GB CPU-only measurement is running there; its numbers go here once they exist.
+   benchmarks and evals run on joan's Mac or in a newer cloud environment that allows huggingface.co (where the
+   16 GB CPU-only numbers above were measured).
 2. **Publication**: joan chose a private GitHub repository `spike`; waiting for joan to create it (sessions cannot
    create repositories). Nothing has been pushed.
 

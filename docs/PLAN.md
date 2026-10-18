@@ -16,7 +16,7 @@ claimed until measured.
   KV ~0.5 GiB at 32K with q8_0 (computed), adapters ~40 MB each (computed).
 - **Depends on**: 2, 4, 17. **Tasks**: measure RSS, TTFT, tok/s on a 16 GB CPU-only machine (`spike bench --gpu-layers 0`).
 - **Acceptance**: peak RSS ≤ 8 GB at 32K context; ≥ 5 tok/s generation on a 4-core x86 CPU; numbers in STATUS.md with hardware.
-- **Status**: 🟡 measured on an M4 Max Mac (STATUS.md: CPU-only peak RSS 6,330 MiB at 32K, 13.8 tok/s; Metal 66.5 tok/s at 32K); ⬜ the 16 GB 4-core x86 target (needs huggingface.co in the cloud environment).
+- **Status**: ✅ memory and ✅ speed up to 8K, ✕ speed at 32K, measured on the 16 GB 4-core x86 target (STATUS.md, `evals/results/bench-x86-16gb-20261018`): peak RSS 6,295 MiB at 32K (3,675 MiB anonymous); generation 6.2 tok/s at 1K, 5.1 at 8K, 1.3 at 32K (1 run of 3 so far). Also measured on an M4 Max Mac (CPU-only 13.8 tok/s at 32K; Metal 66.5).
 
 ## 2. Base model selection
 - **Decision**: Qwen3.5-4B (Apache-2.0); alternative Gemma 4 E4B. [ADR 0001](adr/0001-base-model.md).
@@ -53,8 +53,8 @@ claimed until measured.
 - **Acceptance**: no drop on general suite; per-domain gains with reasoning prompts. **Status**: 🟡.
 
 ## 8. Context and optimization
-- **Decision**: hybrid attention keeps KV small; default context by RAM (`spike/runtime/hardware.py`: <7.5 GB → 8K, <15.5 GB → 16K, <31 GB → 32K, else 64K), q8_0 KV; token-budget trimming keeps system prompt + latest turn (`spike/core/context.py`).
-- **Tasks**: long-context eval (needle and LongBench-style) at 8K/16K/32K on the real model; measure TTFT vs prompt length.
+- **Decision**: hybrid attention keeps KV small; default context by RAM (`spike/runtime/hardware.py`: <7.5 GB → 8K, <15.5 GB → 16K, <31 GB → 32K, else 64K), at most 8K without a GPU (a 32K prompt took 102 min on the 4-core x86, measured), q8_0 KV; token-budget trimming keeps system prompt + latest turn (`spike/core/context.py`).
+- **Tasks**: long-context eval (needle and LongBench-style) at 8K/16K/32K on the real model; TTFT vs prompt length is measured (STATUS.md).
 - **Acceptance**: documented maximum context where accuracy stays within 5 points of 4K and RSS fits 16 GB. **Status**: 🟡 trimming tested; long-context eval ⬜.
 
 ## 9. Multi-model orchestration
