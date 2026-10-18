@@ -92,6 +92,22 @@ async def answer_with_spike(state, candidate: dict[str, Any]) -> tuple[str, str 
     return text, error
 
 
+async def answer_with_variant(state, candidate: dict[str, Any], specialist: str, variant) -> tuple[str, str | None]:
+    """Ask one specialist with a learned-prompt variant in place of the active one: no memory (the gain must be the
+    prompt's own), temperature 0 (the same question gets the same answer), no one to approve tools."""
+    await state.ensure_adapters()
+    orchestrator = state.orchestrator(broker=HeadlessBroker(state.broker))
+    options = state.options(specialist)
+    options.learned_instructions = {**options.learned_instructions, specialist: list(variant.instructions)}
+    options.learned_skills = {**options.learned_skills, specialist: variant.skill_modes()}
+    options.temperature = 0.0
+    text, error = "", None
+    async for ev in orchestrator.run([], candidate["question"], options):
+        if ev["type"] == "done":
+            text, error = ev["text"], ev.get("error")
+    return text, error
+
+
 async def replay_check(state, answer: Answer | None = None) -> dict[str, Any]:
     accepted = list(reversed(state.evolution.store.items("candidate", "accepted")))
     if not accepted:

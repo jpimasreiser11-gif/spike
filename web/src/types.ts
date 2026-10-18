@@ -238,7 +238,7 @@ export type Settings = {
   skill_mode: "auto" | "router" | "model" | "off";
   disabled_skills: string[];
   memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean; learn?: boolean };
-  evolution?: { enabled: boolean; auto_router: boolean };
+  evolution?: { enabled: boolean; auto_router: boolean; training_data?: boolean };
   finance?: { exchange: string; live: LiveSettings };
 };
 
@@ -246,7 +246,7 @@ export type Checks = { include?: string[]; exclude?: string[] };
 
 /** Something Evolution recorded: a correction, a route correction, a failure or an eval candidate. */
 export type EvolutionItem = {
-  id: string; kind: "correction" | "route" | "failure" | "candidate"; status: string; created: number; updated: number;
+  id: string; kind: "correction" | "route" | "failure" | "candidate" | "example"; status: string; created: number; updated: number;
   [key: string]: any;
 };
 
@@ -262,6 +262,12 @@ export type EvolutionOverview = {
   counts: Record<string, Record<string, number>>;
   router: { active: EvolutionVersion | null; pending: number; built_in: Record<string, RouterSplit>; current?: Record<string, RouterSplit> };
   versions: EvolutionVersion[];
+};
+
+/** Evolution level 2: a specialist's learned instructions and skills, and the eval they are checked against. */
+export type LearnedPrompt = {
+  specialist: string; name: string; questions: number; ideas: string[]; skills: string[];
+  active: EvolutionVersion | null; versions: EvolutionVersion[];
 };
 
 export type CheckResult = {

@@ -1,6 +1,7 @@
 """Build the training set for one specialist adapter.
 
     python training/prepare.py training/configs/medicine.yaml [--out training/data] [--distilled FILE]
+        [--corrections spike-training.jsonl]
 
 Steps: license check per source -> download -> format to chat -> quality filter -> dedupe ->
 13-gram decontamination against every eval set -> blend with general replay data -> split ->
@@ -82,6 +83,8 @@ def main() -> int:
     ap.add_argument("config")
     ap.add_argument("--out", default=str(ROOT / "training" / "data"))
     ap.add_argument("--distilled", action="append", default=[], help="extra verified chat JSONL from distill.py")
+    ap.add_argument("--corrections", action="append", default=[],
+                    help="approved corrections from `spike evolve dataset` (spike-training.jsonl); only this specialist's")
     ap.add_argument("--skip-license-check", action="store_true", help="only for offline dry runs; never for releases")
     args = ap.parse_args()
 
@@ -182,6 +185,25 @@ def main() -> int:
             if passes_quality(chat) and not too_long(chat) and not index.contaminated(text_of(chat)):
                 domain.append(chat)
         manifest["sources"][f"distilled:{Path(path).name}"] = {"role": "train", "license_hub": "teacher-output (Apache-2.0 teacher)"}
+    for path in args.corrections:  # Evolution level 3: the user's approved corrections (`spike evolve dataset`)
+        kept = 0
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            chat = json.loads(line)
+            meta = chat.pop("meta", None) or {}
+            if meta.get("source") != "spike-correction" or meta.get("specialist") != cfg["specialist"]:
+                continue
+            chat["messages"] = [{"role": "system", "content": system},
+                                *(m for m in chat["messages"] if m["role"] != "system")]
+            dropped = ("format_or_quality" if not passes_quality(chat) else "too_long" if too_long(chat)
+                       else "contaminated" if index.contaminated(text_of(chat)) else None)
+            if dropped:
+                manifest["dropped"][dropped] += 1
+            else:
+                domain.append(chat)
+                kept += 1
+        manifest["sources"][f"corrections:{Path(path).name}"] = {
+            "role": "train", "kept": kept,
+            "license_hub": "the user's own conversations, approved one by one; answers by SPIKE's local model"}
     replay = collect(cfg.get("replay", {}).get("sources", []), None)
 
     before = len(domain)

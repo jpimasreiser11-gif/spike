@@ -88,6 +88,11 @@ acknowledge reports within 7 days.
   and leaves your question out. Temporary chats and the "Aprender de mi uso" switch turned off record nothing. A
   learned router is used only after it passes its check, and an adapter is installed only if its measured eval
   results pass its acceptance rule; both roll back from Settings → Evolución or `spike evolve rollback`.
+- Your corrections become training data only if you turn on "Usar mis correcciones para reentrenar" (off by
+  default) and approve each example. Only answers written by SPIKE's own local model are used, never an external
+  provider's or another local model's, whose terms or licenses can forbid it. The files are written on your computer;
+  nothing is uploaded. Learned instructions and retrained adapters become active only after passing your eval and
+  roll back like the router.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by

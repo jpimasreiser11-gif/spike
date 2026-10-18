@@ -297,6 +297,16 @@ if (await page.getByTestId("evo-checks").locator("li.fail").count()) fail("the e
 await page.screenshot({ path: `${out}/07k-evolution-check.png` });
 await page.getByRole("button", { name: "Volver a la anterior" }).first().click();
 await page.getByTestId("evo-router").getByText(/Aprendido v/).waitFor({ state: "detached" });
+// Evolution level 3: with consent, the saved IVA correction becomes a training example the user approves
+await page.getByText("Usar mis correcciones para reentrenar").click();
+await page.getByRole("button", { name: "Buscar ejemplos nuevos" }).click();
+const example = page.getByTestId("evo-example").filter({ hasText: "Tienes razón" });
+await example.waitFor({ timeout: 10000 });
+await page.screenshot({ path: `${out}/07x-evolution-examples.png` });
+await example.getByRole("button", { name: "Aprobar" }).click();
+await page.getByRole("link", { name: "Descargar ejemplos (.jsonl)" }).waitFor();
+const examples = await page.evaluate(() => fetch("/api/evolution/training.jsonl").then((r) => r.text()));
+if (!examples.includes("Tienes razón") || !examples.includes('"source": "spike-correction"')) fail("exported training examples");
 await page.keyboard.press("Escape");
 
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API

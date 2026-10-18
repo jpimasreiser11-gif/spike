@@ -138,6 +138,17 @@ from the chat route. `checks.py` is `spike evolve check`; `adapters.py` installs
 `acceptance.py` (a test-checked copy of the training rule) passes, keeps every file in `adapters/history` by
 checksum and rolls back by hard link.
 
+**Evolution levels 2–3 (D).** `prompts.py` searches a `Variant` (instruction lines plus a mode per skill) for one
+specialist: every one-step move from the best so far is scored on the user's accepted candidates with checks,
+answered by `checks.answer_with_variant` without memory at temperature 0; a move counts only if it passes more and
+loses none, the winner is re-run, and `AppState.optimize_prompt` adds `spike evolve check` as the gate. Every attempt
+is a `prompt:<specialist>` version (active only if accepted); `AppState.learned_prompts()` passes the active ones to
+the orchestrator as `learned_instructions` (a prompt section) and `learned_skills` (forced or disabled skills).
+`dataset.py` turns corrections into `example` items only when the setting `evolution.training_data` is on and both
+answers' `meta.route` names `spike-local`; approved ones export through `GET /api/evolution/{training,preferences}.jsonl`
+or `spike evolve dataset`. `adapters.install_checked` reloads the engine with the new adapter, answers the same
+eval and rolls back on any loss.
+
 **Collective and Forge (C2).** Planner subtasks carry a role (`research` or `execute`); the checker and the
 integrator are fixed stages after any multi-step plan. Forge (`spike/forge/`) adds a first phase: `POST
 /api/forge/blueprint` drafts goal, requirements, steps (specialist, role, instruction, dependencies, files to save)

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
 import type { CheckResult, Checks, EvolutionItem, EvolutionOverview, RouterSplit, Settings } from "../types";
+import { LearnedPrompts, TrainingExamples } from "./EvolutionLearning";
 import { IconCopy } from "./Icons";
 
 export const E = lang === "es"
@@ -148,12 +149,14 @@ export function Evolution({ settings, save }: { settings: Settings; save: (p: Pa
   const [checking, setChecking] = useState(false);
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
+  const [loads, setLoads] = useState(0);
   const evo = settings.evolution ?? { enabled: true, auto_router: true };
 
   const load = async () => {
     try {
       setOverview(await api.get<EvolutionOverview>("/api/evolution"));
       setItems(await api.get<EvolutionItem[]>("/api/evolution/items"));
+      setLoads((n) => n + 1);
     } catch (e) { setErr(String((e as Error).message)); }
   };
   useEffect(() => { load(); }, []);
@@ -209,6 +212,10 @@ export function Evolution({ settings, save }: { settings: Settings; save: (p: Pa
         <span className="small"><b>{of("candidate", "accepted").length}</b> {E.acceptedN}</span>
         {of("candidate", "accepted").length > 0 && <a className="btn small" href="/api/evolution/candidates.jsonl" download>{E.exportJsonl}</a>}
       </div>
+
+      <LearnedPrompts version={loads} />
+      <TrainingExamples enabled={!!evo.training_data} items={items} run={run}
+        setEnabled={(on) => save({ evolution: { ...evo, training_data: on } })} />
 
       <h3>{E.failures}</h3>
       <p className="small muted">{E.failuresHint}</p>

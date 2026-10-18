@@ -157,6 +157,8 @@ def test_suggested_checks_and_judging():
     ok, problems = judge("Es del 18%.", None, {"include": ["21%"], "exclude": ["18%"]})
     assert not ok and problems == ["missing '21%'", "contains '18%'"]
     assert judge("", "boom", {}) == (False, ["error: boom"])
+    assert judge("Es del **21\u00a0%**.", None, {"include": ["21%"], "exclude": ["18 %"]}) == (True, [])  # "21 %" is 21%
+    assert judge("Es del 18%.", None, {"exclude": ["18 %"]}) == (False, ["contains '18 %'"])
 
 
 def test_contamination_flags_known_questions_only():

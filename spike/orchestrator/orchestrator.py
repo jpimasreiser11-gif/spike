@@ -84,6 +84,8 @@ class OrchestratorOptions:
     design: DesignSystem | None = None  # Spike Design: pages, slides and documents follow this design system
     view_context: str = ""  # MCP Apps: what the views the user is looking at reported (data, not instructions)
     skills: list[str] = field(default_factory=list)  # chosen for this run (a Creator template) instead of searched
+    learned_instructions: dict[str, list[str]] = field(default_factory=dict)  # Evolution level 2, per specialist
+    learned_skills: dict[str, dict[str, str]] = field(default_factory=dict)  # skill -> "always" | "off", per specialist
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -131,6 +133,9 @@ class Orchestrator:
                 parts.append(section)
         if opts.specialist_instructions.get(spec.id, "").strip():
             parts.append(f"# Instructions for {spec.name}\n" + opts.specialist_instructions[spec.id].strip())
+        if opts.learned_instructions.get(spec.id):
+            parts.append("# Learned instructions (kept because they passed the user's eval)\n"
+                         + "\n".join(f"- {line}" for line in opts.learned_instructions[spec.id]))
         if opts.app_instructions.strip():
             parts.append("# Instructions from the application calling SPIKE\n" + opts.app_instructions.strip())
         if opts.view_context.strip():
@@ -160,7 +165,10 @@ class Orchestrator:
             mode = "router" if backend.provider.config.local else "model"
         if mode == "model" and not opts.tools_enabled:
             mode = "router"
-        disabled = set(opts.disabled_skills)
+        learned = opts.learned_skills.get(spec.id, {})
+        disabled = set(opts.disabled_skills) | {name for name, m in learned.items() if m == "off"}
+        forced = [s for name, m in learned.items() if m == "always" and name not in disabled
+                  and (s := self.skills.get(name))]
         if opts.skills:  # chosen for the run: every step that produces something follows them, research steps don't
             picked = [s for s in map(self.skills.get, opts.skills) if s and s.name not in disabled]
             if role == "research" or not picked:
@@ -170,15 +178,21 @@ class Orchestrator:
                     {"type": "skill", "names": [s.name for s in picked], "mode": "chosen", "specialist": spec.id})
         if mode == "router":
             picked = self.skills.select(text, spec.id, disabled)
+            picked += [s for s in forced if s.name not in {p.name for p in picked}]
             if not picked:
                 return "", [], None
-            budget = max(256, min(3000, backend.context_budget // 4))
+            budget = max(256, min(3000, backend.context_budget // 4)) // len(picked)
             return ("\n\n".join(skill_prompt(s, budget) for s in picked), [],
                     {"type": "skill", "names": [s.name for s in picked], "mode": "router", "specialist": spec.id})
         available = self.skills.available(spec.id, disabled)
-        if not available:
+        if not available and not forced:
             return "", [], None
-        return catalog_prompt(available), [LoadSkill(available)], None
+        budget = max(256, min(3000, backend.context_budget // 4)) // max(1, len(forced))
+        always = "\n\n".join(skill_prompt(s, budget) for s in forced)
+        rest = [s for s in available if s.name not in {f.name for f in forced}]
+        section = "\n\n".join(x for x in (always, catalog_prompt(rest) if rest else "") if x)
+        return section, [LoadSkill(rest)] if rest else [], (
+            {"type": "skill", "names": [s.name for s in forced], "mode": "learned", "specialist": spec.id} if forced else None)
 
     def _route_event(self, decision: RouteDecision, specs: list[Specialist]) -> Event:
         return {

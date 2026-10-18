@@ -68,7 +68,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "disabled_skills": [],
     # Evolution: learn from corrections, route corrections and failures on this computer; a learned router is used
     # only after it passes its gate, and every version can be rolled back
-    "evolution": {"enabled": True, "auto_router": True},
+    "evolution": {"enabled": True, "auto_router": True, "training_data": False},  # training_data: opt-in (level 3)
     # the browser connector's domains ("allow" | "deny") and what other domains do ("ask" | "allow")
     "browser": {"domains": {}, "unknown": "ask"},
     # Spike Finance: public prices from this exchange; real orders off until the user sets them up
@@ -106,6 +106,7 @@ class AppState:
         self.provider_factory = provider_factory
         self._providers: dict[str, Provider] = {}
         self.installed_adapters: dict[str, set[str]] = {}
+        self.optimizing = False  # Evolution level 2 runs one optimisation at a time
         self.runtime: LlamaServer | None = None
         self.broker = PermissionBroker(self.settings()["tool_policies"])
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
@@ -294,7 +295,16 @@ class AppState:
             use_planner=s["use_planner"], parallel=s["parallel"], temperature=s["temperature"],
             max_tokens=s["max_tokens"], reasoning=s["reasoning"], tools_enabled=s["tools_enabled"],
             design=self.designs.get((project or {}).get("design") or ""),  # the project's, unless the chat picks one
+            **self.learned_prompts(),
         )
+
+    def learned_prompts(self) -> dict[str, Any]:
+        """Evolution level 2: each specialist's active learned instructions and skill modes."""
+        from spike.evolution.prompts import learned
+
+        found = learned(self.evolution.store, list(self.catalog.specialists))
+        return {"learned_instructions": {k: list(v.instructions) for k, v in found.items() if v.instructions},
+                "learned_skills": {k: v.skill_modes() for k, v in found.items() if v.skills}}
 
     def providers_for_run(self, override_provider: str | None) -> set[str]:
         return {self.binding(spec, override_provider)[0] for spec in self.catalog.specialists.values()}
@@ -432,10 +442,42 @@ class AppState:
             previous = self.evolution.store.rollback("router")
             self.reload_catalog()
             return previous
+        if component.startswith("prompt:") and component[7:] in self.catalog.specialists:
+            return self.evolution.store.rollback(component)
         spec = self.catalog.specialists.get(component.removeprefix("adapter:"))
         if not component.startswith("adapter:") or spec is None:
             raise LookupError(f"unknown component '{component}'")
         return adapters.rollback(self.evolution.store, self.adapters_path(), spec)
+
+    def build_examples(self) -> dict[str, Any]:
+        """Evolution level 3: saved corrections become training examples, only with the user's consent."""
+        from spike.evolution import dataset
+
+        if not self.evolution_settings()["training_data"]:
+            raise PermissionError("turn on “Use my corrections to retrain” in Settings → Evolution first")
+        base = self.base_catalog()
+        return dataset.build(self.evolution, self.store,
+                             lambda sid: base.specialists[sid].system_prompt if sid in base.specialists else "")
+
+    async def optimize_prompt(self, specialist: str, typed: list[str] | None = None, max_calls: int | None = None,
+                              progress=None, answer=None) -> dict[str, Any]:
+        """Evolution level 2 for one specialist (spike.evolution.prompts); `answer` replaces the model in tests."""
+        from spike.evolution import prompts
+        from spike.evolution.checks import answer_with_variant, catalog_check, router_check, skills_check
+
+        if specialist not in self.catalog.specialists:
+            raise ValueError(f"unknown specialist '{specialist}'")
+        skills = [s.name for s in self.skills.all() if specialist in (s.specialists or [])]
+
+        def gate() -> tuple[bool, str]:
+            checks = [router_check(self), catalog_check(self), skills_check(self)]
+            return all(c["ok"] for c in checks), "; ".join(c["detail"] for c in checks if not c["ok"])
+
+        return await prompts.optimize(
+            self.evolution.store, specialist, prompts.eval_set(self.evolution.store, specialist),
+            answer or (lambda q, v: answer_with_variant(self, q, specialist, v)),
+            prompts.ideas_for(self.evolution.store, specialist, typed), skills,
+            max_calls or prompts.MAX_CALLS, progress, gate)
 
     # ------------------------------------------------------------------ memory
     def memory_settings(self) -> dict[str, Any]:

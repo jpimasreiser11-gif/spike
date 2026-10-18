@@ -83,6 +83,7 @@ Spike Finance reads public prices, runs backtests, measures portfolio risk and k
 Spike Data answers questions about CSV, Excel, Parquet, JSON or SQLite files with SQL it shows you, draws charts from the results and exports the analysis as a page, Word or PDF.
 Crear (Create) turns a template (web page, app, dashboard, data to app, Word document, presentation, automation) and a few answers into a Forge plan you review; the team builds it with the template's skill and your design system and checks it against the plan.
 Spike Motion makes videos from code: the model writes an animated HTML/SVG scene and SPIKE renders it frame by frame to MP4, WebM or GIF, in the chat or with `spike render escena.html` (needs ffmpeg and Chrome or Chromium; `spike render --install-browser` downloads Chromium).
+SPIKE improves from your use, on your computer: it tries the rules from your corrections on each specialist's prompt and keeps them only if more of your eval questions pass (`spike evolve optimize medicine`); with your consent, approved corrections become retraining data (`spike evolve dataset`).
 To code in a folder from the terminal: `spike dev [folder]` (edits and commands ask first; `/undo` puts files back).
 Connectors (MCP servers) can bring their own views (MCP Apps), which SPIKE shows isolated next to the tool's result.
 Other agents can use SPIKE too: as an OpenAI-compatible endpoint (`/v1`) or as an MCP server (`spike mcp`, for

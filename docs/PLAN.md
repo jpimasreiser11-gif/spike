@@ -168,7 +168,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ✅ results checked against hand-computed values, locked DuckDB, report as page/Word/PDF, browser smoke |
 | C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ✅ 7 templates pass Forge's own blueprint check, skills only in the steps that produce files, design system applied, browser smoke; 🟡 real-weight runs not measured |
 | D1 | Motion: video from code (animated HTML/SVG/canvas scenes played on a virtual clock in an offline Chromium, encoded with ffmpeg; not Remotion, whose license is not OSI; no video models) | ✅ frame-exact and repeatable, no network, MP4/WebM/GIF, chat player, Creator template, `spike render`; 🟡 4B scene quality not measured |
-| D2 | Evolution levels 2–3 (prompt/skill optimisation against local evals, opt-in corrections as retraining data; nothing ships without passing the eval) | ⬜ |
+| D2 | Evolution levels 2–3 (prompt/skill optimisation against local evals, opt-in corrections as retraining data; nothing ships without passing the eval) | ✅ optimisation kept only with more eval questions passed, none lost, a second run and the regression check; consented, local-model-only corrections → SFT/DPO files; adapters rolled back if they lose on the user's eval; 🟡 real gains with a 4B model not measured |
 
 ## 26. Specialist improvement loop (adopted 2026-10-17)
 The founder asked to keep training and improving the specialists even when a first round does not pass. Fixed rules:

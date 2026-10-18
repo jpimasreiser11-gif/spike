@@ -171,9 +171,43 @@ def cmd_evolve(args: argparse.Namespace) -> int:
                               f"{a[split]['primary']:.2f}, exact {b[split]['exact']:.2f} -> {a[split]['exact']:.2f}")
                 print("Accepted: now in use." if report["accepted"] else "Not used: " + "; ".join(report["reasons"]))
                 return 0 if report["accepted"] else 1
+            if args.action == "optimize":
+                if not args.component:
+                    print("error: name the specialist to optimise, e.g. spike evolve optimize medicine", file=sys.stderr)
+                    return 2
+
+                async def show(ev: dict) -> None:
+                    print(f"  [{ev['calls']} answers] trying {ev['label']}", flush=True)
+
+                report = await state.optimize_prompt(args.component, args.try_line, args.max_calls, show)
+                if args.json:
+                    print(json.dumps(report, indent=2, ensure_ascii=False))
+                elif "baseline" in report:
+                    b = report["baseline"]
+                    print(f"In use: {b['passed']}/{b['total']} of your eval questions pass.")
+                    if report.get("confirmed"):
+                        c = report["confirmed"]
+                        print(f"Best: {c['passed']}/{c['total']} on its second run, with: {'; '.join(report['changes'])}")
+                print("Accepted: now in use." if report["accepted"] else "Nothing changed: " + "; ".join(report["reasons"]))
+                return 0 if report["accepted"] else 1
+            if args.action == "dataset":
+                from spike.evolution import dataset
+
+                made = state.build_examples()
+                approved = list(reversed(state.evolution.store.items("example", "approved")))
+                out = Path(args.component or ".")
+                out.mkdir(parents=True, exist_ok=True)
+                (out / "spike-training.jsonl").write_text(dataset.export_chats(approved), encoding="utf-8")
+                (out / "spike-preferences.jsonl").write_text(dataset.export_pairs(approved), encoding="utf-8")
+                waiting = len(state.evolution.store.items("example", "proposed"))
+                print(f"{made['proposed']} new examples to review, {made['skipped']} not usable; {waiting} waiting for "
+                      f"your review in Settings → Evolution. Wrote {len(approved)} approved examples to "
+                      f"{out / 'spike-training.jsonl'} and {out / 'spike-preferences.jsonl'}.")
+                return 0
             if args.action == "rollback":
                 if not args.component:
-                    print("error: name what to roll back: router or adapter:<specialist>", file=sys.stderr)
+                    print("error: name what to roll back: router, adapter:<specialist> or prompt:<specialist>",
+                          file=sys.stderr)
                     return 2
                 previous = state.rollback(args.component)
                 print(f"{args.component}: " + (f"back to v{previous['id']} ({previous['reason']})" if previous
@@ -188,7 +222,7 @@ def cmd_evolve(args: argparse.Namespace) -> int:
             else:
                 print(out, end="")
             return 0
-        except (LookupError, ValueError, FileNotFoundError) as exc:
+        except (LookupError, ValueError, FileNotFoundError, PermissionError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 1
         finally:
@@ -291,22 +325,56 @@ def cmd_dev(args: argparse.Namespace) -> int:
 
 def cmd_adapters(args: argparse.Namespace) -> int:
     from spike.evolution import adapters
+    from spike.evolution.checks import answer_with_spike
+    from spike.evolution.prompts import eval_set
     from spike.server.state import AppState
 
-    state = AppState()
+    async def run() -> tuple[str, dict]:
+        state = AppState()
+        try:
+            spec = state.catalog.get(args.specialist)
+            questions = [] if args.skip_local_eval else eval_set(state.evolution.store, spec.id)
+
+            async def reload() -> None:  # llama-server loads the adapters in place when it starts
+                try:
+                    await state.start_runtime()
+                except (OSError, RuntimeError, ValueError) as exc:
+                    raise RuntimeError(f"could not start the local engine for your eval ({exc}); close the SPIKE app "
+                                       "first, since its engine keeps the old adapter loaded, or pass "
+                                       "--skip-local-eval") from exc
+                state.installed_adapters.clear()
+
+            if questions:
+                await reload()
+            result = await adapters.install_checked(
+                state.evolution.store, state.adapters_path(), spec, Path(args.gguf), Path(args.eval), questions,
+                lambda q: answer_with_spike(state, {**q, "specialist": spec.id}), reload,
+                Path(args.config) if args.config else None, args.variant)
+            return spec.id, result
+        finally:
+            await state.stop_runtime()
+            await state.close()
+
     try:
-        spec = state.catalog.get(args.specialist)
-        result = adapters.install(state.evolution.store, state.adapters_path(), spec, Path(args.gguf),
-                                  Path(args.eval), Path(args.config) if args.config else None, args.variant)
-    except (KeyError, ValueError, FileNotFoundError) as exc:
+        sid, result = asyncio.run(run())
+    except (KeyError, ValueError, FileNotFoundError, RuntimeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     v = result["version"]
     if result.get("unchanged"):
-        print(f"{spec.id}: this adapter is already in use (v{v['id']}).")
+        print(f"{sid}: this adapter is already in use (v{v['id']}).")
         return 0
     for reason in v["report"]["reasons"]:
         print(f"  {reason}")
+    local = result.get("local_eval")
+    if local:
+        print(f"  your eval for {sid}: {local['before']}/{local['questions']} before, {local['after']}/"
+              f"{local['questions']} with the new adapter" + (f"; lost: {', '.join(local['lost'])}" if local["lost"] else ""))
+    if result.get("rolled_back"):
+        print(f"Not kept: the new adapter does worse on your own eval for {sid}, so the previous one is back.")
+        return 1
+    if local is None:
+        print("  no accepted eval questions with checks for this specialist: only the training eval was checked")
     print(f"Installed {result['path']} as {v['component']} v{v['id']}. Restart the local engine (or the SPIKE app) "
           f"to load it. Go back with: spike evolve rollback {v['component']}")
     return 0
@@ -466,9 +534,13 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--quick", action="store_true", help="shorter runs (less precise)")
     t.set_defaults(func=cmd_tune)
 
-    ev = sub.add_parser("evolve", help="check, learn or roll back what SPIKE learned from its use")
-    ev.add_argument("action", choices=["check", "router", "rollback", "export"])
-    ev.add_argument("component", nargs="?", help="rollback: router or adapter:<specialist>; export: output file")
+    ev = sub.add_parser("evolve", help="check, learn, optimise or roll back what SPIKE learned from its use")
+    ev.add_argument("action", choices=["check", "router", "optimize", "dataset", "rollback", "export"])
+    ev.add_argument("component", nargs="?", help="optimize: a specialist; dataset: output folder; rollback: router, "
+                                                 "adapter:<specialist> or prompt:<specialist>; export: output file")
+    ev.add_argument("--try", dest="try_line", action="append", default=[],
+                    help="optimize: an instruction line to try, besides the rules saved from corrections")
+    ev.add_argument("--max-calls", type=int, help="optimize: at most this many model answers (default 120)")
     ev.add_argument("--replay", action="store_true", help="check: answer the accepted eval candidates again")
     ev.add_argument("--json", action="store_true")
     ev.set_defaults(func=cmd_evolve)
@@ -504,6 +576,8 @@ def build_parser() -> argparse.ArgumentParser:
     ad.add_argument("--eval", required=True, help="eval run directory (or its summary.json) from evals/run_eval.py")
     ad.add_argument("--config", help="training config whose acceptance rule to apply (training/configs/<id>.yaml)")
     ad.add_argument("--variant", help="the adapter's variant name in the eval run, when it has several")
+    ad.add_argument("--skip-local-eval", action="store_true",
+                    help="do not check the adapter against your accepted eval questions (Settings → Evolution)")
     ad.set_defaults(func=cmd_adapters)
 
     mc = sub.add_parser("mcp", help="serve SPIKE's specialists as MCP tools over stdio (Claude Code, Cursor, Codex)")

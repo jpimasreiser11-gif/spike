@@ -129,3 +129,31 @@ def rollback(evo: EvolutionStore, adapters: Path, spec: Specialist) -> dict[str,
     else:
         _place(Path(previous["data"]["file"]), dest)
     return previous
+
+
+async def install_checked(evo: EvolutionStore, adapters: Path, spec: Specialist, gguf: Path, eval_path: Path,
+                          questions: list[dict[str, Any]], answer, reload, config: Path | None = None,
+                          variant: str | None = None) -> dict[str, Any]:
+    """`install`, then the user's own eval for this specialist (Evolution level 3: never deploy without passing it).
+    `answer(question)` asks the specialist; `reload()` restarts the engine so it loads the adapter in place. The
+    new adapter stays only if it passes at least as many of the questions as the one before and fails none that
+    one passed; otherwise the previous adapter goes back and the result says why."""
+    from spike.evolution.prompts import Variant, score
+
+    async def ask(q: dict[str, Any], _: Variant) -> tuple[str, str | None]:
+        return await answer(q)
+
+    before = await score(Variant(), questions, ask) if questions else None
+    result = install(evo, adapters, spec, gguf, eval_path, config, variant)
+    if before is None or result.get("unchanged"):
+        return {**result, "local_eval": None}
+    await reload()
+    after = await score(Variant(), questions, ask)
+    lost = sorted(before.passed - after.passed)
+    local = {"questions": len(questions), "before": len(before.passed), "after": len(after.passed), "lost": lost,
+             "failed": after.failed}
+    if lost or len(after.passed) < len(before.passed):
+        rollback(evo, adapters, spec)
+        await reload()
+        return {**result, "local_eval": local, "rolled_back": True}
+    return {**result, "local_eval": local, "rolled_back": False}

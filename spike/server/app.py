@@ -167,7 +167,7 @@ class RouteIn(BaseModel):
 
 
 class EvolutionItemPatch(BaseModel):
-    status: Literal["proposed", "accepted", "rejected", "new", "ignored"] | None = None
+    status: Literal["proposed", "accepted", "approved", "rejected", "new", "ignored"] | None = None
     question: str | None = Field(default=None, max_length=4000)  # candidates
     checks: dict[str, list[str]] | None = None
     cause: str | None = Field(default=None, max_length=4000)  # failures
@@ -188,7 +188,12 @@ class CheckIn(BaseModel):
 
 
 class RollbackIn(BaseModel):
-    component: str  # "router" or "adapter:<specialist>"
+    component: str  # "router", "adapter:<specialist>" or "prompt:<specialist>"
+
+
+class OptimizeIn(BaseModel):
+    instructions: list[str] = Field(default_factory=list, max_length=8)  # lines to try, besides the saved rules
+    max_calls: int | None = Field(default=None, ge=1, le=500)
 
 
 class UndoIn(BaseModel):
@@ -1099,6 +1104,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, str(exc)) from exc
         if item["kind"] == "route" and body.status in ("new", "ignored"):
             return evo.store.update(iid, status=body.status)
+        if item["kind"] == "example" and item["status"] != "skipped" and body.status in ("proposed", "approved", "rejected"):
+            return evo.store.update(iid, status=body.status)
         raise HTTPException(400, f"a {item['kind']} cannot be changed this way")
 
     @app.delete("/api/evolution/items/{iid}")
@@ -1128,6 +1135,75 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         from spike.evolution.checks import run_checks
 
         return await run_checks(st(), replay=body.replay)
+
+    @app.get("/api/evolution/prompts")
+    async def learned_prompts() -> list[dict]:
+        from spike.evolution import prompts
+
+        state = st()
+        store = state.evolution.store
+        return [{"specialist": spec.id, "name": spec.name, "questions": len(prompts.eval_set(store, spec.id)),
+                 "ideas": prompts.ideas_for(store, spec.id), "active": store.active(prompts.component(spec.id)),
+                 "versions": store.versions(prompts.component(spec.id))[:5],
+                 "skills": [s.name for s in state.skills.all() if spec.id in (s.specialists or [])]}
+                for spec in state.catalog.specialists.values()]
+
+    @app.post("/api/evolution/prompts/{specialist}/optimize")
+    async def optimize_prompt(specialist: str, body: OptimizeIn) -> StreamingResponse:
+        """Evolution level 2 with its progress as server-sent events; one at a time, so the computer stays usable."""
+        state = st()
+        if specialist not in state.catalog.specialists:
+            raise HTTPException(404, f"unknown specialist '{specialist}'")
+        if state.optimizing:
+            raise HTTPException(409, "an optimisation is already running")
+        state.optimizing = True
+        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+
+        async def work() -> None:
+            try:
+                report = await state.optimize_prompt(specialist, body.instructions, body.max_calls, queue.put)
+                await queue.put({"type": "done", "report": report})
+            except Exception as exc:  # the client must hear why it stopped
+                await queue.put({"type": "error", "message": f"{exc.__class__.__name__}: {exc}"})
+            finally:
+                state.optimizing = False
+
+        async def stream():
+            task = asyncio.create_task(work())
+            try:
+                while True:
+                    ev = await queue.get()
+                    yield _sse(ev)
+                    if ev["type"] in ("done", "error"):
+                        break
+            finally:
+                if not task.done():  # the user left: stop answering questions
+                    task.cancel()
+
+        return StreamingResponse(stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.post("/api/evolution/examples/build")
+    async def build_examples() -> dict:
+        try:
+            return st().build_examples()
+        except PermissionError as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+    @app.get("/api/evolution/{name}.jsonl")
+    async def export_examples(name: str) -> Response:
+        """Approved correction examples: `training` (chats for SFT) or `preferences` (pairs for DPO)."""
+        from spike.evolution import dataset
+
+        state = st()
+        if name not in ("training", "preferences"):
+            raise HTTPException(404, "not found")
+        if not state.evolution_settings()["training_data"]:
+            raise HTTPException(409, "turn on “Use my corrections to retrain” in Settings → Evolution first")
+        approved = list(reversed(state.evolution.store.items("example", "approved")))
+        body = dataset.export_chats(approved) if name == "training" else dataset.export_pairs(approved)
+        return Response(body, media_type="application/x-ndjson",
+                        headers={"Content-Disposition": f'attachment; filename="spike-{name}.jsonl"'})
 
     @app.post("/api/evolution/rollback")
     async def evolution_rollback(body: RollbackIn) -> dict:

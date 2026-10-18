@@ -184,6 +184,8 @@ class DemoProvider(Provider):
                       "\nbody{background:var(--bg);color:var(--fg);font-family:var(--font-body)}"
                       "\n.cta{background:var(--accent);color:var(--accent-on);border:0;padding:12px 20px;"
                       "border-radius:var(--radius-md)}</style>\n<h1>Landing</h1>\n<button class=\"cta\">Empezar</button>\n```")
+        elif last.role == "user" and last.content.startswith("No, el IVA general en España es del 21 %"):
+            answer = "Tienes razón: el IVA general en España es del **21 %**."
         elif last.role == "user" and "página" in last.content.lower():
             answer = "Aquí tienes la página:\n\n```html\n" + PROBE_PAGE + "\n```"
         elif last.role == "user" and "# Project instructions" in system:

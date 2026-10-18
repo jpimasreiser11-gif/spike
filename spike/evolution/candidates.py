@@ -26,6 +26,7 @@ NUMBER = re.compile(r"(?<![\w.,])\d+(?:[.,]\d+)*(?:\s?%)?")
 WORD = re.compile(r"[a-z0-9]+")
 NEGATION = re.compile(r"(?:\b(?:no|not|ni|nunca|never|en vez|en lugar|instead|rather than)\b|\bno es\b)[^\d]{0,14}$")
 OPENER = re.compile(r"^\s*(?:no|nope|not)\s*[,.!:;-]+", re.I)
+PERCENT_SPACE = re.compile(r"(?<=\d)\s+(?=%)")
 NGRAM = 3
 TOO_CLOSE = 0.6  # share of a question's word trigrams found in one reference question
 EVAL_DATA = Path(__file__).resolve().parents[2] / "evals" / "data"  # only in a source checkout
@@ -89,12 +90,17 @@ def contamination(question: str, refs: list[tuple[str, str]]) -> dict[str, Any] 
     return {"score": round(best[0], 2), "with": best[1], "text": best[2][:200]}
 
 
+def _flat(text: str) -> str:
+    """Lower case without accents, and "21 %" written like "21%" (Spanish puts a space before the sign)."""
+    return PERCENT_SPACE.sub("", normalize(text))
+
+
 def judge(text: str, error: str | None, checks: dict[str, list[str]]) -> tuple[bool, list[str]]:
     """Apply a candidate's checks to an answer: (passed, what failed)."""
-    found = normalize(text)
+    found = _flat(text)
     problems = [f"error: {error}"] if error else []
-    problems += [f"missing '{s}'" for s in checks.get("include") or [] if normalize(s) not in found]
-    problems += [f"contains '{s}'" for s in checks.get("exclude") or [] if normalize(s) in found]
+    problems += [f"missing '{s}'" for s in checks.get("include") or [] if _flat(s) not in found]
+    problems += [f"contains '{s}'" for s in checks.get("exclude") or [] if _flat(s) in found]
     return not problems, problems
 
 

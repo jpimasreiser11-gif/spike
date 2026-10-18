@@ -3,8 +3,9 @@ $SPIKE_HOME/evolution.db. Nothing in it leaves the computer.
 
 Items: `correction` (a rule saved from a correction, with the question and the answer it corrected), `route` (the
 user retried an answer with another specialist), `failure` (a run or tool error, with the cause and fix the user
-writes) and `candidate` (a proposed eval question made from the others). Versions: one row per change of a
-component (`router`, `adapter:<specialist>`); at most one is active, and rolling back activates the version it
+writes), `candidate` (a proposed eval question made from the others) and `example` (a correction as training
+data, only when the user opted in). Versions: one row per change of a component (`router`, `adapter:<specialist>`,
+`prompt:<specialist>`); at most one is active, and rolling back activates the version it
 replaced (none active means the built-in behaviour)."""
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ CREATE TABLE IF NOT EXISTS versions (
 );
 CREATE INDEX IF NOT EXISTS versions_by_component ON versions(component, id);
 """
-KINDS = {"correction", "route", "failure", "candidate"}
+KINDS = {"correction", "route", "failure", "candidate", "example"}
 MAX_ITEMS = 2000  # per kind; the oldest are dropped first
 
 

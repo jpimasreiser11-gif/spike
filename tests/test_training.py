@@ -341,8 +341,11 @@ def test_client_always_sends_explicit_scales():
         client.lora("spike-law")
 
 
-def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
-    """prepare.py on in-memory rows: license gate, decontamination, replay mix, mlx-lm config, manifest."""
+LEAKED = "which drug is first line for uncomplicated hypertension in a young adult with no other conditions today"
+
+
+def run_prepare(tmp_path, monkeypatch, extra: list[str] | None = None):
+    """prepare.py for medicine on in-memory rows; returns its output folder."""
     import prepare
     import yaml
 
@@ -350,7 +353,7 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
         return {**MEDMCQA, "id": f"m{i}", "question": q or f"Case {i}: which vitamin deficiency causes symptom {i} in "
                 f"patients who report bleeding gums and slow wound healing after months of poor diet?"}
 
-    leaked = "which drug is first line for uncomplicated hypertension in a young adult with no other conditions today"
+    leaked = LEAKED
     rows = {
         "medmcqa": [med(i) for i in range(40)] + [med(99, leaked)] + [med(98, "LONG " + "word " * 30)],
         "pubmedqa-artificial": [{**PUBMED, "pubid": i, "question": f"Does treatment {i} reduce mortality?"} for i in range(10)],
@@ -374,9 +377,17 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
         100_000 if "LONG" in chat["messages"][1]["content"] else 100))
     monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: {
         s["hub"]: s["license"] for s in registry.values()}[repo])
-    monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training/configs/medicine.yaml"), "--out", str(tmp_path)])
+    monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training/configs/medicine.yaml"), "--out", str(tmp_path),
+                                      *(extra or [])])
     assert prepare.main() == 0
-    out = tmp_path / "medicine"
+    return tmp_path / "medicine"
+
+
+def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
+    """prepare.py on in-memory rows: license gate, decontamination, replay mix, mlx-lm config, manifest."""
+    import yaml
+
+    out = run_prepare(tmp_path, monkeypatch)
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["dropped"]["contaminated"] == 1  # the leaked eval question never reaches training
     assert manifest["dropped"]["too_long"] == 1  # longer than max_seq_length: dropped, never truncated
@@ -393,6 +404,29 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     assert mlx["lora_parameters"]["keys"][0] == "self_attn.q_proj" and mlx["mask_prompt"] is True
     lines = (out / "train.jsonl").read_text().splitlines()
     assert len(lines) == counts["train"] and all(json.loads(x)["messages"][-1]["role"] == "assistant" for x in lines)
+
+
+def test_prepare_adds_the_users_approved_corrections_for_its_specialist(tmp_path, monkeypatch):
+    """Evolution level 3: `spike evolve dataset` output joins the domain data, only for the config's specialist,
+    under its system prompt, decontaminated like the rest."""
+    from spike.specialists.catalog import load_catalog
+
+    def example(specialist, question, answer="Una respuesta corregida y completa sobre la dosis adecuada."):
+        return json.dumps({"messages": [{"role": "system", "content": "otro prompt"}, {"role": "user", "content": question},
+                                        {"role": "assistant", "content": answer}],
+                           "meta": {"specialist": specialist, "source": "spike-correction"}})
+
+    corrections = tmp_path / "spike-training.jsonl"
+    corrections.write_text("\n".join([example("medicine", "¿Qué dosis de paracetamol es segura para un adulto sano?"),
+                                      example("medicine", LEAKED), example("finance", "¿Qué es el EBITDA?")]) + "\n")
+    out = run_prepare(tmp_path / "data", monkeypatch, ["--corrections", str(corrections)])
+    manifest = json.loads((out / "manifest.json").read_text())
+    assert manifest["sources"]["corrections:spike-training.jsonl"]["kept"] == 1  # the leaked one and finance's are out
+    assert manifest["counts"]["domain"] == 51 and manifest["dropped"]["contaminated"] == 2
+    chats = [json.loads(x) for x in [*(out / "train.jsonl").read_text().splitlines(),
+                                     *(out / "valid.jsonl").read_text().splitlines()]]
+    mine = [c for c in chats if "paracetamol" in c["messages"][1]["content"]]
+    assert len(mine) == 1 and mine[0]["messages"][0]["content"] == load_catalog().get("medicine").system_prompt
 
 
 @pytest.mark.parametrize("source", ["smoltalk-constraints", "smoltalk-magpie-ultra"])
