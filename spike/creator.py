@@ -23,14 +23,16 @@ LANGS = ("es", "en")
 class Field:
     id: str
     label: dict[str, str]
-    kind: str = "text"  # text | textarea | number | file (a data file in the workspace or project)
+    kind: str = "text"  # text | textarea | number | choice | file (a data file in the workspace or project)
     required: bool = False
     placeholder: dict[str, str] = field(default_factory=dict)
     default: str = ""
+    options: list[str] = field(default_factory=list)  # a choice's values
 
     def public(self, lang: str) -> dict[str, Any]:
         return {"id": self.id, "label": self.label[lang], "kind": self.kind, "required": self.required,
-                "placeholder": self.placeholder.get(lang, ""), "default": self.default}
+                "placeholder": self.placeholder.get(lang, ""), "default": self.default,
+                **({"options": self.options} if self.kind == "choice" else {})}
 
 
 @dataclass
@@ -210,6 +212,34 @@ TEMPLATES: list[Template] = [
         {"es": "Crear una presentación: {about}", "en": "Create a presentation: {about}"},
         extras={"audience": {"es": " Para: {audience}.", "en": " For: {audience}."}}),
     Template(
+        "video", "film", {"es": "Vídeo animado", "en": "Animated video"},
+        {"es": "Un vídeo corto hecho con código: textos, formas y gráficos animados, en MP4.",
+         "en": "A short video made with code: animated text, shapes and charts, as MP4."},
+        [Field("about", {"es": "¿De qué trata?", "en": "What is it about?"}, "textarea", True,
+               {"es": "Ej.: presentar mi app de recetas en tres ideas y terminar con el logo",
+                "en": "E.g.: introduce my recipe app in three ideas and end with the logo"}),
+         Field("seconds", {"es": "Duración (segundos)", "en": "Length (seconds)"}, "number", default="10"),
+         Field("size", {"es": "Formato", "en": "Format"}, "choice", default="16:9", options=["16:9", "9:16", "1:1"])],
+        [Step("code", "execute", {
+            "es": "Crea escena.html, una escena animada de {seconds} segundos en formato {size} sobre {about}. Sigue "
+                  "la skill motion-scene: un único archivo con <meta name=\"spike-duration\" content=\"{seconds}\">, "
+                  "animaciones CSS o SVG con tiempos fijos y nada que cargue de internet. Guárdala con write_file y "
+                  "conviértela en video.mp4 con render_video (size {size}, fps 30). Si render_video avisa de errores, "
+                  "corrige la escena y vuelve a renderizar.",
+            "en": "Create escena.html, an animated scene of {seconds} seconds in {size} format about {about}. Follow "
+                  "the motion-scene skill: one file with <meta name=\"spike-duration\" content=\"{seconds}\">, CSS or "
+                  "SVG animations with fixed timings and nothing loaded from the internet. Save it with write_file and "
+                  "turn it into video.mp4 with render_video (size {size}, fps 30). If render_video reports errors, fix "
+                  "the scene and render again."}, ["escena.html", "video.mp4"])],
+        {"es": ["video.mp4 dura unos {seconds} segundos en formato {size}",
+                "Trata de lo pedido, con textos legibles el tiempo suficiente",
+                "render_video no informó de errores de JavaScript"],
+         "en": ["video.mp4 lasts about {seconds} seconds in {size} format",
+                "It covers the request, with text readable for long enough",
+                "render_video reported no JavaScript errors"]},
+        {"es": "Crear un vídeo animado: {about}", "en": "Create an animated video: {about}"},
+        skills=["motion-scene"], design=True),
+    Template(
         "automation", "bolt", {"es": "Automatización", "en": "Automation"},
         {"es": "Un script de Python que hace por ti una tarea repetitiva.", "en": "A Python script that does a repetitive task for you."},
         [Field("about", {"es": "¿Qué debe hacer?", "en": "What should it do?"}, "textarea", True,
@@ -255,6 +285,8 @@ def _answers(template: Template, given: Any, lang: str) -> dict[str, str]:
             raise CreatorError(f"'{f.label[lang]}' is required")
         if value and f.kind == "number" and not (value.isdigit() and 1 <= int(value) <= 40):
             raise CreatorError(f"'{f.label[lang]}' must be a whole number from 1 to 40")
+        if value and f.kind == "choice" and value not in f.options:
+            raise CreatorError(f"'{f.label[lang]}' must be one of {', '.join(f.options)}")
         if value and f.kind == "file":
             value = clean_path(value)
             if PurePosixPath(value).suffix.lower() not in FORMATS:

@@ -29,6 +29,7 @@ from spike.memory.learn import correction_rule, explicit_memories
 from spike.memory.service import Embedder, MemoryService, scopes_for
 from spike.memory.store import MemoryStore
 from spike.memory.tools import memory_tools
+from spike.motion.tools import motion_tools
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
@@ -119,7 +120,7 @@ class AppState:
         self.tools = default_registry(workspace_dir())
         workspace = Workspace(workspace_dir())
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
-                     *analytics_tools(workspace)]:
+                     *analytics_tools(workspace), *motion_tools(workspace)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -253,7 +254,7 @@ class AppState:
             registry = default_registry(folder)
             workspace = Workspace(folder)
             for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
-                         *analytics_tools(workspace)]:
+                         *analytics_tools(workspace), *motion_tools(workspace)]:
                 registry.register(tool)
             registry.shared = self.connectors.tools
             self._project_tools[project_id] = registry

@@ -14,7 +14,8 @@ const C = lang === "es"
       files: "Data files found", noFiles: "There are no data files in this folder: upload them to the project or put them in the workspace.",
       makes: "Makes", skills: "Follows the skill", reviewIntro: "This plan comes from the template and your answers. Review or change it and approve it." };
 
-export type TemplateField = { id: string; label: string; kind: "text" | "textarea" | "number" | "file"; required: boolean; placeholder: string; default: string };
+export type TemplateField = { id: string; label: string; kind: "text" | "textarea" | "number" | "choice" | "file"; required: boolean; placeholder: string;
+  default: string; options?: string[] };
 export type Template = { id: string; icon: string; name: string; description: string; fields: TemplateField[]; skills: string[]; design: boolean; deliverables: string[] };
 type Built = { task: string; blueprint: Blueprint; skills: string[]; design: boolean; template: string };
 export type CreatorExtra = { skills: string[]; design_system?: string };
@@ -27,6 +28,7 @@ const ICONS: Record<string, string> = {
   doc: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
   slides: "M3 5h18v11H3zM12 16v4m-4 0h8M7 9h6M7 12h4",
   bolt: "M13 3 5 14h6l-1 7 8-11h-6z",
+  film: "M4 5h16v14H4zM8 5v14M16 5v14M4 9.5h4M4 14.5h4M16 9.5h4M16 14.5h4",
 };
 
 function TemplateIcon({ name }: { name: string }) {
@@ -122,6 +124,10 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
                 {f.kind === "textarea" ? (
                   <textarea rows={3} required={f.required} value={answers[f.id] ?? ""} placeholder={f.placeholder}
                     onChange={(e) => setAnswers({ ...answers, [f.id]: e.target.value })} />
+                ) : f.kind === "choice" ? (
+                  <select value={answers[f.id] ?? f.default} onChange={(e) => setAnswers({ ...answers, [f.id]: e.target.value })}>
+                    {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
                 ) : (
                   <input type={f.kind === "number" ? "number" : "text"} min={f.kind === "number" ? 1 : undefined} max={f.kind === "number" ? 40 : undefined}
                     required={f.required} value={answers[f.id] ?? ""} placeholder={f.placeholder} list={f.kind === "file" ? `files-${f.id}` : undefined}

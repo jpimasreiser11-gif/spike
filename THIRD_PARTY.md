@@ -46,6 +46,8 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | PyTorch | BSD-style (Apache-2.0 AND BSD-3-Clause AND MIT AND others, per PyPI) | needed by llama.cpp's converter |
 | transformers, datasets, huggingface_hub, safetensors, sentencepiece | Apache-2.0 | training data and export |
 | numpy | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) | training and export |
+| [FFmpeg](https://ffmpeg.org) | LGPL-2.1+ (GPL-2.0+ for builds with libx264) | encodes Spike Motion videos; SPIKE runs the user's own `ffmpeg` binary |
+| Chromium / Google Chrome (Playwright's download, or the installed browser) | BSD-3-Clause (Chromium); Chrome under Google's terms | plays Spike Motion scenes |
 
 ## Skills shipped with SPIKE (`spike/skills/bundled/`, redistributed as verbatim copies with their licenses)
 
@@ -56,7 +58,7 @@ the upstream license file. SPIKE's routing hints for them live separately in `bi
 |---|---|---|
 | test-driven-development (+ writing-good-tests.md), systematic-debugging (+ 3 reference files), writing-plans, verification-before-completion | [obra/superpowers](https://github.com/obra/superpowers) | MIT, © 2025 Jesse Vincent (`LICENSE` in each folder) |
 | frontend-design, mcp-builder (+ 4 reference files), webapp-testing (+ scripts/with_server.py and 3 examples) | [anthropics/skills](https://github.com/anthropics/skills) | Apache-2.0 (`LICENSE.txt` in each folder) |
-| medical-evidence-summary, financial-ratio-analysis, campaign-brief | written for SPIKE | Apache-2.0 |
+| medical-evidence-summary, financial-ratio-analysis, campaign-brief, motion-scene | written for SPIKE | Apache-2.0 |
 | web-design-guidelines (+ `references/guidelines.md`, a pinned copy of Vercel's Web Interface Guidelines) | [nexu-io/open-design](https://github.com/nexu-io/open-design) `skills/`, from [vercel-labs/web-interface-guidelines](https://github.com/vercel-labs/web-interface-guidelines) | MIT, © 2025 Vercel Labs (`LICENSE` in the folder) |
 
 Not shipped: anthropics/skills `docx`, `pdf`, `pptx`, `xlsx` (source-available, not open source) and
@@ -127,6 +129,8 @@ code and includes nothing from that repository.
 | duckdb (optional, `data` extra: SQL over the user's data files) | 1.5.6 | MIT |
 | pandas (optional, `data`: Excel and SQLite loading, available to `data_python`) | 3.0.6 | BSD-3-Clause |
 | python-dateutil, six (pulled in by pandas) | 2.9.0.post0, 1.17.0 | Apache-2.0 OR BSD-3-Clause, MIT |
+| playwright (optional, `motion` extra: plays a video scene frame by frame in Chromium) | 1.56.0 | Apache-2.0 |
+| pyee, greenlet (pulled in by playwright) | 13.0.1, 3.5.6 | MIT, MIT AND PSF-2.0 |
 
 PDFs embed a subset of the first Unicode font found on the user's system (DejaVu Sans on Linux, Arial Unicode
 on macOS, Arial on Windows, or `SPIKE_PDF_FONT`); SPIKE ships no font files for this, and falls back to the

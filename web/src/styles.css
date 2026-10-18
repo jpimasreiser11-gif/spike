@@ -531,3 +531,8 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .file-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
 .file-picks .chip { font-family: var(--mono); font-size: 12px; }
 .field-group { display: grid; gap: 4px; }
+
+/* Spike Motion: a rendered video in the chat */
+.video-card { margin: 8px 0; display: grid; gap: 6px; }
+.video-card video, .video-card img { width: 100%; height: auto; max-height: 70vh; border-radius: 10px; border: 1px solid var(--border); background: #000; object-fit: contain; }
+.video-card figcaption { overflow-wrap: anywhere; }

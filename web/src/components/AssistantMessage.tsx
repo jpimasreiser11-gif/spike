@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { ApiError, api } from "../api";
 import { t } from "../i18n";
 import { teamSteps } from "../run";
-import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState } from "../types";
+import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState, VideoUi } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { DataView, ReportActions, isData } from "./DataViews";
 import { LiveOrderCard } from "./Finance";
@@ -247,6 +247,22 @@ function ForgeReportCard({ report, projectId, replay }: { report: ForgeReport; p
   );
 }
 
+/** A rendered video: the player, what it is, and the scene it came from. */
+function VideoCard({ ui, projectId }: { ui: VideoUi; projectId?: string }) {
+  const src = fileUrl(ui.path, projectId);
+  const name = ui.path.split("/").pop() || ui.path;
+  return (
+    <figure className="video-card">
+      {ui.format === "gif"
+        ? <img src={src} alt={name} width={ui.width} height={ui.height} />
+        : <video src={src} controls preload="metadata" width={ui.width} height={ui.height} aria-label={name} />}
+      <figcaption className="small muted">
+        <a href={src} download>{name}</a> · {ui.width}×{ui.height} · {ui.seconds} s · {ui.fps} fps · {Math.max(1, Math.round(ui.bytes / 1024))} KB · {t.fromScene} <code>{ui.scene}</code>
+      </figcaption>
+    </figure>
+  );
+}
+
 /** Download URL of a file a tool wrote: in the project's folder, or in the workspace. */
 export const fileUrl = (path: string, projectId?: string) =>
   `${projectId ? `/api/projects/${projectId}/files` : "/api/workspace/files"}/${path.split("/").map(encodeURIComponent).join("/")}`;
@@ -397,7 +413,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       {run.tools.map((tool, i) => tool.ui?.kind === "live_order"
         ? <LiveOrderCard key={tool.ui.order.id} initial={tool.ui.order} readOnly={replay} />
         : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} />
-          : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} /> : null)}
+          : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} />
+            : tool.ui?.kind === "video" && !replay ? <VideoCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} /> : null)}
 
       {run.permissions.map((p) => (
         <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} />

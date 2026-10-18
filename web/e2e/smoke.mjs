@@ -500,7 +500,7 @@ await page.screenshot({ path: `${out}/07i-forge-report.png`, fullPage: true });
 // Creator: a template and a few answers become a Forge plan; the run follows the template's skill and design system
 await page.getByRole("button", { name: "Crear", exact: true }).click();
 await page.locator(".template-card", { hasText: "Dashboard" }).waitFor({ timeout: 5000 });
-if ((await page.locator(".template-card").count()) !== 7) fail("expected 7 Creator templates");
+if ((await page.locator(".template-card").count()) !== 8) fail("expected 8 Creator templates");
 await page.screenshot({ path: `${out}/07s-creator.png` });
 await page.locator(".template-card", { hasText: "Dashboard" }).click();
 await page.locator(".file-picks").getByRole("button", { name: "ventas.csv" }).click();
@@ -526,6 +526,27 @@ const barColour = await bar.evaluate((el) => getComputedStyle(el).fill);
 if (barColour !== "rgb(136, 212, 69)") fail("the dashboard does not use the SPIKE tokens: " + barColour);
 await page.screenshot({ path: `${out}/07v-creator-result.png`, fullPage: true });
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
+// Spike Motion: Code writes an HTML scene and renders it to a video that plays in the chat
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.getByLabel("Especialista", { exact: true }).selectOption("code");
+await page.locator("#composer-input").fill("Hazme un vídeo animado de 2 segundos con el título SPIKE");
+await page.keyboard.press("Enter");
+for (let i = 0; i < 2; i++) { // write the scene, then render it
+  await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
+  await page.locator(".permission.done").nth(i).waitFor({ timeout: 30000 });
+}
+const player = page.locator(".video-card video");
+await player.waitFor({ timeout: 30000 });
+const length = await player.evaluate((v) => new Promise((ok) => (v.readyState >= 1 ? ok(v.duration)
+  : v.addEventListener("loadedmetadata", () => ok(v.duration), { once: true }))));
+if (Math.abs(length - 2) > 0.1) fail("the rendered video does not last 2 s: " + length);
+await player.evaluate((v) => new Promise((ok) => { v.addEventListener("seeked", () => ok(), { once: true }); v.currentTime = 1.9; }));
+await page.locator(".video-card figcaption").getByText("1280×720", { exact: false }).waitFor();
+await player.evaluate((v) => new Promise((ok) => (v.readyState >= 2 ? ok() : v.addEventListener("loadeddata", () => ok(), { once: true }))));
+await page.waitForTimeout(400); // the player's own loading spinner fades out
+await page.screenshot({ path: `${out}/07w-motion-video.png` });
+await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
 
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });

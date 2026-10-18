@@ -20,7 +20,7 @@ from tests.helpers import ScriptedProvider, call, text
 
 BUNDLED_NAMES = {"test-driven-development", "systematic-debugging", "writing-plans", "verification-before-completion",
                  "frontend-design", "mcp-builder", "webapp-testing", "medical-evidence-summary",
-                 "financial-ratio-analysis", "campaign-brief", "web-design-guidelines"}
+                 "financial-ratio-analysis", "campaign-brief", "web-design-guidelines", "motion-scene"}
 
 
 def write_skill(root: Path, name: str, description: str = "Use when testing.", body: str = "Do the thing.",
@@ -69,6 +69,8 @@ def test_invalid_skills_are_rejected(tmp_path, front, error):
     ("marketing", "Prepara una campaña de lanzamiento con canales y KPI", "campaign-brief"),
     ("code", "Write an MCP server for my notes app", "mcp-builder"),
     ("code", "Revisa la accesibilidad y la UX de mi formulario", "web-design-guidelines"),
+    ("code", "Hazme un vídeo animado de 8 segundos que presente mi app", "motion-scene"),
+    ("core", "Make a short animated intro clip for my channel", "motion-scene"),
     ("core", "Hola, ¿qué tal estás?", None),
     ("code", "Hazme una página de prueba", None),  # "prueba" alone is not about tests
     ("code", "Calcula el margen EBITDA y el ROE", None),  # finance skill is not bound to Code

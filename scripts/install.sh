@@ -62,7 +62,7 @@ if [[ ! -f web/dist/index.html ]]; then
 fi
 
 # 4. SPIKE itself
-step "Install SPIKE with pipx" "${pipx_cmd[@]}" install --force ".[docs,finance,data]" || die "SPIKE was not installed."
+step "Install SPIKE with pipx" "${pipx_cmd[@]}" install --force ".[docs,finance,data,motion]" || die "SPIKE was not installed."
 bin_dir="$("${pipx_cmd[@]}" environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
 spike="$bin_dir/spike"
 [[ -x "$spike" ]] || spike="spike"

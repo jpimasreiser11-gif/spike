@@ -35,6 +35,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install -e ".[dev,keyring]"
+      - name: ffmpeg and Chromium for the Spike Motion tests (elsewhere they skip without ffmpeg)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg && python -m playwright install --with-deps chromium
       - run: ruff check .
       - run: pytest -q
         env:
@@ -104,7 +107,8 @@ jobs:
         with:
           name: web-dist
           path: web/dist
-      - run: python -m pip install -e .
+      - run: python -m pip install -e ".[docs,finance,data,motion]"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg && python -m playwright install chromium
       - run: npm ci && npx playwright-core install --with-deps chromium
         working-directory: web
       - name: Browser smoke test against the scripted provider

@@ -41,6 +41,15 @@ BLUEPRINT = {"goal": "Informe del IVA de 120 €", "requirements": ["IVA del 21 
      "depends_on": [], "deliverables": []},
     {"id": "t2", "specialist": "writing", "role": "execute", "instruction": "Escribe informe.md con el total con IVA",
      "depends_on": ["t1"], "deliverables": ["informe.md"]}]}
+VIDEO_SCENE = """<!doctype html><html><head><meta name="spike-duration" content="2"><style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#052E1E;font-family:system-ui,sans-serif}
+h1{position:absolute;left:0;right:0;top:300px;margin:0;text-align:center;color:#FDFDFA;font-size:96px;
+animation:in .6s cubic-bezier(.2,.8,.2,1) .4s both}
+.dot{position:absolute;top:150px;left:590px;width:100px;height:100px;border-radius:50%;background:#88D445;
+animation:drop .8s cubic-bezier(.2,.8,.2,1) both}
+body{animation:end .4s 1.6s both}
+@keyframes in{from{opacity:0;transform:translateY(40px)}}@keyframes drop{from{transform:translateY(-300px)}}
+@keyframes end{to{background:#5FBB47}}</style></head><body><div class="dot"></div><h1>SPIKE</h1></body></html>"""
 DASHBOARD = """<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ingresos por región</title><style>
 /*tokens*/
 body{background:var(--bg,#fff);color:var(--fg,#111);font-family:var(--font-body,system-ui);margin:24px}
@@ -98,6 +107,16 @@ class DemoProvider(Provider):
             yield StreamEvent(kind="done")
             return
         tools = {t.name for t in request.tools or []}
+        if last.role == "user" and "vídeo animado" in last.content.lower() and "render_video" in tools:  # Motion
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c12", name="write_file", arguments={
+                "path": "escena.html", "content": VIDEO_SCENE}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "tool" and last.name == "write_file" and "escena.html" in last.content and "render_video" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c13", name="render_video", arguments={
+                "scene": "escena.html", "output": "video.webm", "size": "16:9", "fps": 24}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "data_describe y data_sql" in last.content and "data_sql" in tools:  # Creator: data step
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c10", name="data_sql", arguments={
                 "sql": "SELECT region, sum(unidades * precio) AS ingresos FROM ventas GROUP BY region ORDER BY 2 DESC",
@@ -175,6 +194,8 @@ class DemoProvider(Provider):
             answer = "En la vista veo: " + system.split("## Precios\n", 1)[1].split("\n", 1)[0]
         elif last.role == "tool" and last.name == "data_chart":
             answer = "El **norte** ingresa 90 € y el sur 70 €, según la consulta de la tarjeta."
+        elif last.role == "tool" and last.name == "render_video":
+            answer = "Aquí tienes **video.webm**: el punto verde cae, el título aparece y el fondo termina en verde (2 s)."
         elif last.role == "tool" and last.name == "data_sql":
             answer = ("Ingresos por región: **norte 90 €** y **sur 70 €**, total 160 € (consulta: `SELECT region, "
                       "sum(unidades * precio) AS ingresos FROM ventas GROUP BY region`).")

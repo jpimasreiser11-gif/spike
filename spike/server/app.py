@@ -249,6 +249,7 @@ class ConversationPatch(BaseModel):
 
 MAX_RUN_EVENTS = 3000  # events kept per answer for the step-by-step view
 MAX_REPORT_BYTES = 40 * 1024**2  # an analysis report with its chart images
+PLAYABLE = {".mp4": "video/mp4", ".webm": "video/webm", ".gif": "image/gif"}  # served with their type so the chat plays them
 
 
 def _sse(event: dict[str, Any]) -> bytes:
@@ -927,12 +928,16 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(404, "file not found")
         return target
 
+    def download(target: Path) -> FileResponse:
+        # a download, never a page: an uploaded .html must not run with the app's origin; videos keep their type
+        # (and byte ranges) so the chat can play them
+        return FileResponse(target, media_type=PLAYABLE.get(target.suffix.lower(), "application/octet-stream"),
+                            filename=target.name,
+                            headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
+
     @app.get("/api/projects/{pid}/files/{path:path}")
     async def get_project_file(pid: str, path: str):
-        target = existing_file(pid, path)
-        # a download, never a page: an uploaded .html must not run with the app's origin
-        return FileResponse(target, media_type="application/octet-stream", filename=target.name,
-                            headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
+        return download(existing_file(pid, path))
 
     @app.get("/api/workspace/files/{path:path}")
     async def get_workspace_file(path: str):
@@ -943,8 +948,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, str(exc)) from exc
         if not target.is_file():
             raise HTTPException(404, "file not found")
-        return FileResponse(target, media_type="application/octet-stream", filename=target.name,
-                            headers={"X-Content-Type-Options": "nosniff", "Content-Security-Policy": "sandbox"})
+        return download(target)
 
     @app.delete("/api/projects/{pid}/files/{path:path}")
     async def delete_project_file(pid: str, path: str) -> dict:

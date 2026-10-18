@@ -387,6 +387,34 @@ def cmd_mcp(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_render(args: argparse.Namespace) -> int:
+    from spike.motion.render import MotionError, render, scene_html
+
+    if args.install_browser:  # Playwright's own Chromium, downloaded by Playwright into its cache
+        import subprocess
+
+        return subprocess.call([sys.executable, "-m", "playwright", "install", "chromium"])
+    if not args.scene:
+        print("error: give the scene file", file=sys.stderr)
+        return 2
+    scene = Path(args.scene)
+    out = Path(args.output) if args.output else scene.with_suffix(".mp4")
+    try:
+        if scene.suffix.lower() not in (".html", ".htm", ".svg") or not scene.is_file():
+            raise MotionError(f"{scene} is not an .html or .svg scene file")
+        html = scene_html(scene.read_text(encoding="utf-8", errors="replace"), scene.suffix.lower())
+        done = asyncio.run(render(html, out, size=args.size, fps=args.fps, seconds=args.seconds))
+    except MotionError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"{out}: {done.width}x{done.height}, {done.fps} fps, {done.seconds:g} s, {done.frames} frames, "
+          f"{done.codec}, {done.bytes // 1024} KB")
+    for line in [*done.notes, *(f"JavaScript error: {e}" for e in done.errors),
+                 *(f"blocked: {u}" for u in done.blocked)]:
+        print(f"  {line}", file=sys.stderr)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="spike", description="SPIKE local AI system")
     p.add_argument("--version", action="version", version=f"spike {__version__}")
@@ -482,6 +510,16 @@ def build_parser() -> argparse.ArgumentParser:
     mc.add_argument("--start-local", action="store_true",
                     help="start the local engine in this process (when the SPIKE app is not running)")
     mc.set_defaults(func=cmd_mcp)
+
+    rd = sub.add_parser("render", help="turn an animated HTML/SVG scene into an MP4, WebM or GIF (Spike Motion)")
+    rd.add_argument("scene", nargs="?", help="the scene file (.html or .svg)")
+    rd.add_argument("-o", "--output", help="video file (.mp4, .webm or .gif); default: the scene's name with .mp4")
+    rd.add_argument("--size", default="16:9", help="16:9, 9:16, 1:1, 4:5, 1080p or WIDTHxHEIGHT (default 16:9)")
+    rd.add_argument("--fps", type=int, default=30, help="frames per second (default 30)")
+    rd.add_argument("--seconds", type=float, help="length; default: the scene's spike-duration or its animations")
+    rd.add_argument("--install-browser", action="store_true",
+                    help="download Playwright's Chromium to render with (when Chrome is not installed)")
+    rd.set_defaults(func=cmd_render)
     return p
 
 

@@ -20,12 +20,14 @@ ANSWERS = {"web": {"about": "la panadería de mi barrio", "sections": "horarios,
            "data_app": {"file": "datos/stock.xlsx", "about": "ver qué productos reponer"},
            "document": {"about": "digitalizar las reservas", "audience": "la dirección", "pages": "4"},
            "presentation": {"about": "resultados del trimestre", "slides": "6"},
+           "video": {"about": "presentar mi app de recetas", "seconds": "8", "size": "9:16"},
            "automation": {"about": "renombrar fotos con su fecha"}}
 
 
 def test_the_screen_lists_the_templates_in_both_languages():
     es, en = creator.templates("es"), creator.templates("en")
-    assert [t["id"] for t in es] == ["web", "app", "dashboard", "data_app", "document", "presentation", "automation"]
+    assert [t["id"] for t in es] == ["web", "app", "dashboard", "data_app", "document", "presentation", "video",
+                                     "automation"]
     assert es[0]["name"] == "Página web" and en[0]["name"] == "Web page"
     assert es[2]["fields"][0] == {"id": "file", "label": "Archivo de datos", "kind": "file", "required": True,
                                   "placeholder": "ventas.csv (en la carpeta del proyecto o del espacio de trabajo)",
@@ -33,7 +35,10 @@ def test_the_screen_lists_the_templates_in_both_languages():
     assert creator.templates("fr") == en
     for t in es:
         for skill in t["skills"]:
-            assert skill in {"frontend-design", "verification-before-completion"}
+            assert skill in {"frontend-design", "verification-before-completion", "motion-scene"}
+    video = next(t for t in es if t["id"] == "video")
+    assert video["fields"][2]["kind"] == "choice" and video["fields"][2]["options"] == ["16:9", "9:16", "1:1"]
+    assert "options" not in es[0]["fields"][0]
 
 
 @pytest.mark.parametrize("template", list(ANSWERS))
@@ -46,7 +51,8 @@ def test_every_template_is_a_blueprint_forge_accepts(template, lang):
         assert "{" not in step.instruction and "}" not in step.instruction  # every placeholder filled
         tools = CATALOG.specialists[step.specialist].tools
         for path in step.deliverables:  # the step's specialist has the tool that writes its file
-            assert {".docx": "create_docx", ".pptx": "create_pptx"}.get(path[path.rfind("."):], "write_file") in tools
+            assert {".docx": "create_docx", ".pptx": "create_pptx", ".mp4": "render_video"}.get(
+                path[path.rfind("."):], "write_file") in tools
         if "data_sql" in step.instruction:
             assert {"data_describe", "data_sql"} <= set(tools)
     assert built["task"] == built["blueprint"]["goal"] and built["blueprint"]["method"] == "template"
@@ -69,6 +75,9 @@ def test_answers_fill_the_steps_and_the_criteria():
     assert "data_sql" in dash["steps"][0]["instruction"] and "ventas.csv" in dash["steps"][0]["instruction"]
     doc = creator.build("document", {"about": "x"})["blueprint"]["steps"][0]["instruction"]
     assert "Unas 3 páginas" in doc  # the default
+    clip = creator.build("video", ANSWERS["video"])
+    assert clip["skills"] == ["motion-scene"] and clip["blueprint"]["steps"][0]["deliverables"] == ["escena.html", "video.mp4"]
+    assert 'content="8"' in clip["blueprint"]["steps"][0]["instruction"] and "size 9:16" in clip["blueprint"]["steps"][0]["instruction"]
 
 
 @pytest.mark.parametrize("template, answers, message", [
@@ -76,7 +85,7 @@ def test_answers_fill_the_steps_and_the_criteria():
     ("document", {"about": "x", "pages": "muchas"}, "whole number"), ("presentation", {"about": "x", "slides": "99"},
                                                                       "whole number"),
     ("dashboard", {"file": "../secreto.csv"}, "not a relative file path"),
-    ("dashboard", {"file": "notas.docx"}, "not a data file")])
+    ("dashboard", {"file": "notas.docx"}, "not a data file"), ("video", {"about": "x", "size": "4:3"}, "one of")])
 def test_bad_answers_are_refused(template, answers, message):
     with pytest.raises(ValueError, match=message):
         creator.build(template, answers)
