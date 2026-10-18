@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from spike import __version__
+from spike import __version__, creator
 from spike.analytics.report import ReportError, build_docx, build_pdf, clean_blocks
 from spike.connectors.apps import AppError
 from spike.contracts import schema_error
@@ -88,6 +88,13 @@ class ChatIn(BaseModel):
     forge: dict[str, Any] | None = None  # a Forge blueprint the user approved: the team runs it and checks it
     design_system: str | None = None  # a design system id; "none" for none; absent = the project's (Spike Design)
     view_context: list[dict[str, str]] | None = Field(default=None, max_length=4)  # MCP Apps: what views reported
+    skills: list[str] | None = Field(default=None, max_length=3)  # skills chosen for this run (Creator templates)
+
+
+class CreatorIn(BaseModel):
+    template: str
+    fields: dict[str, Any] = Field(default_factory=dict)
+    lang: str = "es"
 
 
 class BlueprintIn(BaseModel):
@@ -1250,6 +1257,25 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         await st().stop_runtime()
         return {"running": False}
 
+    # ---------------------------------------------------------------- creator
+    @app.get("/api/creator/templates")
+    async def creator_templates(lang: str = "es") -> list[dict]:
+        return creator.templates(lang)
+
+    @app.get("/api/creator/data-files")
+    async def creator_data_files(project_id: str | None = None) -> list[dict]:
+        if project_id:
+            project_or_404(project_id)
+        return creator.data_files(st().project_files.folder(project_id) if project_id else workspace_dir())
+
+    @app.post("/api/creator/blueprint")
+    async def creator_blueprint(body: CreatorIn) -> dict:
+        """A template filled with the user's answers: a Forge blueprint to review, its skills and design flag."""
+        try:
+            return creator.build(body.template, body.fields, body.lang)
+        except (creator.CreatorError, ValueError) as exc:
+            raise HTTPException(400, str(exc)) from exc
+
     # ---------------------------------------------------------------- forge
     @app.post("/api/forge/blueprint")
     async def forge_blueprint(body: BlueprintIn) -> dict:
@@ -1282,6 +1308,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, problem)
         if body.design_system and body.design_system != "none":
             check_design(body.design_system)
+        if unknown := [n for n in body.skills or [] if state.skills.get(n) is None]:
+            raise HTTPException(400, f"unknown skill '{unknown[0]}'")
         blueprint = None
         if body.forge is not None:
             if body.response_schema is not None:
@@ -1323,6 +1351,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
             options.json_schema = body.response_schema
             options.forge = blueprint
+            options.skills = list(body.skills or [])
             if body.design_system is not None:  # the chat's choice replaces the project's
                 options.design = state.designs.get(body.design_system)
             if options.design is not None:

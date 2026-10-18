@@ -521,3 +521,13 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .data-output { background: var(--code-bg); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; margin: 0; max-height: 240px; overflow: auto; }
 .data-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
 .report-actions { padding: 2px 0; }
+
+/* Creator: template cards that open a Forge plan */
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.template-card { display: grid; gap: 6px; align-content: start; text-align: left; padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.template-card:hover, .template-card:focus-visible { border-color: var(--green-shade); background: var(--accent-soft); }
+.template-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--green-shade); }
+.file-picks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.file-picks .chip { font-family: var(--mono); font-size: 12px; }
+.field-group { display: grid; gap: 4px; }

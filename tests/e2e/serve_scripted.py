@@ -41,6 +41,15 @@ BLUEPRINT = {"goal": "Informe del IVA de 120 €", "requirements": ["IVA del 21 
      "depends_on": [], "deliverables": []},
     {"id": "t2", "specialist": "writing", "role": "execute", "instruction": "Escribe informe.md con el total con IVA",
      "depends_on": ["t1"], "deliverables": ["informe.md"]}]}
+DASHBOARD = """<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ingresos por región</title><style>
+/*tokens*/
+body{background:var(--bg,#fff);color:var(--fg,#111);font-family:var(--font-body,system-ui);margin:24px}
+.cards{display:flex;gap:12px}.card{border:1px solid currentColor;border-radius:var(--radius-md,8px);padding:12px 16px}
+.card b{display:block;font-size:28px}rect{fill:var(--accent,#5FBB47)}</style></head><body>
+<h1>Ingresos por región</h1><div class="cards"><div class="card">Norte<b>90 €</b></div><div class="card">Sur<b>70 €</b></div></div>
+<svg width="320" height="140" role="img" aria-label="Ingresos por región"><rect x="20" y="20" width="270" height="40"/>
+<rect x="20" y="80" width="210" height="40"/><text x="296" y="46">90</text><text x="236" y="106">70</text></svg>
+</body></html>"""
 SENT_BACK: set[str] = set()  # Forge tasks whose first check already sent work back
 
 
@@ -50,7 +59,7 @@ def checker_answer(request) -> str:
     n = criteria["items"]["properties"]["n"]["maximum"] if criteria else 0
     task = request.messages[-1].content.split("\n\n")[0]
     results = []
-    if n and task not in SENT_BACK:
+    if n and task not in SENT_BACK and "IVA" in task:
         SENT_BACK.add(task)
         results = [{"id": "t2", "ok": False, "fix": "Añade el total con IVA (145,20 €) al informe."}]
     return json.dumps({"results": results, **({"criteria": [{"n": i, "ok": True, "note": ""}
@@ -89,6 +98,19 @@ class DemoProvider(Provider):
             yield StreamEvent(kind="done")
             return
         tools = {t.name for t in request.tools or []}
+        if last.role == "user" and "data_describe y data_sql" in last.content and "data_sql" in tools:  # Creator: data step
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c10", name="data_sql", arguments={
+                "sql": "SELECT region, sum(unidades * precio) AS ingresos FROM ventas GROUP BY region ORDER BY 2 DESC",
+                "files": ["ventas.csv"], "title": "Ingresos por región"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "# Skill: frontend-design" in system and "dashboard.html" in last.content \
+                and "write_file" in tools:  # Creator: the code step follows the skill and the design system
+            tokens = system.split("```css\n", 1)[1].split("\n```", 1)[0] if "# Design system:" in system else ""
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c11", name="write_file", arguments={
+                "path": "dashboard.html", "content": DASHBOARD.replace("/*tokens*/", tokens)}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "Save these files" in system and "write_file" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c5", name="write_file", arguments={
                 "path": "informe.md", "content": "# Informe\n\nBase 120 €, IVA 25,20 €, total con IVA 145,20 €.\n"}))
@@ -153,6 +175,9 @@ class DemoProvider(Provider):
             answer = "En la vista veo: " + system.split("## Precios\n", 1)[1].split("\n", 1)[0]
         elif last.role == "tool" and last.name == "data_chart":
             answer = "El **norte** ingresa 90 € y el sur 70 €, según la consulta de la tarjeta."
+        elif last.role == "tool" and last.name == "data_sql":
+            answer = ("Ingresos por región: **norte 90 €** y **sur 70 €**, total 160 € (consulta: `SELECT region, "
+                      "sum(unidades * precio) AS ingresos FROM ventas GROUP BY region`).")
         elif last.role == "tool" and last.name == "paper_order":
             answer = "Comprados **0,01 BTC** en la cuenta simulada, con comisión y deslizamiento."
         elif last.role == "tool" and last.name == "propose_live_order":
@@ -164,6 +189,8 @@ class DemoProvider(Provider):
                       "de 2.000 €, el ROI bruto sería del **12 %** (cálculo: `(56.000 - 50.000) / 50.000`).")
         elif "Spike Marketing" in system.split("\n")[0]:
             answer = "1. Público: inversores minoristas de 25-40 años.\n2. Canales: newsletter, YouTube y SEO.\n3. Mensaje: *diversificación sencilla y barata*."
+        elif "This is a Forge task" in system and "dashboard.html" in last.content:
+            answer = "Listo: guardé **dashboard.html** con los ingresos por región (norte 90 €, sur 70 €) y su gráfico SVG."
         elif "This is a Forge task" in system:
             answer = "Listo: guardé **informe.md** con la base, el IVA (25,20 €) y el total con IVA (145,20 €)."
         elif "Specialist reports" in last.content:

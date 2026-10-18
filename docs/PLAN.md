@@ -166,7 +166,7 @@ project files. Same rules: failing test first, only permissive licenses, everyth
 | C5 | Spike Finance: public market data (ccxt), own backtester, portfolio risk, paper trading; real orders off by default, proposed by a model and placed only by the user's click, with limits, a market list, a no-withdrawal key and the test network by default | ✅ tests + browser smoke with a scripted exchange; 🟡 not run against a real exchange (no access from the build container) |
 | C6 | MCP Apps (SEP-1865): connector views (`ui://`) in an isolated frame with a CSP from declared public origins, app-only tools, audited JSON-RPC | ✅ tests against a real MCP server + browser smoke |
 | C7 | Analytics: DuckDB (MIT) over CSV/Excel/Parquet/SQLite, generated SQL/Python run in the sandbox and shown, Vega-Lite charts in the artifacts panel | ✅ results checked against hand-computed values, locked DuckDB, report as page/Word/PDF, browser smoke |
-| C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ⬜ |
+| C8 | Creator: a "Create" screen of templates that start Forge with the right skills and artifact | ✅ 7 templates pass Forge's own blueprint check, skills only in the steps that produce files, design system applied, browser smoke; 🟡 real-weight runs not measured |
 | D | Motion (video from code: animated HTML/SVG, Motion Canvas or Manim, rendered with ffmpeg; not Remotion, whose license is not OSI) and Evolution levels 2–3 (prompt/skill optimisation against local evals, opt-in corrections as retraining data; nothing ships without passing the eval) | ⬜ |
 
 ## 26. Specialist improvement loop (adopted 2026-10-17)

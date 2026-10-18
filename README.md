@@ -81,6 +81,7 @@ SPIKE works without a local model too: add an external provider in Settings → 
 Pages, slides and documents can follow a design system (`DESIGN.md`): SPIKE's own, 20 generic ones, or yours (Settings → Diseño).
 Spike Finance reads public prices, runs backtests, measures portfolio risk and keeps a paper trading account; real orders stay off unless you set them up, and each one waits for your click (Settings → Finanzas).
 Spike Data answers questions about CSV, Excel, Parquet, JSON or SQLite files with SQL it shows you, draws charts from the results and exports the analysis as a page, Word or PDF.
+Crear (Create) turns a template (web page, app, dashboard, data to app, Word document, presentation, automation) and a few answers into a Forge plan you review; the team builds it with the template's skill and your design system and checks it against the plan.
 To code in a folder from the terminal: `spike dev [folder]` (edits and commands ask first; `/undo` puts files back).
 Connectors (MCP servers) can bring their own views (MCP Apps), which SPIKE shows isolated next to the tool's result.
 Other agents can use SPIKE too: as an OpenAI-compatible endpoint (`/v1`) or as an MCP server (`spike mcp`, for

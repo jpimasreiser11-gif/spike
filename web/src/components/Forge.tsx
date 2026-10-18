@@ -34,19 +34,23 @@ const nextId = (steps: BlueprintStep[]) => {
 };
 
 /** Forge: a task becomes a blueprint the user approves, then runs as a chat with the team's trace and a report. */
-export function Forge({ specialists, providers, projectId, initialTask = "", onRun, onClose }: {
+export function Forge({ specialists, providers, projectId, initialTask = "", initialBlueprint, title, intro, onBack, onRun, onClose }: {
   specialists: Specialist[];
   providers: ProviderInfo[];
   projectId?: string;
   initialTask?: string;
+  initialBlueprint?: Blueprint; // a plan made elsewhere (a Creator template): Forge opens on its review
+  title?: string;
+  intro?: string;
+  onBack?: () => void; // "Back" from the review, when the plan was not drafted here
   onRun: (task: string, blueprint: Blueprint, providerId: string | null) => void;
   onClose: () => void;
 }) {
   const [task, setTask] = useState(initialTask);
   const [providerId, setProviderId] = useState<string | null>(null);
-  const [bp, setBp] = useState<Blueprint | null>(null);
-  const [requirements, setRequirements] = useState("");
-  const [criteria, setCriteria] = useState("");
+  const [bp, setBp] = useState<Blueprint | null>(initialBlueprint ?? null);
+  const [requirements, setRequirements] = useState(initialBlueprint?.requirements.join("\n") ?? "");
+  const [criteria, setCriteria] = useState(initialBlueprint?.criteria.join("\n") ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -88,13 +92,13 @@ export function Forge({ specialists, providers, projectId, initialTask = "", onR
   );
 
   return (
-    <section className="forge" aria-label={F.title}>
+    <section className="forge" aria-label={title ?? F.title}>
       <div className="forge-head">
-        <h1>{F.title}</h1>
+        <h1>{title ?? F.title}</h1>
         <div className="spacer" />
         <button className="btn" onClick={onClose}>{F.close}</button>
       </div>
-      <p className="muted">{F.intro}</p>
+      <p className="muted">{intro ?? F.intro}</p>
       {!bp ? (
         <form className="form" onSubmit={draft}>
           <label className="field"><span>{F.task}</span>
@@ -158,7 +162,7 @@ export function Forge({ specialists, providers, projectId, initialTask = "", onR
           {executor}
           {error && <div className="error-box" role="alert">{error}</div>}
           <div className="row end"><div className="spacer" />
-            <button className="btn" onClick={() => setBp(null)}>{F.back}</button>
+            <button className="btn" onClick={() => (onBack ? onBack() : setBp(null))}>{F.back}</button>
             <button className="btn primary" onClick={approve} disabled={bp.steps.some((s) => !s.instruction.trim())}>{F.run}</button>
           </div>
         </div>

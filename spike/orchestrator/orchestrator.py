@@ -83,6 +83,7 @@ class OrchestratorOptions:
     forge: Blueprint | None = None  # an approved Forge blueprint: its steps are the plan, its criteria are checked
     design: DesignSystem | None = None  # Spike Design: pages, slides and documents follow this design system
     view_context: str = ""  # MCP Apps: what the views the user is looking at reported (data, not instructions)
+    skills: list[str] = field(default_factory=list)  # chosen for this run (a Creator template) instead of searched
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -149,8 +150,8 @@ class Orchestrator:
         # nobody to ask, and nobody to confirm a real order
         return [t for t in tools if t.name != "ask_user" and not getattr(t, "interactive_only", False)]
 
-    def _skills_for(self, spec: Specialist, backend: Backend, text: str,
-                    opts: OrchestratorOptions) -> tuple[str, list[Tool], Event | None]:
+    def _skills_for(self, spec: Specialist, backend: Backend, text: str, opts: OrchestratorOptions,
+                    role: str | None = None) -> tuple[str, list[Tool], Event | None]:
         """(system prompt section, extra tools, event) for the skills of this run."""
         if self.skills is None or opts.skill_mode == "off":
             return "", [], None
@@ -160,6 +161,13 @@ class Orchestrator:
         if mode == "model" and not opts.tools_enabled:
             mode = "router"
         disabled = set(opts.disabled_skills)
+        if opts.skills:  # chosen for the run: every step that produces something follows them, research steps don't
+            picked = [s for s in map(self.skills.get, opts.skills) if s and s.name not in disabled]
+            if role == "research" or not picked:
+                return "", [], None
+            budget = max(256, min(3000, backend.context_budget // 4)) // len(picked)
+            return ("\n\n".join(skill_prompt(s, budget) for s in picked), [],
+                    {"type": "skill", "names": [s.name for s in picked], "mode": "chosen", "specialist": spec.id})
         if mode == "router":
             picked = self.skills.select(text, spec.id, disabled)
             if not picked:
@@ -358,7 +366,8 @@ class Orchestrator:
                         f"{previous[:RESULT_CHARS]}\n\nGive your complete corrected result.")
             if task.id in tainted:
                 private.append(previous[:RESULT_CHARS])
-        skill_text, skill_tools, skill_event = self._skills_for(spec, backend, f"{task.instruction}\n{user_text}", opts)
+        skill_text, skill_tools, skill_event = self._skills_for(spec, backend, f"{task.instruction}\n{user_text}", opts,
+                                                                task.role)
         messages = [self.system_message(spec, opts, "\n\n".join(p for p in (team_note, skill_text) if p),
                                         backend.context_budget),
                     Message(role="user", content=content, private=private)]

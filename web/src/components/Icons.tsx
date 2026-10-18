@@ -136,3 +136,9 @@ export const IconForge = ({ size }: P) => (
     <path d="M13 4l7 7-3 3-7-7zM11.5 9.5L4 17l3 3 7.5-7.5" />
   </svg>
 );
+
+export const IconSparkle = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z" />
+  </svg>
+);

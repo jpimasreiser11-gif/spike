@@ -4,7 +4,8 @@ import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/A
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
 import { Forge } from "./components/Forge";
-import { IconBack, IconEdit, IconFolder, IconForge, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
+import { Creator, type CreatorExtra } from "./components/Creator";
+import { IconBack, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { Replay } from "./components/Replay";
@@ -98,6 +99,7 @@ export default function App() {
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [forgeOpen, setForgeOpen] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
   const [engine, setEngine] = useState<{ running: boolean } | null>(null);
   const [fatal, setFatal] = useState("");
   const [theme, toggleTheme] = useTheme();
@@ -148,6 +150,7 @@ export default function App() {
   const openConversation = async (id: string) => {
     if (busy) return;
     setForgeOpen(false);
+    setCreatorOpen(false);
     const conv = await api.get<Conversation & { messages: StoredMessage[] }>(`/api/conversations/${id}`);
     setActiveId(id);
     setArtifact(null);
@@ -160,6 +163,7 @@ export default function App() {
   const newChat = () => {
     if (busy) abortRef.current?.abort();
     setForgeOpen(false);
+    setCreatorOpen(false);
     setActiveId(null);
     setItems([]);
     setArtifact(null);
@@ -199,7 +203,7 @@ export default function App() {
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
   const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object,
-                    specialist?: string, forge?: Blueprint) => {
+                    specialist?: string, forge?: Blueprint, extra?: CreatorExtra) => {
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -216,7 +220,8 @@ export default function App() {
       await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
                          ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}),
-                         ...(design ? { design_system: design } : {}),
+                         ...(extra?.design_system || design ? { design_system: extra?.design_system || design } : {}),
+                         ...(extra?.skills.length ? { skills: extra.skills } : {}),
                          ...(views.length ? { view_context: views } : {}) }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
@@ -264,13 +269,14 @@ export default function App() {
   };
 
   /** Run an approved Forge blueprint as a new chat: the team's trace and the report show up as its answer. */
-  const runForge = (task: string, blueprint: Blueprint, provider: string | null) => {
+  const runForge = (task: string, blueprint: Blueprint, provider: string | null, extra?: CreatorExtra) => {
     setForgeOpen(false);
+    setCreatorOpen(false);
     setActiveId(null);
     setItems([]);
     setArtifact(null);
     setTemporary(false);
-    send(task, undefined, provider, null, undefined, undefined, blueprint);
+    send(task, undefined, provider, null, undefined, undefined, blueprint, extra);
   };
 
   const onPermission = (id: string, status: PermissionState["status"]) =>
@@ -300,7 +306,8 @@ export default function App() {
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label="Close sidebar"><IconSidebar /></button>
         </div>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
-        <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
+        <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
+        <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
@@ -356,7 +363,10 @@ export default function App() {
 
         {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}
 
-        {forgeOpen ? (
+        {creatorOpen ? (
+          <Creator specialists={specialists} providers={providers} projectId={project?.id} designs={designs} projectDesign={project?.design}
+            onRun={runForge} onClose={() => setCreatorOpen(false)} />
+        ) : forgeOpen ? (
           <Forge specialists={specialists} providers={providers} projectId={project?.id} onRun={runForge} onClose={() => setForgeOpen(false)} />
         ) : empty ? (
           <section className="welcome">

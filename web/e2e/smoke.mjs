@@ -497,6 +497,36 @@ if (!(await page.locator(".trace").getByText("ronda 2").count())) fail("the sent
 if ((await page.locator(".trace .role-verify").count()) < 2) fail("expected two checker passes in the trace");
 await page.screenshot({ path: `${out}/07i-forge-report.png`, fullPage: true });
 
+// Creator: a template and a few answers become a Forge plan; the run follows the template's skill and design system
+await page.getByRole("button", { name: "Crear", exact: true }).click();
+await page.locator(".template-card", { hasText: "Dashboard" }).waitFor({ timeout: 5000 });
+if ((await page.locator(".template-card").count()) !== 7) fail("expected 7 Creator templates");
+await page.screenshot({ path: `${out}/07s-creator.png` });
+await page.locator(".template-card", { hasText: "Dashboard" }).click();
+await page.locator(".file-picks").getByRole("button", { name: "ventas.csv" }).click();
+if (await page.getByLabel("Archivo de datos").inputValue() !== "ventas.csv") fail("the data file chip did not fill the field");
+await page.getByLabel("¿Qué quieres ver? (opcional)").fill("ingresos por región");
+await page.getByLabel("Sistema de diseño").selectOption("spike");
+await page.screenshot({ path: `${out}/07t-creator-form.png` });
+await page.getByRole("button", { name: "Preparar el plan" }).click();
+const dashStep = page.locator('[data-step="t2"]');
+await dashStep.getByLabel("Archivos que guarda (separados por comas)").waitFor({ timeout: 5000 });
+if (await dashStep.getByLabel("Archivos que guarda (separados por comas)").inputValue() !== "dashboard.html") fail("template deliverable not shown");
+if (await page.locator('[data-step="t1"]').getByLabel("Papel").inputValue() !== "research") fail("template research step not shown");
+await page.screenshot({ path: `${out}/07u-creator-plan.png`, fullPage: true });
+await page.getByRole("button", { name: "Aprobar y ejecutar" }).click();
+await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
+const dashReport = page.locator(".forge-report");
+await dashReport.getByText("2/2 criterios cumplidos").waitFor({ timeout: 10000 });
+await dashReport.getByRole("link", { name: "dashboard.html" }).waitFor();
+await page.locator(".file-chip", { hasText: "dashboard.html" }).getByRole("button", { name: "Vista previa" }).click();
+const bar = page.frameLocator(".artifact-frame").locator("rect").first();
+await bar.waitFor({ timeout: 5000 });
+const barColour = await bar.evaluate((el) => getComputedStyle(el).fill);
+if (barColour !== "rgb(136, 212, 69)") fail("the dashboard does not use the SPIKE tokens: " + barColour);
+await page.screenshot({ path: `${out}/07v-creator-result.png`, fullPage: true });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
 const dp = await dark.newPage();
