@@ -1,0 +1,236 @@
+{
+  "date_utc": "2026-10-18T14:49:54Z",
+  "spike_version": "0.1.0",
+  "platform": "Linux x86_64",
+  "provider": "SPIKE local (llama.cpp)",
+  "model": "spike-base",
+  "local": true,
+  "tasks": 10,
+  "summary": {
+    "forge": {
+      "passed": 9,
+      "n": 10,
+      "rate": 0.9,
+      "ci95": [
+        0.5958,
+        0.9821
+      ]
+    },
+    "baseline": {
+      "passed": 8,
+      "n": 10,
+      "rate": 0.8,
+      "ci95": [
+        0.4902,
+        0.9433
+      ]
+    }
+  },
+  "results": [
+    {
+      "id": "fizzbuzz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1911.2,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 3
+    },
+    {
+      "id": "fizzbuzz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 162.3
+    },
+    {
+      "id": "slug",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 842.7,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "slug",
+      "mode": "baseline",
+      "passed": false,
+      "failed": [
+        {
+          "check": "slugify da los resultados esperados",
+          "why": "AssertionError: hola--senor-perez"
+        }
+      ],
+      "error": "stopped after 8 tool steps without a final answer",
+      "elapsed_s": 470.0
+    },
+    {
+      "id": "primos",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 851.3,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 2
+    },
+    {
+      "id": "primos",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 116.0
+    },
+    {
+      "id": "facturas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 2316.5,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 2
+    },
+    {
+      "id": "facturas",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 358.0
+    },
+    {
+      "id": "prestamo",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 2420.4,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 3
+    },
+    {
+      "id": "prestamo",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 190.1
+    },
+    {
+      "id": "email",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 575.7,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "email",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 76.0
+    },
+    {
+      "id": "campana",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "campana.json tiene publico, canales (3 o más) y mensaje corto",
+          "why": "AssertionError: [{'nombre': 'Instagram', 'justificacion': 'El 82% del público objetivo consume recetas visualmente en Instagram, que es la plataforma más utilizada por mujeres de 25-45 años en España (datos de Statista 2023, estimado)', 'formato': 'Posts de recetas visuales con reels demostrativos y"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 854.3,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "campana",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 66.4
+    },
+    {
+      "id": "quiz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 677.4,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 2
+    },
+    {
+      "id": "quiz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 116.2
+    },
+    {
+      "id": "cafeteria",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 809.1,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "cafeteria",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 111.6
+    },
+    {
+      "id": "ventas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1064.7,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 1
+    },
+    {
+      "id": "ventas",
+      "mode": "baseline",
+      "passed": false,
+      "failed": [
+        {
+          "check": "resumen.md da el total, el mejor mes y la media de ventas.csv",
+          "why": "AssertionError: ('mes', '2025-09')"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 218.8
+    }
+  ]
+}

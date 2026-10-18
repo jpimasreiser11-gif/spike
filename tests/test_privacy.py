@@ -262,3 +262,35 @@ async def test_a_specialist_report_written_from_a_file_is_withheld_from_a_remote
     assert "[file content withheld" in remote.requests[2].messages[-1].content  # the checker
     assert "[file content withheld" in remote.requests[3].messages[-1].content  # the synthesis
     assert events[-1]["text"] == "FINAL" and events[-1]["private"] is False
+
+
+async def test_a_forge_file_written_from_the_users_file_is_withheld_from_a_remote_checker(tmp_path):
+    from spike.forge.blueprint import from_user
+    from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
+    from spike.specialists.catalog import load_catalog
+    from spike.tools.base import PermissionBroker
+    from spike.tools.builtin import default_registry
+
+    (tmp_path / "notas.txt").write_text(FILE, encoding="utf-8")
+    catalog = load_catalog()
+    bp = from_user({"goal": "g", "requirements": [], "criteria": ["Hay un resumen"], "steps": [
+        {"id": "t1", "specialist": "finance", "instruction": "Resume notas.txt", "deliverables": ["resumen.md"]}]},
+        catalog)
+    store = Store(tmp_path / "s.db")
+    local = ScriptedProvider([call("read_file", {"path": "notas.txt"}),
+                              call("write_file", {"path": "resumen.md", "content": f"Resumen: {SECRET}"}),
+                              text("Guardé resumen.md")], name="local")
+    local.config.local = True
+    remote = ScriptedProvider([text('{"results": [], "criteria": [{"n": 1, "ok": true, "note": ""}]}')], name="remote")
+    guarded_local, guarded_remote = GuardedProvider(local, store), GuardedProvider(remote, store)
+
+    def resolve(spec):
+        return Backend(provider=guarded_local if spec.id == "finance" else guarded_remote, model=None, adapter=None)
+
+    orch = Orchestrator(catalog, resolve, default_registry(tmp_path),
+                        PermissionBroker({"read_file": "allow", "write_file": "allow"}))
+    events = [e async for e in orch.run([], "Resume mis notas", OrchestratorOptions(forge=bp))]
+    assert SECRET in (tmp_path / "resumen.md").read_text(encoding="utf-8")
+    assert len(remote.requests) == 1 and all(SECRET not in m.content for m in remote.requests[0].messages)
+    assert "[file content withheld" in remote.requests[0].messages[-1].content  # the checker
+    assert events[-1]["type"] == "done" and events[-1]["private"] is True

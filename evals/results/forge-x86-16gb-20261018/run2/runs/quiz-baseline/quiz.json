@@ -1,0 +1,52 @@
+[
+  {
+    "pregunta": "¿Cuál es el planeta más grande del sistema solar?",
+    "opciones": [
+      "Tierra",
+      "Marte",
+      "Júpiter",
+      "Saturno"
+    ],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué planeta tiene anillos visibles a simple vista?",
+    "opciones": [
+      "Venus",
+      "Júpiter",
+      "Saturno",
+      "Marte"
+    ],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Cuál es el planeta más cercano al Sol?",
+    "opciones": [
+      "Mercurio",
+      "Venus",
+      "Tierra",
+      "Marte"
+    ],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cuál es el único planeta que no es un gas gigante?",
+    "opciones": [
+      "Júpiter",
+      "Saturno",
+      "Urano",
+      "Tierra"
+    ],
+    "correcta": 3
+  },
+  {
+    "pregunta": "¿Qué es la estrella en el centro del sistema solar?",
+    "opciones": [
+      "La Luna",
+      "El Sol",
+      "Plutón",
+      "Venus"
+    ],
+    "correcta": 1
+  }
+]

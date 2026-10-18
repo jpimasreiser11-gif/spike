@@ -1,0 +1,68 @@
+{
+  "blueprint": {
+    "goal": "Crear un archivo Python llamado slug.py que contenga una función slugify() capaz de convertir texto en slugs válidos eliminando tildes, normalizando caracteres y estandarizando separadores.",
+    "requirements": [
+      "La función debe convertir todo el texto a minúsculas.",
+      "La función debe eliminar tildes y acentos (ej: á→a, ñ→n, é→e).",
+      "La función debe reemplazar cualquier secuencia de caracteres que no sea letra o dígito por un guion (-).",
+      "La función debe eliminar los guiones que aparezcan al inicio o al final del resultado.",
+      "El código debe ser un archivo único ejecutable en Python."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "code",
+        "instruction": "Escribir el contenido del archivo slug.py definiendo la función slugify() utilizando regex para mapear caracteres con acentos a sus equivalentes sin acento, normalizar a minúsculas, reemplazar no-alfanuméricos con guiones y limpiar bordes.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "slug.py"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo slug.py debe existir y contener la función slugify().",
+      "La ejecución de slugify('¡Hola, Señor Pérez!') debe devolver exactamente 'hola-senor-perez'.",
+      "La ejecución de slugify('Prueba-123-Test') debe devolver 'prueba-123-test'.",
+      "La ejecución de slugify('  Inicio y Fin  ') debe devolver 'inicio-y-fin' (sin guiones en los extremos).",
+      "El código debe ser válido y ejecutable sin errores de sintaxis."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo slug.py debe existir y contener la función slugify().",
+          "ok": true,
+          "note": "El archivo slug.py existe y contiene la función slugify() definida correctamente."
+        },
+        {
+          "text": "La ejecución de slugify('¡Hola, Señor Pérez!') debe devolver exactamente 'hola-senor-perez'.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La ejecución de slugify('Prueba-123-Test') debe devolver 'prueba-123-test'.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La ejecución de slugify('  Inicio y Fin  ') debe devolver 'inicio-y-fin' (sin guiones en los extremos).",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El código debe ser válido y ejecutable sin errores de sintaxis.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

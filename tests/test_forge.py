@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from spike.forge import evaluate
 from spike.forge.blueprint import clean_path, from_user, make_blueprint, validate_blueprint
+from spike.orchestrator import verify
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.orchestrator.planner import Subtask, validate_plan
 from spike.orchestrator.verify import MAX_ROUNDS, dependents, parse_verdict
@@ -163,11 +164,38 @@ async def test_a_missing_deliverable_goes_back_and_the_report_says_what_was_met(
     retry = provider.requests[3].messages[-1].content
     assert "The checker sent your work back" in retry and "Hecho (sin guardar)" in retry
     assert "met" in provider.requests[-1].messages[-1].content  # the integrator sees the criteria verdict
+    # the checker reads the saved file itself, once there is one
+    assert "Saved file" not in provider.requests[2].messages[-1].content
+    assert "## Saved file informe.md (t2)\n<<<\n# Informe\n370 €\n\n>>>" in provider.requests[5].messages[-1].content
     report = next(e for e in events if e["type"] == "forge_report")
     assert report["verified"] and report["rounds"] == 2 and report["unresolved"] == []
     assert report["criteria"] == [{"text": "El informe tiene un título", "ok": True, "note": ""}]
     assert (tmp_path / "informe.md").read_text(encoding="utf-8") == "# Informe\n370 €\n"
     assert events[-1]["type"] == "done" and events[-1]["text"] == "FINAL"
+
+
+def test_the_checker_gets_the_saved_text_files_clipped(tmp_path, monkeypatch):
+    monkeypatch.setattr(verify, "FILE_CHARS", 10)
+    monkeypatch.setattr(verify, "FILES_CHARS", 15)
+    (tmp_path / "a.md").write_text("0123456789abc", encoding="utf-8")
+    (tmp_path / "b.docx").write_bytes(b"PK\x03\x04")
+    (tmp_path / "c.csv").write_text("x,y\n1,2\n", encoding="utf-8")
+    checks = [{"subtask": "t1", "path": p, "ok": True, "bytes": 1} for p in ("a.md", "b.docx", "c.csv")]
+    checks.append({"subtask": "t2", "path": "d.md", "ok": False, "bytes": 0})
+    assert verify.saved_texts(checks, tmp_path) == [  # binary and missing files left out, 15 characters in all
+        {"subtask": "t1", "path": "a.md", "text": "0123456789", "clipped": True},
+        {"subtask": "t1", "path": "c.csv", "text": "x,y\n1", "clipped": True}]
+
+
+async def test_a_one_step_plan_answers_with_its_own_summary(tmp_path):
+    bp = blueprint([{"id": "t1", "specialist": "writing", "instruction": "Escribe nota.md", "deliverables": ["nota.md"]}],
+                   ["La nota existe"])
+    provider = ScriptedProvider([call("write_file", {"path": "nota.md", "content": "Hola"}),
+                                 text("Guardé nota.md con un saludo."), text(checker(criteria=[True]))])
+    events = await run(orchestrator(provider, tmp_path), "Escribe una nota", OrchestratorOptions(forge=bp))
+    assert len(provider.requests) == 3 and not any(e["type"] == "synthesis_start" for e in events)  # no integrator
+    assert events[-1]["type"] == "done" and events[-1]["text"] == "Guardé nota.md con un saludo."
+    assert next(e for e in events if e["type"] == "forge_report")["criteria"][0]["ok"] is True
 
 
 async def test_work_goes_back_at_most_twice(tmp_path):

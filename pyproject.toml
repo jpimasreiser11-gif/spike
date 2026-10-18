@@ -57,7 +57,7 @@ pythonpath = ["."]
 
 [tool.ruff]
 line-length = 110
-extend-exclude = ["brand", "spike/skills/bundled", "archive"]   # brand pipeline scripts; verbatim upstream skills; Phase 0 kept as it was
+extend-exclude = ["brand", "spike/skills/bundled", "archive", "evals/results"]   # brand pipeline scripts; verbatim upstream skills; Phase 0 kept as it was; code models wrote in evals
 target-version = "py311"
 
 [tool.ruff.lint]

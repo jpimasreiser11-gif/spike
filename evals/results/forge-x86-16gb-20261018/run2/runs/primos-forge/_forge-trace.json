@@ -1,0 +1,83 @@
+{
+  "blueprint": {
+    "goal": "Guardar en el archivo primos.txt los 20 primeros números primos, separados por comas y en una sola línea.",
+    "requirements": [
+      "El archivo debe contener exactamente 20 números primos.",
+      "Los números deben estar separados únicamente por comas (sin espacios explícitos entre ellos, o con espacios opcionales si se interpreta como lista estándar, pero la instrucción dice 'separados por comas', lo que usualmente implica 'número,número,número').",
+      "Todos los números deben estar en una sola línea.",
+      "El archivo debe guardarse con el nombre exacto 'primos.txt' en la ruta relativa actual."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "code",
+        "instruction": "Generar un script que calcule los primeros 20 números primos, formatee la lista como una cadena de texto separada por comas en una sola línea, y escriba ese contenido en un archivo llamado 'primos.txt'.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "primos.txt"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo 'primos.txt' debe existir.",
+      "El contenido de 'primos.txt' debe ser una cadena de texto que contenga exactamente 20 números primos consecutivos (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71) separados por comas.",
+      "El contenido debe estar en una sola línea sin saltos de línea."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [
+        {
+          "subtask": "t1",
+          "fix": "The script execution failed and stopped after 8 steps without generating the file. The file 'primos.txt' is missing. You must ensure the script successfully calculates the first 20 primes, formats them as a comma-separated string on a single line, and writes this content to 'primos.txt' before stopping. The file primos.txt was not saved: save it with your file tool at exactly that path."
+        }
+      ],
+      "criteria": [
+        {
+          "text": "El archivo 'primos.txt' debe existir.",
+          "ok": false,
+          "note": "The file 'primos.txt' was not created. The instruction required generating the file with the specific content, but the execution failed to produce the output."
+        },
+        {
+          "text": "El contenido de 'primos.txt' debe ser una cadena de texto que contenga exactamente 20 números primos consecutivos (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71) separados por comas.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El contenido debe estar en una sola línea sin saltos de línea.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo 'primos.txt' debe existir.",
+          "ok": true,
+          "note": "File 'primos.txt' exists."
+        },
+        {
+          "text": "El contenido de 'primos.txt' debe ser una cadena de texto que contenga exactamente 20 números primos consecutivos (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71) separados por comas.",
+          "ok": true,
+          "note": "Content contains exactly the 20 specified consecutive prime numbers separated by commas."
+        },
+        {
+          "text": "El contenido debe estar en una sola línea sin saltos de línea.",
+          "ok": true,
+          "note": "Content is on a single line without line breaks."
+        }
+      ]
+    }
+  ]
+}

@@ -1,9 +1,10 @@
-"""Agent loop: model call -> tool calls (permission-gated) -> tool results -> model call, until an answer."""
+"""Agent loop: model call -> tool calls (permission-gated) -> tool results -> model call, until an answer. The last
+allowed call is told to answer without tools, so a run that reaches the step limit still reports what it did."""
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -14,6 +15,8 @@ from spike.tools.base import PermissionBroker, Tool
 from spike.tools.builtin import NO_ONE_TO_ASK, AskUser
 
 Event = dict[str, Any]
+LAST_STEP = ("[SPIKE] This is your last step: do not call any more tools. Reply now with your final answer: what "
+             "you did, which files you saved and anything left undone.")
 
 
 class Checkpointer(Protocol):
@@ -61,6 +64,9 @@ async def run_agent(
 
     for step in range(max_steps):
         run.steps = step + 1
+        last = step == max_steps - 1
+        if last and history and history[-1].role == "tool":
+            history[-1] = replace(history[-1], content=f"{history[-1].content}\n\n{LAST_STEP}")
         fitted, dropped = fit_messages(history, context_budget)
         # only a model that actually gets the files can quote them (a guarded provider may withhold them)
         run.private = run.private or (getattr(provider, "receives_files", True) and any(m.private for m in fitted))
@@ -93,11 +99,16 @@ async def run_agent(
                 yield {"type": "error", "message": ev.text, **tag}
                 return
         text = "".join(text_parts)
+        refused = last and bool(calls)
+        if refused:  # calls past the limit are not run, so the answer does not keep them
+            calls = []
         assistant = Message(role="assistant", content=text, tool_calls=calls)
         history.append(assistant)
         run.messages.append(assistant)
         run.text += text
         if not calls:
+            if refused and not text.strip():
+                break
             return
 
         for call in calls:

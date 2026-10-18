@@ -42,8 +42,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.
 
-- Forge measured on the 16 GB x86 machine with the base model: 6/10 tasks against 9/10 for the core model alone,
-  and 8.3x slower, so it is not announced yet.
+- Forge measured twice on the 16 GB x86 machine with the base model: 6/10 and 9/10 tasks against 9/10 and 8/10
+  for the core model alone, and 6.5-8.3x slower, so no gain is shown and it is not announced. Its checker now reads
+  the saved files and does not overrule numbers from its own estimates (not measured yet).
+- An agent that reaches its tool-step limit gets one last call to answer instead of ending in an error.
 
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and installer runs on

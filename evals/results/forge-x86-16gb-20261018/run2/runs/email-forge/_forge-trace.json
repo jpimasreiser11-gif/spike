@@ -1,0 +1,68 @@
+{
+  "blueprint": {
+    "goal": "Redactar un correo electrónico de disculpa de 150 palabras o menos para la cliente Laura Gómez informando sobre el retraso en su pedido 4512.",
+    "requirements": [
+      "El correo debe dirigirse específicamente a Laura Gómez.",
+      "Debe mencionar el pedido con número 4512.",
+      "Debe explicar que la entrega se realizará el 15 de noviembre en lugar del 8 de noviembre.",
+      "El tono debe ser empático y profesional.",
+      "La extensión máxima del texto es de 150 palabras."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "writing",
+        "instruction": "Redactar un borrador de correo electrónico en español dirigido a Laura Gómez, disculpándose por el retraso en el pedido 4512 (entrega el 15 de noviembre en lugar del 8) y manteniendo la extensión inferior a 150 palabras.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "email.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo email.md debe contener el texto del correo.",
+      "El texto debe estar dirigido a Laura Gómez.",
+      "Debe mencionarse el pedido 4512 y las fechas 8 y 15 de noviembre.",
+      "La longitud del texto debe ser menor o igual a 150 palabras.",
+      "El tono debe ser adecuado para una comunicación de servicio al cliente."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo email.md debe contener el texto del correo.",
+          "ok": true,
+          "note": "The file email.md was saved and contains the email text."
+        },
+        {
+          "text": "El texto debe estar dirigido a Laura Gómez.",
+          "ok": true,
+          "note": "The email is addressed to Laura Gómez."
+        },
+        {
+          "text": "Debe mencionarse el pedido 4512 y las fechas 8 y 15 de noviembre.",
+          "ok": true,
+          "note": "The email mentions order 4512 and the dates November 8 and November 15."
+        },
+        {
+          "text": "La longitud del texto debe ser menor o igual a 150 palabras.",
+          "ok": true,
+          "note": "The text length is 63 words, which is less than or equal to 150 words."
+        },
+        {
+          "text": "El tono debe ser adecuado para una comunicación de servicio al cliente.",
+          "ok": true,
+          "note": "The tone is professional and appropriate for customer service."
+        }
+      ]
+    }
+  ]
+}

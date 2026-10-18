@@ -1,0 +1,117 @@
+{
+  "blueprint": {
+    "goal": "Calcular la cuota mensual de un préstamo de 10.000 € al 5 % de interés nominal anual durante 3 años usando el sistema francés y guardar el resultado junto con la fórmula en prestamo.md.",
+    "requirements": [
+      "Calcular la cuota mensual utilizando el sistema francés (interés compuesto mensual).",
+      "El resultado debe incluir el valor numérico de la cuota mensual.",
+      "Se debe mostrar la fórmula matemática utilizada.",
+      "El resultado y la fórmula deben guardarse en un archivo llamado prestamo.md.",
+      "El archivo debe estar en la ruta relativa 'prestamo.md'."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "math",
+        "instruction": "Calcular la cuota mensual de un préstamo de 10.000 € al 5 % de interés nominal anual durante 3 años aplicando la fórmula del sistema francés (interés compuesto mensual). Convertir la tasa anual a mensual, determinar el número total de meses, aplicar la fórmula de amortización francesa y redondear el resultado a dos decimales.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "prestamo.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo prestamo.md debe contener el valor de la cuota mensual calculado (aproximadamente 306,73 €).",
+      "El archivo debe incluir la fórmula matemática completa utilizada para el cálculo.",
+      "El archivo debe estar ubicado en la ruta relativa 'prestamo.md'."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [
+        {
+          "subtask": "t1",
+          "fix": "The calculated monthly payment (299.71 €) is incorrect. The correct value for a 10,000 € loan at 5% annual interest over 3 years using the French system is approximately 306.73 €. The error likely stems from using the wrong exponent in the formula or a calculation mistake. The formula used in the result description `C = P × i × (1+i)^n / ((1+i)^n - 1)` is correct, but the numerical evaluation resulted in 299.71 instead of 306.73. The file `prestamo.md` must be updated to reflect the correct value of 306.73 €."
+        }
+      ],
+      "criteria": [
+        {
+          "text": "El archivo prestamo.md debe contener el valor de la cuota mensual calculado (aproximadamente 306,73 €).",
+          "ok": false,
+          "note": "The calculated value in the result (299.71 €) does not match the acceptance criteria (approximately 306.73 €). The calculation performed by the model was incorrect."
+        },
+        {
+          "text": "El archivo debe incluir la fórmula matemática completa utilizada para el cálculo.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El archivo debe estar ubicado en la ruta relativa 'prestamo.md'.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "method": "llm",
+      "note": "",
+      "returned": [
+        {
+          "subtask": "t1",
+          "fix": "The result indicates the task failed to produce a final answer after 8 steps. The file `prestamo.md` was saved but likely contains an incomplete calculation, an error message, or no valid monthly payment value. You must re-execute the calculation using the French amortization formula: $M = P \\frac{r(1+r)^n}{(1+r)^n - 1}$ where $P=10000$, $r=0.05/12$, $n=36$. Ensure the output in `prestamo.md` explicitly states the monthly payment (approx. 306.73 €) and includes the full mathematical formula used."
+        }
+      ],
+      "criteria": [
+        {
+          "text": "El archivo prestamo.md debe contener el valor de la cuota mensual calculado (aproximadamente 306,73 €).",
+          "ok": false,
+          "note": "The file `prestamo.md` does not contain the calculated monthly payment value (approx. 306.73 €) because the execution failed to produce a final answer."
+        },
+        {
+          "text": "El archivo debe incluir la fórmula matemática completa utilizada para el cálculo.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El archivo debe estar ubicado en la ruta relativa 'prestamo.md'.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "method": "llm",
+      "note": "",
+      "returned": [
+        {
+          "subtask": "t1",
+          "fix": "The calculated monthly payment is incorrect. The user requested a loan of 10,000 € at 5% nominal annual interest for 3 years using the French system. The correct monthly payment is approximately €306.73, not €299.71. The model incorrectly calculated the result as €299.71. The file `prestamo.md` must be updated to reflect the correct calculation: M = 10000 * (0.0041666667 * (1.0041666667)^36) / ((1.0041666667)^36 - 1) ≈ 306.71 (or 306.72 depending on rounding precision at intermediate steps, but the target is ~306.73). The model's claim that 306.73 is an error is false; 306.73 is the correct value for the given parameters."
+        }
+      ],
+      "criteria": [
+        {
+          "text": "El archivo prestamo.md debe contener el valor de la cuota mensual calculado (aproximadamente 306,73 €).",
+          "ok": false,
+          "note": "The result in prestamo.md shows €299.71, which contradicts the acceptance criterion requiring approximately €306.73. The calculation performed by the model was mathematically incorrect for the given inputs (10,000 € principal, 5% annual rate, 36 months)."
+        },
+        {
+          "text": "El archivo debe incluir la fórmula matemática completa utilizada para el cálculo.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El archivo debe estar ubicado en la ruta relativa 'prestamo.md'.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

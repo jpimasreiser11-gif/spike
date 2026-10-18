@@ -1,0 +1,106 @@
+{
+  "blueprint": {
+    "goal": "Generar un archivo JSON llamado quiz.json con 5 preguntas de opción múltiple sobre el sistema solar, diseñadas para niños de 10 años, siguiendo un formato específico de objetos con campos pregunta, opciones y correcta.",
+    "requirements": [
+      "El archivo debe contener exactamente 5 preguntas.",
+      "Cada pregunta debe tener 4 opciones de respuesta.",
+      "El campo 'correcta' debe indicar el índice numérico (0, 1, 2 o 3) de la opción correcta.",
+      "El contenido debe ser adecuado para niños de 10 años.",
+      "El archivo debe guardarse con el nombre relativo 'quiz.json'."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "education",
+        "instruction": "Crear 5 preguntas de opción múltiple sobre el sistema solar adaptadas a niños de 10 años, asegurando que cada pregunta tenga 4 opciones y que la respuesta correcta sea el índice 0, 1, 2 o 3. Formatear el resultado como una lista de objetos JSON con las claves 'pregunta', 'opciones' y 'correcta'.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "quiz.json"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo quiz.json debe ser válido JSON.",
+      "Deben existir exactamente 5 elementos en la lista principal.",
+      "Cada objeto debe tener las claves 'pregunta', 'opciones' (lista de 4 strings) y 'correcta' (entero entre 0 y 3).",
+      "El tema de cada pregunta debe estar relacionado con el sistema solar.",
+      "El nivel de dificultad y el lenguaje deben ser apropiados para una audiencia de 10 años."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [
+        {
+          "subtask": "t1",
+          "fix": "The result text describes the questions but does not provide the actual JSON content of the file `quiz.json`. The instruction required creating the JSON file, and the acceptance criteria demand a valid JSON structure. The current output only lists the questions and answers in text format without the required `opciones` (options) arrays and the actual JSON syntax. The file `quiz.json` must contain a valid JSON array of objects with keys 'pregunta', 'opciones' (list of 4 strings), and 'correcta' (integer). The current response fails to show the actual JSON content that was supposedly saved."
+        }
+      ],
+      "criteria": [
+        {
+          "text": "El archivo quiz.json debe ser válido JSON.",
+          "ok": false,
+          "note": "The result does not provide the actual JSON content required by the instruction and acceptance criteria. It only describes the questions in text format without the necessary 'opciones' arrays and valid JSON structure."
+        },
+        {
+          "text": "Deben existir exactamente 5 elementos en la lista principal.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "Cada objeto debe tener las claves 'pregunta', 'opciones' (lista de 4 strings) y 'correcta' (entero entre 0 y 3).",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El tema de cada pregunta debe estar relacionado con el sistema solar.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El nivel de dificultad y el lenguaje deben ser apropiados para una audiencia de 10 años.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo quiz.json debe ser válido JSON.",
+          "ok": true,
+          "note": "El archivo quiz.json es válido JSON, contiene exactamente 5 elementos, cada uno tiene las claves 'pregunta', 'opciones' (con 4 strings) y 'correcta' (entero 0-3). El tema es el sistema solar y el lenguaje es adecuado para niños de 10 años."
+        },
+        {
+          "text": "Deben existir exactamente 5 elementos en la lista principal.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "Cada objeto debe tener las claves 'pregunta', 'opciones' (lista de 4 strings) y 'correcta' (entero entre 0 y 3).",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El tema de cada pregunta debe estar relacionado con el sistema solar.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El nivel de dificultad y el lenguaje deben ser apropiados para una audiencia de 10 años.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

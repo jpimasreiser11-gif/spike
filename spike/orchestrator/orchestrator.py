@@ -29,6 +29,7 @@ from spike.orchestrator.verify import (
     dependents,
     file_checks,
     parse_verdict,
+    saved_texts,
     verifier_prompt,
     verify_message,
     verify_schema,
@@ -361,7 +362,9 @@ class Orchestrator:
                      "thoroughly and precisely; a checker will review it and another model will merge the team's work.")
         if task.deliverables:
             team_note += ("\nSave these files with your file tools, at exactly these paths in the working folder: "
-                          + ", ".join(task.deliverables) + ". Then reply with a short summary of what each file holds.")
+                          + ", ".join(task.deliverables) + ". Follow every format the user's request fixes for them "
+                          "(keys and their types, sections, lengths) exactly, adding nothing to it. Then reply with a "
+                          "short summary of what each file holds.")
         deps = "\n\n".join(f"## Result from {self.catalog.get(owners[d]).name}\n{results[d]}"
                            for d in task.depends_on if d in results)
         # what other models wrote after reading the user's files stays as private as the files
@@ -408,15 +411,18 @@ class Orchestrator:
                "elapsed_s": round(time.perf_counter() - t0, 3)}
 
     async def _ask_checker(self, plan: Plan, user_text: str, results: dict[str, str], criteria: list[str],
-                           checks: list[dict[str, Any]], tainted: set[str], usage: list[Event]) -> Verdict:
+                           checks: list[dict[str, Any]], tainted: set[str], usage: list[Event],
+                           files: list[dict[str, Any]] | None = None) -> Verdict:
         core = self.resolve(self.catalog.core)
         ids = [t.id for t in plan.subtasks]
         names = {s.id: s.name for s in self.catalog.specialists.values()}
+        files = files or []
         request = ChatRequest(
             messages=[Message(role="system", content=verifier_prompt(criteria)),
                       Message(role="user", content=verify_message(user_text, plan.subtasks, results, names, criteria,
-                                                                  checks),
-                              private=[results[t][:RESULT_CHARS] for t in tainted if results.get(t)])],
+                                                                  checks, files),
+                              private=[results[t][:RESULT_CHARS] for t in tainted if results.get(t)]
+                              + [f["text"] for f in files if f["subtask"] in tainted])],
             model=core.model, adapter=core.adapter, temperature=0.0, max_tokens=1200,
             json_schema=verify_schema(ids, len(criteria)), reasoning=False,
         )
@@ -442,7 +448,8 @@ class Orchestrator:
             checks = file_checks(plan.subtasks, root)
             yield {"type": "verify_start", "round": round_}
             usage: list[Event] = []
-            verdict = await self._ask_checker(plan, user_text, results, criteria, checks, tainted, usage)
+            verdict = await self._ask_checker(plan, user_text, results, criteria, checks, tainted, usage,
+                                              saved_texts(checks, root))
             for ev in usage:
                 yield ev
             for c in checks:
@@ -489,22 +496,30 @@ class Orchestrator:
             reports += "\n\n# The checker's verdict on the acceptance criteria\n" + "\n".join(
                 f"- {c['text']}: {'met' if c['ok'] else 'not met' if c['ok'] is False else 'not checked'}"
                 + (f" ({c['note']})" if c["note"] else "") for c in verdict.criteria)
-        core = self.catalog.core
-        backend = self.resolve(core)
-        instructions = SYNTHESIS_INSTRUCTIONS + (f"\n{FORGE_SYNTHESIS}" if opts.forge is not None else "")
-        messages = [
-            self.system_message(core, opts, instructions, backend.context_budget),
-            *history,
-            Message(role="user", content=f"{user_text}\n\n# Specialist reports\n{reports}",
-                    private=[results[t] for t in tainted if results.get(t)]),
-        ]
-        yield {"type": "synthesis_start", "role": "integrator"}
-        async for ev in run_agent(
-            backend.provider, messages, tools=[], broker=self.broker, run=final, adapter=backend.adapter,
-            model=backend.model, temperature=opts.temperature, max_tokens=opts.max_tokens,
-            context_budget=backend.context_budget, reasoning=opts.reasoning, tag={"specialist": "core"},
-        ):
-            yield ev
+        only = plan.subtasks[0] if len(plan.subtasks) == 1 else None
+        own = results.get(only.id, "") if only is not None else ""
+        if opts.forge is not None and only is not None and own.strip() and not own.startswith("(failed: "):
+            # one step: its summary of the files it saved is the answer (the report lists the criteria), which
+            # saves a model call that takes minutes on a CPU
+            final.text, final.private = own, only.id in tainted
+            yield {"type": "delta", "text": own, "specialist": only.specialist}
+        else:
+            core = self.catalog.core
+            backend = self.resolve(core)
+            instructions = SYNTHESIS_INSTRUCTIONS + (f"\n{FORGE_SYNTHESIS}" if opts.forge is not None else "")
+            messages = [
+                self.system_message(core, opts, instructions, backend.context_budget),
+                *history,
+                Message(role="user", content=f"{user_text}\n\n# Specialist reports\n{reports}",
+                        private=[results[t] for t in tainted if results.get(t)]),
+            ]
+            yield {"type": "synthesis_start", "role": "integrator"}
+            async for ev in run_agent(
+                backend.provider, messages, tools=[], broker=self.broker, run=final, adapter=backend.adapter,
+                model=backend.model, temperature=opts.temperature, max_tokens=opts.max_tokens,
+                context_budget=backend.context_budget, reasoning=opts.reasoning, tag={"specialist": "core"},
+            ):
+                yield ev
         if opts.forge is not None and verdict is not None:
             _, checks, rounds = outcome
             yield {"type": "forge_report", "verified": verdict.method == "llm", "note": verdict.note,

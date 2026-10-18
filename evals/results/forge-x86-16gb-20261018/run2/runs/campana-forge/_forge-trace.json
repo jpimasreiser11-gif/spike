@@ -1,0 +1,74 @@
+{
+  "blueprint": {
+    "goal": "Generar un archivo JSON llamado 'campana.json' que contenga el plan de lanzamiento de una campaña para una app de recetas con las claves especificadas.",
+    "requirements": [
+      "El archivo debe ser un objeto JSON válido.",
+      "La clave 'publico' debe contener una descripción de texto del público objetivo.",
+      "La clave 'canales' debe ser una lista con al menos 3 canales de marketing.",
+      "La clave 'mensaje' debe contener un texto de marketing de menos de 140 caracteres.",
+      "El archivo debe guardarse con el nombre relativo 'campana.json'."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "marketing",
+        "instruction": "Diseñar una estrategia de lanzamiento para una app de recetas, definiendo el perfil del público objetivo, seleccionando 3 canales de distribución adecuados y redactando un copy persuasivo de menos de 140 caracteres. Guardar el resultado en un objeto JSON estructurado.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "campana.json"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo 'campana.json' existe y es válido.",
+      "La estructura del JSON contiene exactamente las claves: 'publico', 'canales', 'mensaje'.",
+      "La lista 'canales' tiene al menos 3 elementos.",
+      "El texto en la clave 'mensaje' tiene una longitud menor a 140 caracteres.",
+      "El contenido de 'publico' describe claramente a quién va dirigida la app.",
+      "Los canales seleccionados son relevantes para el lanzamiento de una aplicación de recetas."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo 'campana.json' existe y es válido.",
+          "ok": true,
+          "note": "El archivo campana.json existe y es válido."
+        },
+        {
+          "text": "La estructura del JSON contiene exactamente las claves: 'publico', 'canales', 'mensaje'.",
+          "ok": true,
+          "note": "La estructura del JSON contiene exactamente las claves: 'publico', 'canales', 'mensaje'."
+        },
+        {
+          "text": "La lista 'canales' tiene al menos 3 elementos.",
+          "ok": true,
+          "note": "La lista 'canales' tiene al menos 3 elementos."
+        },
+        {
+          "text": "El texto en la clave 'mensaje' tiene una longitud menor a 140 caracteres.",
+          "ok": true,
+          "note": "El texto en la clave 'mensaje' tiene una longitud menor a 140 caracteres."
+        },
+        {
+          "text": "El contenido de 'publico' describe claramente a quién va dirigida la app.",
+          "ok": true,
+          "note": "El contenido de 'publico' describe claramente a quién va dirigida la app."
+        },
+        {
+          "text": "Los canales seleccionados son relevantes para el lanzamiento de una aplicación de recetas.",
+          "ok": true,
+          "note": "Los canales seleccionados son relevantes para el lanzamiento de una aplicación de recetas."
+        }
+      ]
+    }
+  ]
+}

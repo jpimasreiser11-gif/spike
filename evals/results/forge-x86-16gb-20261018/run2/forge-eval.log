@@ -1,0 +1,27 @@
+pass forge    fizzbuzz   1911.2s
+pass baseline fizzbuzz    162.3s
+pass forge    slug        842.7s
+FAIL baseline slug        470.0s
+       slugify da los resultados esperados: AssertionError: hola--senor-perez
+       error: stopped after 8 tool steps without a final answer
+pass forge    primos      851.3s
+pass baseline primos      116.0s
+pass forge    facturas   2316.5s
+pass baseline facturas    358.0s
+pass forge    prestamo   2420.4s
+pass baseline prestamo    190.1s
+pass forge    email       575.7s
+pass baseline email        76.0s
+FAIL forge    campana     854.3s
+       campana.json tiene publico, canales (3 o más) y mensaje corto: AssertionError: [{'nombre': 'Instagram', 'justificacion': 'El 82% del público objetivo consume recetas visualmente en Instagram, que es la plataforma más utilizada por mujeres de 25-45 años en España (datos de Statista 2023, estimado)', 'formato': 'Posts de recetas visuales con reels demostrativos y
+pass baseline campana      66.4s
+pass forge    quiz        677.4s
+pass baseline quiz        116.2s
+pass forge    cafeteria   809.1s
+pass baseline cafeteria   111.6s
+pass forge    ventas     1064.7s
+FAIL baseline ventas      218.8s
+       resumen.md da el total, el mejor mes y la media de ventas.csv: AssertionError: ('mes', '2025-09')
+forge    9/10 = 90%  (95 % CI 60%–98%)
+baseline 8/10 = 80%  (95 % CI 49%–94%)
+wrote /root/w/out/run2/forge-eval.json

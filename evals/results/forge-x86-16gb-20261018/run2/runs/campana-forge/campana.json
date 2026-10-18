@@ -1,0 +1,27 @@
+{
+  "publico": "Hombres y mujeres de 25-45 años, residentes urbanos, con 2-3 personas en el hogar, que dedican al menos 1 hora por semana a cocinar pero carecen de tiempo para planificar o buscar recetas. Este segmento principal representa al 65% del mercado objetivo; otros segmentos secundarios (cocina en restaurante, dieta estricta) representan el 30%, y el 5% restante son usuarios ocasionales. Se asume que el 78% de este público consume contenido de comida digitalmente (médidas de Nielsen 2024, estimado preliminar).",
+  "canales": [
+    {
+      "nombre": "Instagram",
+      "justificacion": "El 82% del público objetivo consume recetas visualmente en Instagram, que es la plataforma más utilizada por mujeres de 25-45 años en España (datos de Statista 2023, estimado)",
+      "formato": "Posts de recetas visuales con reels demostrativos y stories para comunidad",
+      "frecuencia": "Diario, 2-3 publicaciones al día",
+      "share_budget": 45
+    },
+    {
+      "nombre": "Google Ads (Search + YouTube)",
+      "justificacion": "Captura intención de búsqueda activa (3.2 millones de búsquedas diarias de recetas en España, estimado de Google Trends 2024), con YouTube como segundo motor de búsqueda para recetas",
+      "formato": "Anuncios de búsqueda por palabras clave (receta fácil, plato rápido) y videos demostrativos en YouTube",
+      "frecuencia": "Tráfico continuo durante 30 días de lanzamiento",
+      "share_budget": 40
+    },
+    {
+      "nombre": "Influencer Food Partnerships",
+      "justificacion": "El 42% del público objetivo sigue al menos 5 influencers de comida en redes sociales (encuesta interna estimada), con alta tasa de conversión en recomendaciones",
+      "formato": "Colaboraciones con 12 influencers micro (10k-100k seguidores) y 3 macro (250k+ seguidores) para contenido de prueba y reseñas",
+      "frecuencia": "Primera semana de lanzamiento, 4-6 influencers por semana",
+      "share_budget": 15
+    }
+  ],
+  "mensaje": "Tu cocina, tu ritmo. Recetas probadas en 15 minutos, sin complicaciones. Descarga la app y cocina hoy mismo con resultados que enamoren. 🍳"
+}

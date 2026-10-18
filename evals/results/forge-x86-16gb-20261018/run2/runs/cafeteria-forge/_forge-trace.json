@@ -1,0 +1,55 @@
+{
+  "blueprint": {
+    "goal": "Generar un archivo markdown con un plan de una página para abrir una cafetería, incluyendo secciones específicas de objetivo, costes iniciales (con tabla), riesgos y próximos pasos.",
+    "requirements": [
+      "El archivo debe tener exactamente cuatro secciones con títulos de nivel 2: ## Objetivo, ## Costes iniciales, ## Riesgos y ## Próximos pasos.",
+      "La sección de Costes iniciales debe contener una tabla de Markdown con al menos tres partidas y una fila de total que sume las partidas.",
+      "El contenido debe ser relevante para el lanzamiento de una cafetería.",
+      "El archivo debe guardarse con el nombre plan.md en la raíz del proyecto."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "business",
+        "instruction": "Crear un documento markdown estructurado con un plan de negocio para abrir una cafetería, asegurando que incluya las secciones solicitadas (Objetivo, Costes iniciales, Riesgos, Próximos pasos) y que la tabla de costes tenga al menos tres ítems y un total calculado.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "plan.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo plan.md existe y contiene exactamente las cuatro secciones con los títulos ## Objetivo, ## Costes iniciales, ## Riesgos y ## Próximos pasos.",
+      "La sección ## Costes iniciales incluye una tabla Markdown válida con al menos 3 filas de datos y una fila de total con la suma correcta.",
+      "El contenido de las secciones es coherente y pertinente para el contexto de abrir una cafetería."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo plan.md existe y contiene exactamente las cuatro secciones con los títulos ## Objetivo, ## Costes iniciales, ## Riesgos y ## Próximos pasos.",
+          "ok": true,
+          "note": "The file plan.md exists and contains the four required H2 sections with correct titles."
+        },
+        {
+          "text": "La sección ## Costes iniciales incluye una tabla Markdown válida con al menos 3 filas de datos y una fila de total con la suma correcta.",
+          "ok": true,
+          "note": "The 'Costes iniciales' section includes a valid Markdown table with at least 3 data rows and a total row with the calculated sum."
+        },
+        {
+          "text": "El contenido de las secciones es coherente y pertinente para el contexto de abrir una cafetería.",
+          "ok": true,
+          "note": "The content is coherent and relevant to opening a coffee shop."
+        }
+      ]
+    }
+  ]
+}

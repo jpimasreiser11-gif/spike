@@ -4,8 +4,9 @@ After the team's subtasks run, one more model call checks each result against it
 and, in Forge, the acceptance criteria the user approved. A result with a concrete problem goes back to its
 specialist with the verifier's note (and the subtasks that used it run again too), at most MAX_ROUNDS times; the
 integrator then merges the results. Whether a deliverable file was saved is checked by SPIKE itself, not by the
-model, and a missing one always sends its subtask back. When the verifier's answer is not valid JSON nothing is sent
-back and the run says the results could not be verified.
+model, and a missing one always sends its subtask back; the verifier reads the saved text files themselves (clipped),
+not only their authors' summaries. When the verifier's answer is not valid JSON nothing is sent back and the run
+says the results could not be verified.
 """
 
 from __future__ import annotations
@@ -19,13 +20,19 @@ from spike.orchestrator.planner import Subtask, extract_json
 MAX_ROUNDS = 2  # times work can be sent back
 RESULT_CHARS = 3000  # of each result shown to the verifier
 MIN_FIX = 8  # a "not ok" without a usable note is not sent back: there would be nothing to fix
+FILE_CHARS = 2000  # of each saved text file shown to the verifier
+FILES_CHARS = 8000  # of all of them
+TEXT_FILES = {".md", ".txt", ".csv", ".tsv", ".json", ".jsonl", ".py", ".js", ".ts", ".html", ".css", ".svg", ".xml",
+              ".yaml", ".yml", ".toml", ".sql", ".sh"}
 
 VERIFIER_PROMPT = (
     "You are the checker of SPIKE, a team of specialist models. Check each subtask result against its instruction "
     "and the user's request{criteria}. Mark a result not ok only for a concrete problem its author can fix: a part "
     "of the instruction that is missing, a calculation or fact that is wrong (say which and why), a contradiction "
-    "with another result, or a file it had to save that is missing. Style is not a problem. For each problem write "
-    "in `fix` exactly what to change. Reply with JSON only."
+    "with another result, or a file it had to save that is missing. Style is not a problem. When the saved files "
+    "are shown, judge the files themselves. Do not redo calculations in your head: call a number wrong only when "
+    "you show the exact calculation that gives another value; a value you only estimate is never a reason. For each "
+    "problem write in `fix` exactly what to change. Reply with JSON only."
 )
 
 
@@ -65,7 +72,7 @@ def verifier_prompt(criteria: list[str]) -> str:
 
 
 def verify_message(user_text: str, subtasks: list[Subtask], results: dict[str, str], names: dict[str, str],
-                   criteria: list[str], checks: list[dict[str, Any]]) -> str:
+                   criteria: list[str], checks: list[dict[str, Any]], saved: list[dict[str, Any]] | None = None) -> str:
     parts = [f"# User request\n{user_text}"]
     if criteria:
         parts.append("# Acceptance criteria\n" + "\n".join(f"{i}. {c}" for i, c in enumerate(criteria, 1)))
@@ -79,6 +86,9 @@ def verify_message(user_text: str, subtasks: list[Subtask], results: dict[str, s
         parts.append("# Files checked by SPIKE\n" + "\n".join(
             f"- {c['path']} ({c['subtask']}): {'saved, ' + str(c['bytes']) + ' bytes' if c['ok'] else 'NOT FOUND'}"
             for c in checks))
+    for f in saved or []:
+        parts.append(f"## Saved file {f['path']} ({f['subtask']}){', first part' if f['clipped'] else ''}\n"
+                     f"<<<\n{f['text']}\n>>>")
     return "\n\n".join(parts)
 
 
@@ -112,6 +122,21 @@ def file_checks(subtasks: list[Subtask], root: Path | None) -> list[dict[str, An
             target = (root / path).resolve()
             size = target.stat().st_size if target.is_file() and root in target.parents else 0
             out.append({"subtask": t.id, "path": path, "ok": size > 0, "bytes": size})
+    return out
+
+
+def saved_texts(checks: list[dict[str, Any]], root: Path | None) -> list[dict[str, Any]]:
+    """The saved text deliverables, clipped, for the verifier to read; binary files (docx, xlsx...) are left out."""
+    out, left = [], FILES_CHARS
+    for c in checks:
+        if root is None or not c["ok"] or Path(c["path"]).suffix.lower() not in TEXT_FILES or left <= 0:
+            continue
+        with (root / c["path"]).open(encoding="utf-8", errors="replace") as fh:
+            text = fh.read(min(FILE_CHARS, left) + 1)
+        clipped = len(text) > min(FILE_CHARS, left)
+        text = text[:min(FILE_CHARS, left)]
+        left -= len(text)
+        out.append({"subtask": c["subtask"], "path": c["path"], "text": text, "clipped": clipped})
     return out
 
 

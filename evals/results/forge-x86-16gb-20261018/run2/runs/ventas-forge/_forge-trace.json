@@ -1,0 +1,67 @@
+{
+  "blueprint": {
+    "goal": "Generar datos simulados de ventas mensuales para 2025 y crear un archivo CSV con los datos y un archivo Markdown con un resumen estadístico.",
+    "requirements": [
+      "Generar ventas mensuales simuladas para los 12 meses del año 2025.",
+      "Guardar los datos en un archivo llamado ventas.csv con las columnas 'mes' y 'ventas' (ventas en euros, enteros).",
+      "Crear un archivo llamado resumen.md que contenga el total anual, el mes con más ventas y la media mensual redondeada a euros.",
+      "El mes debe especificarse con su nombre completo (ej. 'Enero 2025') junto al valor de ventas."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "data",
+        "instruction": "Generar un conjunto de datos aleatorios de ventas mensuales para los 12 meses de 2025, asegurando que los valores sean números enteros en euros, y exportar el resultado a ventas.csv con las columnas 'mes' y 'ventas'.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "ventas.csv"
+        ]
+      },
+      {
+        "id": "t2",
+        "specialist": "data",
+        "instruction": "Leer el archivo ventas.csv generado, calcular el total anual, identificar el mes con el valor máximo de ventas, calcular la media mensual y redondearla a euros, luego escribir estos hallazgos en resumen.md.",
+        "depends_on": [
+          "t1"
+        ],
+        "role": "execute",
+        "deliverables": [
+          "resumen.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo ventas.csv debe existir y contener exactamente 12 filas de datos (más el encabezado) con columnas 'mes' y 'ventas' donde 'ventas' son enteros.",
+      "El archivo resumen.md debe existir y contener tres secciones claras: 'Total Anual', 'Mes con más ventas' (con nombre del mes y valor) y 'Media Mensual' (con valor redondeado a entero).",
+      "Los cálculos en resumen.md deben ser matemáticamente correctos basándose en los datos de ventas.csv."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "unavailable",
+      "note": "checker output was invalid",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo ventas.csv debe existir y contener exactamente 12 filas de datos (más el encabezado) con columnas 'mes' y 'ventas' donde 'ventas' son enteros.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El archivo resumen.md debe existir y contener tres secciones claras: 'Total Anual', 'Mes con más ventas' (con nombre del mes y valor) y 'Media Mensual' (con valor redondeado a entero).",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "Los cálculos en resumen.md deben ser matemáticamente correctos basándose en los datos de ventas.csv.",
+          "ok": null,
+          "note": ""
+        }
+      ]
+    }
+  ]
+}

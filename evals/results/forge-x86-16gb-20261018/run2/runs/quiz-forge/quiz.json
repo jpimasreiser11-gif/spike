@@ -1,0 +1,27 @@
+[
+  {
+    "pregunta": "¿Cuál es el centro del sistema solar?",
+    "opciones": ["El Sol", "La Tierra", "Marte", "Júpiter"],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cuál es el planeta más grande del sistema solar?",
+    "opciones": ["Venus", "Urano", "Saturno", "Júpiter"],
+    "correcta": 3
+  },
+  {
+    "pregunta": "¿Qué objeto natural orbita alrededor de la Tierra?",
+    "opciones": ["El Sol", "La Luna", "Marte", "Plutón"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué planeta es conocido por sus anillos brillantes?",
+    "opciones": ["Júpiter", "Marte", "Saturno", "Neptuno"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Cuál es el planeta más cercano al Sol?",
+    "opciones": ["Mercurio", "Venus", "Tierra", "Marte"],
+    "correcta": 0
+  }
+]

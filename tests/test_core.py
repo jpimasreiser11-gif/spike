@@ -169,6 +169,28 @@ async def test_agent_stops_on_provider_error():
     assert events == [{"type": "error", "message": "boom"}] and run.error == "boom"
 
 
+async def test_the_last_step_answers_instead_of_calling_more_tools(tmp_path):
+    tools = default_registry(tmp_path).subset(["calculator"])
+    # a model that keeps calling tools: the third call is told it is the last step, its tool call is not run
+    provider = ScriptedProvider([call("calculator", {"expression": "1+1"}, "c1"),
+                                 call("calculator", {"expression": "2+2"}, "c2"),
+                                 text("Calculé 1+1 y 2+2.") + call("calculator", {"expression": "3+3"}, "c3")])
+    run = AgentRun()
+    events = [e async for e in run_agent(provider, [Message(role="user", content="x")], tools=tools,
+                                         broker=PermissionBroker(), run=run, max_steps=3)]
+    assert [e["arguments"]["expression"] for e in events if e["type"] == "tool_call"] == ["1+1", "2+2"]
+    last = provider.requests[2].messages[-1]
+    assert last.role == "tool" and last.content.startswith("2+2 = 4") and "last step" in last.content
+    assert run.error is None and run.text == "Calculé 1+1 y 2+2."
+    assert run.messages[-1].tool_calls == [] and "last step" not in run.messages[-2].content  # stored as it was
+    # with no answer at all it is still an error
+    provider = ScriptedProvider([call("calculator", {"expression": "1+1"}), call("calculator", {"expression": "2+2"})])
+    run = AgentRun()
+    events = [e async for e in run_agent(provider, [Message(role="user", content="x")], tools=tools,
+                                         broker=PermissionBroker(), run=run, max_steps=2)]
+    assert run.error == "stopped after 2 tool steps without a final answer" and events[-1]["type"] == "error"
+
+
 # ---------------------------------------------------------------- orchestrator
 def make_orchestrator(provider, tmp_path, adapters=True):
     def resolve(spec):
