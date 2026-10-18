@@ -264,7 +264,8 @@ def cmd_forge(args: argparse.Namespace) -> int:
                       + "".join(f"\n       {f['check']}: {f['why']}" for f in r["failed"])
                       + (f"\n       error: {r['error']}" if r["error"] else ""), file=sys.stderr)
 
-            report = await evaluate.evaluate(base, tasks, modes, meta, progress)
+            report = await evaluate.evaluate(base, tasks, modes, meta, progress,
+                                             Path(args.keep).expanduser() if args.keep else None)
         finally:
             if args.start_local:
                 await state.stop_runtime()
@@ -554,6 +555,7 @@ def build_parser() -> argparse.ArgumentParser:
     fg.add_argument("--start-local", action="store_true", help="start the local engine first (and stop it after)")
     fg.add_argument("--model", help="GGUF for the local engine (saved as the local model, as `spike tune` does)")
     fg.add_argument("--out", help="write the JSON report here")
+    fg.add_argument("--keep", metavar="DIR", help="keep the files each task saved here (DIR/<task>-<mode>)")
     fg.set_defaults(func=cmd_forge)
 
     dv = sub.add_parser("dev", help="code in a folder from the terminal: SPIKE reads, edits and runs commands with "

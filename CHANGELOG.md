@@ -42,6 +42,9 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.
 
+- Forge measured on the 16 GB x86 machine with the base model: 6/10 tasks against 9/10 for the core model alone,
+  and 8.3x slower, so it is not announced yet.
+
 ### Not measured yet
-- Quality of any trained adapter, how well a 4B model follows skills or writes scenes, Forge success with real
-  weights, and installer runs on clean Windows and macOS machines.
+- Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and installer runs on
+  clean Windows and macOS machines.

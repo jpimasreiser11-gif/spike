@@ -1,7 +1,8 @@
 """The Forge test tasks (`spike forge eval`): ten fixed tasks whose results SPIKE checks itself, on the files the team
 saved; no model judges them. Each task runs in a new empty folder: Forge drafts the blueprint and runs it as drafted
 (nobody reviews it here), and with `--baseline` the core model alone (one model, the same file tools, no plan and no
-checker) answers the same task. The report gives each mode's success rate with a 95 % Wilson interval.
+checker) answers the same task. The report gives each mode's success rate with a 95 % Wilson interval; `--keep DIR`
+saves each task's folder there, to see why it failed.
 
 The checks run Python on the saved files, and some import the module the model wrote: they run in a subprocess in
 that task's folder with CPU and memory limits, like the `python` tool. Numbers only mean something from real runs
@@ -17,6 +18,7 @@ import math
 import os
 import platform
 import re
+import shutil
 import sys
 import tempfile
 import time
@@ -186,12 +188,15 @@ async def run_task(base: Orchestrator, task: dict[str, Any], mode: str, folder: 
 
 
 async def evaluate(base: Orchestrator, tasks: list[dict[str, Any]], modes: list[str], meta: dict[str, Any],
-                   progress: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
+                   progress: Callable[[dict[str, Any]], None] | None = None,
+                   keep: Path | None = None) -> dict[str, Any]:
     results = []
     for task in tasks:
         for mode in modes:
             with tempfile.TemporaryDirectory(prefix=f"spike-forge-{task['id']}-") as tmp:
                 result = await run_task(base, task, mode, Path(tmp))
+                if keep is not None:
+                    shutil.copytree(tmp, keep / f"{task['id']}-{mode}", dirs_exist_ok=True)
             results.append(result)
             if progress:
                 progress(result)
@@ -206,5 +211,5 @@ async def evaluate(base: Orchestrator, tasks: list[dict[str, Any]], modes: list[
 
 
 def run(base: Orchestrator, tasks: list[dict[str, Any]], modes: list[str], meta: dict[str, Any],
-        progress: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
-    return asyncio.run(evaluate(base, tasks, modes, meta, progress))
+        progress: Callable[[dict[str, Any]], None] | None = None, keep: Path | None = None) -> dict[str, Any]:
+    return asyncio.run(evaluate(base, tasks, modes, meta, progress, keep))

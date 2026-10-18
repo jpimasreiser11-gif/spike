@@ -296,6 +296,17 @@ def test_wrong_results_fail_their_checks(tmp_path, task_id, files, why):
     assert not result["passed"] and why in json.dumps(result["failed"], ensure_ascii=False)
 
 
+def test_the_cost_table_can_have_its_amounts_in_any_column(tmp_path):
+    # the layout a real run wrote (Forge, Qwen3.5-4B): amounts in the middle, a description last, thousands with spaces
+    table = ("| Partida | Coste (€) | Detalle |\n|---|---:|---|\n| Local y reformas | 45 000 | Arriendo inicial + reforma |\n"
+             "| Equipo de cocina | 25 000 | Molinos, cafeteras |\n| Mobiliario | 8 000 | Mesas y sillas |\n")
+    task = next(t for t in TASKS if t["id"] == "cafeteria")
+    for total, passed in (("| **Total** | **78 000** | |", True), ("| **Total** | **80 000** | 3 partidas |", False)):
+        (tmp_path / "plan.md").write_text(f"## Objetivo\nx\n## Costes iniciales\n{table}{total}\n## Riesgos\nx\n"
+                                          "## Próximos pasos\nx\n", encoding="utf-8")
+        assert evaluate.check_task(task, tmp_path)["passed"] is passed, total
+
+
 def test_a_check_cannot_hang_the_eval(tmp_path, monkeypatch):
     monkeypatch.setattr(evaluate, "CHECK_TIMEOUT_S", 1)
     (tmp_path / "fizzbuzz.py").write_text("def fizzbuzz(n):\n    while True:\n        pass\n", encoding="utf-8")
@@ -333,9 +344,13 @@ async def test_the_harness_runs_forge_and_the_baseline_in_fresh_folders(tmp_path
     base = Orchestrator(CATALOG, lambda spec: Backend(provider=provider, model=None, adapter=None),
                         default_registry(tmp_path / "unused"), PermissionBroker())
     task = next(t for t in TASKS if t["id"] == "primos")
-    report = await evaluate.evaluate(base, [task], ["forge", "baseline"], {"provider": "scripted"})
+    report = await evaluate.evaluate(base, [task], ["forge", "baseline"], {"provider": "scripted"},
+                                     keep=tmp_path / "kept")
     assert report["summary"]["forge"] == {"passed": 1, "n": 1, "rate": 1.0, "ci95": evaluate.wilson(1, 1)}
     assert report["summary"]["baseline"]["passed"] == 0
     forge, baseline = report["results"]
     assert forge["blueprint"] == "llm" and forge["rounds"] == 1 and baseline["failed"][0]["why"]
     assert not (tmp_path / "unused" / "primos.txt").exists()  # each task wrote in its own folder
+    kept = tmp_path / "kept"  # --keep: each task's files, to see why it failed
+    assert (kept / "primos-forge" / "primos.txt").read_text(encoding="utf-8") == primes
+    assert (kept / "primos-baseline" / "primos.txt").read_text(encoding="utf-8") == "2, 3, 5"

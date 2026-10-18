@@ -1,0 +1,69 @@
+{
+  "date_utc": "2026-10-18T06:12:00Z",
+  "spike_version": "0.1.0",
+  "platform": "Linux x86_64",
+  "provider": "SPIKE local (llama.cpp)",
+  "model": "spike-base",
+  "local": true,
+  "tasks": 2,
+  "summary": {
+    "forge": {
+      "passed": 2,
+      "n": 2,
+      "rate": 1.0,
+      "ci95": [
+        0.3424,
+        1.0
+      ]
+    },
+    "baseline": {
+      "passed": 2,
+      "n": 2,
+      "rate": 1.0,
+      "ci95": [
+        0.3424,
+        1.0
+      ]
+    }
+  },
+  "results": [
+    {
+      "id": "primos",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 830.2,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "primos",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 109.4
+    },
+    {
+      "id": "email",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 512.2,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "email",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 89.3
+    }
+  ]
+}

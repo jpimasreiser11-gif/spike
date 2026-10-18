@@ -1,0 +1,246 @@
+{
+  "date_utc": "2026-10-18T10:37:39Z",
+  "spike_version": "0.1.0",
+  "platform": "Linux x86_64",
+  "provider": "SPIKE local (llama.cpp)",
+  "model": "spike-base",
+  "local": true,
+  "tasks": 10,
+  "summary": {
+    "forge": {
+      "passed": 6,
+      "n": 10,
+      "rate": 0.6,
+      "ci95": [
+        0.3127,
+        0.8318
+      ]
+    },
+    "baseline": {
+      "passed": 9,
+      "n": 10,
+      "rate": 0.9,
+      "ci95": [
+        0.5958,
+        0.9821
+      ]
+    }
+  },
+  "results": [
+    {
+      "id": "fizzbuzz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1342.6,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 3
+    },
+    {
+      "id": "fizzbuzz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 118.2
+    },
+    {
+      "id": "slug",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "slugify da los resultados esperados",
+          "why": "AssertionError: xa1hola-se-xf1or-p-xe9rez"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 934.7,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "slug",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 280.7
+    },
+    {
+      "id": "primos",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 787.3,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "primos",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 108.1
+    },
+    {
+      "id": "facturas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 2983.8,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 3
+    },
+    {
+      "id": "facturas",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 309.1
+    },
+    {
+      "id": "prestamo",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 3560.3,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 3
+    },
+    {
+      "id": "prestamo",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 258.3
+    },
+    {
+      "id": "email",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "email.md contains disculp, sentimos, lament, perdón, perdon",
+          "why": "email.md has none of disculp, sentimos, lament, perdón, perdon"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 660.9,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "email",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 99.1
+    },
+    {
+      "id": "campana",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "campana.json tiene publico, canales (3 o más) y mensaje corto",
+          "why": "AssertionError: [{'nombre': 'Instagram', 'justificacion': \"Alcance visual perfecto para contenido culinario; los usuarios consumen 60+ minutos/día en plataformas visuales; alta tasa de interacción con contenido de cocina y lifestyle; ideal para mostrar recetas 'estéticas' y paso a paso.\", 'formato':"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 658.5,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "campana",
+      "mode": "baseline",
+      "passed": false,
+      "failed": [
+        {
+          "check": "campana.json tiene publico, canales (3 o más) y mensaje corto",
+          "why": "AssertionError: ¡Descubre la cocina fácil! Nuestra app de recetas te ayuda a cocinar en minutos con ingredientes que tienes. Recetas deliciosas y paso a paso."
+        }
+      ],
+      "error": null,
+      "elapsed_s": 98.4
+    },
+    {
+      "id": "quiz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 644.3,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "quiz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 117.6
+    },
+    {
+      "id": "cafeteria",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "la tabla de costes suma su total",
+          "why": "AssertionError: ([['Local y reformas', '45 000', 'Arriendo inicial + reforma de cocina, zona de espera y fachada'], ['Equipo de cocina y maquinaria', '25 000', 'Molinos, extráctores, tostadora, cafeteras express, nevera'], ['Mobiliario y decoración', '8 000', 'Mesas, sillas, estanterías, decoración "
+        }
+      ],
+      "error": null,
+      "elapsed_s": 1218.8,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "cafeteria",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 151.6
+    },
+    {
+      "id": "ventas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1429.4,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 2
+    },
+    {
+      "id": "ventas",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 166.6
+    }
+  ]
+}
