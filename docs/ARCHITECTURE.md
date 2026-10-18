@@ -197,4 +197,5 @@ tests/          pytest: unit, API, real llama-server integration, official-conve
 docs/           plan, research, architecture, status, ADRs, audits
 brand/          official SPIKE logo and derived assets
 scripts/        installers
+archive/fase0/  the Phase 0 preparation (audit, Plan Maestro v3, probes, reports), kept as it was with its history
 ```
