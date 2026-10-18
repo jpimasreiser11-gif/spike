@@ -35,7 +35,7 @@ finance = ["ccxt>=4.4"]   # Spike Finance: public market data and, only if the u
 data = ["duckdb>=1.1", "pandas>=2.2", "openpyxl>=3.1"]   # Spike Data: SQL over CSV, Excel, Parquet, JSON and SQLite files (MIT, BSD-3, MIT)
 motion = ["playwright>=1.49"]   # Spike Motion: plays an HTML scene frame by frame to make a video; ffmpeg must be installed (Apache-2.0)
 docs = ["python-docx>=1.1", "openpyxl>=3.1", "python-pptx>=1.0", "reportlab>=4.0", "pypdf>=4"]   # document tools; reading PDFs into memory
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6", "openai>=1.0", "mcp>=2.3", "spike-ai[docs,finance,data,motion]"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6", "openai>=1.0", "mcp>=2.3", "gguf>=0.17", "spike-ai[docs,finance,data,motion]"]
 train = ["mlx-lm>=0.30.7; sys_platform == 'darwin'", "datasets>=3", "numpy>=1.26", "safetensors>=0.4"]
 
 [project.scripts]

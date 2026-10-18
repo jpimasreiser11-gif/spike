@@ -9,6 +9,7 @@ import fnmatch
 import os
 import re
 import signal
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -156,10 +157,12 @@ class RunCommand(Tool):
         if not command:
             return ToolResult(ok=False, content="error: 'command' is empty")
         timeout = max(1, min(int(args.get("timeout_s") or 120), 600))
-        shell = ["cmd", "/c", command] if os.name == "nt" else ["/bin/sh", "-c", command]
-        proc = await asyncio.create_subprocess_exec(
-            *shell, cwd=self.workspace.root, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
-            stdin=asyncio.subprocess.DEVNULL, start_new_session=os.name != "nt")
+        pipes = {"cwd": self.workspace.root, "stdout": asyncio.subprocess.PIPE, "stderr": asyncio.subprocess.STDOUT,
+                 "stdin": asyncio.subprocess.DEVNULL}
+        if os.name == "nt":  # cmd.exe, quoted the way it expects (a list would escape inner quotes as \")
+            proc = await asyncio.create_subprocess_shell(command, **pipes)
+        else:
+            proc = await asyncio.create_subprocess_exec("/bin/sh", "-c", command, start_new_session=True, **pipes)
         RUNNING.add(proc)
         try:
             out, _ = await asyncio.wait_for(proc.communicate(), timeout)
@@ -185,9 +188,14 @@ def _kill(proc: asyncio.subprocess.Process) -> None:
     try:
         if os.name != "nt":
             os.killpg(proc.pid, signal.SIGKILL)  # the whole process group: test runners start children
-        else:
-            proc.kill()
-    except ProcessLookupError:
+            return
+        try:  # the same on Windows: cmd.exe and everything it started
+            tree = subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            tree = None
+        if tree is None or tree.returncode:
+            proc.kill()  # at least the shell
+    except OSError:  # already gone
         pass
 
 

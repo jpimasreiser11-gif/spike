@@ -8,9 +8,11 @@ Tools: `ask_spike` (the orchestrator picks the specialists) and one `spike_<id>`
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import sys
+import threading
 from typing import Any
 
 from spike import __version__
@@ -151,12 +153,34 @@ def _error_result(text: str) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": text}], "isError": True}
 
 
+MAX_MESSAGE = 16 * 1024 * 1024
+
+
+def _read_stdin(loop: asyncio.AbstractEventLoop, lines: asyncio.Queue[bytes]) -> None:
+    """Hand stdin's lines to the loop, then b"" at the end. A thread, because asyncio cannot read a pipe or console
+    stdin on Windows (the proactor loop refuses its handle)."""
+    try:
+        for line in iter(sys.stdin.buffer.readline, b""):
+            loop.call_soon_threadsafe(lines.put_nowait, line)
+    except (OSError, ValueError):
+        pass
+    finally:
+        with contextlib.suppress(RuntimeError):  # the loop already closed
+            loop.call_soon_threadsafe(lines.put_nowait, b"")
+
+
+def _write(message: dict[str, Any]) -> None:
+    """One message per line, always UTF-8 (the console code page on Windows could not encode every answer)."""
+    sys.stdout.buffer.write(json.dumps(message, ensure_ascii=False).encode("utf-8") + b"\n")
+    sys.stdout.buffer.flush()
+
+
 async def serve_stdio(state: AppState, start_local: bool = False) -> None:
     """Newline-delimited JSON-RPC on stdin/stdout; logs go to stderr only."""
     server = SpikeMcp(state)
-    loop = asyncio.get_running_loop()
-    reader = asyncio.StreamReader(limit=16 * 1024 * 1024)
-    await loop.connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
+    lines: asyncio.Queue[bytes] = asyncio.Queue()
+    threading.Thread(target=_read_stdin, args=(asyncio.get_running_loop(), lines), daemon=True,
+                     name="spike-mcp-stdin").start()
     write_lock = asyncio.Lock()
     tasks: set[asyncio.Task] = set()
 
@@ -164,8 +188,7 @@ async def serve_stdio(state: AppState, start_local: bool = False) -> None:
         response = await server.handle(message)
         if response is not None:
             async with write_lock:
-                sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
-                sys.stdout.flush()
+                _write(response)
 
     async def start_engine() -> None:
         try:
@@ -176,11 +199,13 @@ async def serve_stdio(state: AppState, start_local: bool = False) -> None:
     if start_local:  # in the background: clients give a server a few seconds to answer `initialize`
         server.starting = asyncio.create_task(start_engine())
     try:
-        while line := await reader.readline():
+        while line := await lines.get():
             line = line.strip()
             if not line:
                 continue
             try:
+                if len(line) > MAX_MESSAGE:
+                    raise ValueError("message too long")
                 message = json.loads(line)
             except ValueError:
                 await answer_raw(rpc_error(None, PARSE_ERROR, "invalid JSON"), write_lock)
@@ -200,5 +225,4 @@ async def serve_stdio(state: AppState, start_local: bool = False) -> None:
 
 async def answer_raw(response: dict[str, Any], lock: asyncio.Lock) -> None:
     async with lock:
-        sys.stdout.write(json.dumps(response) + "\n")
-        sys.stdout.flush()
+        _write(response)

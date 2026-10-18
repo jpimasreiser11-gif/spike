@@ -78,7 +78,10 @@ def parse_skill(folder: Path, hints: dict[str, Any] | None = None, source: str =
     path = folder / "SKILL.md"
     if not path.is_file():
         raise SkillError(f"{folder.name}: SKILL.md not found")
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:  # e.g. saved as Windows-1252 by an old editor
+        raise SkillError(f"{folder.name}: SKILL.md must be saved as UTF-8 ({exc.reason} at byte {exc.start})") from exc
     parts = text.split("---", 2)
     if not text.startswith("---") or len(parts) < 3:
         raise SkillError(f"{folder.name}: SKILL.md must start with YAML front matter between --- lines")

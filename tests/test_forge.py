@@ -166,7 +166,7 @@ async def test_a_missing_deliverable_goes_back_and_the_report_says_what_was_met(
     report = next(e for e in events if e["type"] == "forge_report")
     assert report["verified"] and report["rounds"] == 2 and report["unresolved"] == []
     assert report["criteria"] == [{"text": "El informe tiene un título", "ok": True, "note": ""}]
-    assert (tmp_path / "informe.md").read_text() == "# Informe\n370 €\n"
+    assert (tmp_path / "informe.md").read_text(encoding="utf-8") == "# Informe\n370 €\n"
     assert events[-1]["type"] == "done" and events[-1]["text"] == "FINAL"
 
 

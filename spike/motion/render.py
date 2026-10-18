@@ -44,6 +44,11 @@ CLOCK = r"""
     static now() { return EPOCH + now; }
   }
   window.Date = SceneDate;
+  const blocked = (window.__spikeBlocked = []); // loads the CSP refused (console wording differs between versions)
+  window.addEventListener("securitypolicyviolation", (e) => {
+    const uri = String(e.blockedURI || "");
+    if (/^(https?|wss?):/.test(uri) && blocked.length < 10 && !blocked.includes(uri)) blocked.push(uri);
+  }, true);
   performance.now = () => now;
   Math.random = () => { // mulberry32
     seed = (seed + 0x6d2b79f5) | 0;
@@ -224,18 +229,21 @@ async def capture(html: str, width: int, height: int, fps: int, seconds: float |
             await route.fulfill(status=200, content_type="text/html; charset=utf-8", body=html,
                                 headers={"Content-Security-Policy": CSP, "Cache-Control": "no-store"})
         else:
-            if len(result.blocked) < 10 and route.request.url not in result.blocked:
-                result.blocked.append(route.request.url[:200])
+            block(route.request.url)
             await route.abort()
+
+    def block(url: str) -> None:
+        if len(result.blocked) < 10 and url[:200] not in result.blocked:
+            result.blocked.append(url[:200])
 
     def console(message) -> None:
         if message.type != "error" or message.text.startswith("Failed to load resource"):
             return
-        refused = re.match(r"Refused to [^']*'([^']+)'", message.text)  # the CSP stopped a load
-        if refused:
-            if len(result.blocked) < 10 and refused[1] not in result.blocked:
-                result.blocked.append(refused[1][:200])
-        elif "Content Security Policy" not in message.text and len(result.errors) < 10:
+        if "Content Security Policy" in message.text:  # "Refused to load…" or, in newer Chromium, "Loading … violates"
+            refused = re.match(r"(?:Refused to|Loading) [^']*'([^']+)'", message.text)
+            if refused:
+                block(refused[1])
+        elif len(result.errors) < 10:
             result.errors.append(message.text[:500])
 
     async with async_playwright() as pw:
@@ -275,6 +283,8 @@ async def capture(html: str, width: int, height: int, fps: int, seconds: float |
             for i in range(frames):
                 await page.evaluate("t => __spikeSeek(t)", i * 1000 / fps)
                 await on_frame(await page.screenshot(type="png"))
+            for url in await page.evaluate("window.__spikeBlocked || []"):
+                block(url)
         finally:
             await browser.close()
 

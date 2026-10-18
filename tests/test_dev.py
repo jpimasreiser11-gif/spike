@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import os
 import sys
 import time
 
@@ -18,8 +19,14 @@ from spike.store.checkpoints import CheckpointError
 from spike.tools.builtin import Workspace
 from tests.helpers import ScriptedProvider, call, text
 
-
 # ---------------------------------------------------------------- tools
+PY = f'"{sys.executable}"'  # commands below run in /bin/sh and in cmd.exe alike
+
+
+def later(seconds: float, touch: str) -> str:
+    return f'{PY} -c "import pathlib, time; time.sleep({seconds}); pathlib.Path({touch!r}).touch()"'
+
+
 @pytest.fixture
 def ws(tmp_path):
     root = tmp_path / "proj"
@@ -53,26 +60,26 @@ async def test_edit_file_replaces_one_exact_match(ws):
 
 async def test_run_command_reports_exit_code_output_and_limits(ws):
     tool = RunCommand(ws)
-    ok = await tool.run({"command": "pwd && echo hola"})
+    ok = await tool.run({"command": f"{'cd' if os.name == 'nt' else 'pwd'} && echo hola"})
     assert ok.ok and ok.content.splitlines() == ["exit code 0", str(ws.root), "hola"]
-    failed = await tool.run({"command": "echo boom >&2; exit 3"})
+    failed = await tool.run({"command": "echo boom>&2&& exit 3"})
     assert not failed.ok and failed.content == "exit code 3\nboom"
     started = time.perf_counter()
-    slow = await tool.run({"command": "sleep 30", "timeout_s": 1})
+    slow = await tool.run({"command": later(30, "slow"), "timeout_s": 1})
     assert not slow.ok and "timed out after 1 s" in slow.content and time.perf_counter() - started < 10
-    big = await tool.run({"command": f"{sys.executable} -c \"print('x' * {MAX_OUTPUT * 2})\""})
+    big = await tool.run({"command": f"{PY} -c \"print('x' * {MAX_OUTPUT * 2})\""})
     assert big.ok and "chars cut" in big.content and len(big.content) < MAX_OUTPUT + 200
     assert not (await tool.run({"command": "  "})).ok
 
 
 async def test_a_stopped_request_or_exit_stops_its_command(ws):
     tool = RunCommand(ws)
-    stopped = asyncio.create_task(tool.run({"command": "sleep 1.5; touch stopped"}))
+    stopped = asyncio.create_task(tool.run({"command": later(1.5, "stopped")}))
     await asyncio.sleep(0.4)
     stopped.cancel()  # Ctrl-C
     with pytest.raises(asyncio.CancelledError):
         await stopped
-    left = asyncio.create_task(tool.run({"command": "sleep 1.5; touch left"}))
+    left = asyncio.create_task(tool.run({"command": later(1.5, "left")}))
     await asyncio.sleep(0.4)
     assert len(RUNNING) == 1
     stop_commands()  # `spike dev` leaving (exit, closed terminal)

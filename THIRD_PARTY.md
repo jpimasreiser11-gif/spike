@@ -113,6 +113,8 @@ code and includes nothing from that repository.
 | PyYAML | 6.0.3 | MIT |
 | psutil | 7.2.2 | BSD-3-Clause |
 | numpy | 2.5.4 | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) |
+| jsonschema (answer contracts) | 4.26.0 | MIT |
+| referencing, rpds-py, jsonschema-specifications (pulled in by jsonschema) | 0.37.0, 2026.9.1, 2025.9.1 | MIT, MIT, MIT |
 | keyring (optional) | 25.7.0 | MIT |
 | ccxt (optional, `finance` extra: market data and real orders; also used by the tests' development install) | 4.5.88 | MIT |
 | aiohttp, aiohappyeyeballs, aiosignal, frozenlist, multidict, propcache, yarl, attrs, aiohttp-fast-zlib, zlib-ng (pulled in by ccxt) | 3.14.5, 2.7.1, 1.4.0, 1.8.0, 6.9.1, 0.5.2, 1.25.1, 26.1.0, 0.3.0, 1.0.0 | Apache-2.0 AND MIT, PSF-2.0, Apache-2.0, Apache-2.0, Apache-2.0, Apache-2.0, Apache-2.0, MIT, Apache-2.0, PSF-2.0 |
@@ -120,6 +122,7 @@ code and includes nothing from that repository.
 | pytest, pytest-asyncio, ruff (development only) | — | MIT |
 | openai (development only: tests of the `/v1` API) | 3.33.0 | Apache-2.0 |
 | mcp (development only: builds the MCP server the connector tests run against) | 2.3.0 | MIT |
+| gguf (development only: tests build a tiny random model; from llama.cpp) | 0.19.0 | MIT |
 | python-docx (optional, `docs` extra: Word documents) | 1.2.0 | MIT |
 | openpyxl (optional, `docs`: Excel workbooks) | 3.1.5 | MIT |
 | python-pptx (optional, `docs`: PowerPoint decks) | 1.0.2 | MIT |

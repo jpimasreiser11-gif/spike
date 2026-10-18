@@ -124,7 +124,7 @@ def test_the_api_builds_a_template_and_forge_runs_it_with_its_skill_and_design(a
     assert bad.status_code == 400 and "relative" in bad.json()["detail"]
     (home / "ws" / "datos" / ".oculto").mkdir(parents=True)
     for name in ("ventas.csv", "datos/stock.xlsx", "datos/.oculto/x.csv", "notas.md"):
-        (home / "ws" / name).write_text("a\n1\n")
+        (home / "ws" / name).write_bytes(b"a\n1\n")
     assert client.get("/api/creator/data-files").json() == [{"path": "datos/stock.xlsx", "bytes": 4},
                                                            {"path": "ventas.csv", "bytes": 4}]
     project = client.post("/api/projects", json={"name": "P"}).json()

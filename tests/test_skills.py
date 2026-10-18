@@ -27,7 +27,7 @@ def write_skill(root: Path, name: str, description: str = "Use when testing.", b
                 extra: str = "") -> Path:
     folder = root / name
     folder.mkdir(parents=True)
-    (folder / "SKILL.md").write_text(f"---\nname: {name}\ndescription: {description}\n{extra}---\n\n{body}\n")
+    (folder / "SKILL.md").write_text(f"---\nname: {name}\ndescription: {description}\n{extra}---\n\n{body}\n", encoding="utf-8")
     return folder
 
 
@@ -92,6 +92,16 @@ def test_user_skills_bind_through_metadata_and_override_bundled(tmp_path):
     skill = library.get("campaign-brief")
     assert skill.source == "user" and skill.body().strip() == "My brief format."
     assert [s.name for s in library.select("una campaña", "marketing")] == ["campaign-brief"]
+
+
+def test_a_skill_not_saved_as_utf8_is_reported_and_the_others_still_load(tmp_path):
+    write_skill(tmp_path, "good")
+    (tmp_path / "latin").mkdir()
+    (tmp_path / "latin" / "SKILL.md").write_bytes("---\nname: latin\ndescription: Para la campaña.\n---\n\nHola\n"
+                                                   .encode("cp1252"))
+    library = SkillLibrary([(tmp_path, "user")])
+    assert [s.name for s in library.all()] == ["good"]
+    assert len(library.errors) == 1 and library.errors[0].startswith("latin: SKILL.md must be saved as UTF-8")
 
 
 def orchestrator(provider, library, budget=24_000):
