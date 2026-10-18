@@ -49,6 +49,15 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
     if (autoFocus) ref.current?.focus();
   }, [autoFocus]);
 
+  useEffect(() => { // a message an MCP App wrote (`ui/message`): put in the box for the user to read and send
+    const onCompose = (e: Event) => {
+      const value = (e as CustomEvent<string>).detail;
+      if (typeof value === "string") { setText(value); ref.current?.focus(); }
+    };
+    window.addEventListener("spike:compose", onCompose);
+    return () => window.removeEventListener("spike:compose", onCompose);
+  }, []);
+
   const submit = () => {
     const value = text.trim();
     if (!value || busy || schemaProblem) return;

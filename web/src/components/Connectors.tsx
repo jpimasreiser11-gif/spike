@@ -9,7 +9,7 @@ const C = lang === "es"
       intro: "Los conectores son servidores MCP. Sus herramientas pasan por los mismos permisos que las de SPIKE: por defecto, SPIKE te pregunta antes de cada uso.",
       enable: "Activar", disable: "Desactivar", retry: "Reintentar", willRun: "Se ejecutará en tu equipo:", willConnect: "SPIKE se conectará a:", confirm: "Activar",
       cancel: "Cancelar", paid: "de pago", license: "Licencia", source: "Código", requires: "Requiere", policy: "Permiso para sus herramientas", allow: "Permitir", ask: "Preguntar",
-      deny: "Bloquear", saveSecrets: "Guardar", saved: "guardada", tools: "herramientas", running: "Activo", error: "Error", stopped: "Parado", starting: "Iniciando…",
+      deny: "Bloquear", saveSecrets: "Guardar", saved: "guardada", tools: "herramientas", appOnly: "solo su vista", views: "Vistas (MCP Apps, aisladas)", running: "Activo", error: "Error", stopped: "Parado", starting: "Iniciando…",
       custom: "Añadir un servidor MCP propio", id: "Identificador (minúsculas)", name: "Nombre", transport: "Transporte", command: "Comando", args: "Argumentos (uno por línea)",
       url: "URL", add: "Añadir", remove: "Eliminar", getKey: "Obtener",
       domains: "Dominios", domainsIntro: "Enviar formularios, subir archivos o ejecutar código en una página siempre pide confirmación, sea cual sea el dominio.",
@@ -21,7 +21,7 @@ const C = lang === "es"
       intro: "Connectors are MCP servers. Their tools go through the same permissions as SPIKE's own: by default SPIKE asks you before each use.",
       enable: "Enable", disable: "Disable", retry: "Retry", willRun: "This will run on your computer:", willConnect: "SPIKE will connect to:", confirm: "Enable",
       cancel: "Cancel", paid: "paid", license: "License", source: "Source", requires: "Requires", policy: "Permission for its tools", allow: "Allow", ask: "Ask",
-      deny: "Block", saveSecrets: "Save", saved: "saved", tools: "tools", running: "Running", error: "Error", stopped: "Stopped", starting: "Starting…",
+      deny: "Block", saveSecrets: "Save", saved: "saved", tools: "tools", appOnly: "its view only", views: "Views (MCP Apps, isolated)", running: "Running", error: "Error", stopped: "Stopped", starting: "Starting…",
       custom: "Add your own MCP server", id: "Id (lowercase)", name: "Name", transport: "Transport", command: "Command", args: "Arguments (one per line)",
       url: "URL", add: "Add", remove: "Remove", getKey: "Get",
       domains: "Domains", domainsIntro: "Submitting forms, uploading files or running code in a page always asks, whatever the domain.",
@@ -99,7 +99,8 @@ function ConnectorCard({ c, onChange, onRemoved }: { c: ConnectorInfo; onChange:
       </label>
       {(err || c.error) && <div className="error-box small-pre" role="alert">{err || c.error}</div>}
       {c.id === "playwright" && !c.custom && <BrowserDomains />}
-      {c.tools.length > 0 && <p className="small muted">{c.tools.length} {C.tools}: {c.tools.map((t) => t.remote_name).join(", ")}</p>}
+      {c.tools.length > 0 && <p className="small muted">{c.tools.length} {C.tools}: {c.tools.map((t) => t.remote_name + (t.visibility && !t.visibility.includes("model") ? ` (${C.appOnly})` : "")).join(", ")}</p>}
+      {(c.views ?? []).length > 0 && <p className="small muted">{C.views}: {c.views!.join(", ")}</p>}
       {c.custom && <div className="row end"><div className="spacer" /><button className="btn danger" onClick={() => api.del(`/api/connectors/${c.id}`).then(onRemoved)}><IconTrash size={14} /> {C.remove}</button></div>}
     </div>
   );

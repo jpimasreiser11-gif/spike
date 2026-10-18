@@ -67,6 +67,7 @@ SPIKE works without a local model too: add an external provider in Settings → 
 Pages, slides and documents can follow a design system (`DESIGN.md`): SPIKE's own, 20 generic ones, or yours (Settings → Diseño).
 Spike Finance reads public prices, runs backtests, measures portfolio risk and keeps a paper trading account; real orders stay off unless you set them up, and each one waits for your click (Settings → Finanzas).
 To code in a folder from the terminal: `spike dev [folder]` (edits and commands ask first; `/undo` puts files back).
+Connectors (MCP servers) can bring their own views (MCP Apps), which SPIKE shows isolated next to the tool's result.
 Other agents can use SPIKE too: as an OpenAI-compatible endpoint (`/v1`) or as an MCP server (`spike mcp`, for
 Claude Code, Cursor or Codex); see [integrations](docs/INTEGRATIONS.md).
 

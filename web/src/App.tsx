@@ -105,6 +105,17 @@ export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const importRef = useRef<HTMLInputElement>(null);
+  const viewContext = useRef(new Map<string, { view: string; name: string; text: string }>());
+
+  useEffect(() => { // `ui/update-model-context` from an MCP App: the latest per view goes with the next message
+    const onContext = (e: Event) => {
+      const c = (e as CustomEvent<{ view: string; name: string; text: string }>).detail;
+      if (c?.text) viewContext.current.set(c.view, c);
+      else if (c) viewContext.current.delete(c.view);
+    };
+    window.addEventListener("spike:view-context", onContext);
+    return () => window.removeEventListener("spike:view-context", onContext);
+  }, []);
 
   const projectId = project?.id;
   const loadConversations = useCallback(
@@ -199,11 +210,14 @@ export default function App() {
     const controller = new AbortController();
     abortRef.current = controller;
     const started = performance.now();
+    const views = [...viewContext.current.values()].slice(-4); // what MCP App views reported, for this turn only
+    viewContext.current.clear();
     try {
       await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
                          ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}),
-                         ...(design ? { design_system: design } : {}) }, (ev) => {
+                         ...(design ? { design_system: design } : {}),
+                         ...(views.length ? { view_context: views } : {}) }, (ev) => {
         if (ev.type === "conversation") {
           setActiveId(ev.id);
           setItems((prev) => prev.map((it, i) => (i === prev.length - 2 && it.kind === "user" ? { ...it, id: ev.user_message_id } : it)));

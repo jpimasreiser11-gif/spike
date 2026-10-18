@@ -379,6 +379,34 @@ if (placed[0].status !== "placed" || !placed[0].result.includes("E2E-1")) fail("
 await page.screenshot({ path: `${out}/07o-live-order.png` });
 await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
 
+// MCP Apps: a connector's view shows the tool's result in an isolated frame; its calls need the user
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Muéstrame el precio con la app");
+await page.keyboard.press("Enter");
+const view = page.frameLocator(".mcp-app-frame");
+await view.locator("#price", { hasText: "50000" }).waitFor({ timeout: 10000 });
+if ((await view.locator("#input").textContent()) !== "BTC") fail("the view did not get the tool's input");
+await view.locator("#probe", { hasText: "api:blocked" }).waitFor({ timeout: 5000 });
+if (!(await view.locator("#probe").textContent()).includes("parent:blocked")) fail("the view reached the parent page");
+if ((await view.locator("#out").textContent()) !== "SPIKE") fail("the view did not initialize");
+await view.getByRole("button", { name: "Actualizar" }).click();
+await page.locator(".mcp-app .permission", { hasText: "refresh_price" }).waitFor({ timeout: 5000 });
+await page.locator(".mcp-app .permission").getByRole("button", { name: "Permitir" }).click();
+await view.locator("#price", { hasText: "50100" }).waitFor({ timeout: 5000 });
+await view.getByRole("button", { name: "Enlace" }).click();
+await page.locator(".mcp-app .permission", { hasText: "https://example.com/" }).waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07p-mcp-app.png` });
+await page.locator(".mcp-app .permission").getByRole("button", { name: "Cancelar" }).click();
+await view.locator("#out", { hasText: "denied" }).waitFor({ timeout: 5000 });
+await view.getByRole("button", { name: "Contexto" }).click();
+await page.getByText("La app añadirá lo que muestra a tu próximo mensaje").waitFor({ timeout: 5000 });
+await page.locator("#composer-input").fill("¿Qué ves en la app?");
+await page.keyboard.press("Enter");
+await page.getByText("En la vista veo: BTC a 50100 USD").waitFor({ timeout: 10000 });
+const audit = await (await fetch(`${base}/api/connectors-audit`)).json();
+if (!audit.some((e) => e.event === "tools/call" && e.decision === "approved")) fail("the approved view call is not in the audit log");
+if (!audit.some((e) => e.event === "model-context")) fail("the context update is not in the audit log");
+
 // documents: the Word tool asks first, then its file is offered as a download
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();

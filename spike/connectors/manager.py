@@ -7,6 +7,7 @@ default) applies to each of its tools, and a per-tool policy in Settings → Too
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from typing import Any
 import yaml
 
 from spike.connectors import browser
+from spike.connectors.apps import MAX_RESULT, AppError, AuditLog, resource_from, result_for_view, tool_ui
 from spike.connectors.mcp import HttpTransport, McpClient, McpError, StdioTransport
 from spike.store.db import Store
 from spike.store.secrets import SecretStore
@@ -77,6 +79,7 @@ class McpTool(Tool):
         self.parameters = spec.get("inputSchema") or {"type": "object", "properties": {}}
         self.default_policy = policy  # type: ignore[assignment]
         self.guard = guard
+        self.ui_uri, self.visibility = tool_ui(spec)  # MCP Apps: the view of its results; who may call it
 
     def review(self, args: dict[str, Any]) -> Review | None:
         return self.guard(self.remote_name, args) if self.guard else None
@@ -87,15 +90,21 @@ class McpTool(Tool):
         except McpError as exc:
             return ToolResult(ok=False, content=f"error: {self.connector.name}: {exc}")
         content = result.text[:100_000]
-        return ToolResult(ok=not result.is_error, content=content, private=[content] if self.connector.files else [])
+        ui = {"kind": "mcp_app", "connector": self.connector.id, "connector_name": self.connector.name,
+              "tool": self.remote_name, "uri": self.ui_uri, "result": result_for_view(result.raw)} \
+            if self.ui_uri and not result.is_error else None
+        return ToolResult(ok=not result.is_error, content=content, private=[content] if self.connector.files else [],
+                          data={"ui": ui} if ui else {})
 
 
 @dataclass
 class Connection:
     client: McpClient | None = None
-    tools: list[McpTool] = field(default_factory=list)
+    tools: list[McpTool] = field(default_factory=list)  # the ones the model may call
     status: str = "stopped"  # stopped | starting | running | error
     error: str | None = None
+    by_remote: dict[str, McpTool] = field(default_factory=dict)  # every tool, app-only ones too
+    views: dict[str, dict[str, Any]] = field(default_factory=dict)  # MCP App pages read so far
 
 
 class ConnectorManager:
@@ -105,6 +114,7 @@ class ConnectorManager:
         self.catalog = catalog if catalog is not None else load_catalog()
         self.connections: dict[str, Connection] = {}
         self._lock = asyncio.Lock()
+        self.audit = AuditLog(data_dir / "apps-audit.jsonl")
 
     # ------------------------------------------------------------------ definitions and settings
     def definitions(self) -> list[ConnectorDef]:
@@ -234,9 +244,80 @@ class ConnectorManager:
             while name in names:
                 name = name[:60] + f"_{len(names)}"
             names.add(name)
-            conn.tools.append(McpTool(definition, conn.client, spec, name, policy, self._guard(definition)))
+            tool = McpTool(definition, conn.client, spec, name, policy, self._guard(definition))
+            conn.by_remote[tool.remote_name] = tool
+            if "model" in tool.visibility:  # app-only tools never reach the model (SEP-1865 visibility)
+                conn.tools.append(tool)
         conn.status, conn.error = "running", None
         return conn
+
+    # ------------------------------------------------------------------ MCP Apps
+    def _running(self, cid: str) -> Connection:
+        conn = self.connections.get(cid)
+        if conn is None or conn.status != "running" or conn.client is None:
+            raise AppError("this connector is not running")
+        return conn
+
+    def _declared(self, conn: Connection, uri: str) -> None:
+        if not any(t.ui_uri == uri for t in conn.by_remote.values()):
+            raise AppError(f"no tool of this connector declares the view {uri}")
+
+    async def app_resource(self, cid: str, uri: str) -> dict[str, Any]:
+        """The page of a view a tool of this connector declared (only those: SEP-1865 predeclared resources)."""
+        conn = self._running(cid)
+        self._declared(conn, uri)
+        if uri not in conn.views:
+            try:
+                view = resource_from(uri, await conn.client.read_resource(uri))  # type: ignore[union-attr]
+            except McpError as exc:
+                raise AppError(f"{uri}: {exc}") from exc
+            conn.views[uri] = view
+            self.audit.write(connector=cid, view=uri, event="load", sha256=view["sha256"], csp=view["csp"],
+                             dropped=view["dropped"])
+        return conn.views[uri]
+
+    async def app_call(self, cid: str, view: str, name: str, arguments: dict[str, Any], approved: bool,
+                       policy_for: Callable[[Tool, dict[str, Any]], tuple[str, Review | None]]) -> dict[str, Any]:
+        """A tools/call from a view: only this connector's tools that allow "app", under the tool's policy; an
+        "ask" tool runs only with `approved` (the user's click in the app). Raises PermissionError otherwise."""
+        decision = "refused"
+        try:
+            conn = self._running(cid)
+            self._declared(conn, view)
+            tool = conn.by_remote.get(name)
+            if tool is None:
+                raise AppError(f"this connector has no tool '{name}'")
+            if "app" not in tool.visibility:
+                raise PermissionError(f"'{name}' may only be called by the model, not by a view")
+            policy, review = policy_for(tool, arguments)
+            if policy == "deny":
+                raise PermissionError(review.reason if review and review.policy == "deny" else
+                                      f"you have blocked the tool '{tool.name}'")
+            if policy == "ask" and not approved:
+                decision = "asked"
+                raise PermissionError("needs your approval")
+            decision = "approved" if policy == "ask" else "allowed"
+            try:
+                result = await conn.client.call_tool(name, arguments)  # type: ignore[union-attr]
+            except McpError as exc:
+                raise AppError(str(exc)) from exc
+            return result_for_view(result.raw) or {"content": [], "isError": result.is_error}
+        finally:
+            self.audit.write(connector=cid, view=view, event="tools/call", tool=name, decision=decision,
+                             arguments=json_preview(arguments))
+
+    async def app_read(self, cid: str, view: str, uri: str) -> dict[str, Any]:
+        """A resources/read from a view: a resource of the same connector, up to 256 KB."""
+        self.audit.write(connector=cid, view=view, event="resources/read", uri=uri[:500])
+        conn = self._running(cid)
+        self._declared(conn, view)
+        try:
+            result = await conn.client.read_resource(uri)  # type: ignore[union-attr]
+        except McpError as exc:
+            raise AppError(str(exc)) from exc
+        if len(json_preview(result, MAX_RESULT + 1)) > MAX_RESULT:
+            raise AppError("the resource is larger than 256 KB")
+        return result
 
     async def stop(self, cid: str) -> None:
         conn = self.connections.pop(cid, None)
@@ -293,5 +374,12 @@ class ConnectorManager:
             "secrets_set": {s["name"]: self.secrets.has(self._secret_key(definition.id, s["name"]))
                             for s in definition.secrets},
             "tools": [{"name": t.name, "remote_name": t.remote_name, "description": t.description,
-                       "policy": broker_policy(t) if broker_policy else t.default_policy} for t in conn.tools],
+                       "policy": broker_policy(t) if broker_policy else t.default_policy,
+                       "visibility": t.visibility, **({"view": t.ui_uri} if t.ui_uri else {})}
+                      for t in conn.by_remote.values()],
+            "views": sorted({t.ui_uri for t in conn.by_remote.values() if t.ui_uri}),
         }
+
+
+def json_preview(value: Any, limit: int = 2000) -> str:
+    return json.dumps(value, ensure_ascii=False, default=str)[:limit]

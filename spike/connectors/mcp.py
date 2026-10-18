@@ -1,7 +1,8 @@
 """A small Model Context Protocol client: tools over stdio and Streamable HTTP (JSON-RPC 2.0).
 
-Only what SPIKE uses: the initialize handshake, tools/list and tools/call. Requests a server sends to the client
-(sampling, elicitation, roots) are answered "method not found"; ping is answered.
+Only what SPIKE uses: the initialize handshake, tools/list, tools/call and resources/read (for MCP Apps, which SPIKE
+announces with the `io.modelcontextprotocol/ui` extension). Requests a server sends to the client (sampling,
+elicitation, roots) are answered "method not found"; ping is answered.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import shutil
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -23,6 +24,8 @@ import httpx
 from spike import __version__
 
 PROTOCOL_VERSION = "2025-11-25"  # newest revision negotiated with the initialize handshake
+UI_EXTENSION = "io.modelcontextprotocol/ui"  # MCP Apps (SEP-1865): tools whose results a ui:// view shows
+APP_MIME = "text/html;profile=mcp-app"
 OnMessage = Callable[[dict[str, Any]], Awaitable[None]]
 # Variables a server process needs to start (find node/python, a home and temp dir); nothing else of SPIKE's
 # environment, such as SPIKE_API_TOKEN or provider keys, reaches it.
@@ -40,6 +43,7 @@ class McpError(RuntimeError):
 class CallResult:
     text: str
     is_error: bool
+    raw: dict[str, Any] | None = field(default=None, compare=False)  # the whole CallToolResult, for an MCP App view
 
 
 class Transport(ABC):
@@ -214,7 +218,8 @@ class McpClient:
         self.transport.on_closed = self._closed
         await self.transport.start(self._on_message)
         result = await self.request("initialize", {
-            "protocolVersion": PROTOCOL_VERSION, "capabilities": {},
+            "protocolVersion": PROTOCOL_VERSION,
+            "capabilities": {"extensions": {UI_EXTENSION: {"mimeTypes": [APP_MIME]}}},
             "clientInfo": {"name": "spike", "version": __version__},
         })
         if isinstance(self.transport, HttpTransport):
@@ -305,7 +310,10 @@ class McpClient:
                 parts.append(f"[{kind} content omitted]")
         if not parts and result.get("structuredContent") is not None:
             parts.append(json.dumps(result["structuredContent"], ensure_ascii=False))
-        return CallResult(text="\n".join(parts), is_error=bool(result.get("isError")))
+        return CallResult(text="\n".join(parts), is_error=bool(result.get("isError")), raw=result)
+
+    async def read_resource(self, uri: str) -> dict[str, Any]:
+        return await self.request("resources/read", {"uri": uri})
 
     async def close(self) -> None:
         for future in self._pending.values():

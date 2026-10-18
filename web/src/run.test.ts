@@ -205,7 +205,7 @@ describe("real order proposals", () => {
     const live = applyEvent(applyEvent(emptyRun(), call), result);
     expect(live.tools[0].ui).toEqual({ kind: "live_order", order });
     const stored = runFromStored({ id: "m1", role: "assistant", content: "ok", created: 0, meta: { tools: [call, result] } } as any);
-    expect(stored.tools[0].ui?.order.id).toBe("o1");
+    expect(stored.tools[0].ui?.kind === "live_order" && stored.tools[0].ui.order.id).toBe("o1");
     expect(applyEvent(applyEvent(emptyRun(), call), { ...result, ui: undefined }).tools[0].ui).toBeUndefined();
   });
 });

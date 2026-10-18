@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from spike import __version__
+from spike.connectors.apps import AppError
 from spike.contracts import schema_error
 from spike.core.types import Message
 from spike.design.library import MAX_ZIP as MAX_DESIGN_BYTES
@@ -84,6 +85,7 @@ class ChatIn(BaseModel):
     response_schema: dict[str, Any] | None = None  # answer contract: the answer is JSON following this JSON Schema
     forge: dict[str, Any] | None = None  # a Forge blueprint the user approved: the team runs it and checks it
     design_system: str | None = None  # a design system id; "none" for none; absent = the project's (Spike Design)
+    view_context: list[dict[str, str]] | None = Field(default=None, max_length=4)  # MCP Apps: what views reported
 
 
 class BlueprintIn(BaseModel):
@@ -212,6 +214,24 @@ class PaperResetIn(BaseModel):
     quote: str = Field(default="USDT", pattern=r"^[A-Za-z0-9]{1,15}$")
 
 
+class ViewCallIn(BaseModel):
+    view: str = Field(pattern=r"^ui://", max_length=512)  # the view asking
+    name: str = Field(min_length=1, max_length=200)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    approved: bool = False  # the user allowed this call in the app
+
+
+class ViewReadIn(BaseModel):
+    view: str = Field(pattern=r"^ui://", max_length=512)
+    uri: str = Field(min_length=1, max_length=2000)
+
+
+class ViewEventIn(BaseModel):
+    view: str = Field(pattern=r"^ui://", max_length=512)
+    event: Literal["open-link", "message", "model-context", "log", "display-mode", "refused"]
+    detail: str = Field(default="", max_length=4000)
+
+
 class ConversationPatch(BaseModel):
     title: str | None = None
     mode: str | None = None
@@ -242,6 +262,17 @@ def _hostname(value: str, url: bool) -> str | None:
         return urlsplit(value if url else f"//{value}").hostname
     except ValueError:
         return None
+
+
+def view_context_text(items: list[dict[str, str]]) -> str:
+    """What MCP App views asked to add to the model's context (`ui/update-model-context`), for this turn only."""
+    parts = []
+    for item in items[:4]:
+        name = str(item.get("name") or item.get("view") or "app")[:100]
+        text = str(item.get("text") or "").strip()[:4000]
+        if text:
+            parts.append(f"## {name}\n{text}")
+    return "\n\n".join(parts)
 
 
 def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = None) -> FastAPI:
@@ -446,6 +477,49 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.get("/api/connectors")
     async def connectors() -> list[dict]:
         return [st().connectors.public(d, st().broker.policy_for) for d in st().connectors.definitions()]
+
+    # MCP Apps: the app's iframe never calls these (its origin is opaque and its CSP blocks SPIKE); the app's own
+    # code relays what the view asked for, after the user's approval where the tool's policy is "ask"
+    @app.get("/api/connectors/{cid}/view")
+    async def connector_view_page(cid: str, uri: str) -> dict:
+        connector_view(cid)
+        try:
+            return await st().connectors.app_resource(cid, uri)
+        except AppError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.post("/api/connectors/{cid}/view/call")
+    async def connector_view_call(cid: str, body: ViewCallIn) -> dict:
+        """{"result": CallToolResult}, or {"needs_approval": true} when the tool asks and the user has not allowed it."""
+        connector_view(cid)
+        try:
+            return {"result": await st().connectors.app_call(cid, body.view, body.name, body.arguments, body.approved,
+                                                             st().broker.policy_for_call)}
+        except PermissionError as exc:
+            if str(exc) == "needs your approval":
+                return {"needs_approval": True}
+            raise HTTPException(403, str(exc)) from exc
+        except AppError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.post("/api/connectors/{cid}/view/read")
+    async def connector_view_read(cid: str, body: ViewReadIn) -> dict:
+        connector_view(cid)
+        try:
+            return await st().connectors.app_read(cid, body.view, body.uri)
+        except AppError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.post("/api/connectors/{cid}/view/event")
+    async def connector_view_event(cid: str, body: ViewEventIn) -> dict:
+        """What a view did in the app (opened a link, wrote a message, gave context): kept in the audit log."""
+        connector_view(cid)
+        st().connectors.audit.write(connector=cid, view=body.view, event=body.event, detail=body.detail)
+        return {"ok": True}
+
+    @app.get("/api/connectors-audit")
+    async def connectors_audit(limit: int = 100) -> list[dict]:
+        return st().connectors.audit.tail(max(1, min(limit, 1000)))
 
     @app.post("/api/connectors")
     async def add_connector(body: CustomConnectorIn) -> dict:
@@ -1227,6 +1301,9 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 options.design = state.designs.get(body.design_system)
             if options.design is not None:
                 meta["design"] = {"id": options.design.id, "name": options.design.name}
+            if body.view_context:
+                options.view_context = view_context_text(body.view_context)
+                meta["view_context"] = [str(v.get("name") or v.get("view") or "")[:100] for v in body.view_context]
             if blueprint is not None:
                 meta["forge"] = {"blueprint": blueprint.to_dict()}
             started = time.perf_counter()

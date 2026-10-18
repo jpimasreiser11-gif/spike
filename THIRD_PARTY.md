@@ -96,6 +96,10 @@ Checked on 2026-10-17 against each package registry and repository; versions are
 Not listed: the SQLite reference server (archived upstream with "no security guarantees") and `codex mcp-server`
 (removed from the Codex CLI; its replacement is not an MCP server).
 
+MCP Apps support follows the SEP-1865 specification (2026-01-26) published in
+[modelcontextprotocol/ext-apps](https://github.com/modelcontextprotocol/ext-apps) (MIT); SPIKE implements it in its own
+code and includes nothing from that repository.
+
 ## Python runtime dependencies (installed from PyPI, not vendored)
 
 | Package | Version checked | License |

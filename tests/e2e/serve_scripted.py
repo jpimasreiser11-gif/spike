@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import uvicorn  # noqa: E402
 
 from spike.connectors.manager import Connection, McpTool  # noqa: E402
-from spike.connectors.mcp import CallResult  # noqa: E402
+from spike.connectors.mcp import APP_MIME, CallResult  # noqa: E402
 from spike.core.types import Capabilities, StreamEvent, ToolCall  # noqa: E402
 from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
@@ -119,6 +119,11 @@ class DemoProvider(Provider):
                 "symbol": "BTC/USDT", "side": "buy", "amount": 0.001}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "con la app" in last.content.lower() and "mcp__prices__get_price" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c8", name="mcp__prices__get_price", arguments={
+                "symbol": "BTC"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "factura" in last.content.lower() and "ask_user" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c3", name="ask_user", arguments={
                 "question": "¿Para qué país es la factura?", "options": ["España", "Francia"]}))
@@ -136,6 +141,10 @@ class DemoProvider(Provider):
             answer = "Aquí tienes la página:\n\n```html\n" + PROBE_PAGE + "\n```"
         elif last.role == "user" and "# Project instructions" in system:
             answer = "Respuesta del proyecto: sigo sus instrucciones y uso sus archivos."
+        elif last.role == "tool" and last.name == "mcp__prices__get_price":
+            answer = "Aquí tienes el precio en la vista de la app."
+        elif last.role == "user" and "# What the user sees in app views" in system:
+            answer = "En la vista veo: " + system.split("## Precios\n", 1)[1].split("\n", 1)[0]
         elif last.role == "tool" and last.name == "paper_order":
             answer = "Comprados **0,01 BTC** en la cuenta simulada, con comisión y deslizamiento."
         elif last.role == "tool" and last.name == "propose_live_order":
@@ -160,6 +169,54 @@ class DemoProvider(Provider):
             yield StreamEvent(kind="text", text=answer[i:i + 12])
             await asyncio.sleep(0.01)
         yield StreamEvent(kind="done", finish_reason="stop")
+
+
+# An MCP App (SEP-1865) view: it shows the tool's input and result, calls an app-only tool, asks to open a link,
+# gives the model context, and probes its sandbox (SPIKE's API and the parent page must both be out of reach).
+APP_PAGE = """<!doctype html><html><head><title>Precios</title><style>body{font:15px system-ui;margin:12px}</style></head>
+<body><b id="input">…</b> <span id="price">…</span>
+<button id="refresh">Actualizar</button> <button id="link">Enlace</button> <button id="ctx">Contexto</button>
+<p id="probe">…</p><p id="out"></p>
+<script>
+let n = 0; const waiting = {};
+const send = (m) => parent.postMessage({ jsonrpc: "2.0", ...m }, "*");
+const request = (method, params) => new Promise((ok, ko) => { const id = ++n; waiting[id] = { ok, ko }; send({ id, method, params }); });
+window.addEventListener("message", (e) => {
+  const m = e.data || {};
+  if (m.id && waiting[m.id]) { m.error ? waiting[m.id].ko(m.error) : waiting[m.id].ok(m.result); delete waiting[m.id]; return; }
+  if (m.method === "ui/notifications/tool-input") document.getElementById("input").textContent = m.params.arguments.symbol;
+  if (m.method === "ui/notifications/tool-result") document.getElementById("price").textContent = m.params.structuredContent.price;
+});
+request("ui/initialize", { appCapabilities: {}, clientInfo: { name: "precios", version: "1" }, protocolVersion: "2026-01-26" })
+  .then((r) => { document.getElementById("out").textContent = r.hostInfo.name; send({ method: "ui/notifications/initialized" }); });
+document.getElementById("refresh").onclick = async () => {
+  const r = await request("tools/call", { name: "refresh_price", arguments: { symbol: "BTC" } });
+  document.getElementById("price").textContent = r.structuredContent.price;
+};
+document.getElementById("link").onclick = () => request("ui/open-link", { url: "https://example.com/" })
+  .then(() => { document.getElementById("out").textContent = "opened"; }, () => { document.getElementById("out").textContent = "denied"; });
+document.getElementById("ctx").onclick = () => request("ui/update-model-context", { content: [{ type: "text", text: "BTC a 50100 USD" }] })
+  .then(() => { document.getElementById("out").textContent = "context sent"; });
+const r = [];
+try { r.push(parent.document.title !== undefined ? "parent:open" : "parent:blocked"); } catch (e) { r.push("parent:blocked"); }
+Promise.allSettled([fetch("/api/health"), fetch("http://127.0.0.1:" + (location.ancestorOrigins?.[0]?.split(":")[2] || "8741") + "/api/health")])
+  .then((x) => { r.push(x.every((y) => y.status === "rejected") ? "api:blocked" : "api:open"); document.getElementById("probe").textContent = r.join(" "); });
+</script></body></html>"""
+
+
+class ScriptedApp:
+    """Stands in for an MCP server with an app (the real protocol is tested in tests/test_mcp_apps.py)."""
+
+    async def call_tool(self, name, args):
+        price = 50_000 if name == "get_price" else 50_100
+        raw = {"content": [{"type": "text", "text": f"{args.get('symbol')}: {price}"}],
+               "structuredContent": {"symbol": args.get("symbol"), "price": price}, "isError": False}
+        return CallResult(text=raw["content"][0]["text"], is_error=False, raw=raw)
+
+    async def read_resource(self, uri):
+        return {"contents": [{"uri": uri, "mimeType": APP_MIME, "text": APP_PAGE,
+                              "_meta": {"ui": {"csp": {"connectDomains": ["https://api.example.com"]},
+                                               "prefersBorder": True}}}]}
 
 
 class ScriptedBrowser:
@@ -226,6 +283,15 @@ def main() -> None:
     state.connectors.connections["playwright"] = Connection(status="running", tools=[McpTool(
         playwright, ScriptedBrowser(), {"name": "browser_navigate", "inputSchema": {"type": "object"}},
         "mcp__playwright__browser_navigate", "ask", state.connectors._guard(playwright))])
+    prices = state.connectors.add_custom({"id": "prices", "name": "Precios", "transport": "stdio",
+                                          "command": "scripted"})  # never started: its connection is scripted
+    client = ScriptedApp()
+    get_price = McpTool(prices, client, {"name": "get_price", "_meta": {"ui": {"resourceUri": "ui://precios/vista"}},
+                                         "inputSchema": {"type": "object"}}, "mcp__prices__get_price", "allow")
+    refresh = McpTool(prices, client, {"name": "refresh_price", "_meta": {"ui": {
+        "resourceUri": "ui://precios/vista", "visibility": ["app"]}}}, "mcp__prices__refresh_price", "ask")
+    state.connectors.connections["prices"] = Connection(client=client, status="running", tools=[get_price],
+                                                        by_remote={"get_price": get_price, "refresh_price": refresh})
     app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
     app.state.tuner = scripted_tuner
     uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")

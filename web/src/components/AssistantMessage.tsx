@@ -5,6 +5,7 @@ import { teamSteps } from "../run";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { LiveOrderCard } from "./Finance";
+import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
@@ -391,9 +392,9 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
         </div>
       )}
 
-      {run.tools.filter((tool) => tool.ui?.kind === "live_order").map((tool) => (
-        <LiveOrderCard key={tool.ui!.order.id} initial={tool.ui!.order} readOnly={replay} />
-      ))}
+      {run.tools.map((tool, i) => tool.ui?.kind === "live_order"
+        ? <LiveOrderCard key={tool.ui.order.id} initial={tool.ui.order} readOnly={replay} />
+        : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} /> : null)}
 
       {run.permissions.map((p) => (
         <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} />

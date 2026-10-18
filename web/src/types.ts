@@ -104,7 +104,13 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
-  ui?: { kind: "live_order"; order: LiveOrder }; // something to act on, such as a real order to confirm
+  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi; // something to act on or look at next to the result
+};
+
+/** An MCP App: the connector tool's result is shown in this `ui://` view of the same server. */
+export type McpAppUi = {
+  kind: "mcp_app"; connector: string; connector_name: string; tool: string; uri: string;
+  result?: { content?: unknown[]; structuredContent?: unknown; isError?: boolean; _meta?: Record<string, unknown> } | null;
 };
 
 /** A real exchange order a specialist proposed; only the user's click in the app places it. */
@@ -276,7 +282,8 @@ export type ConnectorInfo = {
   status: "stopped" | "starting" | "running" | "error";
   error: string | null;
   secrets_set: Record<string, boolean>;
-  tools: { name: string; remote_name: string; description: string; policy: string }[];
+  tools: { name: string; remote_name: string; description: string; policy: string; visibility?: string[]; view?: string }[];
+  views?: string[]; // MCP Apps: the ui:// pages its tools show results in
 };
 
 export type SkillInfo = {

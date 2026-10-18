@@ -496,3 +496,10 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .live-settings ul { margin: 4px 0 0; padding-left: 18px; }
 .form .label { font-size: 12px; font-weight: 600; color: var(--text-2); }
 .check > .grow { flex: 1 1 0; min-width: 0; }
+/* MCP Apps: a connector's view, always inside a visible SPIKE frame */
+.mcp-app { border: 1px solid var(--border-strong); border-radius: 12px; padding: 10px; display: grid; gap: 6px; background: var(--surface); }
+.mcp-app-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.mcp-app-frame { width: 100%; border: 1px solid var(--border); border-radius: 9px; background: #fff; min-height: 60px; }
+.mcp-app-frame.borderless { border-color: transparent; }
+.mcp-app.fullscreen { position: fixed; inset: 16px; z-index: 60; box-shadow: 0 20px 60px rgba(0, 0, 0, .25); grid-template-rows: auto auto 1fr; }
+.mcp-app.fullscreen .mcp-app-frame { height: 100%; }
