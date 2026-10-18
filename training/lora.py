@@ -3,8 +3,12 @@
 mlx-lm trains those layers with a per-token loop (its Metal kernel has no backward pass); the chunked form in
 spike_train/gated_delta_chunked.py gives the same loss and gradients (tests/test_gated_delta_chunked.py) about
 3x faster per step and with ~6 GB less peak memory on Qwen3.5-4B. All arguments go to mlx_lm.lora unchanged.
+
+Optional memory caps for a shared machine: SPIKE_MLX_MEMORY_GB (mlx memory limit, a guideline mlx keeps to by
+waiting and freeing its cache) and SPIKE_MLX_CACHE_GB (how much freed buffer memory mlx may keep for reuse).
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -12,7 +16,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from spike_train import gated_delta_chunked  # noqa: E402
 
+
+def apply_memory_limits(env, mx) -> dict:
+    applied = {}
+    for var, setter, key in (("SPIKE_MLX_MEMORY_GB", mx.set_memory_limit, "memory_gb"),
+                             ("SPIKE_MLX_CACHE_GB", mx.set_cache_limit, "cache_gb")):
+        if env.get(var):
+            gb = float(env[var])
+            setter(int(gb * 1024**3))
+            applied[key] = gb
+    return applied
+
+
 if __name__ == "__main__":
+    import mlx.core
+
+    if limits := apply_memory_limits(os.environ, mlx.core):
+        print(f"mlx memory limits: {limits}", flush=True)
     gated_delta_chunked.install()
     from mlx_lm import lora
 
