@@ -147,22 +147,38 @@
           "gen_tokens": 128,
           "gen_tok_s": 1.26,
           "wall_s": 6243.456
+        },
+        {
+          "ttft_s": 5566.0411,
+          "prompt_tokens": 32768,
+          "prompt_tok_s": 5.89,
+          "gen_tokens": 128,
+          "gen_tok_s": 2.11,
+          "wall_s": 5626.162
+        },
+        {
+          "ttft_s": 4364.3809,
+          "prompt_tokens": 32768,
+          "prompt_tok_s": 7.51,
+          "gen_tokens": 128,
+          "gen_tok_s": 2.62,
+          "wall_s": 4412.843
         }
       ],
       "ttft_s": {
-        "median": 6142.7193,
-        "min": 6142.7193,
+        "median": 5566.0411,
+        "min": 4364.3809,
         "max": 6142.7193
       },
       "prompt_tok_s": {
-        "median": 5.34,
+        "median": 5.89,
         "min": 5.34,
-        "max": 5.34
+        "max": 7.51
       },
       "gen_tok_s": {
-        "median": 1.26,
+        "median": 2.11,
         "min": 1.26,
-        "max": 1.26
+        "max": 2.62
       },
       "peak_rss_mb": 6295.0,
       "peak_rss_anon_mb": 3675.2

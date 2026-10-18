@@ -104,7 +104,7 @@ def recommend(hw: HardwareInfo) -> Recommendation:
     gpu_layers = 99 if hw.apple_silicon else 0  # Metal on Apple Silicon; CPU elsewhere by default
     if not gpu_layers and context > CPU_CONTEXT:
         # Measured on a 4-core x86 with 16 GB (evals/results/bench-x86-16gb-20261018): memory is fine at 32K, but a
-        # prompt that long takes over 1.5 h before the first word; 8K takes about 13 min. Raise it in Settings on a
+        # prompt that long takes about 1.5 h before the first word; 8K takes about 13 min. Raise it in Settings on a
         # faster CPU.
         context = CPU_CONTEXT
         notes.append("CPU only: context set to 8K because long prompts are slow without a GPU; raise it in Settings "

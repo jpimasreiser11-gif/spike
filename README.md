@@ -58,7 +58,7 @@ Qwen3.5-4B Q4_K_M, llama.cpp, KV cache q8_0, 128 generated tokens, median of 3 r
 | Apple M4 Max, Metal | 1K tokens | 0.9 s | 82 tok/s | 3.6 GiB |
 | | 8K tokens | 7.2 s | 80 tok/s | 3.6 GiB |
 
-On a CPU-only computer SPIKE starts at an 8K context: a 32K prompt took over 1.5 h there. Raw reports and
+On a CPU-only computer SPIKE starts at an 8K context: a 32K prompt took about 1.5 h to the first word there. Raw reports and
 method: [docs/STATUS.md](docs/STATUS.md#measured-with-real-weights).
 
 ## Quick start

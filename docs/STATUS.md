@@ -86,11 +86,12 @@ b11709-62318cd57, the CI pin; same model and KV cache; `--server-context 33152`;
 |---|---|---|---|---|---|
 | 1K | 52 s | 19.6 | 6.2 | 6,274 MiB | 3,654 MiB |
 | 8K | 773 s | 10.6 | 5.1 | 6,276 MiB | 3,656 MiB |
-| 32K (1 run of 3 so far) | 6,143 s | 5.3 | 1.3 | 6,295 MiB | 3,675 MiB |
+| 32K | 5,566 s | 5.9 | 2.1 | 6,295 MiB | 3,675 MiB |
 
 Evidence: `evals/results/bench-x86-16gb-20261018/`. Memory fits easily (3.6 GiB must stay resident even at 32K);
 up to 8K is usable, 32K is not interactive on 4 cores, so CPU-only machines now start at an 8K context. The VM
-is shared: 1K prompt speed varied 12–41 tok/s across runs, generation 5.9–6.6 tok/s.
+is shared: 1K prompt speed varied 12–41 tok/s across runs, generation 5.9–6.6 tok/s; the three 32K runs took
+4,364–6,143 s to the first word and generated 1.3–2.6 tok/s.
 
 **Baseline accuracy, no adapter** ("baseline@512 (rescored)", Metal, greedy, thinking off, max_tokens 512,
 specialist system prompts; generated with the old extractor and re-scored from the saved responses after the
