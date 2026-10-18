@@ -555,7 +555,8 @@ def build_parser() -> argparse.ArgumentParser:
     fg.add_argument("--start-local", action="store_true", help="start the local engine first (and stop it after)")
     fg.add_argument("--model", help="GGUF for the local engine (saved as the local model, as `spike tune` does)")
     fg.add_argument("--out", help="write the JSON report here")
-    fg.add_argument("--keep", metavar="DIR", help="keep the files each task saved here (DIR/<task>-<mode>)")
+    fg.add_argument("--keep", metavar="DIR",
+                    help="keep each task's files here (DIR/<task>-<mode>), with Forge's plan and verdicts")
     fg.set_defaults(func=cmd_forge)
 
     dv = sub.add_parser("dev", help="code in a folder from the terminal: SPIKE reads, edits and runs commands with "

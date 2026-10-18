@@ -2,7 +2,7 @@
 saved; no model judges them. Each task runs in a new empty folder: Forge drafts the blueprint and runs it as drafted
 (nobody reviews it here), and with `--baseline` the core model alone (one model, the same file tools, no plan and no
 checker) answers the same task. The report gives each mode's success rate with a 95 % Wilson interval; `--keep DIR`
-saves each task's folder there, to see why it failed.
+saves each task's folder there, with Forge's blueprint and checker verdicts, to see why it failed.
 
 The checks run Python on the saved files, and some import the module the model wrote: they run in a subprocess in
 that task's folder with CPU and memory limits, like the `python` tool. Numbers only mean something from real runs
@@ -165,13 +165,14 @@ async def run_task(base: Orchestrator, task: dict[str, Any], mode: str, folder: 
     orch = Orchestrator(base.catalog, base.resolve, tools, HeadlessBroker(PermissionBroker(POLICIES)),
                         skills=base.skills)
     started = time.perf_counter()
-    error, extra = None, {}
+    error, extra, trace = None, {}, {"blueprint": None, "verify": []}
     try:
         if mode == "forge":
             core = base.resolve(base.catalog.core)
             candidates = [c for c in base.router.route(task["prompt"]).specialists if c != "core"]
             bp = await make_blueprint(core.provider, base.catalog, task["prompt"], candidates, model=core.model)
             extra = {"blueprint": bp.method, "steps": len(bp.steps), **({"note": bp.note} if bp.note else {})}
+            trace["blueprint"] = bp.to_dict()
             opts = OrchestratorOptions(forge=bp)
         else:
             opts = OrchestratorOptions(mode="core", use_planner=False)
@@ -180,11 +181,13 @@ async def run_task(base: Orchestrator, task: dict[str, Any], mode: str, folder: 
                 error = ev.get("error")
             elif ev["type"] == "forge_report":
                 extra["rounds"] = ev["rounds"]
+            elif ev["type"] == "verify":
+                trace["verify"].append({k: ev[k] for k in ("round", "method", "note", "returned", "criteria")})
     except Exception as exc:  # a crash is a failed task, not a failed eval
         error = f"{exc.__class__.__name__}: {exc}"
     result = check_task(task, folder)
     return {"id": task["id"], "mode": mode, **result, "error": error,
-            "elapsed_s": round(time.perf_counter() - started, 1), **extra}
+            "elapsed_s": round(time.perf_counter() - started, 1), **extra, "trace": trace}
 
 
 async def evaluate(base: Orchestrator, tasks: list[dict[str, Any]], modes: list[str], meta: dict[str, Any],
@@ -195,8 +198,13 @@ async def evaluate(base: Orchestrator, tasks: list[dict[str, Any]], modes: list[
         for mode in modes:
             with tempfile.TemporaryDirectory(prefix=f"spike-forge-{task['id']}-") as tmp:
                 result = await run_task(base, task, mode, Path(tmp))
-                if keep is not None:
-                    shutil.copytree(tmp, keep / f"{task['id']}-{mode}", dirs_exist_ok=True)
+                trace = result.pop("trace")
+                if keep is not None:  # the files, and Forge's blueprint and checker verdicts next to them
+                    kept = keep / f"{task['id']}-{mode}"
+                    shutil.copytree(tmp, kept, dirs_exist_ok=True)
+                    if mode == "forge":
+                        (kept / "_forge-trace.json").write_text(json.dumps(trace, indent=2, ensure_ascii=False),
+                                                                encoding="utf-8")
             results.append(result)
             if progress:
                 progress(result)

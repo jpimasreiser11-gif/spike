@@ -354,3 +354,6 @@ async def test_the_harness_runs_forge_and_the_baseline_in_fresh_folders(tmp_path
     kept = tmp_path / "kept"  # --keep: each task's files, to see why it failed
     assert (kept / "primos-forge" / "primos.txt").read_text(encoding="utf-8") == primes
     assert (kept / "primos-baseline" / "primos.txt").read_text(encoding="utf-8") == "2, 3, 5"
+    trace = json.loads((kept / "primos-forge" / "_forge-trace.json").read_text(encoding="utf-8"))
+    assert trace["blueprint"]["steps"][0]["deliverables"] == ["primos.txt"] and trace["verify"][0]["round"] == 1
+    assert not (kept / "primos-baseline" / "_forge-trace.json").exists() and "trace" not in forge
