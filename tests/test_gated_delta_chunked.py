@@ -101,3 +101,19 @@ def test_train_sh_trains_through_the_wrapper():
     script = (root / "training" / "train.sh").read_text()
     assert "training/lora.py" in script and "python -m mlx_lm.lora" not in script
     assert "gated_delta_chunked" in (root / "training" / "lora.py").read_text()
+
+
+def test_lora_wrapper_applies_memory_limits_from_the_environment():
+    import importlib.util
+
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("spike_lora", root / "training" / "lora.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    calls = {}
+    fake = type("mx", (), {"set_memory_limit": lambda b: calls.__setitem__("memory", b),
+                           "set_cache_limit": lambda b: calls.__setitem__("cache", b)})
+    assert mod.apply_memory_limits({}, fake) == {}
+    assert mod.apply_memory_limits({"SPIKE_MLX_MEMORY_GB": "20", "SPIKE_MLX_CACHE_GB": "2"}, fake) == {
+        "memory_gb": 20.0, "cache_gb": 2.0}
+    assert calls == {"memory": 20 * 1024**3, "cache": 2 * 1024**3}
