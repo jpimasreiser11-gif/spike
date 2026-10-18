@@ -1,0 +1,16 @@
+{
+  "window": [
+    660,
+    400
+  ],
+  "icon_size": 112,
+  "app_icon_xy": [
+    165,
+    175
+  ],
+  "applications_xy": [
+    480,
+    175
+  ],
+  "note": "slot centres approximated from the light-mint circles; adjust after a real DMG test"
+}

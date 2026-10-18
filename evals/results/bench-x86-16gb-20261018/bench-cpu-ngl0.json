@@ -1,0 +1,191 @@
+{
+  "spike_version": "0.1.0",
+  "date_utc": "2026-10-17T21:57:11Z",
+  "hardware": {
+    "os": "Linux",
+    "arch": "x86_64",
+    "cpu_model": "x86_64",
+    "physical_cores": 4,
+    "logical_cores": 4,
+    "total_ram_gb": 15.7,
+    "available_ram_gb": 15.2,
+    "apple_silicon": false,
+    "cpu_flags": [
+      "avx",
+      "avx2",
+      "avx512_vnni",
+      "avx512f",
+      "avx_vnni",
+      "f16c",
+      "fma"
+    ],
+    "cpu_model_lscpu": "Intel(R) Xeon(R) Processor (cloud VM, AVX-512)"
+  },
+  "python": "3.13.16",
+  "model": {
+    "path": "/root/models/Qwen3.5-4B-Q4_K_M.gguf",
+    "file_gb": 2.553,
+    "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+    "source": "unsloth/Qwen3.5-4B-GGUF Qwen3.5-4B-Q4_K_M.gguf"
+  },
+  "settings": {
+    "contexts": [
+      1024,
+      8192,
+      32768
+    ],
+    "gen": 128,
+    "repeats": 3,
+    "threads": null,
+    "gpu_layers": 0,
+    "kv_cache_type": "q8_0",
+    "server_context": 33152
+  },
+  "results": [
+    {
+      "prompt_tokens": 1024,
+      "variant": "base",
+      "runs": [
+        {
+          "ttft_s": 85.3217,
+          "prompt_tokens": 1024,
+          "prompt_tok_s": 12.08,
+          "gen_tokens": 128,
+          "gen_tok_s": 6.16,
+          "wall_s": 105.953
+        },
+        {
+          "ttft_s": 52.251,
+          "prompt_tokens": 1024,
+          "prompt_tok_s": 19.61,
+          "gen_tokens": 128,
+          "gen_tok_s": 5.88,
+          "wall_s": 73.843
+        },
+        {
+          "ttft_s": 25.2728,
+          "prompt_tokens": 1024,
+          "prompt_tok_s": 40.56,
+          "gen_tokens": 128,
+          "gen_tok_s": 6.56,
+          "wall_s": 44.645
+        }
+      ],
+      "ttft_s": {
+        "median": 52.251,
+        "min": 25.2728,
+        "max": 85.3217
+      },
+      "prompt_tok_s": {
+        "median": 19.61,
+        "min": 12.08,
+        "max": 40.56
+      },
+      "gen_tok_s": {
+        "median": 6.16,
+        "min": 5.88,
+        "max": 6.56
+      },
+      "peak_rss_mb": 6273.8,
+      "peak_rss_anon_mb": 3654.0
+    },
+    {
+      "prompt_tokens": 8192,
+      "variant": "base",
+      "runs": [
+        {
+          "ttft_s": 772.5371,
+          "prompt_tokens": 8192,
+          "prompt_tok_s": 10.6,
+          "gen_tokens": 128,
+          "gen_tok_s": 5.11,
+          "wall_s": 797.343
+        },
+        {
+          "ttft_s": 747.4605,
+          "prompt_tokens": 8192,
+          "prompt_tok_s": 10.96,
+          "gen_tokens": 128,
+          "gen_tok_s": 5.07,
+          "wall_s": 772.499
+        },
+        {
+          "ttft_s": 811.9012,
+          "prompt_tokens": 8192,
+          "prompt_tok_s": 10.09,
+          "gen_tokens": 128,
+          "gen_tok_s": 4.3,
+          "wall_s": 841.461
+        }
+      ],
+      "ttft_s": {
+        "median": 772.5371,
+        "min": 747.4605,
+        "max": 811.9012
+      },
+      "prompt_tok_s": {
+        "median": 10.6,
+        "min": 10.09,
+        "max": 10.96
+      },
+      "gen_tok_s": {
+        "median": 5.07,
+        "min": 4.3,
+        "max": 5.11
+      },
+      "peak_rss_mb": 6276.1,
+      "peak_rss_anon_mb": 3656.3
+    },
+    {
+      "prompt_tokens": 32768,
+      "variant": "base",
+      "runs": [
+        {
+          "ttft_s": 6142.7193,
+          "prompt_tokens": 32768,
+          "prompt_tok_s": 5.34,
+          "gen_tokens": 128,
+          "gen_tok_s": 1.26,
+          "wall_s": 6243.456
+        },
+        {
+          "ttft_s": 5566.0411,
+          "prompt_tokens": 32768,
+          "prompt_tok_s": 5.89,
+          "gen_tokens": 128,
+          "gen_tok_s": 2.11,
+          "wall_s": 5626.162
+        },
+        {
+          "ttft_s": 4364.3809,
+          "prompt_tokens": 32768,
+          "prompt_tok_s": 7.51,
+          "gen_tokens": 128,
+          "gen_tok_s": 2.62,
+          "wall_s": 4412.843
+        }
+      ],
+      "ttft_s": {
+        "median": 5566.0411,
+        "min": 4364.3809,
+        "max": 6142.7193
+      },
+      "prompt_tok_s": {
+        "median": 5.89,
+        "min": 5.34,
+        "max": 7.51
+      },
+      "gen_tok_s": {
+        "median": 2.11,
+        "min": 1.26,
+        "max": 2.62
+      },
+      "peak_rss_mb": 6295.0,
+      "peak_rss_anon_mb": 3675.2
+    }
+  ],
+  "load_seconds": 75.311,
+  "llama_cpp_build": "b11709-62318cd57",
+  "idle_rss_mb": 5975.6,
+  "notes": "1K and 8K: one llama-server process, 3 runs each. 32K: one fresh llama-server process per run (container restarts killed long runs), same server context 33152; peak RSS = max over those processes. Server context pinned to 33152 for every length (SPIKE_BENCH_SERVER_CTX, local-only change to spike/bench.py) so memory matches the Mac report. Shared cloud VM: 1K prompt speed varied 12-41 tok/s across runs."
+}

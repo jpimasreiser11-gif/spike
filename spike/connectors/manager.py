@@ -1,0 +1,385 @@
+"""Connectors: MCP servers from the curated catalog or added by the user, whose tools become SPIKE tools.
+
+Every connector tool goes through the permission broker like a built-in tool: the connector's policy (ask by
+default) applies to each of its tools, and a per-tool policy in Settings → Tools overrides it.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import re
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from spike.connectors import browser
+from spike.connectors.apps import MAX_RESULT, AppError, AuditLog, resource_from, result_for_view, tool_ui
+from spike.connectors.mcp import HttpTransport, McpClient, McpError, StdioTransport
+from spike.store.db import Store
+from spike.store.secrets import SecretStore
+from spike.tools.base import Review, Tool, ToolResult
+
+CATALOG = Path(__file__).with_name("catalog.yaml")
+POLICIES = ("allow", "ask", "deny")
+ID_PATTERN = r"^[a-z0-9][a-z0-9-]{0,30}$"
+START_TIMEOUT_S = 120  # npx/uvx may download the server on first start
+
+
+@dataclass
+class ConnectorDef:
+    id: str
+    name: str
+    transport: str  # "stdio" | "http"
+    description: str = ""
+    command: str = ""
+    args: list[str] = field(default_factory=list)
+    url: str = ""
+    headers: dict[str, str] = field(default_factory=dict)  # values may use {SECRET_NAME}
+    env: dict[str, str] = field(default_factory=dict)  # values may use {workspace} and {data}
+    secrets: list[dict[str, Any]] = field(default_factory=list)  # {name, label, url?, optional?}
+    license: str = ""
+    source: str = ""
+    paid: bool = False
+    files: bool = False  # its results can carry the user's file contents (kept from providers not allowed them)
+    requires: str = ""
+    note: str = ""
+    custom: bool = False
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any], custom: bool = False) -> ConnectorDef:
+        known = {k: raw[k] for k in cls.__dataclass_fields__ if k in raw and k != "custom"}
+        return cls(**known, custom=custom)
+
+    def public(self) -> dict[str, Any]:
+        return {k: getattr(self, k) for k in self.__dataclass_fields__ if k != "headers"} | {
+            "header_names": sorted(self.headers)}
+
+
+def load_catalog(path: Path = CATALOG) -> list[ConnectorDef]:
+    return [ConnectorDef.from_dict(raw) for raw in yaml.safe_load(path.read_text(encoding="utf-8")) or []]
+
+
+def tool_name(connector_id: str, remote: str) -> str:
+    """OpenAI-style function names: [A-Za-z0-9_-]{1,64}."""
+    return re.sub(r"[^A-Za-z0-9_-]", "_", f"mcp__{connector_id.replace('-', '_')}__{remote}")[:64]
+
+
+class McpTool(Tool):
+    risk = "network"
+
+    def __init__(self, connector: ConnectorDef, client: McpClient, spec: dict[str, Any], name: str, policy: str,
+                 guard: Callable[[str, dict[str, Any]], Review | None] | None = None):
+        self.connector, self.client, self.remote_name = connector, client, spec["name"]
+        self.name = name
+        self.description = f"[{connector.name}] {spec.get('description') or spec['name']}"[:1024]
+        self.parameters = spec.get("inputSchema") or {"type": "object", "properties": {}}
+        self.default_policy = policy  # type: ignore[assignment]
+        self.guard = guard
+        self.ui_uri, self.visibility = tool_ui(spec)  # MCP Apps: the view of its results; who may call it
+
+    def review(self, args: dict[str, Any]) -> Review | None:
+        return self.guard(self.remote_name, args) if self.guard else None
+
+    async def run(self, args: dict[str, Any]) -> ToolResult:
+        try:
+            result = await self.client.call_tool(self.remote_name, args)
+        except McpError as exc:
+            return ToolResult(ok=False, content=f"error: {self.connector.name}: {exc}")
+        content = result.text[:100_000]
+        ui = {"kind": "mcp_app", "connector": self.connector.id, "connector_name": self.connector.name,
+              "tool": self.remote_name, "uri": self.ui_uri, "result": result_for_view(result.raw)} \
+            if self.ui_uri and not result.is_error else None
+        return ToolResult(ok=not result.is_error, content=content, private=[content] if self.connector.files else [],
+                          data={"ui": ui} if ui else {})
+
+
+@dataclass
+class Connection:
+    client: McpClient | None = None
+    tools: list[McpTool] = field(default_factory=list)  # the ones the model may call
+    status: str = "stopped"  # stopped | starting | running | error
+    error: str | None = None
+    by_remote: dict[str, McpTool] = field(default_factory=dict)  # every tool, app-only ones too
+    views: dict[str, dict[str, Any]] = field(default_factory=dict)  # MCP App pages read so far
+
+
+class ConnectorManager:
+    def __init__(self, store: Store, secrets: SecretStore, workspace: Path, data_dir: Path,
+                 catalog: list[ConnectorDef] | None = None):
+        self.store, self.secrets, self.workspace, self.data_dir = store, secrets, workspace, data_dir
+        self.catalog = catalog if catalog is not None else load_catalog()
+        self.connections: dict[str, Connection] = {}
+        self._lock = asyncio.Lock()
+        self.audit = AuditLog(data_dir / "apps-audit.jsonl")
+
+    # ------------------------------------------------------------------ definitions and settings
+    def definitions(self) -> list[ConnectorDef]:
+        custom = [ConnectorDef.from_dict(raw, custom=True) for raw in self.store.get_setting("custom_connectors", [])]
+        return self.catalog + custom
+
+    def get(self, cid: str) -> ConnectorDef | None:
+        return next((d for d in self.definitions() if d.id == cid), None)
+
+    def config(self, cid: str) -> dict[str, Any]:
+        return {"enabled": False, "policy": "ask", **self.store.get_setting("connectors", {}).get(cid, {})}
+
+    def browser_settings(self) -> dict[str, Any]:
+        return {**browser.DEFAULT, **self.store.get_setting("browser", {})}
+
+    def update_browser(self, patch: dict[str, Any]) -> dict[str, Any]:
+        cfg = browser.clean({**self.browser_settings(), **patch})
+        self.store.set_setting("browser", cfg)
+        return cfg
+
+    def set_domain(self, domain: str, rule: str | None) -> dict[str, Any]:
+        """Allow or block a browser domain (None removes its rule); blocked ones reach the browser at its next start."""
+        domains = dict(self.browser_settings()["domains"])
+        name = browser.site_of(domain.strip().lower().rstrip("."))
+        if rule is None:
+            domains.pop(name, None)
+        else:
+            domains[name] = rule
+        return self.update_browser({"domains": domains})
+
+    def _guard(self, definition: ConnectorDef) -> Callable[[str, dict[str, Any]], Review | None] | None:
+        if definition.id != browser.CONNECTOR or definition.custom:
+            return None
+        return lambda remote, args: browser.review(remote, args, self.browser_settings())
+
+    def _save_config(self, cid: str, **fields: Any) -> None:
+        all_configs = self.store.get_setting("connectors", {})
+        all_configs[cid] = {**all_configs.get(cid, {}), **fields}
+        self.store.set_setting("connectors", all_configs)
+
+    def add_custom(self, raw: dict[str, Any]) -> ConnectorDef:
+        definition = ConnectorDef.from_dict(raw, custom=True)
+        if not re.match(ID_PATTERN, definition.id) or self.get(definition.id):
+            raise ValueError(f"connector id '{definition.id}' is invalid or already used")
+        if definition.transport == "stdio" and not definition.command:
+            raise ValueError("a stdio connector needs a command")
+        if definition.transport == "http" and not re.match(r"^https?://", definition.url):
+            raise ValueError("an http connector needs an http(s) URL")
+        if definition.transport not in ("stdio", "http"):
+            raise ValueError("transport must be 'stdio' or 'http'")
+        stored = {k: v for k, v in definition.public().items() if k not in ("custom", "header_names")}
+        self.store.set_setting("custom_connectors", [*self.store.get_setting("custom_connectors", []),
+                                                     stored | {"headers": definition.headers}])
+        return definition
+
+    async def remove_custom(self, cid: str) -> None:
+        definition = self.get(cid)
+        if definition is None or not definition.custom:
+            raise ValueError("only connectors you added can be removed")
+        await self.stop(cid)
+        self.store.set_setting("custom_connectors",
+                               [c for c in self.store.get_setting("custom_connectors", []) if c["id"] != cid])
+        for secret in definition.secrets:
+            self.secrets.delete(self._secret_key(cid, secret["name"]))
+        all_configs = self.store.get_setting("connectors", {})
+        all_configs.pop(cid, None)
+        self.store.set_setting("connectors", all_configs)
+
+    @staticmethod
+    def _secret_key(cid: str, name: str) -> str:
+        return f"connector:{cid}:{name}"
+
+    # ------------------------------------------------------------------ tools
+    def tools(self) -> list[Tool]:
+        return [t for c in self.connections.values() if c.status == "running" for t in c.tools]
+
+    # ------------------------------------------------------------------ lifecycle
+    def _fill(self, text: str, values: dict[str, str]) -> str:
+        return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", lambda m: values.get(m.group(1), m.group(0)), text)
+
+    def _client(self, definition: ConnectorDef) -> McpClient:
+        data = self.data_dir / definition.id  # a connector's own files (e.g. the memory server's graph)
+        data.mkdir(parents=True, exist_ok=True)
+        values = {"workspace": str(self.workspace), "data": str(data)}
+        missing = []
+        for secret in definition.secrets:
+            value = self.secrets.get(self._secret_key(definition.id, secret["name"]))
+            if value:
+                values[secret["name"]] = value
+            elif not secret.get("optional"):
+                missing.append(secret.get("label") or secret["name"])
+        if missing:
+            raise McpError("needs " + ", ".join(missing))
+        if definition.transport == "http":
+            headers = {k: self._fill(v, values) for k, v in definition.headers.items()}
+            return McpClient(HttpTransport(self._fill(definition.url, values), headers))
+        env = {k: self._fill(v, values) for k, v in definition.env.items()}
+        env |= {s["name"]: values[s["name"]] for s in definition.secrets if s["name"] in values}
+        args = [self._fill(a, values) for a in definition.args]
+        if self._guard(definition) and (blocked := browser.blocked_origins(self.browser_settings())):
+            args += ["--blocked-origins", ";".join(blocked)]
+        return McpClient(StdioTransport(definition.command, args, env=env, cwd=str(self.workspace)))
+
+    async def start(self, cid: str) -> Connection:
+        definition = self.get(cid)
+        if definition is None:
+            raise KeyError(cid)
+        await self.stop(cid)
+        conn = self.connections[cid] = Connection(status="starting")
+        try:
+            conn.client = self._client(definition)
+            await asyncio.wait_for(conn.client.start(), timeout=START_TIMEOUT_S)
+            specs = await conn.client.list_tools()
+        except (McpError, TimeoutError, OSError) as exc:
+            conn.status, conn.error = "error", str(exc) or exc.__class__.__name__
+            if conn.client:
+                detail = conn.client.transport.diagnostics()
+                if detail and detail not in conn.error:
+                    conn.error += "\n" + detail[-800:]
+                await conn.client.close()
+            conn.client = None
+            return conn
+        policy = self.config(cid)["policy"]
+        names: set[str] = set()
+        for spec in specs:
+            name = tool_name(cid, spec["name"])
+            while name in names:
+                name = name[:60] + f"_{len(names)}"
+            names.add(name)
+            tool = McpTool(definition, conn.client, spec, name, policy, self._guard(definition))
+            conn.by_remote[tool.remote_name] = tool
+            if "model" in tool.visibility:  # app-only tools never reach the model (SEP-1865 visibility)
+                conn.tools.append(tool)
+        conn.status, conn.error = "running", None
+        return conn
+
+    # ------------------------------------------------------------------ MCP Apps
+    def _running(self, cid: str) -> Connection:
+        conn = self.connections.get(cid)
+        if conn is None or conn.status != "running" or conn.client is None:
+            raise AppError("this connector is not running")
+        return conn
+
+    def _declared(self, conn: Connection, uri: str) -> None:
+        if not any(t.ui_uri == uri for t in conn.by_remote.values()):
+            raise AppError(f"no tool of this connector declares the view {uri}")
+
+    async def app_resource(self, cid: str, uri: str) -> dict[str, Any]:
+        """The page of a view a tool of this connector declared (only those: SEP-1865 predeclared resources)."""
+        conn = self._running(cid)
+        self._declared(conn, uri)
+        if uri not in conn.views:
+            try:
+                view = resource_from(uri, await conn.client.read_resource(uri))  # type: ignore[union-attr]
+            except McpError as exc:
+                raise AppError(f"{uri}: {exc}") from exc
+            conn.views[uri] = view
+            self.audit.write(connector=cid, view=uri, event="load", sha256=view["sha256"], csp=view["csp"],
+                             dropped=view["dropped"])
+        return conn.views[uri]
+
+    async def app_call(self, cid: str, view: str, name: str, arguments: dict[str, Any], approved: bool,
+                       policy_for: Callable[[Tool, dict[str, Any]], tuple[str, Review | None]]) -> dict[str, Any]:
+        """A tools/call from a view: only this connector's tools that allow "app", under the tool's policy; an
+        "ask" tool runs only with `approved` (the user's click in the app). Raises PermissionError otherwise."""
+        decision = "refused"
+        try:
+            conn = self._running(cid)
+            self._declared(conn, view)
+            tool = conn.by_remote.get(name)
+            if tool is None:
+                raise AppError(f"this connector has no tool '{name}'")
+            if "app" not in tool.visibility:
+                raise PermissionError(f"'{name}' may only be called by the model, not by a view")
+            policy, review = policy_for(tool, arguments)
+            if policy == "deny":
+                raise PermissionError(review.reason if review and review.policy == "deny" else
+                                      f"you have blocked the tool '{tool.name}'")
+            if policy == "ask" and not approved:
+                decision = "asked"
+                raise PermissionError("needs your approval")
+            decision = "approved" if policy == "ask" else "allowed"
+            try:
+                result = await conn.client.call_tool(name, arguments)  # type: ignore[union-attr]
+            except McpError as exc:
+                raise AppError(str(exc)) from exc
+            return result_for_view(result.raw) or {"content": [], "isError": result.is_error}
+        finally:
+            self.audit.write(connector=cid, view=view, event="tools/call", tool=name, decision=decision,
+                             arguments=json_preview(arguments))
+
+    async def app_read(self, cid: str, view: str, uri: str) -> dict[str, Any]:
+        """A resources/read from a view: a resource of the same connector, up to 256 KB."""
+        self.audit.write(connector=cid, view=view, event="resources/read", uri=uri[:500])
+        conn = self._running(cid)
+        self._declared(conn, view)
+        try:
+            result = await conn.client.read_resource(uri)  # type: ignore[union-attr]
+        except McpError as exc:
+            raise AppError(str(exc)) from exc
+        if len(json_preview(result, MAX_RESULT + 1)) > MAX_RESULT:
+            raise AppError("the resource is larger than 256 KB")
+        return result
+
+    async def stop(self, cid: str) -> None:
+        conn = self.connections.pop(cid, None)
+        if conn and conn.client:
+            await conn.client.close()
+
+    async def ensure_started(self) -> None:
+        """Start enabled connectors not tried yet in this process; failed ones wait for the user to retry."""
+        async with self._lock:
+            for definition in self.definitions():
+                if self.config(definition.id)["enabled"] and definition.id not in self.connections:
+                    await self.start(definition.id)
+
+    async def update(self, cid: str, enabled: bool | None = None, policy: str | None = None,
+                     secrets: dict[str, str] | None = None) -> None:
+        definition = self.get(cid)
+        if definition is None:
+            raise KeyError(cid)
+        if policy is not None:
+            if policy not in POLICIES:
+                raise ValueError(f"policy must be one of {POLICIES}")
+            self._save_config(cid, policy=policy)
+            for tool in self.connections.get(cid, Connection()).tools:
+                tool.default_policy = policy  # type: ignore[assignment]
+        allowed = {s["name"] for s in definition.secrets}
+        for name, value in (secrets or {}).items():
+            if name not in allowed:
+                raise ValueError(f"'{name}' is not a setting of this connector")
+            if value:
+                self.secrets.set(self._secret_key(cid, name), value)
+            else:
+                self.secrets.delete(self._secret_key(cid, name))
+        if enabled is not None:
+            self._save_config(cid, enabled=enabled)
+        async with self._lock:
+            if self.config(cid)["enabled"] and (enabled or secrets or cid not in self.connections):
+                await self.start(cid)
+            elif not self.config(cid)["enabled"]:
+                await self.stop(cid)
+
+    async def close_all(self) -> None:
+        for cid in list(self.connections):
+            await self.stop(cid)
+
+    # ------------------------------------------------------------------ API view
+    def public(self, definition: ConnectorDef, broker_policy=None) -> dict[str, Any]:
+        conn = self.connections.get(definition.id, Connection())
+        cfg = self.config(definition.id)
+        values = {"workspace": str(self.workspace), "data": str(self.data_dir / definition.id)}
+        preview = (self._fill(definition.url, values) if definition.transport == "http"
+                   else " ".join([definition.command, *(self._fill(a, values) for a in definition.args)]))
+        return definition.public() | {
+            "preview": preview, "enabled": cfg["enabled"], "policy": cfg["policy"], "status": conn.status, "error": conn.error,
+            "secrets_set": {s["name"]: self.secrets.has(self._secret_key(definition.id, s["name"]))
+                            for s in definition.secrets},
+            "tools": [{"name": t.name, "remote_name": t.remote_name, "description": t.description,
+                       "policy": broker_policy(t) if broker_policy else t.default_policy,
+                       "visibility": t.visibility, **({"view": t.ui_uri} if t.ui_uri else {})}
+                      for t in conn.by_remote.values()],
+            "views": sorted({t.ui_uri for t in conn.by_remote.values() if t.ui_uri}),
+        }
+
+
+def json_preview(value: Any, limit: int = 2000) -> str:
+    return json.dumps(value, ensure_ascii=False, default=str)[:limit]
