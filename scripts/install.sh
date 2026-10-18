@@ -112,7 +112,7 @@ fi
 rc=0
 step "Check the install" "$spike" "${check[@]}" || rc=$?
 (( rc == 0 || rc == skipped )) \
-  || die "'spike doctor --strict' found a missing part (see above); SPIKE itself is installed."
+  || die "'spike doctor --strict' failed (see above); SPIKE itself is installed."
 
 printf '\nDone. Start SPIKE with:  %s serve --open\n' "$spike"
 [[ ":$PATH:" == *":$bin_dir:"* ]] || echo "Open a new terminal (or add $bin_dir to PATH) to use 'spike' directly."

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import codecs
 import json
 import logging
 import signal
@@ -612,7 +613,26 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _never_crash_on_output() -> None:
+    """Legacy consoles (cp1252 on Windows CI, ASCII under LANG=C) cannot print the arrows and dashes SPIKE uses.
+
+    Keep the stream's encoding, so the console still shows what it can, and print "?" for the rest instead of
+    raising UnicodeEncodeError halfway through a command. UTF-8 terminals are left untouched.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        name = getattr(stream, "encoding", None)
+        reconfigure = getattr(stream, "reconfigure", None)  # absent on streams a test or a host swapped in
+        if not name or reconfigure is None:
+            continue
+        try:
+            if codecs.lookup(name).name != "utf-8":
+                reconfigure(errors="replace")
+        except (LookupError, ValueError, OSError):  # unknown codec name, or a stream already closed
+            continue
+
+
 def main(argv: list[str] | None = None) -> int:
+    _never_crash_on_output()
     args = build_parser().parse_args(argv)
     return args.func(args)
 

@@ -1,8 +1,12 @@
 """`spike doctor --strict` (the installers rely on its exit code) and what `spike models pull` says it checked."""
 
 import hashlib
+import io
 import json
+import os
 import struct
+import subprocess
+import sys
 from pathlib import Path
 
 import httpx
@@ -64,6 +68,29 @@ def test_doctor_strict_json_keeps_stdout_parseable(home, monkeypatch, capsys):
     assert main(["doctor", "--strict", "--json"]) == 1
     out, err = capsys.readouterr()
     assert json.loads(out)["llama_server"] == "not found" and "llama-server was not found" in err
+
+
+def test_doctor_does_not_crash_on_a_console_that_cannot_print_unicode(home):
+    """A GitHub windows runner prints through cp1252: doctor's '≈' used to raise UnicodeEncodeError there."""
+    add_model(home)
+    env = {**os.environ, "SPIKE_HOME": str(home), "SPIKE_NO_KEYRING": "1", "PYTHONIOENCODING": "cp1252"}
+    run = subprocess.run([sys.executable, "-m", "spike.cli", "doctor"], env=env, capture_output=True, timeout=120)
+    err = run.stderr.decode("cp1252", "replace")
+    assert run.returncode == 0 and "Traceback" not in err, err
+    model_line = next(ln for ln in run.stdout.decode("cp1252").splitlines() if "model tiny.gguf" in ln)
+    assert "tokens ? " in model_line  # the '≈' became '?', the rest of the line is intact
+
+
+def test_utf8_streams_are_left_alone():
+    from spike.cli import _never_crash_on_output
+
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    real, sys.stdout = sys.stdout, stream
+    try:
+        _never_crash_on_output()
+    finally:
+        sys.stdout = real
+    assert stream.errors == "strict"
 
 
 def hub(sha256: str | None, body: bytes = b"weights") -> httpx.AsyncClient:

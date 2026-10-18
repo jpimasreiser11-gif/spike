@@ -117,7 +117,7 @@ if ($NoModel -or $null -eq $pulled) {
 } else {
     $checked = Step 'Check the install' { & $spike doctor --strict }
 }
-if ($checked -eq $false) { Fail "'spike doctor --strict' found a missing part (see above); SPIKE itself is installed." }
+if ($checked -eq $false) { Fail "'spike doctor --strict' failed (see above); SPIKE itself is installed." }
 
 Write-Host "`nDone. Start SPIKE with:  $spike serve --open"
 if (-not (($env:Path -split ';') -contains $binDir)) {
