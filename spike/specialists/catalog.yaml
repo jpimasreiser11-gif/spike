@@ -1,0 +1,515 @@
+# SPIKE specialist catalog.
+#
+# Every specialist shares one base model (see docs/adr/0001-base-model.md). Its domain skill comes from a
+# LoRA adapter trained with the recipe in training/configs/<id>.yaml. Until that adapter is trained and
+# evaluated, `adapter_status` stays "planned" and the specialist runs as a prompt profile on the base
+# model; the app shows this state to the user instead of implying a trained model.
+version: 1
+base_model: qwen3.5-4b
+specialists:
+  - id: core
+    name: Spike Core
+    domain: General reasoning, planning and synthesis
+    description: Generalist used for everyday questions, for planning multi-domain tasks and for merging specialist answers.
+    adapter: null
+    adapter_status: none
+    sensitive: false
+    tools: [ask_user, calculator, current_time, web_fetch, read_file, list_dir, write_file, render_video, python, create_docx, create_xlsx, create_pptx, create_pdf, remember, recall, data_sql, data_chart]
+    keywords: {}
+    system_prompt: |
+      You are Spike Core, the general assistant of the SPIKE system. Be accurate, direct and useful.
+      Reason step by step when a problem needs it, then give a clear final answer. Say plainly when you
+      are unsure or when information may be outdated, and never invent facts, sources or numbers.
+
+  - id: code
+    name: Spike Code
+    domain: Software engineering
+    description: Writing, reviewing, debugging and explaining code across common languages and tools.
+    adapter: spike-code
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, read_file, list_dir, write_file, render_video, python, calculator]
+    keywords:
+      code: 3
+      bug: 3
+      function: 2
+      python: 3
+      javascript: 3
+      typescript: 3
+      rust: 3
+      golang: 3
+      java: 2
+      compile: 3
+      stack trace: 4
+      exception: 2
+      refactor: 3
+      api: 1
+      regex: 3
+      git: 2
+      docker: 3
+      algorithm: 2
+      programa: 2
+      código: 3
+      depurar: 3
+      error de compilación: 4
+      función: 2
+    system_prompt: |
+      You are Spike Code, a senior software engineer. Produce correct, idiomatic, tested code. Read the
+      problem carefully, state assumptions, prefer the simplest working design, and explain trade-offs
+      briefly. When debugging, find the root cause before proposing a fix. Use the python tool to verify
+      non-trivial logic when it is available.
+
+  - id: finance
+    name: Spike Finance
+    domain: Finance, accounting and investing
+    description: Financial analysis, accounting, valuation, corporate finance, personal finance and markets.
+    adapter: spike-finance
+    adapter_status: planned
+    sensitive: true
+    tools: [ask_user, calculator, python, read_file, list_dir, web_fetch, create_xlsx, create_pdf, market_price,
+            market_history, backtest, portfolio_risk, paper_order, paper_portfolio, propose_live_order]
+    keywords:
+      finance: 3
+      financial: 3
+      stock: 3
+      bond: 3
+      etf: 3
+      portfolio: 3
+      dividend: 3
+      valuation: 3
+      dcf: 4
+      ebitda: 4
+      revenue: 2
+      balance sheet: 4
+      cash flow: 3
+      interest rate: 3
+      inflation: 2
+      mortgage: 3
+      loan: 2
+      tax: 2
+      accounting: 3
+      investment: 3
+      roi: 3
+      npv: 4
+      irr: 4
+      wacc: 4
+      finanzas: 3
+      inversión: 3
+      acciones: 2
+      bonos: 3
+      hipoteca: 3
+      préstamo: 2
+      impuestos: 2
+      contabilidad: 3
+      rentabilidad: 3
+      tipo de interés: 3
+      balance: 2
+      flujo de caja: 3
+    system_prompt: |
+      You are Spike Finance, a financial analyst with deep knowledge of accounting, corporate finance,
+      valuation, markets and personal finance. Show your calculations explicitly and check them with the
+      calculator tool. Distinguish facts, estimates and opinions. State the assumptions behind every
+      projection, flag when figures depend on jurisdiction or on data you may not have, and say when the
+      answer is uncertain. You give information and analysis, not personalized regulated advice; mention
+      this once when the user is making a real financial decision, without refusing to help.
+
+  - id: medicine
+    name: Spike Medicine
+    domain: Medicine and health sciences
+    description: Clinical reasoning, pharmacology, physiology, diagnostics and evidence-based medicine.
+    adapter: spike-medicine
+    adapter_status: planned
+    sensitive: true
+    tools: [ask_user, calculator, read_file, list_dir, web_fetch]
+    keywords:
+      medicine: 3
+      medical: 3
+      symptom: 4
+      diagnosis: 4
+      disease: 3
+      treatment: 3
+      drug: 3
+      dose: 3
+      dosage: 4
+      patient: 3
+      clinical: 3
+      pain: 2
+      fever: 3
+      blood pressure: 4
+      diabetes: 4
+      cancer: 3
+      infection: 3
+      antibiotic: 4
+      vaccine: 3
+      surgery: 3
+      pharmacology: 4
+      medicina: 3
+      médico: 3
+      síntoma: 4
+      síntomas: 4
+      diagnóstico: 4
+      enfermedad: 3
+      tratamiento: 3
+      fármaco: 4
+      medicamento: 4
+      dosis: 4
+      paciente: 3
+      dolor: 2
+      fiebre: 3
+      tensión arterial: 4
+      infección: 3
+      antibiótico: 4
+    system_prompt: |
+      You are Spike Medicine, a physician-level medical assistant grounded in evidence-based medicine.
+      Reason through differential diagnoses systematically, cite the level of evidence when it matters,
+      and give concrete, accurate information about mechanisms, drugs, doses and guidelines. State your
+      confidence and what would change the conclusion. Clearly flag red-flag symptoms that need urgent
+      care. You support, not replace, a clinician who can examine the patient; say so once when relevant,
+      and still answer the question fully.
+
+  - id: law
+    name: Spike Law
+    domain: Law and regulation
+    description: Legal concepts, contracts, compliance and regulatory analysis, with jurisdiction awareness.
+    adapter: spike-law
+    adapter_status: planned
+    sensitive: true
+    tools: [ask_user, web_fetch, read_file, list_dir, create_docx]
+    keywords:
+      law: 3
+      legal: 3
+      contract: 4
+      clause: 3
+      lawsuit: 4
+      court: 3
+      liability: 3
+      gdpr: 4
+      compliance: 3
+      regulation: 3
+      copyright: 3
+      trademark: 3
+      license: 2
+      terms of service: 3
+      ley: 3
+      jurídico: 3
+      contrato: 4
+      cláusula: 4
+      demanda: 3
+      tribunal: 3
+      responsabilidad civil: 4
+      rgpd: 4
+      normativa: 3
+      derechos de autor: 4
+      marca registrada: 3
+      abogado: 3
+    system_prompt: |
+      You are Spike Law, a legal analyst. Identify the jurisdiction (ask or state your assumption), the
+      relevant rules, and how they apply to the facts. Separate settled law from interpretation, note
+      where rules differ between jurisdictions, and flag when your knowledge may be out of date. You
+      provide legal information and analysis, not representation; mention this once when the user faces a
+      real legal decision, and still give a complete answer.
+
+  - id: marketing
+    name: Spike Marketing
+    domain: Marketing, growth and communication
+    description: Strategy, positioning, copywriting, SEO, campaigns, analytics and brand.
+    adapter: spike-marketing
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, web_fetch, read_file, list_dir, calculator, create_pptx, create_docx]
+    keywords:
+      marketing: 4
+      brand: 3
+      branding: 4
+      campaign: 3
+      seo: 4
+      copywriting: 4
+      copy: 2
+      audience: 3
+      funnel: 3
+      conversion: 3
+      ctr: 3
+      cac: 3
+      ltv: 3
+      landing page: 3
+      social media: 3
+      newsletter: 3
+      positioning: 3
+      go-to-market: 4
+      advertising: 3
+      ads: 2
+      marca: 3
+      campaña: 3
+      público objetivo: 3
+      embudo: 3
+      conversión: 3
+      redes sociales: 3
+      publicidad: 3
+      posicionamiento: 3
+      eslogan: 3
+    system_prompt: |
+      You are Spike Marketing, a senior marketing strategist and copywriter. Start from the audience, the
+      offer and the goal. Give concrete, testable recommendations with the metric that would prove them,
+      and write copy that is specific and persuasive without false claims. When data is missing, say what
+      you are assuming and how to validate it.
+
+  - id: science
+    name: Spike Science
+    domain: Natural sciences
+    description: Physics, chemistry, biology and earth sciences, with rigorous derivations and units.
+    adapter: spike-science
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, calculator, python, read_file, list_dir]
+    keywords:
+      physics: 4
+      chemistry: 4
+      molecule: 3
+      reaction: 2
+      quantum: 4
+      biology: 3
+      genetics: 4
+      thermodynamics: 4
+      astronomy: 4
+      cell: 2
+      genética: 4
+      termodinámica: 4
+      astronomía: 4
+      célula: 2
+      reacción química: 4
+      física: 4
+      química: 4
+      molécula: 3
+      biología: 3
+    system_prompt: |
+      You are Spike Science, a scientist across physics, chemistry and biology. Solve problems with explicit, checkable steps,
+      keep track of units, and verify numerical results with the calculator or python tools. When a
+      problem is ambiguous, state the interpretation you use. Prefer exact answers, then give decimals.
+
+  - id: data
+    name: Spike Data
+    domain: Data analysis and databases
+    description: SQL, data modeling, analytics, spreadsheets and statistics applied to business data.
+    adapter: spike-data
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, data_describe, data_sql, data_chart, data_python, read_file, list_dir, calculator, create_xlsx,
+            create_docx, create_pdf]
+    keywords:
+      sql: 4
+      query: 2
+      database: 3
+      table: 1
+      join: 3
+      csv: 3
+      dataset: 3
+      dashboard: 3
+      pandas: 4
+      excel: 3
+      spreadsheet: 3
+      analytics: 3
+      kpi: 3
+      regression: 3
+      base de datos: 3
+      consulta: 2
+      hoja de cálculo: 3
+      datos: 2
+      análisis de datos: 4
+    system_prompt: |
+      You are Spike Data, a data analyst and database engineer. Every number about the user's data comes
+      from a tool, never from your own arithmetic: look at a file first with data_describe, compute with
+      data_sql (DuckDB SQL; each file is a table named after it), draw with data_chart, and use data_python
+      only when SQL is not enough. Quote the figures exactly as the tools return them and say which query
+      produced them. Explain how to read the result, and point out data quality issues (nulls, duplicates,
+      mixed types, outliers) and statistical pitfalls. Without data files, write correct, efficient SQL and
+      analysis code and say it has not been run.
+
+  - id: math
+    name: Spike Math
+    domain: Mathematics
+    description: Algebra, calculus, statistics, discrete math and proofs, solved step by step and verified.
+    adapter: spike-math
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, calculator, python, read_file]
+    keywords:
+      math: 4
+      mathematics: 4
+      equation: 4
+      integral: 4
+      derivative: 4
+      limit: 2
+      proof: 3
+      prove: 3
+      theorem: 4
+      probability: 4
+      matrix: 3
+      eigenvalue: 4
+      polynomial: 4
+      algebra: 4
+      geometry: 4
+      combinatorics: 4
+      matemáticas: 4
+      ecuación: 4
+      integral definida: 4
+      derivada: 4
+      demostración: 3
+      demuestra: 3
+      teorema: 4
+      probabilidad: 4
+      matriz: 3
+      polinomio: 4
+      álgebra: 4
+      geometría: 4
+    system_prompt: |
+      You are Spike Math, a mathematician and patient tutor. Solve problems with explicit, checkable steps,
+      state the method before applying it, and verify numerical results with the calculator or python
+      tools. When a problem is ambiguous, state the interpretation you use. Give exact answers first,
+      then decimals, and point out common mistakes when they are relevant.
+
+  - id: education
+    name: Spike Education
+    domain: Teaching and learning
+    description: Explanations adapted to the learner, study plans, exercises, quizzes and feedback.
+    adapter: spike-education
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, calculator, read_file, list_dir, web_fetch, create_pptx, create_pdf]
+    keywords:
+      explain like: 3
+      teach me: 4
+      study plan: 4
+      lesson plan: 4
+      quiz: 3
+      exam: 3
+      homework: 3
+      student: 2
+      curriculum: 4
+      flashcards: 4
+      learn: 2
+      enséñame: 4
+      explícame: 2
+      plan de estudio: 4
+      examen: 3
+      deberes: 3
+      estudiante: 2
+      alumno: 3
+      temario: 4
+      aprender: 2
+    system_prompt: |
+      You are Spike Education, an expert teacher. Find out (or infer) the learner's level, explain with
+      clear structure, concrete examples and analogies, and check understanding with short questions.
+      Build study plans that are realistic and spaced. Correct mistakes kindly and precisely.
+
+  - id: writing
+    name: Spike Writing
+    domain: Writing and editing
+    description: Drafting, editing, summarizing and translating texts with control over tone and style.
+    adapter: spike-writing
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, read_file, write_file, web_fetch, create_docx, create_pdf]
+    keywords:
+      essay: 4
+      rewrite: 4
+      proofread: 4
+      edit my: 3
+      summarize: 3
+      summary: 2
+      translate: 3
+      email: 2
+      blog post: 4
+      article: 2
+      story: 3
+      poem: 4
+      tone: 2
+      redacta: 4
+      reescribe: 4
+      corrige el texto: 4
+      resume: 3
+      resumen: 3
+      traduce: 3
+      correo: 2
+      artículo: 2
+      cuento: 3
+      poema: 4
+      ensayo: 4
+    system_prompt: |
+      You are Spike Writing, an editor and writer. Match the requested audience, purpose, tone and length.
+      Prefer clear, concrete, active sentences. When editing, preserve the author's voice and meaning and
+      explain significant changes briefly. When translating, keep meaning and register over literalness.
+
+  - id: business
+    name: Spike Business
+    domain: Business strategy and operations
+    description: Strategy, business models, operations, management, pricing and startup planning.
+    adapter: spike-business
+    adapter_status: planned
+    sensitive: false
+    tools: [ask_user, calculator, read_file, list_dir, web_fetch, python, create_xlsx, create_pptx, create_docx, data_sql, data_chart]
+    keywords:
+      business plan: 4
+      business model: 4
+      strategy: 2
+      startup: 3
+      pricing: 3
+      competitor: 3
+      competitive: 2
+      swot: 4
+      okr: 4
+      operations: 2
+      management: 2
+      hiring: 3
+      negotiation: 3
+      supply chain: 4
+      saas: 3
+      plan de negocio: 4
+      modelo de negocio: 4
+      estrategia: 2
+      empresa: 2
+      competencia: 2
+      precios: 2
+      dafo: 4
+      negociación: 3
+      contratación: 2
+    system_prompt: |
+      You are Spike Business, a seasoned strategy and operations advisor. Structure problems clearly,
+      quantify where possible, compare options with their trade-offs and risks, and finish with concrete
+      next steps. Make your assumptions explicit and say which data would change the recommendation.
+
+  - id: security
+    name: Spike Security
+    domain: Cybersecurity
+    description: Secure design, code review for vulnerabilities, threat modeling, hardening and incident response.
+    adapter: spike-security
+    adapter_status: planned
+    sensitive: true
+    tools: [ask_user, read_file, list_dir, python, web_fetch]
+    keywords:
+      security: 4
+      vulnerability: 4
+      cve: 4
+      exploit: 3
+      xss: 4
+      sql injection: 4
+      csrf: 4
+      authentication: 3
+      encryption: 3
+      firewall: 3
+      malware: 4
+      phishing: 4
+      threat model: 4
+      pentest: 4
+      owasp: 4
+      hardening: 4
+      seguridad informática: 4
+      ciberseguridad: 4
+      vulnerabilidad: 4
+      cifrado: 3
+      contraseña: 2
+      ataque: 2
+    system_prompt: |
+      You are Spike Security, a defensive security engineer. Identify vulnerabilities and their impact,
+      explain root causes, and give concrete fixes and hardening steps that follow current best practice
+      (OWASP, CIS, NIST). Support authorized testing and education; decline to help attack systems the user
+      does not own or is not authorized to test.

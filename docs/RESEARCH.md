@@ -1,0 +1,116 @@
+# SPIKE research notes
+
+What was investigated, what was concluded and from which source. Vendor and third-party figures are
+labelled as such; SPIKE's own measurements are in [STATUS.md](STATUS.md). Research date: 2026-10-17.
+
+## 1. Base model
+
+Summary in [ADR 0001](adr/0001-base-model.md): **Qwen3.5-4B** (Apache-2.0). Key facts from the
+[model card](https://huggingface.co/Qwen/Qwen3.5-4B): 32 layers in 8 blocks of (3 × Gated DeltaNet + 1 ×
+gated attention), hidden 2560, FFN 9216, vocabulary 248,320, 262K native context, thinking on by default
+(`enable_thinking: false` disables it; `/think` soft switches are not supported), vision encoder included.
+Vendor long-context scores (AA-LCR 57.0, LongBench v2 50.0) show that the 262K window is not 262K of
+reliable understanding; SPIKE sizes context by measured memory and will publish its own long-context eval.
+
+Other candidates and why they lost: Gemma 4 E4B (lower reported knowledge/reasoning, kept as alternative),
+Qwen3-4B-Instruct-2507 (dense attention: ~4.5× the KV cache at equal context, computed), Phi-4-mini
+(lower reported MMLU-Pro), DeepSeek-V4.1-Flash (552B total; does not fit consumer hardware), Qwen3.6/3.8
+(no model below 27B).
+
+## 2. Inference engine
+
+| Engine | CPU x86 | Apple Silicon | Per-request adapter switching | Role in SPIKE |
+|---|---|---|---|---|
+| **llama.cpp** (`llama-server`) | AVX2/AVX-512 kernels | Metal | yes: `lora` field with per-adapter scales | inference everywhere |
+| MLX / mlx-lm | no | yes | one adapter per loaded model | **training** on the Mac |
+| Ollama | wraps llama.cpp | wraps llama.cpp | adapters baked per model tag | supported as an external provider |
+| vLLM | not the target | no | yes (GPU) | supported as an OpenAI-compatible provider |
+
+llama.cpp facts verified in source (`ggml-org/llama.cpp` at 62318cd, built in the dev container):
+`qwen35` architecture in the converter (`conversion/qwen.py`, `Qwen3_5TextModel`); LoRA GGUF conversion
+needs only the base `config.json`; server LoRA semantics documented in [ADR 0004](adr/0004-adapter-serving.md).
+
+## 3. Memory and quantization
+
+- Weights (Hub file sizes, [unsloth/Qwen3.5-4B-GGUF](https://huggingface.co/unsloth/Qwen3.5-4B-GGUF)):
+  Q4_K_M 2.74 GB, Q5_K_M 3.14 GB, Q6_K 3.53 GB, Q8_0 4.48 GB, BF16 8.42 GB; vision projector 672 MB (F16).
+- KV cache, *computed* from the architecture: 8 attention layers × 4 KV heads × 256 dims × 2 (K,V) ×
+  2 bytes = 32 KiB per token at f16 (~17 KiB at q8_0). 32K context ≈ 1 GiB f16 / ≈ 0.53 GiB q8_0.
+  The 24 Gated DeltaNet layers keep a fixed recurrent state per sequence instead of a growing cache.
+  `spike/runtime/gguf.py::kv_cache_bytes` implements this from GGUF metadata (tested on a real file).
+- Adapter size, *computed*: rank 16 on the chosen targets ≈ 21M parameters ≈ 42 MB at f16.
+- Third-party reports, not verified by SPIKE: KV cache q4_0 degraded answers of a 9B Qwen3.5 in one
+  coding task while q8_0 did not ([dipankar-das.com](https://dipankar-das.com/blog/i-went-deep-localllm/));
+  SPIKE defaults to q8_0.
+
+## 4. Training
+
+Summary in [ADR 0002](adr/0002-training-method.md). Sources: Unsloth's Qwen3.5 guide (bf16 LoRA ≈ 10 GB for
+4B; QLoRA not recommended for Qwen3.5; keep ≥ 75 % reasoning examples when mixing thinking and direct
+data to preserve reasoning) ([unsloth.ai](https://unsloth.ai/docs/models/qwen3.5/fine-tune)); a public
+mlx-lm LoRA run on Qwen3.5-4B (M1 64 GB: 11.1 GB peak, ~115 tok/s; validation loss did not predict accuracy)
+([sciences44/mlx-lora-finetune](https://github.com/sciences44/mlx-lora-finetune)). mlx-lm semantics checked
+in source: `iters` counts micro-batches; the optimizer and LR schedule step every
+`grad_accumulation_steps`; `lora_parameters.keys` selects modules by exact path; `num_layers: -1` = all;
+`lr_schedule.warmup` supported; Qwen3.5 module paths `language_model.model.layers.N.{self_attn,linear_attn,mlp}`.
+
+Lesson applied from the sciences44 report: acceptance is decided by task metrics on held-out data, never by
+validation loss.
+
+## 5. Datasets (licenses read on the Hub; re-checked automatically at download time)
+
+| Source | License | Use | Notes |
+|---|---|---|---|
+| [openlifescienceai/medmcqa](https://huggingface.co/datasets/openlifescienceai/medmcqa) | Apache-2.0 | medicine train (train split), eval (validation) | 183k train; expert explanations (`exp`) |
+| [qiaojin/PubMedQA](https://huggingface.co/datasets/qiaojin/PubMedQA) | MIT | `pqa_artificial` train (211k), `pqa_labeled` eval (1k) | |
+| [OpenAssistant/oasst2](https://huggingface.co/datasets/OpenAssistant/oasst2) | Apache-2.0 (registry value; HF blocked in the build container, re-checked at download) | general replay | human-written; en + es; one chat per best-ranked reply |
+| [HuggingFaceTB/smoltalk](https://huggingface.co/datasets/HuggingFaceTB/smoltalk) smol-constraints | Apache-2.0 (card text only) | **excluded** | the Hub metadata declares no license, so the license gate refuses it, and the card does not name the generator; general replay is human-written oasst2 only |
+| HuggingFaceTB/smoltalk smol-magpie-ultra | Apache-2.0 | **excluded** | generated with Llama-3.1-405B-Instruct; the [Llama 3.1 license](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE) §1.b.i requires "Llama" at the start of the name of any distributed model trained on its outputs |
+| [sujet-ai/Sujet-Finance-Instruct-177k](https://huggingface.co/datasets/sujet-ai/Sujet-Finance-Instruct-177k) | Apache-2.0 | finance train | aggregates 18 sources; upstream audit required before releasing weights |
+| [TIGER-Lab/MMLU-Pro](https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro) | MIT | eval only | 12k questions, 14 categories |
+| openai/gsm8k | MIT (registry value) | eval only | re-checked on the Hub by the eval runner |
+| [FreedomIntelligence/medical-o1-reasoning-SFT](https://huggingface.co/datasets/FreedomIntelligence/medical-o1-reasoning-SFT) | Apache-2.0 | **excluded** | generated with GPT-4o; OpenAI terms restrict training competing models |
+| [ibm-research/finqa](https://huggingface.co/datasets/ibm-research/finqa) | CC-BY-4.0 | candidate | not used yet |
+
+## 6. Orchestration
+
+Design and evidence in [ADR 0003](adr/0003-orchestration.md). The deciding constraint is CPU latency: every
+extra model call costs a full prompt-processing pass, so routing is lexical first and the LLM planner runs
+only for multi-domain or ambiguous requests. One base model with hot-swapped adapters makes specialist
+switches free, which is what makes multi-specialist plans affordable on 16 GB.
+
+## 7. Product references
+
+Studied: claude.ai, Claude Code, Claude Cowork and DeepSeek's chat and agent harness, through their public
+behaviour and documentation. Patterns adopted and reimplemented with SPIKE's own code and identity:
+
+- Centred composer with model/specialist selector, conversation sidebar, streaming Markdown with code
+  highlighting (claude.ai, DeepSeek).
+- Collapsible reasoning and work trace (DeepSeek's thinking block; Claude's tool-use trace): SPIKE shows
+  route, plan, per-specialist subtasks and tool calls.
+- Inline permission prompts for tools with allow once / always / deny (Claude Code), configurable per tool.
+- Workspace-scoped file tools and an explicit "what can the agent touch" model (Claude Code, Cowork).
+- Settings split into general instructions, providers, specialists, tools and engine.
+
+No proprietary code, assets or brand elements were copied. REA was not run against these products: they are
+third-party services that SPIKE has no authorization to analyse. REA was used on SPIKE's own build
+([audit](audits/2026-10-17-web-bundle-rea.md)).
+
+## 8. Development methodology: REA and Superpowers (mandatory)
+
+- **[Superpowers](https://github.com/obra/superpowers)** (MIT): brainstorm → plan → test-driven
+  implementation → systematic debugging → verification before claiming completion → review. Applied in this
+  repo: failing tests written before fixes (the adapter-scale bug was reproduced by a test that failed on the
+  old code before the fix), mutation checks on the export test (a wrong LoRA magnitude makes it fail), and
+  STATUS.md only lists results with evidence. Contributor workflow in [CONTRIBUTING.md](../CONTRIBUTING.md).
+- **[REA](https://github.com/morluto/rea)** (MIT, `rea-agents` on npm): one MCP/CLI for evidence-backed
+  reverse engineering of binaries, JavaScript/Electron apps, websites, APKs and captures. Used for the network
+  audit of SPIKE's web bundle; to be used again for each release build and for any authorized target where a
+  feature has to be understood from behaviour.
+
+## 9. Open questions (answered only by measurement)
+
+1. Real tok/s, TTFT and peak RSS of Qwen3.5-4B Q4_K_M on a 16 GB CPU-only x86 machine and on Apple Silicon.
+2. Whether LoRA specialization beats the prompt-profile baseline by the acceptance margins per domain.
+3. Long-context accuracy at 8K/16K/32K on 16 GB.
+4. Quality of orchestrated multi-specialist answers against a single model with the same weights.

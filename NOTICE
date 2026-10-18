@@ -1,0 +1,8 @@
+SPIKE
+Copyright 2026 SPIKE contributors
+
+This product includes software developed by the SPIKE contributors, licensed under the Apache License 2.0.
+Third-party components and data are listed with their licenses in THIRD_PARTY.md.
+
+The design systems in spike/design/systems/ (except spike/) are copied from open-design
+(https://github.com/nexu-io/open-design), Copyright its contributors, licensed under the Apache License 2.0.

@@ -1,0 +1,97 @@
+# Data sources for SPIKE adapters. Every entry records the license as published by the source and how
+# SPIKE may use it. prepare.py re-checks the license from the Hugging Face Hub at download time and
+# refuses anything that is not on the allowlist (training/spike_train/licenses.py).
+#
+# role: train  -> may be used for training data
+#       eval   -> evaluation only; prepare.py decontaminates training data against these
+# provenance: notes on how the data was produced, including synthetic data and its generator.
+sources:
+  # ------------------------------------------------------------------ general replay (anti-forgetting)
+  oasst2:
+    hub: OpenAssistant/oasst2
+    split: train
+    license: apache-2.0
+    role: train
+    format: oasst_tree            # message trees; prepare.py builds one chat per best-ranked reply
+    options: {langs: [en, es]}
+    provenance: Human-written conversations collected by OpenAssistant (2023); only reviewed, non-deleted, non-synthetic messages are used.
+  smoltalk-constraints:
+    hub: HuggingFaceTB/smoltalk
+    config: smol-constraints
+    split: train
+    license: apache-2.0
+    role: excluded
+    format: messages
+    provenance: Synthetic instruction-following with explicit constraints (distilabel). Excluded because the Hub metadata declares no license (only the card text says Apache-2.0, and the license gate reads the metadata) and the card does not name the generator model.
+  smoltalk-magpie-ultra:
+    hub: HuggingFaceTB/smoltalk
+    config: smol-magpie-ultra
+    split: train
+    license: apache-2.0
+    role: excluded
+    format: messages
+    provenance: Generated with Llama-3.1-405B-Instruct. Excluded because the Llama 3.1 license (section 1.b.i) requires any distributed model trained on Llama outputs to put "Llama" at the beginning of its name.
+
+  # ------------------------------------------------------------------ medicine
+  medmcqa:
+    hub: openlifescienceai/medmcqa
+    split: train
+    license: apache-2.0
+    role: train
+    format: medmcqa
+    provenance: Indian medical entrance exam questions (AIIMS/NEET-PG) with expert explanations.
+  medmcqa-eval:
+    hub: openlifescienceai/medmcqa
+    split: validation
+    license: apache-2.0
+    role: eval
+    format: medmcqa
+  pubmedqa-artificial:
+    hub: qiaojin/PubMedQA
+    config: pqa_artificial
+    split: train
+    license: mit
+    role: train
+    format: pubmedqa
+    provenance: Automatically generated yes/no questions from PubMed abstracts.
+  pubmedqa-labeled:
+    hub: qiaojin/PubMedQA
+    config: pqa_labeled
+    split: train
+    license: mit
+    role: eval
+    format: pubmedqa
+  medical-o1-reasoning:
+    hub: FreedomIntelligence/medical-o1-reasoning-SFT
+    config: en
+    split: train
+    license: apache-2.0
+    role: excluded
+    format: medical_o1
+    provenance: Generated with GPT-4o. Excluded by default because OpenAI's terms restrict using outputs to develop competing models; enable only after your own legal review.
+
+  # ------------------------------------------------------------------ finance
+  sujet-finance:
+    hub: sujet-ai/Sujet-Finance-Instruct-177k
+    split: train
+    license: apache-2.0
+    role: train
+    format: sujet
+    provenance: Aggregation of 18 public finance datasets (sentiment, QA, NER, classification). Upstream sources should be audited before redistribution of derived weights.
+
+  # ------------------------------------------------------------------ cross-domain evaluation
+  mmlu-pro:
+    hub: TIGER-Lab/MMLU-Pro
+    split: test
+    license: mit
+    role: eval
+    format: mmlu_pro
+    provenance: 12k 10-option questions in 14 categories; used per category for domain and regression evals.
+  gsm8k:
+    hub: openai/gsm8k
+    config: main
+    split: test
+    license: mit
+    role: eval
+    format: gsm8k
+    provenance: 1,319 grade-school math word problems with numeric answers.

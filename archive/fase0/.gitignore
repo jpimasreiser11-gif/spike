@@ -1,0 +1,17 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+build/
+coverage/
+.cache/
+models/
+weights/
+*.safetensors
+*.gguf
+reports/phase0/*.llama.log
+*.bin
+*.pyc
+__pycache__/
+.DS_Store

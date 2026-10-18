@@ -1,54 +1,157 @@
-name: Preparation checks
+name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # llama.cpp build the integration tests were written and verified against (tag b11709).
+  LLAMA_CPP_REF: 62318cd57dc63900ecb153272c0b10f78550855d
+
 jobs:
-  preparation:
+  python:
+    name: Python ${{ matrix.python }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, python: "3.11"}
+          - {os: ubuntu-latest, python: "3.13"}
+          - {os: macos-latest, python: "3.13"}
+          - {os: windows-latest, python: "3.13"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e ".[dev,keyring]"
+      - name: ffmpeg and Chromium for the Spike Motion tests (elsewhere they skip without ffmpeg)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg && python -m playwright install --with-deps chromium
+      - run: ruff check .
+      - run: pytest -q
+        env:
+          SPIKE_NO_KEYRING: "1"
+
+  web:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (pinned)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Check preparation files
-        shell: bash
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npx vitest run
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 7
+
+  package:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - run: python -m pip install build
+      - run: python -m build
+      - name: Wheel ships the web app and installs
         run: |
-          set -euo pipefail
-          test -s AGENTS.md
-          test -s GEMINI.md
-          test -s PLAN.md
-          test -s PLAN.sha256
-          sha256sum --check PLAN.sha256
-          test -s docs/spikes/2026-10-16-plan-source-gate.md
-          grep -q 'Plan Maestro v3' AGENTS.md
-          grep -q 'Fase 0' GEMINI.md
-          echo 'Preparation checks passed; this is not the v1.0 product CI.'
-      - name: Validate Phase 0 diagnostic scripts
-        shell: bash
+          python -c "import glob, zipfile; n = zipfile.ZipFile(glob.glob('dist/*.whl')[0]).namelist(); assert 'spike/server/static/index.html' in n, 'web app missing from wheel'"
+          python -m venv /tmp/wheel-env
+          /tmp/wheel-env/bin/pip install dist/*.whl
+          /tmp/wheel-env/bin/spike doctor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  e2e:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - run: python -m pip install -e ".[docs,finance,data,motion]"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg && python -m playwright install chromium
+      - run: npm ci && npx playwright-core install --with-deps chromium
+        working-directory: web
+      - name: Browser smoke test against the scripted provider
         run: |
-          set -euo pipefail
-          bash -n scripts/phase0/preflight.sh scripts/phase0/smoke_http.sh
-          python3 -m py_compile scripts/phase0/http_probe.py scripts/phase0/rss_monitor.py scripts/phase0/gate_report.py scripts/phase0/paired_bootstrap.py scripts/phase0/hash_artifacts.py scripts/phase0/decontam_check.py scripts/phase0/s7_readiness.py scripts/phase0/run_cpu_benchmark.py scripts/phase0/create_s3_pilot.py scripts/phase0/embedding_smoke.py
-      - name: Verify Phase 0 gate and HTTP harness tests
-        shell: bash
-        run: make test
-      - name: Check internal skill metadata
-        shell: bash
+          python tests/e2e/serve_scripted.py &
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:8741/api/health >/dev/null && break; sleep 1; done
+          node web/e2e/smoke.mjs http://127.0.0.1:8741 /tmp/screenshots
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: /tmp/screenshots
+          retention-days: 7
+
+  llama-cpp:
+    name: llama.cpp integration (real llama-server and LoRA converter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@v4
+        id: llama-cache
+        with:
+          path: ~/llama.cpp
+          key: llama-cpp-${{ env.LLAMA_CPP_REF }}-${{ runner.os }}
+      - name: Build llama-server at the pinned commit
+        if: steps.llama-cache.outputs.cache-hit != 'true'
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          names = (
-              'honest-claims', 'eval-gate', 'data-license-audit',
-              'specialist-factory', 'clean-room', 'release-checklist',
-          )
-          for name in names:
-              path = Path('.agent/skills') / name / 'SKILL.md'
-              source = path.read_text(encoding='utf-8')
-              assert source.startswith('---\n') and f'\nname: {name}\n' in source, path
-              assert '\ndescription: ' in source, path
-          print(f'Validated {len(names)} internal skills.')
-          PY
+          git init ~/llama.cpp && cd ~/llama.cpp
+          git remote add origin https://github.com/ggml-org/llama.cpp
+          git fetch --depth 1 origin "$LLAMA_CPP_REF" && git checkout FETCH_HEAD
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_OPENSSL=OFF -DLLAMA_BUILD_TESTS=OFF
+          cmake --build build --target llama-server -j "$(nproc)"
+      - name: Converter environment (CPU PyTorch)
+        run: |
+          python -m venv ~/convvenv
+          ~/convvenv/bin/pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
+          ~/convvenv/bin/pip install transformers==5.20.1 safetensors sentencepiece numpy -e ~/llama.cpp/gguf-py
+      - run: python -m pip install -e ".[dev]" ~/llama.cpp/gguf-py
+      - run: pytest -q tests/test_llamacpp_integration.py tests/test_export_integration.py -rs
+        env:
+          SPIKE_LLAMA_SERVER: /home/runner/llama.cpp/build/bin/llama-server
+          SPIKE_LLAMA_CPP: /home/runner/llama.cpp
+          SPIKE_CONVERT_PYTHON: /home/runner/convvenv/bin/python

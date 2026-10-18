@@ -1,0 +1,32 @@
+name: New specialist or adapter recipe
+description: Propose data and a measurable goal for a specialist adapter.
+labels: [specialist]
+body:
+  - type: input
+    id: specialist
+    attributes:
+      label: Specialist
+      description: An id from spike/specialists/catalog.yaml, or a new one.
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+      description: What the adapter should improve over the base model, and why this data would do it.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Training data
+      description: Hugging Face dataset ids with their licenses. Only licenses allowed by training/spike_train/licenses.py qualify, and no outputs of models whose terms forbid training other models.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Evaluation and acceptance criteria
+      description: Held-out eval sets and the minimum gain, written before any training (see training/configs/medicine.yaml).
+    validations:
+      required: true
