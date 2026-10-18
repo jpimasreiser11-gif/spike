@@ -47,7 +47,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   reads the saved files and no longer overrules correct numbers with its own estimates (work sent back in 1 task
   instead of 4-5).
 - An agent that reaches its tool-step limit gets one last call to answer instead of ending in an error.
+- Installers tested on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): install, model
+  download and a first answer from the real model. They now stop with an error when a step fails, and
+  `--no-model`/`-NoModel` skip the download.
 
 ### Not measured yet
-- Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and installer runs on
-  clean Windows and macOS machines.
+- Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a
+  desktop Windows with PowerShell 5.1.

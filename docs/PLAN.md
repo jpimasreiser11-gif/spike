@@ -104,11 +104,11 @@ claimed until measured.
 
 ## 19. Installation and distribution
 - **Decision**: `pipx`/`uv tool` install of the Python package with the built web app inside; `scripts/install.sh` / `install.ps1` show and confirm each step, install llama.cpp through its official Homebrew formula or winget package (or point to the official releases) and run `spike doctor`; model download with license check and SHA-256 verification (`spike models pull`).
-- **Acceptance**: fresh-machine install to first answer in ≤ 3 commands, verified per platform. **Status**: 🟡 both scripts run end to end in an isolated home on Linux (`install.ps1` under PowerShell 7.4 on Linux, not on Windows); wheel and sdist build verified; ⬜ fresh macOS/Windows machines.
+- **Acceptance**: fresh-machine install to first answer in ≤ 3 commands, verified per platform. **Status**: ✅ on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): installer, model download and a first answer from the real model (`.github/workflows/installers.yml`, STATUS.md); wheel and sdist build verified; ⬜ desktop Windows with PowerShell 5.1.
 
 ## 20. Tests and benchmarks
 - **Decision**: pytest (unit, API, real llama-server integration, official-converter export), Vitest, Playwright smoke, router eval, model evals with Wilson CIs and McNemar, `spike bench`.
-- **Acceptance**: CI runs everything that needs no weights; model results reproducible from committed configs. **Status**: ✅ 109 Python + 5 web tests; CI workflow (`.github/workflows/ci.yml`: Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) lint-checked with actionlint + shellcheck, ⬜ not yet run on GitHub (repository pending); 🟡 model results: Mac benchmarks and baseline measured, adapters pending.
+- **Acceptance**: CI runs everything that needs no weights; model results reproducible from committed configs. **Status**: ✅ 109 Python + 5 web tests; CI workflow (`.github/workflows/ci.yml`: Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) green on GitHub since 2026-10-18; 🟡 model results: Mac benchmarks and baseline measured, adapters pending.
 
 ## 21. Documentation
 - README, ARCHITECTURE, RESEARCH, PLAN, STATUS, SPECIALISTS, TRAINING, ADRs, SECURITY, CONTRIBUTING, THIRD_PARTY. **Status**: ✅ written; kept in sync with evidence.
