@@ -4,6 +4,7 @@ import { t } from "../i18n";
 import { teamSteps } from "../run";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
+import { DataView, ReportActions, isData } from "./DataViews";
 import { LiveOrderCard } from "./Finance";
 import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
@@ -310,7 +311,7 @@ function Retry({ providers, specialists, routed, onRetry, failed }: {
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false, messageId }: {
+export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false, messageId, question = "" }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
@@ -320,6 +321,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   onReplay?: () => void;
   replay?: boolean; // shown inside the step-by-step view: nothing in it acts
   messageId?: string; // the user's message this answers, for what it taught SPIKE
+  question?: string; // the user's message, for the data report
 }) {
   const [copied, setCopied] = useState(false);
   const live = run.status === "running" || run.status === "planning" || run.status === "verifying" || run.status === "synthesizing";
@@ -394,7 +396,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
 
       {run.tools.map((tool, i) => tool.ui?.kind === "live_order"
         ? <LiveOrderCard key={tool.ui.order.id} initial={tool.ui.order} readOnly={replay} />
-        : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} /> : null)}
+        : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} />
+          : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} /> : null)}
 
       {run.permissions.map((p) => (
         <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} />
@@ -424,6 +427,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       {run.forge?.report && <ForgeReportCard report={run.forge.report} projectId={projectId} replay={replay} />}
 
       {files.length > 0 && !replay && <Files files={files} projectId={projectId} />}
+
+      {!live && !replay && run.tools.some((x) => isData(x.ui)) && <ReportActions question={question} answer={run.text} tools={run.tools} />}
 
       {run.learn && !live && !replay && messageId && <Learned initial={run.learn} messageId={messageId} />}
 

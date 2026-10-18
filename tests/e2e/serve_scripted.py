@@ -124,6 +124,12 @@ class DemoProvider(Provider):
                 "symbol": "BTC"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "gráfico de ventas" in last.content.lower() and "data_chart" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c9", name="data_chart", arguments={
+                "sql": "SELECT region, sum(unidades * precio) AS ingresos FROM ventas GROUP BY region ORDER BY 2 DESC",
+                "files": ["ventas.csv"], "mark": "bar", "title": "Ingresos por región"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "factura" in last.content.lower() and "ask_user" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c3", name="ask_user", arguments={
                 "question": "¿Para qué país es la factura?", "options": ["España", "Francia"]}))
@@ -145,6 +151,8 @@ class DemoProvider(Provider):
             answer = "Aquí tienes el precio en la vista de la app."
         elif last.role == "user" and "# What the user sees in app views" in system:
             answer = "En la vista veo: " + system.split("## Precios\n", 1)[1].split("\n", 1)[0]
+        elif last.role == "tool" and last.name == "data_chart":
+            answer = "El **norte** ingresa 90 € y el sur 70 €, según la consulta de la tarjeta."
         elif last.role == "tool" and last.name == "paper_order":
             answer = "Comprados **0,01 BTC** en la cuenta simulada, con comisión y deslizamiento."
         elif last.role == "tool" and last.name == "propose_live_order":
@@ -275,6 +283,11 @@ def main() -> None:
     os.environ["SPIKE_WORKSPACE"] = str(home / "ws")
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
+    (home / "ws").mkdir(parents=True, exist_ok=True)
+    (home / "ws" / "ventas.csv").write_text("fecha,region,producto,unidades,precio\n2024-01-15,norte,A,10,2.50\n"
+                                            "2024-01-20,sur,B,4,10.00\n2024-02-03,norte,B,6,10.00\n"
+                                            "2024-02-10,sur,A,8,2.50\n2024-02-28,norte,A,2,2.50\n"
+                                            "2024-03-05,sur,B,1,10.00\n", encoding="utf-8")
     model = home / "models" / "scripted.gguf"  # only checked for existence: the tuner below is scripted too
     model.parent.mkdir(parents=True, exist_ok=True)
     model.write_bytes(b"GGUF")

@@ -223,9 +223,13 @@ class PythonRunner(Tool):
             resource.setrlimit(resource.RLIMIT_AS, (mem, mem))
         os.setsid()
 
+    def prepare(self, folder: Path, args: dict[str, Any]) -> None:
+        """Put what the script needs in its temporary folder (data_python copies the user's files here)."""
+
     async def run(self, args: dict[str, Any]) -> ToolResult:
         code = str(args.get("code", ""))
         with tempfile.TemporaryDirectory(prefix="spike-py-") as tmp:
+            self.prepare(Path(tmp), args)
             script = Path(tmp) / "main.py"
             script.write_text(code, encoding="utf-8")
             env = {"PATH": os.environ.get("PATH", ""), "PYTHONIOENCODING": "utf-8", "HOME": tmp}

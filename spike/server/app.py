@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from spike import __version__
+from spike.analytics.report import ReportError, build_docx, build_pdf, clean_blocks
 from spike.connectors.apps import AppError
 from spike.contracts import schema_error
 from spike.core.types import Message
@@ -46,6 +47,7 @@ from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.state import AppState
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
+from spike.tools.documents import MissingLibrary
 
 log = logging.getLogger(__name__)
 
@@ -239,6 +241,7 @@ class ConversationPatch(BaseModel):
 
 
 MAX_RUN_EVENTS = 3000  # events kept per answer for the step-by-step view
+MAX_REPORT_BYTES = 40 * 1024**2  # an analysis report with its chart images
 
 
 def _sse(event: dict[str, Any]) -> bytes:
@@ -806,6 +809,29 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             return st().finance.live.cancel(oid)
         except LiveError as exc:
             raise HTTPException(409, str(exc)) from exc
+
+    # ---------------------------------------------------------------- analytics
+    @app.post("/api/analytics/report")
+    async def analytics_report(request: Request) -> Response:
+        """An analysis from the chat as a Word or PDF file (the app renders the charts as PNG)."""
+        try:
+            body = json.loads(await read_body(request, MAX_REPORT_BYTES))
+            fmt = body.get("format")
+            if fmt not in ("docx", "pdf"):
+                raise ReportError("format must be docx or pdf")
+            title = str(body.get("title") or "Informe de datos").strip()[:200] or "Informe de datos"
+            blocks = clean_blocks(body.get("blocks"))
+            data = (build_docx if fmt == "docx" else build_pdf)(title, blocks)
+        except (ReportError, json.JSONDecodeError, AttributeError) as exc:
+            raise HTTPException(400, str(exc) if isinstance(exc, ReportError) else "invalid report") from exc
+        except MissingLibrary as exc:
+            raise HTTPException(501, str(exc).removeprefix("error: ")) from exc
+        slug = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", title.lower()).encode("ascii", "ignore")
+                      .decode()).strip("-")[:60] or "informe"
+        media = ("application/vnd.openxmlformats-officedocument.wordprocessingml.document" if fmt == "docx"
+                 else "application/pdf")
+        return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{slug}.{fmt}"',
+                                                         "X-Content-Type-Options": "nosniff"})
 
     # ---------------------------------------------------------------- projects
     def project_or_404(pid: str) -> dict:

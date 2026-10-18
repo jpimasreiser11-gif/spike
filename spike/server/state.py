@@ -11,6 +11,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from spike.analytics.tools import analytics_tools
 from spike.connectors import browser
 from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
@@ -116,7 +117,9 @@ class AppState:
         self._tuning = asyncio.Lock()
         self.finance = Finance(self.home, self.secrets, lambda: self.settings()["finance"], market_factory)
         self.tools = default_registry(workspace_dir())
-        for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, Workspace(workspace_dir()))]:
+        workspace = Workspace(workspace_dir())
+        for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
+                     *analytics_tools(workspace)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -248,7 +251,9 @@ class AppState:
         if project_id not in self._project_tools:
             folder = self.project_files.folder(project_id)
             registry = default_registry(folder)
-            for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, Workspace(folder))]:
+            workspace = Workspace(folder)
+            for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
+                         *analytics_tools(workspace)]:
                 registry.register(tool)
             registry.shared = self.connectors.tools
             self._project_tools[project_id] = registry

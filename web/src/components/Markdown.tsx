@@ -39,13 +39,15 @@ const marked = new Marked({
   },
 });
 
+/** Markdown as sanitized HTML (also used for exported reports). */
+export function markdownHtml(text: string): string {
+  return DOMPurify.sanitize(marked.parse(text, { async: false }) as string, { ADD_ATTR: ["target"] });
+}
+
 function MarkdownImpl({ text }: { text: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const openArtifact = useContext(ArtifactContext);
-  const html = useMemo(() => {
-    const raw = marked.parse(text, { async: false }) as string;
-    return DOMPurify.sanitize(raw, { ADD_ATTR: ["target"] });
-  }, [text]);
+  const html = useMemo(() => markdownHtml(text), [text]);
 
   useEffect(() => {
     const el = ref.current;

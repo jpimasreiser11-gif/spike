@@ -59,7 +59,7 @@ if (-not (Test-Path 'web\dist\index.html')) {
 }
 
 # 4. SPIKE itself
-if (-not (Step 'Install SPIKE with pipx' { & $pyExe @pyArgs -m pipx install --force '.[docs,finance]' })) { Fail 'SPIKE was not installed.' }
+if (-not (Step 'Install SPIKE with pipx' { & $pyExe @pyArgs -m pipx install --force '.[docs,finance,data]' })) { Fail 'SPIKE was not installed.' }
 $binDir = (& $pyExe @pyArgs -m pipx environment --value PIPX_BIN_DIR 2>$null)
 if (-not $binDir) { $binDir = Join-Path $env:USERPROFILE '.local\bin' }
 $spike = @('spike.exe', 'spike') | ForEach-Object { Join-Path $binDir $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1

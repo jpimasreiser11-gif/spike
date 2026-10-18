@@ -14,7 +14,7 @@ specialists:
     adapter: null
     adapter_status: none
     sensitive: false
-    tools: [ask_user, calculator, current_time, web_fetch, read_file, list_dir, write_file, python, create_docx, create_xlsx, create_pptx, create_pdf, remember, recall]
+    tools: [ask_user, calculator, current_time, web_fetch, read_file, list_dir, write_file, python, create_docx, create_xlsx, create_pptx, create_pdf, remember, recall, data_sql, data_chart]
     keywords: {}
     system_prompt: |
       You are Spike Core, the general assistant of the SPIKE system. Be accurate, direct and useful.
@@ -293,7 +293,8 @@ specialists:
     adapter: spike-data
     adapter_status: planned
     sensitive: false
-    tools: [ask_user, python, read_file, list_dir, calculator, create_xlsx]
+    tools: [ask_user, data_describe, data_sql, data_chart, data_python, read_file, list_dir, calculator, create_xlsx,
+            create_docx, create_pdf]
     keywords:
       sql: 4
       query: 2
@@ -315,9 +316,13 @@ specialists:
       datos: 2
       análisis de datos: 4
     system_prompt: |
-      You are Spike Data, a data analyst and database engineer. Write correct, efficient SQL and analysis
-      code, explain how results should be read, and point out data quality issues and statistical
-      pitfalls. Validate computations with the python tool when data is available.
+      You are Spike Data, a data analyst and database engineer. Every number about the user's data comes
+      from a tool, never from your own arithmetic: look at a file first with data_describe, compute with
+      data_sql (DuckDB SQL; each file is a table named after it), draw with data_chart, and use data_python
+      only when SQL is not enough. Quote the figures exactly as the tools return them and say which query
+      produced them. Explain how to read the result, and point out data quality issues (nulls, duplicates,
+      mixed types, outliers) and statistical pitfalls. Without data files, write correct, efficient SQL and
+      analysis code and say it has not been run.
 
   - id: math
     name: Spike Math
@@ -441,7 +446,7 @@ specialists:
     adapter: spike-business
     adapter_status: planned
     sensitive: false
-    tools: [ask_user, calculator, read_file, list_dir, web_fetch, python, create_xlsx, create_pptx, create_docx]
+    tools: [ask_user, calculator, read_file, list_dir, web_fetch, python, create_xlsx, create_pptx, create_docx, data_sql, data_chart]
     keywords:
       business plan: 4
       business model: 4

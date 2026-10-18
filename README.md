@@ -68,7 +68,7 @@ recommended, ~3 GB disk for the model.
 
 ```bash
 git clone <repository-url> spike && cd spike     # PyPI package after the first release
-(cd web && npm ci && npm run build) && pipx install ".[docs,finance]"
+(cd web && npm ci && npm run build) && pipx install ".[docs,finance,data]"
 brew install llama.cpp                   # macOS / Linux with Homebrew; other platforms: official llama.cpp releases
 spike doctor                             # what this machine can run, and with how much context
 spike models pull qwen3.5-4b             # Q4_K_M by default, license and SHA-256 checked
@@ -80,6 +80,7 @@ Or use the installer scripts in [`scripts/`](scripts/) (they show every step bef
 SPIKE works without a local model too: add an external provider in Settings → Providers.
 Pages, slides and documents can follow a design system (`DESIGN.md`): SPIKE's own, 20 generic ones, or yours (Settings → Diseño).
 Spike Finance reads public prices, runs backtests, measures portfolio risk and keeps a paper trading account; real orders stay off unless you set them up, and each one waits for your click (Settings → Finanzas).
+Spike Data answers questions about CSV, Excel, Parquet, JSON or SQLite files with SQL it shows you, draws charts from the results and exports the analysis as a page, Word or PDF.
 To code in a folder from the terminal: `spike dev [folder]` (edits and commands ask first; `/undo` puts files back).
 Connectors (MCP servers) can bring their own views (MCP Apps), which SPIKE shows isolated next to the tool's result.
 Other agents can use SPIKE too: as an OpenAI-compatible endpoint (`/v1`) or as an MCP server (`spike mcp`, for

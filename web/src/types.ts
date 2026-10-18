@@ -104,8 +104,16 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
-  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi; // something to act on or look at next to the result
+  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi; // something to act on or look at next to the result
 };
+
+/** Spike Data: a data file loaded as a table for a query. */
+export type DataTableInfo = { name: string; file: string; rows: number; sheet: string | null; columns: { name: string; type: string }[] };
+type DataResult = { title: string; sql: string; tables: DataTableInfo[]; columns: string[]; types: string[]; rows: unknown[][]; truncated: boolean };
+export type DataTableUi = { kind: "data_table" } & DataResult;
+export type ChartUi = { kind: "chart"; spec: Record<string, unknown> } & DataResult;
+export type CodeRunUi = { kind: "code_run"; language: string; code: string; output: string; files: string[]; returncode: number | null };
+export type DataUi = DataTableUi | ChartUi | CodeRunUi | { kind: "data_tables"; items: DataTableUi[] };
 
 /** An MCP App: the connector tool's result is shown in this `ui://` view of the same server. */
 export type McpAppUi = {

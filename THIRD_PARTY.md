@@ -124,6 +124,9 @@ code and includes nothing from that repository.
 | reportlab (optional, `docs`: PDF) | 5.0.1 | BSD-3-Clause style ("BSD license", © ReportLab Inc.) |
 | lxml, Pillow, XlsxWriter, et-xmlfile, charset-normalizer, typing_extensions (pulled in by the `docs` libraries) | 6.1.3, 13.0.0, 3.2.9, 2.0.0, 3.5.2, 4.16.0 | BSD-3-Clause, MIT-CMU, BSD-2-Clause, MIT, MIT, PSF-2.0 |
 | pypdf (development only: tests read the generated PDFs back) | 6.21.1 | BSD-3-Clause |
+| duckdb (optional, `data` extra: SQL over the user's data files) | 1.5.6 | MIT |
+| pandas (optional, `data`: Excel and SQLite loading, available to `data_python`) | 3.0.6 | BSD-3-Clause |
+| python-dateutil, six (pulled in by pandas) | 2.9.0.post0, 1.17.0 | Apache-2.0 OR BSD-3-Clause, MIT |
 
 PDFs embed a subset of the first Unicode font found on the user's system (DejaVu Sans on Linux, Arial Unicode
 on macOS, Arial on Windows, or `SPIKE_PDF_FONT`); SPIKE ships no font files for this, and falls back to the
@@ -135,7 +138,9 @@ built-in Helvetica (Latin-1 only) when none is found.
 |---|---|---|
 | react, react-dom | 18.3.1 | MIT |
 | marked | 14.1.3 | MIT |
-| dompurify | 3.1.7 | MPL-2.0 OR Apache-2.0 (used under Apache-2.0) |
+| dompurify | 3.4.16 | MPL-2.0 OR Apache-2.0 (used under Apache-2.0) |
+| vega, vega-lite, vega-interpreter (charts; a separate chunk loaded on the first chart) | 6.4.0, 6.5.0, 2.3.2 | BSD-3-Clause |
+| vega-\* and d3-\* modules, delaunator, internmap, topojson-client, robust-predicates, json-stringify-pretty-compact, tslib (bundled with Vega) | as locked in `web/package-lock.json` | BSD-3-Clause or ISC; ISC; ISC; ISC; Unlicense; MIT; 0BSD |
 | highlight.js | 11.10.0 | BSD-3-Clause |
 | @fontsource/inter (Inter typeface) | 5.x | SIL Open Font License 1.1 |
 | @fontsource/nunito (Nunito typeface) | 5.x | SIL Open Font License 1.1 |

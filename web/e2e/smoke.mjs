@@ -407,6 +407,36 @@ const audit = await (await fetch(`${base}/api/connectors-audit`)).json();
 if (!audit.some((e) => e.event === "tools/call" && e.decision === "approved")) fail("the approved view call is not in the audit log");
 if (!audit.some((e) => e.event === "model-context")) fail("the context update is not in the audit log");
 
+// Spike Data: a chart computed by SQL from a CSV, its data and query in the card, the report as a page, Word and PDF
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Data" }).click();
+await page.locator("#composer-input").fill("Haz un gráfico de ventas por región con ventas.csv");
+await page.keyboard.press("Enter");
+const chartCard = page.locator(".chart-card");
+await chartCard.locator(".chart svg").waitFor({ timeout: 15000 });
+const bars = await chartCard.locator('.chart svg path[aria-roledescription="bar"]').count();
+if (bars !== 2) fail(`the chart has ${bars} bars, expected 2`);
+await page.getByText("El norte ingresa 90 €").waitFor({ timeout: 10000 });
+await chartCard.getByRole("button", { name: "Datos" }).click();
+const cells = (await chartCard.locator(".data-grid td").allTextContents()).join("|");
+if (cells !== "norte|90|sur|70") fail("the chart's data is " + cells);
+await chartCard.locator(".data-sql summary").click();
+await chartCard.getByText("GROUP BY region").waitFor();
+await page.screenshot({ path: `${out}/07q-data-chart.png` });
+await page.getByRole("button", { name: "Ver informe" }).click();
+const reportFrame = page.frameLocator(".artifact-frame");
+await reportFrame.locator('svg path[aria-roledescription="bar"]').first().waitFor({ timeout: 10000 });
+await reportFrame.getByText("Haz un gráfico de ventas por región con ventas.csv", { exact: true }).waitFor();
+await reportFrame.getByText("no del modelo").waitFor();
+await page.screenshot({ path: `${out}/07r-data-report.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+const [wordDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Word", exact: true }).click()]);
+if (!wordDl.suggestedFilename().endsWith(".docx")) fail("the Word report is named " + wordDl.suggestedFilename());
+if (fs.readFileSync(await wordDl.path()).subarray(0, 2).toString() !== "PK") fail("the Word report is not a .docx");
+const [pdfDl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "PDF", exact: true }).click()]);
+if (fs.readFileSync(await pdfDl.path()).subarray(0, 4).toString() !== "%PDF") fail("the PDF report is not a PDF");
+await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
+
 // documents: the Word tool asks first, then its file is offered as a download
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();

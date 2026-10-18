@@ -503,3 +503,21 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .mcp-app-frame.borderless { border-color: transparent; }
 .mcp-app.fullscreen { position: fixed; inset: 16px; z-index: 60; box-shadow: 0 20px 60px rgba(0, 0, 0, .25); grid-template-rows: auto auto 1fr; }
 .mcp-app.fullscreen .mcp-app-frame { height: 100%; }
+
+/* Spike Data (C7): query results, charts, code runs and the report */
+.data-card { border: 1px solid var(--border-strong); border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; background: var(--surface); min-width: 0; }
+.data-card > header { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.data-grid { max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+.data-grid table { border-collapse: collapse; font-size: 12.5px; width: max-content; min-width: 100%; }
+.data-grid th, .data-grid td { padding: 4px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+.data-grid th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; color: var(--text-2); }
+.data-grid .num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-grid td.null::after { content: "NULL"; color: var(--text-3); font-size: 11px; }
+.data-sql summary { cursor: pointer; font-size: 12.5px; color: var(--text-2); font-family: var(--mono); }
+.data-sql .code-block { margin-top: 6px; }
+.chart { width: 100%; min-height: 120px; overflow-x: auto; }
+.chart svg { max-width: 100%; height: auto; }
+.data-actions, .report-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.data-output { background: var(--code-bg); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; margin: 0; max-height: 240px; overflow: auto; }
+.data-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+.report-actions { padding: 2px 0; }

@@ -172,26 +172,8 @@ class CreateDocx(DocumentTool):
     extension = ".docx"
 
     def build(self, path: Path, args: dict[str, Any]) -> None:
-        docx = _lib("docx")
-        doc = docx.Document()
-        for b in parse_markdown(args["content"]):
-            if b.kind == "heading":
-                doc.add_heading(plain(b.text), level=b.level)
-            elif b.kind == "table":
-                table = doc.add_table(rows=len(b.rows), cols=len(b.rows[0]))
-                table.style = "Table Grid"
-                for r, row in enumerate(b.rows):
-                    for c, value in enumerate(row):
-                        cell = table.cell(r, c)
-                        cell.text = plain(value)
-                        if r == 0:
-                            for run in cell.paragraphs[0].runs:
-                                run.bold = True
-            else:
-                style = {"bullet": "List Bullet", "number": "List Number"}.get(b.kind)
-                p = doc.add_paragraph(style=style)
-                for text, bold in runs(b.text):
-                    p.add_run(text).bold = bold or None
+        doc = _lib("docx").Document()
+        docx_markdown(doc, args["content"])
         doc.save(path)
 
 
@@ -202,44 +184,8 @@ class CreatePdf(DocumentTool):
     extension = ".pdf"
 
     def build(self, path: Path, args: dict[str, Any]) -> None:
-        colors = _lib("reportlab.lib.colors")
-        styles = _lib("reportlab.lib.styles").getSampleStyleSheet()
         platypus = _lib("reportlab.platypus")
-        from xml.sax.saxutils import escape
-
-        def markup(text: str) -> str:
-            return "".join(f"<b>{escape(t)}</b>" if bold else escape(t) for t, bold in runs(text))
-
-        regular, bold = _pdf_font()
-        body = styles["BodyText"].clone("SpikeBody", fontName=regular)
-        heads = {n: styles[f"Heading{n}"].clone(f"SpikeHeading{n}", fontName=bold) for n in (1, 2, 3)}
-        story: list[Any] = []
-        items: list[Any] = []
-        kind = ""
-
-        def close_list() -> None:
-            if items:
-                story.append(platypus.ListFlowable(list(items), bulletType="bullet" if kind == "bullet" else "1"))
-                items.clear()
-
-        for b in parse_markdown(args["content"]):
-            if b.kind not in ("bullet", "number") or b.kind != kind:
-                close_list()
-            kind = b.kind
-            if b.kind == "heading":
-                story.append(platypus.Paragraph(markup(b.text), heads[b.level]))
-            elif b.kind in ("bullet", "number"):
-                items.append(platypus.ListItem(platypus.Paragraph(markup(b.text), body)))
-            elif b.kind == "table":
-                data = [[platypus.Paragraph(markup(f"**{v}**" if r == 0 and v else v), body)
-                         for v in row] for r, row in enumerate(b.rows)]
-                table = platypus.Table(data, hAlign="LEFT")
-                table.setStyle(platypus.TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                                                    ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke)]))
-                story += [table, platypus.Spacer(1, 8)]
-            else:
-                story.append(platypus.Paragraph(markup(b.text), body))
-        close_list()
+        story = pdf_markdown(args["content"], pdf_styles())
         platypus.SimpleDocTemplate(str(path), title=plain(args.get("title") or path.stem)).build(story)
 
 
@@ -331,6 +277,87 @@ class CreatePptx(DocumentTool):
             if item.get("notes"):
                 slide.notes_slide.notes_text_frame.text = str(item["notes"])
         deck.save(path)
+
+
+# --------------------------------------------------------------------------- shared builders
+def docx_markdown(doc: Any, text: str) -> None:
+    """Append the Markdown subset to a python-docx document."""
+    for b in parse_markdown(text):
+        if b.kind == "heading":
+            doc.add_heading(plain(b.text), level=b.level)
+        elif b.kind == "table":
+            table = doc.add_table(rows=len(b.rows), cols=len(b.rows[0]))
+            table.style = "Table Grid"
+            for r, row in enumerate(b.rows):
+                for c, value in enumerate(row):
+                    cell = table.cell(r, c)
+                    cell.text = plain(value)
+                    if r == 0:
+                        for run in cell.paragraphs[0].runs:
+                            run.bold = True
+        else:
+            style = {"bullet": "List Bullet", "number": "List Number"}.get(b.kind)
+            p = doc.add_paragraph(style=style)
+            for part, bold in runs(b.text):
+                p.add_run(part).bold = bold or None
+
+
+def pdf_styles() -> dict[str, Any]:
+    """Body, heading and table styles in a Unicode font (see `_pdf_font`)."""
+    styles = _lib("reportlab.lib.styles").getSampleStyleSheet()
+    regular, bold = _pdf_font()
+    out = {"body": styles["BodyText"].clone("SpikeBody", fontName=regular),
+           "small": styles["BodyText"].clone("SpikeSmall", fontName=regular, fontSize=7, leading=9),
+           "code": styles["Code"].clone("SpikeCode", fontName=regular, fontSize=8, leading=10)}
+    out |= {n: styles[f"Heading{n}"].clone(f"SpikeHeading{n}", fontName=bold) for n in (1, 2, 3)}
+    return out
+
+
+def markup(text: str) -> str:
+    from xml.sax.saxutils import escape
+
+    return "".join(f"<b>{escape(t)}</b>" if bold else escape(t) for t, bold in runs(text))
+
+
+def pdf_table(rows: list[list[str]], style: Any, width: float | None = None) -> Any:
+    colors = _lib("reportlab.lib.colors")
+    platypus = _lib("reportlab.platypus")
+    data = [[platypus.Paragraph(markup(f"**{v}**" if r == 0 and v else v), style) for v in row]
+            for r, row in enumerate(rows)]
+    widths = [width / len(rows[0])] * len(rows[0]) if width and rows and rows[0] else None
+    table = platypus.Table(data, hAlign="LEFT", colWidths=widths, repeatRows=1)
+    table.setStyle(platypus.TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                                        ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+                                        ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    return table
+
+
+def pdf_markdown(text: str, styles: dict[str, Any]) -> list[Any]:
+    """The Markdown subset as reportlab flowables."""
+    platypus = _lib("reportlab.platypus")
+    story: list[Any] = []
+    items: list[Any] = []
+    kind = ""
+
+    def close_list() -> None:
+        if items:
+            story.append(platypus.ListFlowable(list(items), bulletType="bullet" if kind == "bullet" else "1"))
+            items.clear()
+
+    for b in parse_markdown(text):
+        if b.kind not in ("bullet", "number") or b.kind != kind:
+            close_list()
+        kind = b.kind
+        if b.kind == "heading":
+            story.append(platypus.Paragraph(markup(b.text), styles[b.level]))
+        elif b.kind in ("bullet", "number"):
+            items.append(platypus.ListItem(platypus.Paragraph(markup(b.text), styles["body"])))
+        elif b.kind == "table":
+            story += [pdf_table(b.rows, styles["body"]), platypus.Spacer(1, 8)]
+        else:
+            story.append(platypus.Paragraph(markup(b.text), styles["body"]))
+    close_list()
+    return story
 
 
 def _pdf_font() -> tuple[str, str]:
