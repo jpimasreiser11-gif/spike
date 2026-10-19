@@ -163,7 +163,9 @@ yet measured).
 
 - Any trained adapter. Medicine on joan's Mac has not finished: the 2026-10-18 run died at step 5,200 of 25,469
   when its session ended, and the 2026-10-19 relaunch was stopped by the RAM guard at step 2,440 when other apps
-  pushed swap from 7.1 to 11.3 GB. mlx-lm restarts from zero after a stop; exact resume is being added.
+  pushed swap from 7.1 to 11.3 GB. mlx-lm restarts from zero after a stop, so training now runs under a RAM
+  guard that stops it, waits for free memory and resumes exactly from the last checkpoint (tested with real mlx
+  on Linux CPU: stopped-and-resumed equals uninterrupted; not yet run on Apple silicon).
 - Finance data after a license audit of Sujet-Finance-Instruct-177k's 18 upstream sources: 4 kept (news and tweet
   classification, FinEntity; at most 2,000 rows each), 14 excluded (outputs of OpenAI or Anthropic models,
   non-commercial licenses, or unknown provenance). Questions with calculations come from FinQA and TAT-QA (MIT,

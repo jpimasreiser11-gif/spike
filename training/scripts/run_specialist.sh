@@ -25,7 +25,11 @@ PY
 eval_extra=()
 while IFS= read -r arg; do [[ -n $arg ]] && eval_extra+=("$arg"); done <<< "$eval_lines"
 python training/prepare.py "$cfg" ${extra[@]+"${extra[@]}"}  # bash 3.2 (macOS) safe
-training/train.sh "$spec"
+if [[ ${SPIKE_UNSUPERVISED:-} == 1 ]]; then  # default: under the RAM guard, resumable (training/ramguard.py)
+  training/train.sh "$spec"
+else
+  training/scripts/train_supervised.sh "$spec"
+fi
 python training/export_adapter.py "$spec" --llama-cpp "$llama_cpp" --check-model "$model"
 adapter="$HOME/.spike/adapters/spike-$spec.gguf"
 if [[ $spec == marketing ]]; then

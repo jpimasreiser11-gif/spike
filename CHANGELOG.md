@@ -57,6 +57,8 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Finance recipe rebuilt after a license audit: only 4 of Sujet-Finance's 18 upstream sources kept (the rest
   are model-generated, non-commercial or of unknown origin), plus FinQA and TAT-QA (MIT) fetched from pinned
   commits with sha256 checks; finance eval adds exact-answer FinQA and TAT-QA test sets.
+- Training on a shared Mac runs under a RAM guard: it stops when swap grows or free memory runs low, waits until
+  memory is free again and resumes exactly where it stopped (optimizer state, schedule and data order included).
 
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a

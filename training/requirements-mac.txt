@@ -1,7 +1,10 @@
 # Training and evaluation on Apple Silicon (macOS). Install in a separate virtualenv:
 #   python3 -m venv .venv-train && . .venv-train/bin/activate && pip install -r training/requirements-mac.txt
 # Exact versions used for a run are recorded in training/runs/<specialist>/run.json.
-mlx-lm>=0.30.7    # first release with mlx_lm/models/qwen3_5.py (checked in the PyPI wheels); train.sh re-checks
+# Pinned: training/spike_train/resume.py (exact resume) copies mlx_lm.tuner.trainer.train of exactly this version and
+# lora.py refuses to start if the installed trainer differs (see resume.TESTED_FINGERPRINT). 0.30.7 was the first release
+# with mlx_lm/models/qwen3_5.py (checked in the PyPI wheels); train.sh re-checks. Bump together with resume.py.
+mlx-lm==0.32.2
 datasets          # dataset download (licenses re-checked by prepare.py)
 huggingface_hub
 pyyaml

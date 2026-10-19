@@ -44,7 +44,7 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | Component | License | Use |
 |---|---|---|
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-server`, `convert_lora_to_gguf.py`, `gguf`) | MIT | local inference, adapter export |
-| [mlx](https://github.com/ml-explore/mlx), [mlx-lm](https://github.com/ml-explore/mlx-lm) | MIT | training on Apple Silicon |
+| [mlx](https://github.com/ml-explore/mlx), [mlx-lm](https://github.com/ml-explore/mlx-lm) | MIT | training on Apple Silicon; `training/spike_train/resume.py` adapts mlx-lm's training loop (Copyright © 2023-2024 Apple Inc., MIT) |
 | PyTorch | BSD-style (Apache-2.0 AND BSD-3-Clause AND MIT AND others, per PyPI) | needed by llama.cpp's converter |
 | transformers, datasets, huggingface_hub, safetensors, sentencepiece | Apache-2.0 | training data and export |
 | numpy | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) | training and export |

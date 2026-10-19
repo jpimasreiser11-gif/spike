@@ -31,12 +31,27 @@ was trained but **rejected** by its acceptance criteria: keep the specialist as 
 | (marketing only) distill | `python training/distill.py training/configs/marketing.yaml --out training/data/marketing/distilled.jsonl` | rubric-filtered chats + summary; refuses a teacher whose Hub license is not on the training allowlist and records the teacher's repo and license on every row; stops if the teacher cannot produce `expand_to` distinct tasks |
 | prepare | `python training/prepare.py training/configs/medicine.yaml [--distilled FILE]` | `training/data/<id>/{train,valid}.jsonl, mlx_lora.yaml, manifest.json` (teacher licenses included); stops when there is no domain data, e.g. marketing without `--distilled` |
 | (optional) your corrections | `spike evolve dataset out/` then `prepare.py … --corrections out/spike-training.jsonl` | only approved examples of that specialist, from SPIKE's local model, with consent; counted in the manifest |
-| train | `training/train.sh medicine` | `training/runs/<id>/{adapter/, train.log, run.json}` |
+| train | `training/scripts/train_supervised.sh medicine` (what `run_specialist.sh` runs; `SPIKE_UNSUPERVISED=1` runs plain `training/train.sh medicine`) | `training/runs/<id>/{adapter/, train.log, run.json, ramguard.log}` |
 | export | `python training/export_adapter.py medicine --llama-cpp ~/src/llama.cpp --check-model <base.gguf>` | `~/.spike/adapters/spike-medicine.gguf`, `training/runs/<id>/export.json` |
 | evaluate | `python evals/run_eval.py --suites medicine,general --model <base.gguf> --adapter ~/.spike/adapters/spike-medicine.gguf --acceptance training/configs/medicine.yaml` | `evals/results/<run>/{summary.json,summary.md,predictions.jsonl}` |
 | (marketing only) evaluate | `run_specialist.sh` runs `evals/run_eval.py --suites general …` and then `python evals/pairwise.py --specialist marketing --prompts evals/data/marketing_eval.jsonl --model <base.gguf> --adapter ~/.spike/adapters/spike-marketing.gguf --acceptance training/configs/marketing.yaml --general-eval <general run>` | `evals/results/pairwise-marketing-<time>/{summary.json,pairs.jsonl}`; accepted only if the win rate and sign test pass **and** the general suite drops by no more than `regression.max_drop_points`; exit 2 otherwise. `spike adapters install … --eval <that folder> --config training/configs/marketing.yaml` takes this summary like a `run_eval.py` one |
 | install | `spike adapters install ~/.spike/adapters/spike-medicine.gguf --specialist medicine --eval evals/results/<run> --config training/configs/medicine.yaml` | refused if it fails its acceptance rule; otherwise a version in `spike models history`, undone with `spike evolve rollback adapter:medicine`; it also answers your accepted eval questions (Settings → Evolución) and rolls back if it passes fewer or loses one (`--skip-local-eval` to skip) |
 | model card | `python training/model_card.py medicine --eval evals/results/<run>` | `training/runs/<id>/hf/{README.md,banner.png}`: Hugging Face card built only from the manifest, export record and eval run; exit 2 and a "rejected" notice if the adapter failed its criteria |
+
+**Unattended training on a shared Mac (RAM guard + exact resume).** To survive closing the terminal:
+`nohup training/scripts/train_supervised.sh finance >/dev/null 2>&1 &`, then `tail -f training/runs/finance/ramguard.log`.
+The guard samples memory every 5 s and stops training (SIGTERM, SIGKILL after 30 s) if swap grew by more than
+`SWAP_GROWTH_GB` (2) since the attempt started or available memory drops below `MIN_FREE_GB` (2.5). It waits until
+`RESUME_FREE_GB` (22) has been available for `RESUME_STABLE_MIN` (10) minutes, also before the first attempt, and
+relaunches with `SPIKE_RESUME=1`, up to `MAX_RESTARTS` (20), then exits 75; a training exit is passed through. Every
+decision is logged with the numbers, and `caffeinate -i` keeps the Mac awake. Resume is exact: each adapter checkpoint
+(at the first optimizer-update boundary on or after each `save_every`) also writes
+`training/runs/<id>/adapter/resume/<iteration>/` with the adapters, the full optimizer state and `resume.json`
+(iteration, optimizer step, data position, PRNG key, sha256 of `train.jsonl` and the mlx config, mlx and mlx-lm
+versions); a resumed run refuses to start if any of those changed (delete that `resume` folder to start over). By
+hand: `SPIKE_RESUME=1 training/train.sh <id>`. It needs mlx-lm 0.32.2 (pinned); with another version a fresh run
+trains with mlx-lm's own loop and no resume checkpoints. Tested with real mlx on Linux CPU (a run stopped and resumed
+ends with the same adapter and optimizer state as an uninterrupted one); not yet on Apple silicon.
 
 Quick smoke run before a long one: add `--limit 50` to the evaluation and reduce `epochs` in a copy of the
 config. Never report smoke-run numbers as results.

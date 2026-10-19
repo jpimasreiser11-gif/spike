@@ -3,6 +3,8 @@
 #   training/train.sh medicine
 # Writes training/runs/<specialist>/{adapter/, train.log, run.json}. Never edits results by hand:
 # run.json records the environment, data hashes and exit code of this exact run.
+# With SPIKE_RESUME=1 (set by training/scripts/train_supervised.sh) lora.py continues from its latest checkpoint
+# and train.log is appended to, so it keeps every attempt.
 set -euo pipefail
 spec=${1:?usage: train.sh <specialist>}
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -14,12 +16,13 @@ python -c "import mlx_lm.models.qwen3_5" 2>/dev/null || {
   echo "this mlx-lm has no qwen3_5 model; install a recent one: pip install -U mlx-lm" >&2; exit 1; }
 mkdir -p "$run"
 started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+[[ -n ${SPIKE_RESUME:-} ]] && { log_mode=-a; echo "--- $started SPIKE_RESUME=$SPIKE_RESUME ---" >> "$run/train.log"; } || log_mode=
 set +e
-python "$root/training/lora.py" --config "$cfg" 2>&1 | tee "$run/train.log"  # mlx_lm.lora + chunked gated delta
+python "$root/training/lora.py" --config "$cfg" 2>&1 | tee ${log_mode:+$log_mode} "$run/train.log"  # mlx_lm.lora + chunked gated delta
 status=${PIPESTATUS[0]}
 set -e
 python - "$run" "$data" "$started" "$status" <<'PY'
-import json, platform, subprocess, sys, time
+import json, os, platform, subprocess, sys, time
 from importlib.metadata import version
 run, data, started, status = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
 def v(pkg):
@@ -31,6 +34,7 @@ def sh(*cmd):
 manifest = json.load(open(f"{data}/manifest.json"))
 json.dump({"specialist": manifest["specialist"], "started_utc": started,
            "finished_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "exit_code": status,
+           "spike_resume": os.environ.get("SPIKE_RESUME") or None,
            "data_files_sha256": manifest["files"], "counts": manifest["counts"],
            "git_commit": sh("git", "rev-parse", "HEAD"), "chip": sh("sysctl", "-n", "machdep.cpu.brand_string"),
            "memory_bytes": sh("sysctl", "-n", "hw.memsize"), "os": platform.platform(),
