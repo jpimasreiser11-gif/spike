@@ -167,9 +167,11 @@ yet measured).
 - Finance data after a license audit of Sujet-Finance-Instruct-177k's 18 upstream sources: 4 kept (news and tweet
   classification, FinEntity; at most 2,000 rows each), 14 excluded (outputs of OpenAI or Anthropic models,
   non-commercial licenses, or unknown provenance). Questions with calculations come from FinQA and TAT-QA (MIT,
-  files pinned by commit and sha256). `prepare.py` on those files (Sujet and oasst2 not run here, the Hub is
-  blocked): FinQA 6,251 → 5,367 kept (385 rows whose own arithmetic is wrong, 11 too long, 488 overlapping the
-  test sets), TAT-QA 13,215 → 7,064 (4,676 longer than 768 tokens, 1,475 overlapping). The finance eval adds
+  files pinned by commit and sha256). Full `prepare.py` run on 2026-10-19 (cloud VM with Hub access, live license
+  checks, commit 15993ce, 109 s): Sujet 6,962 kept (3 × 2,000 + FinEntity's 962), FinQA 5,367 of 6,251 (385 rows
+  whose own arithmetic is wrong dropped), TAT-QA 6,874 of 13,215, oasst2 replay 11,939; dropped overall: 5,969
+  longer than 768 tokens, 1,929 overlapping MMLU-Pro/FinQA/TAT-QA test prompts, 388 format or quality, 44
+  duplicates; 26,823 training and 547 validation chats (30 % replay). The finance eval adds
   FinQA test (supporting facts given, so not comparable with retriever-based leaderboards) and TAT-QA test, 600
   each, to MMLU-Pro business and economics.
 - End-to-end quality of orchestrated answers; long-context accuracy.
