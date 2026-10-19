@@ -11,6 +11,7 @@ psutil
 # llama.cpp's convert_lora_to_gguf.py (used by export_adapter.py)
 torch
 transformers
+jinja2            # transformers needs it for apply_chat_template (prepare.py counts tokens with the chat template)
 safetensors
 sentencepiece
 gguf
