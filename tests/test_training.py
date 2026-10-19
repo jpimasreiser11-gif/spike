@@ -630,7 +630,7 @@ def test_pairwise_round_is_accepted_only_if_the_general_suite_holds_too(tmp_path
     held = write_run(tmp_path / "held", general_run([True] * 59 + [False] * 41))
     code, summary = run_pairwise(tmp_path / "a", monkeypatch, *marketing, general=held)
     assert code == 0 and summary["accepted"] and summary["win_rate"] == 1.0
-    assert summary["general"]["delta_points"] == -1.0 and summary["general"]["run"].endswith("held/summary.json")
+    assert summary["general"]["delta_points"] == -1.0 and Path(summary["general"]["run"]) == held / "summary.json"
 
     lost = write_run(tmp_path / "lost", general_run([True] * 56 + [False] * 44))
     code, summary = run_pairwise(tmp_path / "b", monkeypatch, *marketing, general=lost)
