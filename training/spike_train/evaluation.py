@@ -163,6 +163,39 @@ def pairwise_summary(verdicts: list[str]) -> dict[str, Any]:
             "decided_win_share_ci95": [round(lo, 4), round(hi, 4)], "sign_test_p": round(mcnemar_exact(losses, wins), 6)}
 
 
+def general_regression(run: dict[str, Any], suite: str, variant: str, baseline: str = "base") -> dict[str, Any]:
+    """The base-vs-adapter comparison of the regression suite, from a run_eval.py summary, to store in a pairwise
+    summary (so the pairwise run alone carries both halves of the verdict)."""
+    cmp = run.get("suites", {}).get(suite, {}).get("vs_" + baseline, {}).get(variant)
+    if not cmp:
+        raise ValueError(f"the general eval run has no suite '{suite}' for '{variant}' "
+                         f"(variants: {', '.join(run.get('variants') or []) or 'none'})")
+    return {"suite": suite, "variant": variant, **{k: cmp[k] for k in ("paired_n", "delta_points", "p_value")}}
+
+
+def check_pairwise_acceptance(summary: dict[str, Any], acceptance: dict[str, Any]) -> tuple[bool, list[str]]:
+    """Apply a pairwise recipe's `acceptance` block to a pairwise summary: win rate and sign test on the open-ended
+    prompts, and the general-suite drop (`summary["general"]`, see `general_regression`). Both must pass; a
+    missing general result fails, as a missing suite does in `check_acceptance`."""
+    primary = acceptance.get("primary") or {}
+    if "min_win_rate" not in primary:
+        return False, ["the recipe's primary criterion is not a pairwise win rate (primary.min_win_rate)"]
+    max_p = primary.get("max_p_value", 0.05)
+    ok = summary["win_rate"] >= primary["min_win_rate"] and summary["sign_test_p"] <= max_p
+    reasons = [f"{primary.get('suite', 'pairwise')}: win rate {summary['win_rate']:.3f} "
+               f"(need ≥ {primary['min_win_rate']}), sign test p = {summary['sign_test_p']:.4g} (need ≤ {max_p})"]
+    regression = acceptance.get("regression") or {}
+    if regression:
+        general = summary.get("general") or {}
+        if general.get("suite") != regression["suite"]:
+            return False, reasons + [f"regression suite '{regression['suite']}' was not evaluated for "
+                                     f"{summary.get('adapter', 'this adapter')}"]
+        ok &= -general["delta_points"] <= regression["max_drop_points"]
+        reasons.append(f"{regression['suite']}: {general['delta_points']:+.2f} pts "
+                       f"(max drop {regression['max_drop_points']})")
+    return ok, reasons
+
+
 # ------------------------------------------------------------------ llama-server client
 EVAL_OPTIONS = {"max_tokens": "--max-tokens"}
 

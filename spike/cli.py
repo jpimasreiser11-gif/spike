@@ -589,7 +589,8 @@ def build_parser() -> argparse.ArgumentParser:
     ad.add_argument("action", choices=["install"])
     ad.add_argument("gguf", help="the LoRA adapter GGUF")
     ad.add_argument("--specialist", required=True)
-    ad.add_argument("--eval", required=True, help="eval run directory (or its summary.json) from evals/run_eval.py")
+    ad.add_argument("--eval", required=True,
+                    help="eval run directory (or its summary.json) from evals/run_eval.py, or evals/pairwise.py")
     ad.add_argument("--config", help="training config whose acceptance rule to apply (training/configs/<id>.yaml)")
     ad.add_argument("--variant", help="the adapter's variant name in the eval run, when it has several")
     ad.add_argument("--skip-local-eval", action="store_true",

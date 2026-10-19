@@ -29,8 +29,13 @@ training/train.sh "$spec"
 python training/export_adapter.py "$spec" --llama-cpp "$llama_cpp" --check-model "$model"
 adapter="$HOME/.spike/adapters/spike-$spec.gguf"
 if [[ $spec == marketing ]]; then
+  # open-ended: pairwise win rate is the primary criterion, and the general suite is run exactly as for medicine and
+  # finance (base vs. adapter); pairwise.py accepts the round only if both pass, and exits 2 otherwise
+  general_out="evals/results/general-$spec-$(date +%Y%m%d-%H%M%S)"
+  python evals/run_eval.py --suites general --model "$model" --adapter "$adapter" --out "$general_out" \
+    ${eval_extra[@]+"${eval_extra[@]}"}
   python evals/pairwise.py --specialist marketing --prompts evals/data/marketing_eval.jsonl \
-    --model "$model" --adapter "$adapter" --acceptance "$cfg"
+    --model "$model" --adapter "$adapter" --acceptance "$cfg" --general-eval "$general_out"
 else
   python evals/run_eval.py --suites "$spec,general" --model "$model" --adapter "$adapter" --acceptance "$cfg" \
     ${eval_extra[@]+"${eval_extra[@]}"}

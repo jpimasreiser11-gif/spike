@@ -8,12 +8,13 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from spike.cli import main
 from spike.core.types import StreamEvent
 from spike.evolution import adapters
-from spike.evolution.acceptance import check_acceptance
+from spike.evolution.acceptance import check_acceptance, check_pairwise_acceptance
 from spike.evolution.candidates import contamination, judge, references, suggested_checks
 from spike.evolution.checks import run_checks
 from spike.evolution.router_learning import apply_overlay, evaluate, gate, learn_overlay, load_labeled
@@ -120,6 +121,33 @@ def test_acceptance_copy_gives_the_training_verdicts(acceptance, tuned):
     summary = _summary(*tuned)
     assert check_acceptance(summary, acceptance, "spike-medicine") == \
         training_eval.check_acceptance(summary, acceptance, "spike-medicine")
+
+
+def _pairwise(win_rate=0.75, p=0.01, general_delta: float | None = -0.5, adapter="spike-marketing"):
+    summary = {"specialist": "marketing", "adapter": adapter, "n": 24, "win_rate": win_rate, "sign_test_p": p}
+    if general_delta is not None:
+        summary["general"] = {"suite": "general", "variant": adapter, "paired_n": 800, "delta_points": general_delta,
+                              "p_value": 0.4}
+    return summary
+
+
+PAIRWISE = {"suite": "marketing-pairwise", "min_win_rate": 0.60}
+
+
+@pytest.mark.parametrize("acceptance", [
+    {"primary": PAIRWISE, "regression": {"suite": "general", "max_drop_points": 1.5}},
+    {"primary": {**PAIRWISE, "min_win_rate": 0.80}, "regression": {"suite": "general", "max_drop_points": 1.5}},
+    {"primary": {**PAIRWISE, "max_p_value": 0.001}},
+    {"primary": PAIRWISE, "regression": {"suite": "law", "max_drop_points": 1.0}},
+    {"primary": {"suite": "medicine", "min_gain_points": 3.0}},
+])
+@pytest.mark.parametrize("summary", [
+    _pairwise(), _pairwise(general_delta=-3.0), _pairwise(general_delta=None), _pairwise(win_rate=0.55, p=0.4),
+    _pairwise(win_rate=0.6, p=0.05),
+])
+def test_pairwise_acceptance_copy_gives_the_training_verdicts(acceptance, summary):
+    assert check_pairwise_acceptance(summary, acceptance) == \
+        training_eval.check_pairwise_acceptance(summary, acceptance)
 
 
 # ---------------------------------------------------------------- router learning
@@ -336,6 +364,73 @@ def test_adapters_install_only_when_accepted_and_roll_back(env, tmp_path):
     assert b"by hand" in dest.read_bytes()
     assert state.rollback("adapter:medicine") is None and not dest.exists()  # prompt profile again
     assert not any((folder).glob("*.gguf.tmp")) and len(list((folder / "history").glob("*.gguf"))) == 3
+
+
+def _pairwise_run(folder: Path, **kwargs) -> Path:
+    """What evals/pairwise.py writes: the summary with its verdict, as the same rule gives it."""
+    summary = _pairwise(**kwargs)
+    rule = yaml.safe_load((ROOT / "training" / "configs" / "marketing.yaml").read_text())["acceptance"]
+    summary["accepted"], summary["reasons"] = training_eval.check_pairwise_acceptance(summary, rule)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "summary.json").write_text(json.dumps(summary))
+    return folder
+
+
+def test_a_marketing_pairwise_run_is_installed_only_when_both_halves_pass(env, tmp_path):
+    _, state, _, _ = env
+    spec, store, folder = state.catalog.get("marketing"), state.evolution.store, state.adapters_path()
+    config = ROOT / "training" / "configs" / "marketing.yaml"
+    gguf = _gguf(tmp_path / "m.gguf", **{"general.type": "adapter", "adapter.type": "lora"})
+    dest = folder / "spike-marketing.gguf"
+
+    # a good win rate does not install an adapter that lost general ability, with or without the config
+    bad = _pairwise_run(tmp_path / "bad", general_delta=-3.0)
+    for cfg in (config, None):
+        with pytest.raises(ValueError, match=r"refused.*win rate 0\.750.*general: -3\.00 pts \(max drop 1\.5\)"):
+            adapters.install(store, folder, spec, gguf, bad, cfg)
+    # nor does a clean general suite save a weak win rate
+    with pytest.raises(ValueError, match=r"refused.*win rate 0\.550"):
+        adapters.install(store, folder, spec, gguf, _pairwise_run(tmp_path / "weak", win_rate=0.55, p=0.4), config)
+    assert not dest.exists() and store.versions() == []
+
+    good = _pairwise_run(tmp_path / "good")
+    v = adapters.install(store, folder, spec, gguf, good, config)["version"]
+    assert v["report"]["accepted"] and v["report"]["variant"] == "spike-marketing" and dest.is_file()
+    assert any("general: -0.50 pts" in r for r in v["report"]["reasons"])
+    assert adapters.install(store, folder, spec, gguf, good / "summary.json").get("unchanged")  # the recorded verdict
+    with pytest.raises(ValueError, match="not in the eval run"):
+        adapters.install(store, folder, spec, gguf, good, config, "spike-other")
+
+
+def test_a_pairwise_run_without_the_general_suite_is_not_enough(env, tmp_path):
+    _, state, _, _ = env
+    spec, store, folder = state.catalog.get("marketing"), state.evolution.store, state.adapters_path()
+    config = ROOT / "training" / "configs" / "marketing.yaml"
+    gguf = _gguf(tmp_path / "m.gguf", **{"general.type": "adapter", "adapter.type": "lora"})
+    run = tmp_path / "nogeneral"
+    run.mkdir()
+    (run / "summary.json").write_text(json.dumps(_pairwise(general_delta=None)))  # the old pairwise.py: win rate only
+    with pytest.raises(ValueError, match="regression suite 'general' was not evaluated for spike-marketing"):
+        adapters.install(store, folder, spec, gguf, run, config)
+    (run / "summary.json").write_text(json.dumps({**_pairwise(general_delta=None), "accepted": True}))
+    with pytest.raises(ValueError, match="no acceptance verdict.*--config"):  # its own 'accepted' is not trusted
+        adapters.install(store, folder, spec, gguf, run)
+    assert store.versions() == []
+
+
+def test_a_win_rate_recipe_and_an_exact_answer_run_are_not_mixed(env, tmp_path):
+    _, state, _, _ = env
+    store, folder = state.evolution.store, state.adapters_path()
+    gguf = _gguf(tmp_path / "m.gguf", **{"general.type": "adapter", "adapter.type": "lora"})
+    marketing = ROOT / "training" / "configs" / "marketing.yaml"
+    # a run_eval.py run of the general suite alone must not install a recipe whose primary test is the win rate
+    run = _eval_run(tmp_path / "general", GOOD)
+    with pytest.raises(ValueError, match=r"marketing.yaml is judged by a pairwise win rate .*from evals/run_eval.py"):
+        adapters.install(store, folder, state.catalog.get("marketing"), gguf, run, marketing)
+    with pytest.raises(ValueError, match=r"medicine.yaml is judged by exact-answer suites .*from evals/pairwise.py"):
+        adapters.install(store, folder, state.catalog.get("medicine"), gguf, _pairwise_run(tmp_path / "pw"),
+                         ROOT / "training" / "configs" / "medicine.yaml")
+    assert store.versions() == []
 
 
 def test_an_adapter_exported_in_place_is_versioned_with_its_verdict(env, tmp_path):

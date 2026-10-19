@@ -8,6 +8,9 @@
 
 Tasks come from `distill.seeds` (expanded by the teacher to `distill.expand_to` variants) or from
 `distill.tasks_from` (training-split questions with gold answers, verified by exact match).
+The teacher's Hub license must be on the training allowlist (spike_train/licenses.py), checked before any task is
+sent; every row records the teacher's repo and license, and prepare.py checks them again. --teacher-repo names the
+Hub repo when the served model name is only an alias or a local path.
 """
 
 from __future__ import annotations
@@ -25,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "training"))
 sys.path.insert(0, str(ROOT))
 
+from spike_train import licenses  # noqa: E402
 from spike_train.data import LETTERS, dedupe, mcq_prompt  # noqa: E402
 from spike_train.distill import Task, Teacher, distill_task  # noqa: E402
 
@@ -35,19 +39,33 @@ EXPAND = (
 )
 
 
+PER_CALL = 20      # tasks asked of the teacher per call
+MAX_STALLS = 5     # consecutive calls that add nothing new before the teacher is judged to be out of ideas
+
+
 async def expand_seeds(teacher: Teacher, seeds: list[str], domain: str, target: int, seed: int) -> list[str]:
+    """Grow `seeds` to `target` distinct tasks. Stops with an error when the teacher keeps returning duplicates (or
+    nothing): MAX_STALLS calls in a row without a new task, or three times the calls a duplicate-free teacher needs."""
     rng = random.Random(seed)
     tasks = list(seeds)
     seen = {t.strip().lower() for t in tasks}
+    max_calls = 3 * -(-max(0, target - len(tasks)) // PER_CALL) + MAX_STALLS
+    calls = stalls = 0
     while len(tasks) < target:
+        if stalls >= MAX_STALLS or calls >= max_calls:
+            raise SystemExit(f"the teacher gave only {len(tasks)} distinct tasks of the {target} asked for "
+                             f"(distill.expand_to) in {calls} calls; lower expand_to, add seeds, or check the teacher")
+        calls += 1
         examples = "\n".join(f"- {s}" for s in rng.sample(tasks, min(8, len(tasks))))
-        content, _ = await teacher.chat([{"role": "user", "content": EXPAND.format(domain=domain, examples=examples, n=20)}],
-                                        temperature=1.0, thinking=False)
+        prompt = EXPAND.format(domain=domain, examples=examples, n=PER_CALL)
+        content, _ = await teacher.chat([{"role": "user", "content": prompt}], temperature=1.0, thinking=False)
+        before = len(tasks)
         for line in content.splitlines():
             line = line.strip().lstrip("-•*0123456789. ").strip()
             if len(line) > 25 and line.lower() not in seen:
                 seen.add(line.lower())
                 tasks.append(line)
+        stalls = 0 if len(tasks) > before else stalls + 1
     return tasks[:target]
 
 
@@ -76,6 +94,12 @@ async def run(args: argparse.Namespace) -> int:
 
     spec = load_catalog().get(cfg["specialist"])
     dcfg = cfg.get("distill") or {}
+    repo = args.teacher_repo or args.teacher_model
+    try:  # before any task is sent: the teacher's terms apply to everything it writes
+        teacher_license = licenses.teacher_license(repo)
+    except ValueError as exc:
+        raise SystemExit(f"refusing to distill: {exc} (--teacher-repo names the Hub repo of the weights)") from exc
+    provenance = {"teacher": repo, "teacher_license": teacher_license}
     teacher = Teacher(args.teacher_url, args.teacher_model, concurrency=args.concurrency)
     try:
         if dcfg.get("seeds"):
@@ -96,6 +120,7 @@ async def run(args: argparse.Namespace) -> int:
                              keep_reasoning=args.keep_reasoning) for t in tasks[i:i + 32]])
             for r in batch:
                 if r:
+                    r["meta"].update(provenance)
                     results.append(r)
                     kept += 1
                     verified += r["meta"]["verified"]
@@ -106,7 +131,7 @@ async def run(args: argparse.Namespace) -> int:
             for r in dedupe(results):
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         print(json.dumps({"tasks": len(tasks), "kept": kept, "verified_against_gold": verified,
-                          "teacher": args.teacher_model, "out": str(out)}, indent=2))
+                          "teacher": args.teacher_model, **provenance, "out": str(out)}, indent=2))
     finally:
         await teacher.aclose()
     return 0
@@ -117,6 +142,8 @@ def main() -> int:
     ap.add_argument("config")
     ap.add_argument("--teacher-url", default="http://127.0.0.1:8090/v1")
     ap.add_argument("--teacher-model", default="mlx-community/Qwen3.6-35B-A3B-4bit")
+    ap.add_argument("--teacher-repo", help="Hugging Face repo whose license governs the teacher's outputs "
+                                           "(default: --teacher-model, which is a repo id for mlx_lm.server)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--samples", type=int, default=2, help="attempts per task (rejection sampling)")
     ap.add_argument("--concurrency", type=int, default=2)

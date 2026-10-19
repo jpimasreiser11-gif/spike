@@ -24,11 +24,10 @@ def check(license_id: str | None, role: str) -> tuple[bool, str]:
     return True, lic
 
 
-def hub_license(repo: str) -> str | None:
-    """Read the license declared on the Hugging Face Hub (network)."""
+def _hub_license(kind: str, repo: str) -> str | None:
     import httpx
 
-    data = httpx.get(f"https://huggingface.co/api/datasets/{repo}", timeout=30).raise_for_status().json()
+    data = httpx.get(f"https://huggingface.co/api/{kind}/{repo}", timeout=30).raise_for_status().json()
     card = data.get("cardData") or {}
     lic = card.get("license")
     if isinstance(lic, list):
@@ -36,3 +35,30 @@ def hub_license(repo: str) -> str | None:
     if not lic:
         lic = next((t.split(":", 1)[1] for t in data.get("tags", []) if t.startswith("license:")), None)
     return lic
+
+
+def hub_license(repo: str) -> str | None:
+    """Read the license declared on the Hugging Face Hub for a dataset (network)."""
+    return _hub_license("datasets", repo)
+
+
+def hub_model_license(repo: str) -> str | None:
+    """Read the license declared on the Hugging Face Hub for a model (network)."""
+    return _hub_license("models", repo)
+
+
+def teacher_license(repo: str) -> str:
+    """The Hub license of a distillation teacher if its outputs may train released weights; ValueError otherwise.
+
+    An unreadable or missing license is a refusal, the same as for a dataset: the teacher's terms travel with
+    every example it wrote."""
+    import httpx
+
+    try:
+        lic = hub_model_license(repo)
+    except httpx.HTTPError as exc:
+        raise ValueError(f"teacher '{repo}': cannot read its license on the Hugging Face Hub ({exc})") from exc
+    ok, reason = check(lic, "train")
+    if not ok:
+        raise ValueError(f"teacher '{repo}': {reason}")
+    return reason

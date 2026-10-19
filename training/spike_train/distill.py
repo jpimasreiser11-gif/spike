@@ -3,7 +3,9 @@
 A larger open-weight teacher (default: Qwen3.6-35B-A3B, Apache-2.0, runs locally on a 36 GB Mac) answers
 domain tasks. Answers are kept only when they can be verified:
   * tasks with a gold label (MCQ, yes/no, numeric) must match it;
-  * open-ended tasks must pass a rubric review by the teacher (score >= threshold), and are capped in share.
+  * open-ended tasks must pass a rubric review by the teacher (score >= threshold). That is the teacher grading
+    its own answer, so they are never counted as verified (meta.verified stays false). There is no cap on their
+    share: one distillation run takes either seeds (all open-ended) or gold-labelled questions (all verified).
 The teacher runs behind any OpenAI-compatible endpoint (mlx_lm.server, llama-server, vLLM).
 """
 

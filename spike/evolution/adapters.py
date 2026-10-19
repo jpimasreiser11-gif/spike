@@ -15,7 +15,7 @@ from typing import Any
 
 import yaml
 
-from spike.evolution.acceptance import check_acceptance
+from spike.evolution.acceptance import check_acceptance, check_pairwise_acceptance
 from spike.evolution.store import EvolutionStore
 from spike.runtime.gguf import read_gguf
 from spike.specialists.catalog import Specialist
@@ -57,14 +57,24 @@ def load_results(eval_path: Path) -> tuple[dict[str, Any], Path]:
     """summary.json of an eval run (the run directory or the file itself)."""
     path = eval_path / "summary.json" if eval_path.is_dir() else eval_path
     if not path.is_file():
-        raise FileNotFoundError(f"no eval results at {path}; run evals/run_eval.py on this adapter first")
+        raise FileNotFoundError(f"no eval results at {path}; run evals/run_eval.py (evals/pairwise.py for an "
+                                "open-ended specialist) on this adapter first")
     return json.loads(path.read_text(encoding="utf-8")), path
+
+
+def is_pairwise(summary: dict[str, Any]) -> bool:
+    """evals/pairwise.py records a win rate and a sign test; evals/run_eval.py records variants and suites."""
+    return "win_rate" in summary and "sign_test_p" in summary
 
 
 def verdict(spec: Specialist, summary: dict[str, Any], config: Path | None, variant: str | None) -> dict[str, Any]:
     """Apply the training config's acceptance rule to the measured results (or read the verdict the eval run
     recorded with that rule when no config is given)."""
-    variants = [v for v in summary.get("variants") or [] if v != "base"]
+    pairwise = is_pairwise(summary)
+    if pairwise:  # one adapter per pairwise run
+        variants = [summary["adapter"]] if summary.get("adapter") else []
+    else:
+        variants = [v for v in summary.get("variants") or [] if v != "base"]
     if variant is None:
         if len(variants) != 1:
             raise ValueError(f"the eval run has {len(variants)} adapter variants ({', '.join(variants) or 'none'}); "
@@ -76,9 +86,22 @@ def verdict(spec: Specialist, summary: dict[str, Any], config: Path | None, vari
         cfg = yaml.safe_load(config.read_text(encoding="utf-8"))
         if cfg.get("specialist") != spec.id:
             raise ValueError(f"{config.name} is the recipe of '{cfg.get('specialist')}', not '{spec.id}'")
-        ok, reasons = check_acceptance(summary, cfg["acceptance"], variant)
+        wants_pairwise = "min_win_rate" in (cfg["acceptance"].get("primary") or {})
+        if wants_pairwise != pairwise:  # never judge a win-rate recipe by a run that cannot show one, or the reverse
+            judged = {True: "a pairwise win rate", False: "exact-answer suites"}
+            script = {True: "evals/pairwise.py", False: "evals/run_eval.py"}
+            raise ValueError(f"{config.name} is judged by {judged[wants_pairwise]} ({script[wants_pairwise]}), "
+                             f"but this eval run is from {script[pairwise]}")
+        ok, reasons = (check_pairwise_acceptance(summary, cfg["acceptance"]) if pairwise
+                       else check_acceptance(summary, cfg["acceptance"], variant))
         return {"variant": variant, "accepted": ok, "reasons": reasons, "rule": cfg["acceptance"],
                 "checked": "now, with " + config.name}
+    if pairwise:
+        if "reasons" not in summary:  # written without --acceptance, or before the general suite was part of the rule
+            raise ValueError("the pairwise run has no acceptance verdict with its general-suite check; "
+                             "pass the training config with --config")
+        return {"variant": variant, "accepted": bool(summary["accepted"]), "reasons": summary["reasons"],
+                "checked": "by the pairwise run"}
     recorded = (summary.get("acceptance") or {}).get(variant)
     if recorded is None:
         raise ValueError("the eval run has no acceptance verdict; pass the training config with --config")

@@ -29,7 +29,9 @@ from spike_train.evaluation import (  # noqa: E402
     Client,
     Item,
     check_acceptance,
+    check_pairwise_acceptance,
     eval_args,
+    general_regression,
     make_item,
     pairwise_summary,
     rescore,
@@ -257,6 +259,166 @@ def test_distillation_verification():
     assert verify(Task("1", "q", "s"), "anything") is None  # open-ended: goes to rubric review
 
 
+SEEDS = ["Plan a six week launch campaign for a local bakery with a small budget",
+         "Write three subject lines for a B2B invoicing SaaS trial reactivation email"]
+
+
+class ScriptedTeacher:
+    """Stands in for the teacher. `expand(call_number)` is its answer to each task-expansion request (the only
+    requests that start with a user message); every task answer is `answer`, and the rubric review gives `score`."""
+
+    def __init__(self, expand=lambda n: "", answer="A specific and actionable answer.", score=9):
+        self.expand, self.answer, self.score, self.calls = expand, answer, score, 0
+        self.model = "scripted"
+
+    async def chat(self, messages, temperature=0.7, max_tokens=4096, thinking=True):
+        if messages[0]["role"] == "user":
+            self.calls += 1
+            return self.expand(self.calls), ""
+        return self.answer, ""
+
+    async def review(self, task, response):
+        return self.score
+
+    async def aclose(self):
+        pass
+
+
+def fresh_tasks(call: int, n: int = 20) -> str:
+    return "\n".join(f"{i + 1}. Brief {call}-{i}: grow signups for a niche product on a small budget" for i in range(n))
+
+
+async def test_expand_seeds_reaches_the_target_with_distinct_tasks():
+    from distill import expand_seeds
+
+    teacher = ScriptedTeacher(fresh_tasks)
+    tasks = await expand_seeds(teacher, SEEDS, "Marketing", 50, seed=0)
+    assert len(tasks) == 50 and len(set(tasks)) == 50 and tasks[:2] == SEEDS and teacher.calls == 3
+
+
+async def test_expand_seeds_stops_when_the_teacher_only_returns_duplicates():
+    from distill import MAX_STALLS, expand_seeds
+
+    teacher = ScriptedTeacher(lambda n: "\n".join(SEEDS))  # the old loop never ended here
+    with pytest.raises(SystemExit, match=rf"only 2 distinct tasks of the 50 asked for.*in {MAX_STALLS} calls"):
+        await expand_seeds(teacher, SEEDS, "Marketing", 50, seed=0)
+    assert teacher.calls == MAX_STALLS
+    empty = ScriptedTeacher(lambda n: "")  # a teacher that answers nothing is the same
+    with pytest.raises(SystemExit, match="distill.expand_to"):
+        await expand_seeds(empty, SEEDS, "Marketing", 50, seed=0)
+
+
+async def test_expand_seeds_gives_up_on_a_teacher_that_adds_one_task_per_call():
+    from distill import MAX_STALLS, PER_CALL, expand_seeds
+
+    teacher = ScriptedTeacher(lambda n: f"Brief {n}: grow signups for a niche product with a small budget")
+    with pytest.raises(SystemExit, match="only 21 distinct tasks of the 100 asked for"):
+        await expand_seeds(teacher, SEEDS[:1], "Marketing", 100, seed=0)
+    assert teacher.calls == 3 * -(-99 // PER_CALL) + MAX_STALLS == 20
+    # an occasional empty answer does not end a teacher that is making progress
+    flaky = ScriptedTeacher(lambda n: "" if n % 3 == 0 else fresh_tasks(n))
+    assert len(await expand_seeds(flaky, SEEDS, "Marketing", 80, seed=0)) == 80
+
+
+async def test_open_ended_distillation_is_rubric_filtered_and_never_marked_verified():
+    from spike_train.distill import distill_task
+
+    open_task, gold_task = Task("t1", "q", "sys"), Task("t2", "q", "sys", {"type": "mcq", "answer": "B"})
+    kept = await distill_task(ScriptedTeacher(score=8), open_task, samples=2, min_score=8, keep_reasoning=False)
+    assert kept["meta"] == {"task_id": "t1", "verified": False, "source": "distill"}
+    assert await distill_task(ScriptedTeacher(score=7), open_task, samples=2, min_score=8, keep_reasoning=False) is None
+    verified = await distill_task(ScriptedTeacher(answer="Answer: B", score=0), gold_task, 2, 8, False)
+    assert verified["meta"]["verified"] is True  # the gold match decides; the rubric is not consulted
+    assert await distill_task(ScriptedTeacher(answer="Answer: A"), gold_task, 2, 8, False) is None
+
+
+def distill_run(tmp_path, monkeypatch, teacher, *flags: str, hub=None):
+    """training/distill.py main() for marketing with the Hub and the teacher replaced; returns the rows it wrote."""
+    import distill
+    import yaml
+
+    seeds = tmp_path / "seeds.jsonl"
+    seeds.write_text("".join(json.dumps({"prompt": x}) + "\n" for x in SEEDS))
+    cfg = tmp_path / "marketing.yaml"
+    cfg.write_text(yaml.safe_dump({"specialist": "marketing", "seed": 0,
+                                   "distill": {"enabled": True, "seeds": str(seeds), "expand_to": 30, "min_score": 8}}))
+    default_hub = {"mlx-community/Qwen3.6-35B-A3B-4bit": "apache-2.0"}.__getitem__  # the faked Hub: repo -> license
+    monkeypatch.setattr(distill.licenses, "hub_model_license", hub or default_hub)
+    monkeypatch.setattr(distill, "Teacher", lambda *a, **k: teacher)
+    out = tmp_path / "out" / "distilled.jsonl"
+    monkeypatch.setattr(sys, "argv", ["distill.py", str(cfg), "--out", str(out), *flags])
+    assert distill.main() == 0
+    return [json.loads(line) for line in out.read_text().splitlines()]
+
+
+def test_distill_records_the_teacher_and_its_license_on_every_row(tmp_path, monkeypatch, capsys):
+    rows = distill_run(tmp_path, monkeypatch, ScriptedTeacher(fresh_tasks))
+    assert len(rows) == 30
+    for row in rows:
+        assert row["meta"] == {"task_id": row["meta"]["task_id"], "verified": False, "source": "distill",
+                               "teacher": "mlx-community/Qwen3.6-35B-A3B-4bit", "teacher_license": "apache-2.0"}
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["teacher_license"] == "apache-2.0" and summary["kept"] == 30
+
+
+def test_distill_checks_the_repo_named_by_teacher_repo_when_the_served_name_is_an_alias(tmp_path, monkeypatch):
+    rows = distill_run(tmp_path, monkeypatch, ScriptedTeacher(fresh_tasks), "--teacher-model", "local-alias",
+                       "--teacher-repo", "Qwen/Qwen3.6-35B-A3B", hub={"Qwen/Qwen3.6-35B-A3B": "Apache-2.0"}.__getitem__)
+    assert rows[0]["meta"]["teacher"] == "Qwen/Qwen3.6-35B-A3B" and rows[0]["meta"]["teacher_license"] == "apache-2.0"
+
+
+@pytest.mark.parametrize("hub, message", [
+    ("other", "teacher 'mlx-community/Qwen3.6-35B-A3B-4bit': license 'other' is not allowed for role 'train'"),
+    (None, "no license declared"),
+])
+def test_distill_refuses_a_teacher_whose_license_is_not_allowed_or_unknown(tmp_path, monkeypatch, hub, message):
+    teacher = ScriptedTeacher(fresh_tasks)
+    with pytest.raises(SystemExit, match=f"refusing to distill: .*{message}"):
+        distill_run(tmp_path, monkeypatch, teacher, hub=lambda repo: hub)
+    assert teacher.calls == 0 and not (tmp_path / "out").exists()  # refused before a single task was sent
+
+
+def test_distill_refuses_a_teacher_it_cannot_find_on_the_hub(tmp_path, monkeypatch):
+    import httpx
+
+    def missing(repo):
+        raise httpx.ConnectError("no network")
+
+    with pytest.raises(SystemExit, match="cannot read its license on the Hugging Face Hub.*--teacher-repo"):
+        distill_run(tmp_path, monkeypatch, ScriptedTeacher(), hub=missing)
+
+
+def test_hub_license_reads_models_and_datasets_from_their_own_endpoints(monkeypatch):
+    import httpx
+
+    pages = {"models/a/b": {"cardData": {"license": ["Apache-2.0"]}}, "models/a/tagged": {"tags": ["x", "license:mit"]},
+             "models/a/none": {}, "datasets/c/d": {"cardData": {"license": "cc-by-4.0"}}}
+    asked = []
+
+    class Page:
+        def __init__(self, data):
+            self.data = data
+
+        def raise_for_status(self):
+            return self
+
+        def json(self):
+            return self.data
+
+    def get(url, timeout=None):
+        asked.append(url)
+        return Page(pages[url.removeprefix("https://huggingface.co/api/")])
+
+    monkeypatch.setattr(httpx, "get", get)
+    assert licenses.hub_model_license("a/b") == "Apache-2.0" and licenses.hub_license("c/d") == "cc-by-4.0"
+    assert licenses.hub_model_license("a/tagged") == "mit"
+    assert asked == ["https://huggingface.co/api/models/a/b", "https://huggingface.co/api/datasets/c/d",
+                     "https://huggingface.co/api/models/a/tagged"]
+    assert licenses.teacher_license("a/b") == "apache-2.0"  # normalized, as the allowlist spells it
+    with pytest.raises(ValueError, match="no license declared"):
+        licenses.teacher_license("a/none")
+
+
 # ------------------------------------------------------------------ evaluation
 def test_items_and_scoring():
     item = make_item("medmcqa-val", "medmcqa", 0, MEDMCQA)
@@ -332,6 +494,175 @@ def test_pairwise_summary():
     assert s["win_rate"] == pytest.approx(0.8) and s["sign_test_p"] < 0.01
 
 
+MARKETING_RULE = {"primary": {"suite": "marketing-pairwise", "min_win_rate": 0.60},
+                  "regression": {"suite": "general", "max_drop_points": 1.5}}
+
+
+def general_run(adapter_correct: list[bool], variant: str = "spike-marketing") -> dict:
+    """A run_eval.py summary of the general suite: 100 items, the base model right on the first 60."""
+    base = [True] * 60 + [False] * 40
+    return summarize(preds("base", base, "general", "g") + preds(variant, adapter_correct, "general", "g"))
+
+
+def test_general_regression_reads_the_base_vs_adapter_comparison_of_a_run():
+    run = general_run([True] * 59 + [False] * 41)
+    assert general_regression(run, "general", "spike-marketing") == {
+        "suite": "general", "variant": "spike-marketing", "paired_n": 100, "delta_points": -1.0, "p_value": 1.0}
+    with pytest.raises(ValueError, match="no suite 'general' for 'spike-other'"):
+        general_regression(run, "general", "spike-other")
+    with pytest.raises(ValueError, match="no suite 'law'"):
+        general_regression(run, "law", "spike-marketing")
+
+
+def pairwise_result(verdicts: list[str], drop_run: list[bool] | None) -> dict:
+    s = {"adapter": "spike-marketing", **pairwise_summary(verdicts)}
+    if drop_run is not None:
+        s["general"] = general_regression(general_run(drop_run), "general", "spike-marketing")
+    return s
+
+
+def test_pairwise_acceptance_needs_the_win_rate_and_the_general_suite():
+    wins = ["win"] * 17 + ["loss"] * 2 + ["tie"] * 5                      # 0.8125, p well under 0.05
+    fine = [True] * 59 + [False] * 41                                      # -1.0 pts
+    ok, reasons = check_pairwise_acceptance(pairwise_result(wins, fine), MARKETING_RULE)
+    assert ok and "win rate 0.812" in reasons[0] and reasons[1] == "general: -1.00 pts (max drop 1.5)"
+    lost = [True] * 56 + [False] * 44                                      # -4.0 pts: the old script accepted this
+    ok, reasons = check_pairwise_acceptance(pairwise_result(wins, lost), MARKETING_RULE)
+    assert not ok and reasons[1] == "general: -4.00 pts (max drop 1.5)"
+    weak = ["win"] * 7 + ["loss"] * 5 + ["tie"] * 12                      # 0.54 and p ~ 0.77
+    assert not check_pairwise_acceptance(pairwise_result(weak, fine), MARKETING_RULE)[0]
+    ok, reasons = check_pairwise_acceptance(pairwise_result(wins, None), MARKETING_RULE)  # not evaluated = rejected
+    assert not ok and reasons[-1] == "regression suite 'general' was not evaluated for spike-marketing"
+    assert check_pairwise_acceptance(pairwise_result(wins, None), {"primary": MARKETING_RULE["primary"]})[0]
+    assert not check_pairwise_acceptance(pairwise_result(wins, fine), {"primary": {"suite": "medicine",
+                                                                                   "min_gain_points": 3.0}})[0]
+    # the exact-answer rule does not read a pairwise summary: it has no variants or suites to measure
+    exact = {"primary": {"suite": "m", "min_gain_points": 1}}
+    assert not check_acceptance(pairwise_result(wins, fine) | {"suites": {}}, exact, "spike-marketing")[0]
+
+
+class FakeServer:
+    def __init__(self, config):
+        self.base_url = "http://127.0.0.1:1"
+
+    async def start(self):
+        pass
+
+    async def stop(self):
+        pass
+
+
+class FakeClient:
+    """llama-server client: the adapter's answers are 'adapter', the base model's 'base'; every request is logged."""
+    temperatures: list[float] = []
+
+    def __init__(self, base_url, concurrency=1):
+        pass
+
+    async def adapters(self):
+        return {"spike-marketing": 0}
+
+    def lora(self, adapter):
+        return [{"id": 0, "scale": 1.0 if adapter else 0.0}]
+
+    async def chat(self, system, prompt, lora, max_tokens, temperature=0.0, seed=0, thinking=False):
+        FakeClient.temperatures.append(temperature)
+        return {"content": "adapter" if lora[0]["scale"] else "base"}
+
+    async def aclose(self):
+        pass
+
+
+class FakeJudge:
+    """Always prefers the adapter's answer, whichever position it is shown in (or always the base model's)."""
+    prefers_adapter = True
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def chat(self, messages, **kwargs):
+        a_is_adapter = "ANSWER A:\nadapter" in messages[-1]["content"]
+        return json.dumps({"better": "A" if a_is_adapter == FakeJudge.prefers_adapter else "B"}), ""
+
+    async def aclose(self):
+        pass
+
+
+def run_pairwise(tmp_path, monkeypatch, *flags: str, general: Path | None = None, judge_prefers_adapter=True):
+    """evals/pairwise.py main() with the model server, client and judge replaced; returns (exit code, summary)."""
+    monkeypatch.syspath_prepend(str(ROOT / "evals"))
+    import pairwise
+
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    prompts = tmp_path / "prompts.jsonl"
+    prompts.write_text("".join(json.dumps({"id": f"p{i}", "prompt": f"Plan a campaign number {i}"}) + "\n"
+                               for i in range(12)))
+    FakeClient.temperatures = []
+    FakeJudge.prefers_adapter = judge_prefers_adapter
+    monkeypatch.setattr(pairwise, "Client", FakeClient)
+    monkeypatch.setattr(pairwise, "Teacher", FakeJudge)
+    monkeypatch.setattr("spike.runtime.llamacpp_server.LlamaServer", FakeServer)
+    argv = ["pairwise.py", "--specialist", "marketing", "--prompts", str(prompts), "--model", "base.gguf",
+            "--adapter", "spike-marketing.gguf", "--out", str(tmp_path / "out"), *flags]
+    if general:
+        argv += ["--general-eval", str(general)]
+    monkeypatch.setattr(sys, "argv", argv)
+    code = pairwise.main()
+    return code, json.loads((tmp_path / "out" / "summary.json").read_text())
+
+
+def write_run(folder: Path, run: dict) -> Path:
+    folder.mkdir(parents=True)
+    (folder / "summary.json").write_text(json.dumps(run))
+    return folder
+
+
+def test_pairwise_generation_is_greedy_unless_asked(tmp_path, monkeypatch):
+    code, summary = run_pairwise(tmp_path, monkeypatch)
+    assert code == 0 and summary["temperature"] == 0.0 and set(FakeClient.temperatures) == {0.0}
+    assert len(FakeClient.temperatures) == 24 and "accepted" not in summary  # no --acceptance: measured only
+    code, summary = run_pairwise(tmp_path / "t", monkeypatch, "--temperature", "0.7")
+    assert summary["temperature"] == 0.7 and set(FakeClient.temperatures) == {0.7}
+
+
+def test_pairwise_round_is_accepted_only_if_the_general_suite_holds_too(tmp_path, monkeypatch):
+    marketing = ["--acceptance", str(ROOT / "training" / "configs" / "marketing.yaml")]
+    held = write_run(tmp_path / "held", general_run([True] * 59 + [False] * 41))
+    code, summary = run_pairwise(tmp_path / "a", monkeypatch, *marketing, general=held)
+    assert code == 0 and summary["accepted"] and summary["win_rate"] == 1.0
+    assert summary["general"]["delta_points"] == -1.0 and summary["general"]["run"].endswith("held/summary.json")
+
+    lost = write_run(tmp_path / "lost", general_run([True] * 56 + [False] * 44))
+    code, summary = run_pairwise(tmp_path / "b", monkeypatch, *marketing, general=lost)
+    assert code == 2 and not summary["accepted"] and summary["win_rate"] == 1.0  # exit code 2 = rejected
+    assert summary["reasons"][-1] == "general: -4.00 pts (max drop 1.5)"
+
+    code, summary = run_pairwise(tmp_path / "c", monkeypatch, *marketing, general=held, judge_prefers_adapter=False)
+    assert code == 2 and not summary["accepted"] and summary["win_rate"] == 0.0
+
+
+def test_pairwise_with_a_regression_limit_stops_early_without_the_general_run(tmp_path, monkeypatch):
+    marketing = ["--acceptance", str(ROOT / "training" / "configs" / "marketing.yaml")]
+    with pytest.raises(SystemExit, match="regression limit on 'general'.*--general-eval"):
+        run_pairwise(tmp_path / "a", monkeypatch, *marketing)
+    other = write_run(tmp_path / "other", general_run([True] * 60 + [False] * 40, variant="spike-medicine"))
+    with pytest.raises(SystemExit, match="no suite 'general' for 'spike-marketing'"):
+        run_pairwise(tmp_path / "b", monkeypatch, *marketing, general=other)
+    with pytest.raises(SystemExit, match="no general eval results"):
+        run_pairwise(tmp_path / "c", monkeypatch, *marketing, general=tmp_path / "missing")
+    assert FakeClient.temperatures == []  # nothing was generated before any of these stops
+    with pytest.raises(SystemExit):  # a general run without an acceptance rule has no suite or limit to apply
+        run_pairwise(tmp_path / "d", monkeypatch, general=other)
+
+
+def test_run_specialist_runs_the_general_suite_before_the_pairwise_judge():
+    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text()
+    start = script.index("if [[ $spec == marketing ]]")
+    marketing = script[start:script.index("\nelse\n", start)]
+    assert marketing.index("python evals/run_eval.py --suites general") < marketing.index("python evals/pairwise.py")
+    assert '--out "$general_out"' in marketing and '--general-eval "$general_out"' in marketing
+
+
 def test_client_always_sends_explicit_scales():
     client = Client("http://127.0.0.1:1")
     client.table = {"spike-finance": 0, "spike-medicine": 1}
@@ -344,8 +675,21 @@ def test_client_always_sends_explicit_scales():
 LEAKED = "which drug is first line for uncomplicated hypertension in a young adult with no other conditions today"
 
 
-def run_prepare(tmp_path, monkeypatch, extra: list[str] | None = None):
-    """prepare.py for medicine on in-memory rows; returns its output folder."""
+TEACHER = "Qwen/Qwen3.6-35B-A3B"
+TEACHER_LICENSES: dict[str, str | None] = {TEACHER: "apache-2.0"}   # what the faked Hub says about each teacher repo
+
+
+def run_prepare(tmp_path, monkeypatch, extra: list[str] | None = None, config: str = "medicine"):
+    """prepare.py for a config on in-memory rows; returns its output folder."""
+    import prepare
+
+    out = prepare_env(tmp_path, monkeypatch, extra, config)
+    assert prepare.main() == 0
+    return out
+
+
+def prepare_env(tmp_path, monkeypatch, extra: list[str] | None = None, config: str = "medicine"):
+    """Replace everything prepare.py reads from the network with in-memory rows; returns its output folder."""
     import prepare
     import yaml
 
@@ -377,10 +721,10 @@ def run_prepare(tmp_path, monkeypatch, extra: list[str] | None = None):
         100_000 if "LONG" in chat["messages"][1]["content"] else 100))
     monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: {
         s["hub"]: s["license"] for s in registry.values()}[repo])
-    monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training/configs/medicine.yaml"), "--out", str(tmp_path),
-                                      *(extra or [])])
-    assert prepare.main() == 0
-    return tmp_path / "medicine"
+    monkeypatch.setattr(prepare.licenses, "hub_model_license", lambda repo: TEACHER_LICENSES[repo])
+    cfg = ROOT / "training" / "configs" / f"{config}.yaml"
+    monkeypatch.setattr(sys, "argv", ["prepare.py", str(cfg), "--out", str(tmp_path), *(extra or [])])
+    return tmp_path / config
 
 
 def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
@@ -427,6 +771,95 @@ def test_prepare_adds_the_users_approved_corrections_for_its_specialist(tmp_path
                                      *(out / "valid.jsonl").read_text().splitlines()]]
     mine = [c for c in chats if "paracetamol" in c["messages"][1]["content"]]
     assert len(mine) == 1 and mine[0]["messages"][0]["content"] == load_catalog().get("medicine").system_prompt
+
+
+def distilled_file(tmp_path, n: int = 40, **meta) -> Path:
+    """What training/distill.py writes for marketing: open-ended chats with the teacher recorded on every row."""
+    meta = {"task_id": "marketing-0", "verified": False, "source": "distill", "teacher": TEACHER,
+            "teacher_license": "apache-2.0", **meta}
+    rows = [{"messages": [{"role": "system", "content": "marketing system prompt"},
+                          {"role": "user", "content": f"Task {i}: plan the launch of product number {i} for a bakery "
+                                                      f"chain with a budget of {i * 100 + 500} euros"},
+                          {"role": "assistant", "content": f"A specific plan {i} with channels, budget, weekly KPIs."}],
+             "meta": {k: v for k, v in meta.items() if v is not None}} for i in range(n)]
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    path = tmp_path / "distilled.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return path
+
+
+def test_prepare_stops_when_the_recipe_has_no_domain_data(tmp_path, monkeypatch):
+    """marketing has no domain_sources: without distilled data the old run wrote empty train/valid and went on."""
+    import prepare
+
+    out = prepare_env(tmp_path, monkeypatch, config="marketing")
+    real_rows, downloads = prepare.load_rows, []
+    monkeypatch.setattr(prepare, "load_rows", lambda *a, **k: downloads.append(a) or real_rows(*a, **k))
+    with pytest.raises(SystemExit, match=r"no domain training data for 'marketing'.*training/distill.py .*--distilled"):
+        prepare.main()
+    assert not downloads and not (out / "train.jsonl").exists() and not (out / "manifest.json").exists()  # at once
+    empty = tmp_path / "empty.jsonl"
+    empty.write_text("")  # a distillation that kept nothing is the same problem
+    monkeypatch.setattr(sys, "argv", [*sys.argv, "--distilled", str(empty)])
+    with pytest.raises(SystemExit, match="no domain training data"):
+        prepare.main()
+    assert not (out / "train.jsonl").exists()
+
+
+def test_prepare_records_the_real_teacher_license_of_distilled_data(tmp_path, monkeypatch):
+    out = run_prepare(tmp_path, monkeypatch, ["--distilled", str(distilled_file(tmp_path))], config="marketing")
+    manifest = json.loads((out / "manifest.json").read_text())
+    record = manifest["sources"]["distilled:distilled.jsonl"]
+    lic = {"license_hub": "apache-2.0", "license_recorded": "apache-2.0"}
+    assert record == {"role": "train", "teachers": {TEACHER: lic}, "kept": 40}
+    assert "Apache-2.0 teacher" not in json.dumps(manifest) and manifest["counts"]["domain"] == 40
+    trained = [json.loads(line) for line in (out / "train.jsonl").read_text().splitlines()]
+    assert all("meta" not in chat for chat in trained)  # the provenance stays in the manifest
+
+
+@pytest.mark.parametrize("hub, reason", [
+    ("other", "license 'other' is not allowed for role 'train'"),
+    ("cc-by-nc-4.0", "license 'cc-by-nc-4.0' is not allowed for role 'train'"),
+    (None, "no license declared"),
+])
+def test_prepare_refuses_a_teacher_whose_license_is_not_allowed_or_unknown(tmp_path, monkeypatch, hub, reason):
+    import prepare
+
+    prepare_env(tmp_path, monkeypatch, ["--distilled", str(distilled_file(tmp_path))], config="marketing")
+    monkeypatch.setitem(TEACHER_LICENSES, TEACHER, hub)  # the Hub says so now, whatever distill.py recorded
+    with pytest.raises(SystemExit, match=f"refusing distilled.jsonl: teacher '{TEACHER}': {reason}"):
+        prepare.main()
+    assert not (tmp_path / "marketing" / "train.jsonl").exists()
+
+
+def test_prepare_refuses_distilled_rows_that_do_not_name_their_teacher(tmp_path, monkeypatch):
+    import prepare
+
+    prepare_env(tmp_path, monkeypatch, ["--distilled", str(distilled_file(tmp_path, teacher=None))], config="marketing")
+    with pytest.raises(SystemExit, match=r"distilled.jsonl:1 has no teacher record"):
+        prepare.main()
+
+
+def test_prepare_offline_trusts_the_recorded_teacher_license_but_still_applies_the_allowlist(tmp_path, monkeypatch):
+    import prepare
+
+    def no_hub(repo):
+        raise AssertionError("the Hub must not be asked")
+
+    ok = distilled_file(tmp_path / "ok")
+    out = prepare_env(tmp_path / "ok", monkeypatch, ["--distilled", str(ok), "--skip-license-check"],
+                      config="marketing")
+    monkeypatch.setattr(prepare.licenses, "hub_model_license", no_hub)
+    assert prepare.main() == 0
+    assert json.loads((out / "manifest.json").read_text())["sources"]["distilled:distilled.jsonl"]["teachers"][TEACHER][
+        "license_hub"] == "apache-2.0"
+    for recorded, reason in (("other", "license 'other' is not allowed"), (None, "no license declared")):
+        bad = distilled_file(tmp_path / str(recorded), teacher_license=recorded)  # None: row names no license
+        prepare_env(tmp_path / str(recorded), monkeypatch, ["--distilled", str(bad), "--skip-license-check"],
+                    config="marketing")
+        monkeypatch.setattr(prepare.licenses, "hub_model_license", no_hub)
+        with pytest.raises(SystemExit, match=f"refusing distilled.jsonl: teacher '{TEACHER}': {reason}"):
+            prepare.main()
 
 
 @pytest.mark.parametrize("source", ["smoltalk-constraints", "smoltalk-magpie-ultra"])

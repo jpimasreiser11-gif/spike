@@ -50,6 +50,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Installers tested on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): install, model
   download and a first answer from the real model. They now stop with an error when a step fails, and
   `--no-model`/`-NoModel` skip the download.
+- Marketing (judged by pairwise win rate) is accepted only if the general suite also holds, both in the
+  training script and in `spike adapters install`; pairwise answers are greedy; distillation checks the
+  teacher's Hub license before use and records it in every example; prepare.py stops on a recipe with no
+  domain data instead of writing an empty training set.
 
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a

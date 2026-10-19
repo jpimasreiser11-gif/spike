@@ -3,9 +3,11 @@
     python training/prepare.py training/configs/medicine.yaml [--out training/data] [--distilled FILE]
         [--corrections spike-training.jsonl]
 
-Steps: license check per source -> download -> format to chat -> quality filter -> dedupe ->
-13-gram decontamination against every eval set -> blend with general replay data -> split ->
+Steps: license check per source (and per distillation teacher) -> download -> format to chat -> quality filter ->
+dedupe -> 13-gram decontamination against every eval set -> blend with general replay data -> split ->
 write train/valid JSONL, an mlx-lm config and a manifest with counts, licenses and file hashes.
+A recipe with no domain_sources (marketing) needs --distilled data: with none, the run stops instead of writing
+an empty training set.
 """
 
 from __future__ import annotations
@@ -63,6 +65,24 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def load_distilled(path: Path) -> tuple[list[dict], dict[str, str | None]]:
+    """Chats of a distill.py file, and the teachers (repo -> license recorded when it wrote them) behind them.
+    A row without a teacher record stops the run: its license would be unknown."""
+    chats: list[dict] = []
+    teachers: dict[str, str | None] = {}
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        chat = json.loads(line)
+        meta = chat.pop("meta", None) or {}
+        if not meta.get("teacher"):
+            raise SystemExit(f"{path.name}:{n} has no teacher record; make it again with training/distill.py "
+                             "(it records the teacher's repo and license)")
+        teachers[meta["teacher"]] = meta.get("teacher_license")
+        chats.append(chat)
+    return chats, teachers
+
+
 def training_schedule(train: dict, n_train: int) -> dict:
     """mlx-lm counts `iters` in micro-batches; the optimizer (and so the LR schedule) steps once every
     grad_accumulation_steps of them, so the cosine decay length is measured in optimizer updates."""
@@ -113,11 +133,41 @@ def main() -> int:
                                      "role": role, "provenance": src.get("provenance", "")}
         return src
 
+    def no_domain_data() -> SystemExit:  # replay alone would train on nothing of the domain, and empty files look fine
+        distilled_out = f"training/data/{cfg['specialist']}/distilled.jsonl"
+        fix = (f"run `python training/distill.py {args.config} --out {distilled_out}` first and pass it with "
+               "--distilled" if (cfg.get("distill") or {}).get("enabled")
+               else "add domain_sources to the config or pass --distilled / --corrections data")
+        return SystemExit(f"no domain training data for '{cfg['specialist']}': {len(cfg.get('domain_sources', []))} "
+                          f"domain sources, {len(args.distilled)} distilled and {len(args.corrections)} correction "
+                          f"files gave no usable chats; {fix}")
+
+    if not (cfg.get("domain_sources") or args.distilled or args.corrections):
+        raise no_domain_data()  # marketing without distilled data: stop now, not after the eval sets are downloaded
+
     # 0. every license and registry role, before anything is downloaded
     for name in cfg.get("decontaminate_against", []):
         checked(name, "eval")
     for entry in cfg.get("domain_sources", []) + cfg.get("replay", {}).get("sources", []):
         checked(entry["source"], "train")
+    distilled: dict[str, list[dict]] = {}
+    for path in args.distilled:  # a teacher's terms travel with every example it wrote: same allowlist as datasets
+        chats, teachers = load_distilled(Path(path))
+        distilled[path] = chats
+        record = {"role": "train", "teachers": {}}
+        for repo, recorded in teachers.items():
+            try:
+                if args.skip_license_check:  # offline: trust the license distill.py recorded, still on the allowlist
+                    ok, reason = licenses.check(recorded, "train")
+                    if not ok:
+                        raise ValueError(f"teacher '{repo}': {reason}")
+                    lic = reason
+                else:  # live from the Hub, like the datasets
+                    lic = licenses.teacher_license(repo)
+            except ValueError as exc:
+                raise SystemExit(f"refusing {Path(path).name}: {exc}") from exc
+            record["teachers"][repo] = {"license_hub": lic, "license_recorded": recorded}
+        manifest["sources"][f"distilled:{Path(path).name}"] = record
 
     # 1. contamination index from every eval set
     index = ContaminationIndex()
@@ -178,13 +228,13 @@ def main() -> int:
         return chats
 
     domain = collect(cfg.get("domain_sources", []), system)
-    for path in args.distilled:
-        for line in Path(path).read_text(encoding="utf-8").splitlines():
-            chat = json.loads(line)
-            chat.pop("meta", None)
+    for path, chats in distilled.items():
+        kept = 0
+        for chat in chats:
             if passes_quality(chat) and not too_long(chat) and not index.contaminated(text_of(chat)):
                 domain.append(chat)
-        manifest["sources"][f"distilled:{Path(path).name}"] = {"role": "train", "license_hub": "teacher-output (Apache-2.0 teacher)"}
+                kept += 1
+        manifest["sources"][f"distilled:{Path(path).name}"]["kept"] = kept
     for path in args.corrections:  # Evolution level 3: the user's approved corrections (`spike evolve dataset`)
         kept = 0
         for line in Path(path).read_text(encoding="utf-8").splitlines():
@@ -204,6 +254,8 @@ def main() -> int:
         manifest["sources"][f"corrections:{Path(path).name}"] = {
             "role": "train", "kept": kept,
             "license_hub": "the user's own conversations, approved one by one; answers by SPIKE's local model"}
+    if not domain:
+        raise no_domain_data()
     replay = collect(cfg.get("replay", {}).get("sources", []), None)
 
     before = len(domain)
