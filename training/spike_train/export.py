@@ -124,7 +124,7 @@ def write_safetensors(path: Path, tensors: dict[str, np.ndarray], metadata: dict
 def load_base_weight_names(base_dir: Path) -> set[str]:
     index = base_dir / "model.safetensors.index.json"
     if index.exists():
-        return set(json.loads(index.read_text())["weight_map"])
+        return set(json.loads(index.read_text(encoding="utf-8"))["weight_map"])
     names: set[str] = set()
     for f in base_dir.glob("*.safetensors"):
         with f.open("rb") as fh:

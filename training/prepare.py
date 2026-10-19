@@ -108,8 +108,8 @@ def main() -> int:
     ap.add_argument("--skip-license-check", action="store_true", help="only for offline dry runs; never for releases")
     args = ap.parse_args()
 
-    cfg = yaml.safe_load(Path(args.config).read_text())
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     from spike.specialists.catalog import load_catalog
 
     system = load_catalog().get(cfg["specialist"]).system_prompt
@@ -279,8 +279,8 @@ def main() -> int:
                "steps_per_report": 10, "steps_per_eval": 200, "val_batches": 25, "save_every": 200,
                **training_schedule(cfg["train"], n_train)}
     manifest["counts"]["iters"] = mlx_cfg["iters"]
-    (out / "mlx_lora.yaml").write_text(yaml.safe_dump(mlx_cfg, sort_keys=False))
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
+    (out / "mlx_lora.yaml").write_text(yaml.safe_dump(mlx_cfg, sort_keys=False), encoding="utf-8")
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(manifest["counts"] | manifest["dropped"], indent=2))
     print(f"wrote {out}")
     return 0

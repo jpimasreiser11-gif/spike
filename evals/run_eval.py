@@ -63,8 +63,8 @@ async def run(args: argparse.Namespace) -> int:
     from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
     from spike.specialists.catalog import load_catalog
 
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
-    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text())["suites"]
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
     catalog = load_catalog()
     run_id = time.strftime("%Y%m%d-%H%M%S")
     out = Path(args.out or ROOT / "evals" / "results" / run_id)
@@ -127,15 +127,15 @@ def write_summary(out: Path, meta: dict, predictions: list[dict], variants: list
     summary = {"meta": meta, **summarize(predictions)}
     verdicts = {}
     if acceptance_file:
-        acceptance = yaml.safe_load(Path(acceptance_file).read_text())["acceptance"]
+        acceptance = yaml.safe_load(Path(acceptance_file).read_text(encoding="utf-8"))["acceptance"]
         for variant in variants:
             if variant != "base":
                 ok, reasons = check_acceptance(summary, acceptance, variant)
                 verdicts[variant] = {"accepted": ok, "reasons": reasons}
         summary["acceptance"] = verdicts
-    (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
-    (out / "summary.md").write_text(render_markdown(summary))
-    print((out / "summary.md").read_text())
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    (out / "summary.md").write_text(render_markdown(summary), encoding="utf-8")
+    print((out / "summary.md").read_text(encoding="utf-8"))
     print(f"results: {out}", file=sys.stderr)
     return 0 if all(v["accepted"] for v in verdicts.values()) else 2
 
@@ -144,9 +144,9 @@ def rescore_run(args: argparse.Namespace) -> int:
     """Re-score a finished run's saved responses with the current answer extractors. No model is run;
     the same items are rebuilt from the run's seed and every saved prediction must match one of them."""
     out = Path(args.rescore)
-    meta = json.loads((out / "summary.json").read_text())["meta"]
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
-    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text())["suites"]
+    meta = json.loads((out / "summary.json").read_text(encoding="utf-8"))["meta"]
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
     old = [json.loads(line) for line in (out / "predictions.jsonl").open(encoding="utf-8")]
     items: dict[str, Item] = {}
     for suite_name in sorted({p["suite"] for p in old}):

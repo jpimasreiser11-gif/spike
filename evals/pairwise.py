@@ -77,7 +77,7 @@ async def run(args: argparse.Namespace) -> int:
     from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
     from spike.specialists.catalog import load_catalog
 
-    acceptance = yaml.safe_load(Path(args.acceptance).read_text())["acceptance"] if args.acceptance else None
+    acceptance = yaml.safe_load(Path(args.acceptance).read_text(encoding="utf-8"))["acceptance"] if args.acceptance else None
     general = None
     if acceptance and acceptance.get("regression"):  # fail before hours of generation, not after
         if not args.general_eval:
@@ -120,8 +120,8 @@ async def run(args: argparse.Namespace) -> int:
             if general:
                 summary["general"] = general
             summary["accepted"], summary["reasons"] = check_pairwise_acceptance(summary, acceptance)
-        (out / "pairs.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
-        (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+        (out / "pairs.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+        (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary.get("accepted", True) else 2
     finally:

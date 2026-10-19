@@ -44,7 +44,7 @@ def resolve_base(base: str) -> Path:
 
 
 def to_peft(adapter_dir: Path, base_dir: Path, base_id: str, peft_dir: Path) -> dict:
-    cfg = json.loads((adapter_dir / "adapter_config.json").read_text())
+    cfg = json.loads((adapter_dir / "adapter_config.json").read_text(encoding="utf-8"))
     if cfg.get("fine_tune_type", "lora") != "lora":
         raise SystemExit(f"only LoRA adapters can be exported, got {cfg.get('fine_tune_type')}")
     weights = read_safetensors(adapter_dir / "adapters.safetensors")
@@ -135,7 +135,7 @@ def main() -> int:
         system = load_catalog().get(args.specialist).system_prompt
         report["live_check"] = asyncio.run(live_check(Path(args.check_model).expanduser(), out, system, args.ngl))
         print(f"live check: adapter changed {report['live_check']['outputs_changed']}/{len(PROBES)} greedy outputs")
-    (run_dir / "export.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
+    (run_dir / "export.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     return 0
 
 

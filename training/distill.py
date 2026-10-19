@@ -88,8 +88,8 @@ def gold_tasks(entry: dict, registry: dict, system: str) -> list[Task]:
 
 
 async def run(args: argparse.Namespace) -> int:
-    cfg = yaml.safe_load(Path(args.config).read_text())
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     from spike.specialists.catalog import load_catalog
 
     spec = load_catalog().get(cfg["specialist"])
@@ -103,7 +103,7 @@ async def run(args: argparse.Namespace) -> int:
     teacher = Teacher(args.teacher_url, args.teacher_model, concurrency=args.concurrency)
     try:
         if dcfg.get("seeds"):
-            seeds = [json.loads(line)["prompt"] for line in (ROOT / dcfg["seeds"]).read_text().splitlines() if line.strip()]
+            seeds = [json.loads(line)["prompt"] for line in (ROOT / dcfg["seeds"]).read_text(encoding="utf-8").splitlines() if line.strip()]
             prompts = await expand_seeds(teacher, seeds, spec.domain, args.limit or dcfg.get("expand_to", 1000), cfg.get("seed", 0))
             tasks = [Task(id=f"{spec.id}-{i}", prompt=p, system=spec.system_prompt) for i, p in enumerate(prompts)]
         elif dcfg.get("tasks_from"):

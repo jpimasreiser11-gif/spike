@@ -116,7 +116,7 @@ def main() -> int:
     from spike.specialists.catalog import load_catalog
 
     spec = load_catalog().get(args.specialist)
-    cfg = yaml.safe_load(Path(args.config or ROOT / "training" / "configs" / f"{spec.id}.yaml").read_text())
+    cfg = yaml.safe_load(Path(args.config or ROOT / "training" / "configs" / f"{spec.id}.yaml").read_text(encoding="utf-8"))
     run_dir = ROOT / "training" / "runs" / spec.id
     manifest = load(Path(args.data) / spec.id / "manifest.json", "data manifest (run training/prepare.py)")
     export = load(run_dir / "export.json", "export record (run training/export_adapter.py)")
