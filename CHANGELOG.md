@@ -54,6 +54,9 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   training script and in `spike adapters install`; pairwise answers are greedy; distillation checks the
   teacher's Hub license before use and records it in every example; prepare.py stops on a recipe with no
   domain data instead of writing an empty training set.
+- Finance recipe rebuilt after a license audit: only 4 of Sujet-Finance's 18 upstream sources kept (the rest
+  are model-generated, non-commercial or of unknown origin), plus FinQA and TAT-QA (MIT) fetched from pinned
+  commits with sha256 checks; finance eval adds exact-answer FinQA and TAT-QA test sets.
 
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a

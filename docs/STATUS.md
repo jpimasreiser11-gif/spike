@@ -161,8 +161,17 @@ yet measured).
 
 ## Built, not yet measured with real weights
 
-- Any trained adapter: medicine started on joan's Mac on 2026-10-18 (one ≈ 10 h run with memory guards, then
-  its eval); finance and marketing follow.
+- Any trained adapter. Medicine on joan's Mac has not finished: the 2026-10-18 run died at step 5,200 of 25,469
+  when its session ended, and the 2026-10-19 relaunch was stopped by the RAM guard at step 2,440 when other apps
+  pushed swap from 7.1 to 11.3 GB. mlx-lm restarts from zero after a stop; exact resume is being added.
+- Finance data after a license audit of Sujet-Finance-Instruct-177k's 18 upstream sources: 4 kept (news and tweet
+  classification, FinEntity; at most 2,000 rows each), 14 excluded (outputs of OpenAI or Anthropic models,
+  non-commercial licenses, or unknown provenance). Questions with calculations come from FinQA and TAT-QA (MIT,
+  files pinned by commit and sha256). `prepare.py` on those files (Sujet and oasst2 not run here, the Hub is
+  blocked): FinQA 6,251 → 5,367 kept (385 rows whose own arithmetic is wrong, 11 too long, 488 overlapping the
+  test sets), TAT-QA 13,215 → 7,064 (4,676 longer than 768 tokens, 1,475 overlapping). The finance eval adds
+  FinQA test (supporting facts given, so not comparable with retriever-based leaderboards) and TAT-QA test, 600
+  each, to MMLU-Pro business and economics.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.
