@@ -62,6 +62,26 @@ def test_card_needs_an_acceptance_verdict():
         render(load_catalog().get("medicine"), CFG, MANIFEST, EXPORT, {"meta": {"run_id": "r1"}}, SUMMARY_MD)
 
 
+def test_card_lists_url_sources_and_says_when_a_hub_dataset_is_used_in_part():
+    finqa = {"urls": [{"url": "https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867b/dataset/train.json", "sha256": "0" * 64}],
+             "repo": "https://github.com/czyssrs/FinQA", "revision": "0f16e2867befa6840783e58be38c9efb9229d742",
+             "license_url": "https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867b/LICENSE", "license_hub": "mit"}
+    manifest = {**MANIFEST, "sources": {
+        **MANIFEST["sources"],
+        "sujet-finance": {"hub": "sujet-ai/Sujet-Finance-Instruct-177k", "license_hub": "apache-2.0", "role": "train",
+                          "filter": {"dataset": ["yixuantt/FinEntity", "zeroshot/twitter-financial-news-topic"]}},
+        "finqa-train": {**finqa, "role": "train"},
+        "finqa-test": {**finqa, "role": "eval"},
+    }}
+    card = render(load_catalog().get("finance"), CFG, manifest, EXPORT, summary(True), SUMMARY_MD)
+    assert "| [https://github.com/czyssrs/FinQA](https://github.com/czyssrs/FinQA) at `0f16e2867b` | mit | training |" in card
+    assert "| mit | evaluation and decontamination only |" in card
+    assert ("[sujet-ai/Sujet-Finance-Instruct-177k](https://huggingface.co/datasets/sujet-ai/Sujet-Finance-Instruct-177k) | "
+            "apache-2.0 | training (only rows where `dataset` is yixuantt/FinEntity / zeroshot/twitter-financial-news-topic)") in card
+    assert "sujet-ai/Sujet-Finance-Instruct-177k" in front_matter(card)["datasets"]
+    assert not any("github" in d for d in front_matter(card)["datasets"])  # the front matter lists Hub ids only
+
+
 def test_non_sensitive_specialist_has_no_advice_disclaimer():
     card = render(load_catalog().get("marketing"), CFG, MANIFEST, EXPORT, summary(True), SUMMARY_MD)
     assert "professional advice" not in card

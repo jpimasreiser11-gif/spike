@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+import unicodedata
 
 _THINK = re.compile(r"(?s)<think>.*?</think>")
 
@@ -52,6 +53,62 @@ def extract_number(text: str) -> float | None:
 
 def numbers_match(value: float | None, target: float, rel_tol: float = 1e-4) -> bool:
     return value is not None and abs(value - target) <= max(1e-6, abs(target) * rel_tol)
+
+
+_FINAL = re.compile(r"(?i)\banswer\b[\s*_]*[:：][\s*_:：]*([^\n]*)")
+_AMOUNT = re.compile(r"(?P<neg>[-−–]\s*)?\$?\s*(?P<neg2>[-−–]\s*)?"
+                     r"(?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)")
+_PERCENT = re.compile(r"\)?\s*(?:%|per\s?cent)", re.I)
+_SCALE_WORD = re.compile(r"(?<=[\d)])\s*(?:thousands?|millions?|billions?|percent)\s*$")
+_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+def extract_final(text: str) -> str | None:
+    """The line after the last 'Answer:' (markdown allowed); without one, the last non-empty line."""
+    body = strip_think(text)
+    found = _FINAL.findall(body)
+    lines = [ln for ln in body.splitlines() if ln.strip()]
+    line = found[-1] if found else (lines[-1] if lines else "")
+    return line.strip(" \t*_`") or None
+
+
+def parse_amount(text: str | None) -> tuple[float, bool] | None:
+    """The first number of an answer line as (value, written as a percentage). Handles $, thousands commas,
+    '-', the unicode minus and '(1,234)' as negative; scale words (million, ...) are ignored. After an '='
+    only the part behind the last one is read, so 'Answer: 5829 - 5735 = 94' is 94."""
+    if text is None:
+        return None
+    text = text.rsplit("=", 1)[-1]
+    m = _AMOUNT.search(text)
+    if not m:
+        return None
+    after = text[m.end():].lstrip()
+    value = float(m["num"].replace(",", ""))
+    bracketed = text[: m.start()].rstrip().endswith("(") and re.match(r"%?\s*\)", after) is not None
+    return (-value if m["neg"] or m["neg2"] or bracketed else value), _PERCENT.match(after) is not None
+
+
+def amount_matches(parsed: tuple[float, bool] | None, gold: float, rel_tol: float = 0.005) -> bool:
+    """Within 0.5 % of the gold, or, when written as a percentage, its fraction (28 % for 0.28)."""
+    if parsed is None:
+        return False
+    value, percent = parsed
+    return numbers_match(value, gold, rel_tol) or (percent and numbers_match(value / 100, gold, rel_tol))
+
+
+def normalize_span(text: str) -> str:
+    """Lower case, articles, punctuation and a trailing scale word after a number removed, one space between
+    words. Numbers keep their meaning: '16,284' is '16284' but '16.284' stays distinct, '(4,400)' is '-4400'."""
+    text = unicodedata.normalize("NFKC", text).lower().replace("−", "-").strip()
+    text = re.sub(r"\(\s*(\d[\d,.]*)\s*\)", r"-\1", _SCALE_WORD.sub("", text))
+    text = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
+    text = re.sub(r"[^\w\s.-]", "", re.sub(r"\b(?:a|an|the)\b", " ", text))
+    return " ".join(t for t in (t if _NUMBER.fullmatch(t) else re.sub(r"\W", "", t) for t in text.split()) if t)
+
+
+def span_set(text: str) -> set[str]:
+    """The items of 'a; b; c' as a set of normalized spans (order does not matter)."""
+    return {s for part in text.split(";") if (s := normalize_span(part))}
 
 
 def wilson_interval(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:

@@ -36,13 +36,25 @@ def verdict_of(summary: dict) -> tuple[str, dict] | None:
     return next(iter(adapters.items()))
 
 
+def dataset_link(v: dict) -> str:
+    """A Hub dataset, or a source fetched from pinned URLs (FinQA, TAT-QA): its repository at the pinned commit."""
+    if "hub" in v:
+        return f"[{v['hub']}](https://huggingface.co/datasets/{v['hub']})"
+    return f"[{v['repo']}]({v['repo']}) at `{v['revision'][:10]}`"
+
+
+def subset_note(v: dict) -> str:
+    rows = "; ".join(f"`{col}` is {' / '.join(values)}" for col, values in (v.get("filter") or {}).items())
+    return f" (only rows where {rows})" if rows else ""
+
+
 def render(spec, cfg: dict, manifest: dict, export: dict, summary: dict, summary_md: str) -> str:
     verdict = verdict_of(summary)
     if verdict is None:
         raise SystemExit("the eval run has no acceptance verdict for exactly one adapter; run run_eval.py with --acceptance")
     variant, result = verdict
-    train_sources = {k: v for k, v in manifest["sources"].items() if v.get("role") == "train" and "hub" in v}
-    eval_sources = {k: v for k, v in manifest["sources"].items() if v.get("role") == "eval" and "hub" in v}
+    train_sources = {k: v for k, v in manifest["sources"].items() if v.get("role") == "train" and ("hub" in v or "urls" in v)}
+    eval_sources = {k: v for k, v in manifest["sources"].items() if v.get("role") == "eval" and ("hub" in v or "urls" in v)}
     peft, counts, dropped = export["peft"], manifest["counts"], manifest["dropped"]
     front = {
         "license": "apache-2.0",
@@ -50,7 +62,7 @@ def render(spec, cfg: dict, manifest: dict, export: dict, summary: dict, summary
         "language": ["en", "es"],
         "pipeline_tag": "text-generation",
         "tags": ["spike", "lora", "gguf", spec.id],
-        "datasets": sorted({v["hub"] for v in train_sources.values()}),
+        "datasets": sorted({v["hub"] for v in train_sources.values() if "hub" in v}),
     }
     gguf = Path(export["gguf"]).name
     lines = ["---", yaml.safe_dump(front, sort_keys=False, allow_unicode=True).strip(), "---", "",
@@ -79,10 +91,9 @@ def render(spec, cfg: dict, manifest: dict, export: dict, summary: dict, summary
               f"{dropped['duplicate']} duplicates, {dropped['contaminated']} that shared a 13-gram with an eval set.", "",
               "| dataset | license | used as |", "|---|---|---|"]
     for v in train_sources.values():
-        lines.append(f"| [{v['hub']}](https://huggingface.co/datasets/{v['hub']}) | {v['license_hub']} | training |")
+        lines.append(f"| {dataset_link(v)} | {v['license_hub']} | training{subset_note(v)} |")
     for v in eval_sources.values():
-        lines.append(f"| [{v['hub']}](https://huggingface.co/datasets/{v['hub']}) | {v['license_hub']} | "
-                     "evaluation and decontamination only |")
+        lines.append(f"| {dataset_link(v)} | {v['license_hub']} | evaluation and decontamination only |")
     body = summary_md.split("\n", 1)[1].strip() if summary_md.startswith("# ") else summary_md.strip()
     lines += ["", "## Evaluation", "",
               f"Variant `{variant}` against the same base model with the same prompts (run "

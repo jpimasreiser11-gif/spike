@@ -2,18 +2,25 @@
 specialist: finance
 base_model: Qwen/Qwen3.5-4B          # Apache-2.0; mlx-lm loads and trains it in bf16 (no QLoRA, see ADR 0002)
 hypothesis: >
-  LoRA on aggregated finance instruction data (QA, sentiment, extraction) improves finance reasoning of the 4B base
-  without degrading general knowledge.
+  LoRA on permissively licensed, human-annotated finance data (news and tweet classification and entity extraction
+  from Sujet-Finance, plus FinQA and TAT-QA questions with their calculations) improves exact-answer finance
+  reasoning of the 4B base, measured on the held-out FinQA and TAT-QA test sets (FinQA in the gold-facts setting:
+  the supporting facts are given, so it is not comparable with retriever-based leaderboards) and MMLU-Pro
+  business and economics, without degrading general knowledge.
 acceptance:
   primary: {suite: finance, min_gain_points: 3.0, max_p_value: 0.05}
   regression: {suite: general, max_drop_points: 1.5}
 domain_sources:
-  - {source: sujet-finance, max: 30000}
+  - {source: sujet-finance, max: 8000}   # only the four audited upstream datasets (filter in datasets.yaml)
+  - {source: finqa-train}                # all 6,251 questions
+  - {source: tatqa-train}                # all 13,215 questions
 replay:
   ratio: 0.3                          # share of general data in the training mix (anti-forgetting)
   sources:
     - {source: oasst2, max: 13000}       # human-written only; 13,002 chats are built from en+es
-decontaminate_against: [mmlu-pro]
+eval:
+  max_tokens: 2048                    # base and adapter share it; calculations before "Answer:" need room
+decontaminate_against: [mmlu-pro, finqa-test, tatqa-test]
 valid_fraction: 0.02
 seed: 0
 train:

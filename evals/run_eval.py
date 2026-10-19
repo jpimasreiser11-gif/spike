@@ -38,17 +38,21 @@ from spike_train.evaluation import (  # noqa: E402
     score,
     summarize,
 )
+from spike_train.sources import filtered, url_rows  # noqa: E402
 
 
 def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list[Item]:
-    from datasets import load_dataset
-
     src = registry[task["source"]]
-    ok, reason = licenses.check(licenses.hub_license(src["hub"]), "eval")  # as published, not as recorded
+    ok, reason = licenses.check(licenses.source_license(src), "eval")  # Hub: as published; URL source: as recorded
     if not ok or src["role"] != "eval":
         raise SystemExit(f"source '{task['source']}' is not an eval source: {reason}")
-    ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "test"))
-    rows = list(ds)
+    if "urls" in src:  # pinned files instead of the Hub (spike_train/sources.py)
+        ds = url_rows(src)
+    else:
+        from datasets import load_dataset
+
+        ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "test"))
+    rows = list(filtered(src, ds))
     if task.get("categories"):
         rows = [r for r in rows if r.get("category") in set(task["categories"])]
     items = [it for i, r in enumerate(rows) if (it := make_item(task["name"], src["format"], i, r))]

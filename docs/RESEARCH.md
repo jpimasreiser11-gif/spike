@@ -57,7 +57,7 @@ in source: `iters` counts micro-batches; the optimizer and LR schedule step ever
 Lesson applied from the sciences44 report: acceptance is decided by task metrics on held-out data, never by
 validation loss.
 
-## 5. Datasets (licenses read on the Hub; re-checked automatically at download time)
+## 5. Datasets (Hub licenses re-checked automatically at download time; URL sources use the license recorded with their pinned commit)
 
 | Source | License | Use | Notes |
 |---|---|---|---|
@@ -66,11 +66,12 @@ validation loss.
 | [OpenAssistant/oasst2](https://huggingface.co/datasets/OpenAssistant/oasst2) | Apache-2.0 (registry value; HF blocked in the build container, re-checked at download) | general replay | human-written; en + es; one chat per best-ranked reply |
 | [HuggingFaceTB/smoltalk](https://huggingface.co/datasets/HuggingFaceTB/smoltalk) smol-constraints | Apache-2.0 (card text only) | **excluded** | the Hub metadata declares no license, so the license gate refuses it, and the card does not name the generator; general replay is human-written oasst2 only |
 | HuggingFaceTB/smoltalk smol-magpie-ultra | Apache-2.0 | **excluded** | generated with Llama-3.1-405B-Instruct; the [Llama 3.1 license](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE) §1.b.i requires "Llama" at the start of the name of any distributed model trained on its outputs |
-| [sujet-ai/Sujet-Finance-Instruct-177k](https://huggingface.co/datasets/sujet-ai/Sujet-Finance-Instruct-177k) | Apache-2.0 | finance train | aggregates 18 sources; upstream audit required before releasing weights |
+| [sujet-ai/Sujet-Finance-Instruct-177k](https://huggingface.co/datasets/sujet-ai/Sujet-Finance-Instruct-177k) | Apache-2.0 (aggregate); rows keep their upstream license | finance train, **filtered** by the `dataset` column to `ugursa/Yahoo-Finance-News-Sentences`, `zeroshot/twitter-financial-news-topic`, `zeroshot/twitter-financial-news-sentiment`, `yixuantt/FinEntity` | upstream audit: the four kept sources are classification and entity extraction (no QA), uploader-claimed MIT / odc-by, and their news and tweet text is third-party. Excluded: finance-alpaca (text-davinci-003 and GPT-3.5 outputs, CC BY-NC), ehc-contrived-financial (OpenAI davinci-turbo), lmsys-finance (GPT-4 and Claude outputs), financial_phrasebank and its copies (CC BY-NC-SA 3.0), FiQA_SA (non-commercial), AdaptLLM Headline and ConvFinQA (no license), FinTalk-19k, financial-classification, finqabench, FinRiskAnalysis (provenance unverified or LLM-generated) |
+| [czyssrs/FinQA](https://github.com/czyssrs/FinQA) at `0f16e2867b` (original release; `train.json`, `test.json`) | MIT ([LICENSE](https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867befa6840783e58be38c9efb9229d742/LICENSE)) | finance train (6,251 questions), eval (test, 1,147) | expert-written questions over S&P 500 reports with annotated programs. **Gold-facts setting**: the prompt contains the annotated supporting facts and no retrieval is done, so scores are not comparable with retriever-based FinQA results. Scored on the program's result or the annotated (rounded) answer, 0.5 % tolerance. Fetched from pinned URLs, sha256 checked on every load; dev split not used |
+| [NExTplusplus/TAT-QA](https://github.com/NExTplusplus/TAT-QA) at `870accc41a` (`dataset_raw`) | MIT ([LICENSE](https://raw.githubusercontent.com/NExTplusplus/TAT-QA/870accc41953dcde885aabeb963d94aabdc0fbc3/LICENSE); the Hub card says CC BY 4.0) | finance train (13,215 questions), eval (`test_gold`, 1,663) | hybrid table + text questions (span, multi-span, count, arithmetic) from financial reports; the table and text are given. Numbers scored with a 0.5 % tolerance ignoring scale words, %, $; spans by normalized exact match, multi-span as an unordered set. Pinned URLs with sha256; dev split not used |
 | [TIGER-Lab/MMLU-Pro](https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro) | MIT | eval only | 12k questions, 14 categories |
 | openai/gsm8k | MIT (registry value) | eval only | re-checked on the Hub by the eval runner |
 | [FreedomIntelligence/medical-o1-reasoning-SFT](https://huggingface.co/datasets/FreedomIntelligence/medical-o1-reasoning-SFT) | Apache-2.0 | **excluded** | generated with GPT-4o; OpenAI terms restrict training competing models |
-| [ibm-research/finqa](https://huggingface.co/datasets/ibm-research/finqa) | CC-BY-4.0 | candidate | not used yet |
 
 ## 6. Orchestration
 

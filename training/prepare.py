@@ -37,13 +37,17 @@ from spike_train.data import (  # noqa: E402
     text_of,
     write_jsonl,
 )
+from spike_train.sources import filtered, origin, url_rows  # noqa: E402
 
 
 def load_rows(src: dict, offset: int = 0, limit: int | None = None):
-    from datasets import load_dataset
+    if "urls" in src:  # pinned files instead of the Hub (spike_train/sources.py)
+        ds = url_rows(src)
+    else:
+        from datasets import load_dataset
 
-    ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True)
-    for i, row in enumerate(ds):
+        ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True)
+    for i, row in enumerate(filtered(src, ds)):  # `filter:` of the registry entry; offset and limit count kept rows
         if i < offset:
             continue
         if limit is not None and i >= offset + limit:
@@ -123,13 +127,13 @@ def main() -> int:
         if manifest["sources"].get(name, {}).get("role") == role:
             return src
         declared = src["license"]
-        hub = declared if args.skip_license_check else licenses.hub_license(src["hub"])
+        hub = declared if args.skip_license_check else licenses.source_license(src)
         ok, reason = licenses.check(hub, role)
         if role == "train" and src["role"] != "train":
             raise SystemExit(f"refusing source '{name}' for training: registry role is '{src['role']}'")
         if not ok:
             raise SystemExit(f"refusing source '{name}': {reason}")
-        manifest["sources"][name] = {"hub": src["hub"], "license_hub": hub, "license_registry": declared,
+        manifest["sources"][name] = {**origin(src), "license_hub": hub, "license_registry": declared,
                                      "role": role, "provenance": src.get("provenance", "")}
         return src
 

@@ -24,6 +24,12 @@ def check(license_id: str | None, role: str) -> tuple[bool, str]:
     return True, lic
 
 
+def source_license(src: dict) -> str | None:
+    """The license to gate a registry source on: as published on the Hub for a Hub source; for a URL source, which
+    the Hub cannot be asked about, the one recorded in datasets.yaml (with the LICENSE file's URL)."""
+    return hub_license(src["hub"]) if "hub" in src else src.get("license")
+
+
 def _hub_license(kind: str, repo: str) -> str | None:
     import httpx
 

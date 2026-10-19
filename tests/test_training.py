@@ -710,7 +710,8 @@ def prepare_env(tmp_path, monkeypatch, extra: list[str] | None = None, config: s
     registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
     by_hub = {}
     for name, src in registry.items():
-        by_hub[(src["hub"], src.get("config"), src.get("split"))] = name
+        if "hub" in src:  # URL sources (FinQA, TAT-QA) are not on the Hub
+            by_hub[(src["hub"], src.get("config"), src.get("split"))] = name
 
     def fake_rows(src, offset=0, limit=None):
         data = rows[by_hub[(src["hub"], src.get("config"), src.get("split"))]]
@@ -720,7 +721,7 @@ def prepare_env(tmp_path, monkeypatch, extra: list[str] | None = None, config: s
     monkeypatch.setattr(prepare, "load_token_counter", lambda base_model: lambda chat: (
         100_000 if "LONG" in chat["messages"][1]["content"] else 100))
     monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: {
-        s["hub"]: s["license"] for s in registry.values()}[repo])
+        s["hub"]: s["license"] for s in registry.values() if "hub" in s}[repo])
     monkeypatch.setattr(prepare.licenses, "hub_model_license", lambda repo: TEACHER_LICENSES[repo])
     cfg = ROOT / "training" / "configs" / f"{config}.yaml"
     monkeypatch.setattr(sys, "argv", ["prepare.py", str(cfg), "--out", str(tmp_path), *(extra or [])])

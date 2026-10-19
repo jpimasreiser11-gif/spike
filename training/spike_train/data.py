@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import operator
 import random
 import re
 import unicodedata
@@ -22,9 +23,14 @@ def _norm(text: str) -> str:
 MCQ_INSTRUCTION = "Answer with the letter of the correct option, after a short justification."
 PUBMEDQA_INSTRUCTION = "Read the abstract and answer the research question with yes, no or maybe."
 GSM8K_INSTRUCTION = "Solve step by step, then give the final number on the last line as 'Answer: <number>'."
+FINQA_INSTRUCTION = ("Work out the calculation step by step, then give the final number on the last line as "
+                     "'Answer: <number>' ('Answer: yes' or 'Answer: no' for a yes/no question).")
+TATQA_INSTRUCTION = ("Answer from the table and the text, in the units they use (do not convert thousands or millions). "
+                     "Show a calculation briefly; separate several items with '; '. "
+                     "End with a final line 'Answer: <answer>'.")
 # Instruction text shared by every prompt of a format. It is removed before n-gram decontamination,
 # otherwise every training prompt would "overlap" every eval prompt through the template alone.
-TEMPLATES = (MCQ_INSTRUCTION, PUBMEDQA_INSTRUCTION, GSM8K_INSTRUCTION)
+TEMPLATES = (MCQ_INSTRUCTION, PUBMEDQA_INSTRUCTION, GSM8K_INSTRUCTION, FINQA_INSTRUCTION, TATQA_INSTRUCTION)
 
 
 def content_text(text: str) -> str:
@@ -79,6 +85,167 @@ def fmt_pubmedqa(row: dict[str, Any], system: str) -> Chat | None:
     ]}
 
 
+# FinQA (Chen et al., 2021) in the GOLD-FACTS setting: the prompt carries the supporting facts the annotators marked
+# (`gold_inds`), so no retrieval is involved. Scores are therefore not comparable with retriever-based FinQA results.
+_FINQA_OPS = {"add": "+", "minus": "-", "multiply": "*", "divide": "/", "exp": "^", "compare_larger": ">"}
+
+
+def finqa_prompt(row: dict[str, Any]) -> str | None:
+    qa = row.get("qa") or {}
+    facts = [str(f).strip() for f in (qa.get("gold_inds") or {}).values() if str(f).strip()]
+    if not facts or not str(qa.get("question") or "").strip():
+        return None
+    return "Facts:\n" + "\n".join(facts) + f"\n\nQuestion: {qa['question'].strip()}\n\n{FINQA_INSTRUCTION}"
+
+
+def finqa_answer(qa: dict[str, Any]) -> str:
+    """The annotated final answer ('28%', '$ 13 million'); comparison programs have 'yes'/'no' as their result.
+    The few rows with an empty answer (48 of 6,251) use the annotated result of the last step instead."""
+    if isinstance(qa.get("exe_ans"), str):
+        return qa["exe_ans"]
+    answer = re.sub(r"(?:\\+n)+$", "", str(qa.get("answer") or "")).strip()  # a few end in a literal "\\n"
+    return answer or str((qa.get("steps") or [{}])[-1].get("res") or "").strip()
+
+
+def finqa_steps(steps: list[dict[str, Any]]) -> list[str] | None:
+    """The annotated program as lines like '5829 - 5735 = 94'; '#0' becomes the result of that step."""
+    def arg(a: str, done: list[dict[str, Any]]) -> str:
+        if a.startswith("#"):
+            return done[int(a[1:])]["res"]
+        return ("-1" if a == "const_m1" else a[6:]) if a.startswith("const_") else a
+
+    lines = []
+    try:
+        for i, step in enumerate(steps):
+            op = re.sub(r"\d+-\d+$", "", step["op"])
+            args = [arg(a, steps[:i]) for a in (step["arg1"], step["arg2"]) if a not in ("", "none")]
+            binary = op in _FINQA_OPS and len(args) == 2
+            expr = f" {_FINQA_OPS[op]} ".join(args) if binary else f"{op}({', '.join(args)})"
+            lines.append(f"{expr} = {step['res']}")
+    except (KeyError, IndexError, ValueError):
+        return None
+    return lines
+
+
+_FINQA_MATH = {"add": operator.add, "minus": operator.sub, "multiply": operator.mul, "divide": operator.truediv,
+               "exp": operator.pow}
+
+
+def _readings(text: str, percent: bool = False) -> list[tuple[float, float]] | None:
+    """A number as annotated, as (value, half a unit of its last digit); '3.2%' reads as 0.032 or as 3.2, and
+    with percent=True so does '3.2' (a result written as a percentage of the value)."""
+    text = text.strip()
+    if text.startswith("const_"):
+        text = "-1" if text == "const_m1" else text[6:]
+    number = text.rstrip("%").replace(",", "").replace("$", "").strip()
+    try:
+        value = float(number)
+    except ValueError:
+        return None
+    half = 0.5 * 10 ** -(len(number.split(".")[1]) if "." in number else 0)
+    return [(value / 100, half / 100), (value, half)] if percent or text.endswith("%") else [(value, half)]
+
+
+def _agrees(value: float, result: float, half: float) -> bool:
+    """Within 0.5 % of the recomputed value, or within the rounding of the digits the annotator wrote."""
+    return abs(value - result) <= max(1e-9, 0.005 * abs(value), half)
+
+
+def finqa_steps_consistent(steps: list[dict[str, Any]]) -> bool:
+    """Does every step's annotated `res` follow from its arguments? '#n' arguments are the annotated result of
+    that step, constants and percentages are read as written, and a result may be written as a percentage of the
+    value. Steps that cannot be recomputed here (table operations, row labels) are not a reason to say no."""
+    for i, step in enumerate(steps):
+        op = re.sub(r"\d+-\d+$", "", step["op"])
+        if op not in _FINQA_MATH and op != "compare_larger":
+            continue
+        args = [_readings(steps[:i][int(a[1:])]["res"] if a.startswith("#") else a) for a in (step["arg1"], step["arg2"])]
+        if None in args:
+            continue
+        results = _readings(step["res"], percent=True)
+        if op == "compare_larger":
+            if step["res"] in ("yes", "no") and not any((a > b) == (step["res"] == "yes")
+                                                        for a, _ in args[0] for b, _ in args[1]):
+                return False
+            continue
+        if results is None:
+            continue
+        try:
+            values = [_FINQA_MATH[op](a, b) for a, _ in args[0] for b, _ in args[1]]
+        except (ZeroDivisionError, OverflowError):
+            continue
+        if not any(_agrees(v, r, half) for v in values for r, half in results):
+            return False
+    return True
+
+
+def fmt_finqa_train(row: dict[str, Any], system: str) -> Chat | None:
+    """fmt_finqa for training sources: a row whose annotated steps contradict their own arithmetic (5.6 % of the
+    steps in the train split) is dropped, so the model is not taught wrong sums. Eval items and the
+    decontamination index use the unfiltered `finqa` format."""
+    try:
+        consistent = finqa_steps_consistent((row.get("qa") or {}).get("steps") or [])
+    except (KeyError, IndexError, ValueError):
+        return None
+    return fmt_finqa(row, system) if consistent else None
+
+
+def fmt_finqa(row: dict[str, Any], system: str) -> Chat | None:
+    user, qa = finqa_prompt(row), row.get("qa") or {}
+    answer, steps = finqa_answer(qa), finqa_steps(qa.get("steps") or [])
+    if not user or not answer or steps is None:
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+        {"role": "assistant", "content": "\n".join([*steps, f"Answer: {answer}"])},
+    ]}
+
+
+# TAT-QA (Zhu et al., 2021): questions over a table plus text; one row per question (the registry's `explode`).
+def tatqa_prompt(row: dict[str, Any]) -> str | None:
+    qa = row.get("qa") or {}
+    rows = (row.get("table") or {}).get("table") or []
+    table = "\n".join("| " + " | ".join(str(c).strip() for c in r) + " |" for r in rows)
+    paragraphs = sorted(row.get("paragraphs") or [], key=lambda p: p.get("order", 0))
+    text = "\n".join(str(p.get("text") or "").strip() for p in paragraphs).strip()
+    if not str(qa.get("question") or "").strip() or not (table or text):
+        return None
+    sections = [f"{name}:\n{body}" for name, body in (("Table", table), ("Text", text)) if body]
+    return "\n\n".join([*sections, f"Question: {qa['question'].strip()}", TATQA_INSTRUCTION])
+
+
+def tatqa_target(qa: dict[str, Any]) -> str | None:
+    """Derivation (arithmetic, count) and then 'Answer: ...': the number with its scale, the span, or 'a; b; c'."""
+    answer, scale = qa.get("answer"), qa.get("scale") or ""
+    derivation = str(qa.get("derivation") or "").strip()
+    if isinstance(answer, list):
+        parts = [str(a).strip() for a in answer if str(a).strip()]
+        return f"Answer: {'; '.join(parts)}" if parts else None
+    if answer is None or not str(answer).strip():
+        return None
+    if isinstance(answer, float) and answer.is_integer():
+        answer = int(answer)
+    lines = []
+    if derivation and qa.get("answer_type") == "count":
+        lines.append("Counted: " + "; ".join(x.strip() for x in derivation.split("##") if x.strip()))
+    elif derivation:
+        lines.append(derivation)
+    lines.append(f"Answer: {str(answer).strip()} {scale}".rstrip())
+    return "\n".join(lines)
+
+
+def fmt_tatqa(row: dict[str, Any], system: str) -> Chat | None:
+    user, target = tatqa_prompt(row), tatqa_target(row.get("qa") or {})
+    if not user or not target:
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+        {"role": "assistant", "content": target},
+    ]}
+
+
 def fmt_sujet(row: dict[str, Any], system: str) -> Chat | None:
     user = (row.get("user_prompt") or row.get("inputs") or "").strip()
     answer = str(row.get("answer") or "").strip()
@@ -114,6 +281,9 @@ FORMATTERS = {
     "medmcqa": fmt_medmcqa,
     "pubmedqa": fmt_pubmedqa,
     "sujet": fmt_sujet,
+    "finqa": fmt_finqa,
+    "finqa_train": fmt_finqa_train,
+    "tatqa": fmt_tatqa,
     "messages": fmt_messages,
     "mmlu_pro": fmt_mmlu_pro,
 }

@@ -17,13 +17,26 @@ from typing import Any
 
 import httpx
 
-from spike_train.data import LETTERS, gsm8k_prompt, mcq_prompt, pubmedqa_prompt
+from spike_train.data import (
+    LETTERS,
+    finqa_answer,
+    finqa_prompt,
+    gsm8k_prompt,
+    mcq_prompt,
+    pubmedqa_prompt,
+    tatqa_prompt,
+)
 from spike_train.metrics import (
+    amount_matches,
     extract_choice,
+    extract_final,
     extract_number,
     extract_yes_no,
     mcnemar_exact,
+    normalize_span,
     numbers_match,
+    parse_amount,
+    span_set,
     wilson_interval,
 )
 
@@ -33,9 +46,10 @@ class Item:
     id: str
     task: str
     prompt: str
-    kind: str  # mcq | yesno | numeric
-    gold: str
+    kind: str  # mcq | yesno | numeric | amount | span | spans
+    gold: str  # amount: a number; spans: 'a; b; c'
     n_options: int = 0
+    alt: str = ""  # amount: a second accepted number (FinQA's rounded annotated answer)
 
 
 def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | None:
@@ -59,6 +73,34 @@ def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | No
     if fmt == "gsm8k":
         gold = str(row.get("answer", "")).rsplit("####", 1)[-1].strip().replace(",", "")
         return Item(f"{task}/{index}", task, gsm8k_prompt(row["question"]), "numeric", gold)
+    if fmt == "finqa":  # gold-facts setting, see data.py
+        qa = row.get("qa") or {}
+        prompt, exe = finqa_prompt(row), qa.get("exe_ans")
+        if not prompt or exe is None:
+            return None
+        item_id = f"{task}/{row.get('id', index)}"
+        if isinstance(exe, str):
+            return Item(item_id, task, prompt, "yesno", exe) if exe in ("yes", "no") else None
+        # exe_ans is the program's exact result; the annotated answer is rounded ('28%' for 0.27743) and is what
+        # training teaches, so a prediction may match either
+        alt = parse_amount(finqa_answer(qa))
+        return Item(item_id, task, prompt, "amount", repr(float(exe)),
+                    alt=repr(alt[0] / 100 if alt[1] else alt[0]) if alt else "")
+    if fmt == "tatqa":
+        qa = row.get("qa") or {}
+        prompt, answer = tatqa_prompt(row), qa.get("answer")
+        item_id = f"{task}/{qa.get('uid', index)}"
+        if not prompt or answer is None:
+            return None
+        if isinstance(answer, list):
+            parts = [str(a).strip() for a in answer if str(a).strip()]
+            if not parts:
+                return None
+            return Item(item_id, task, prompt, "span" if len(parts) == 1 else "spans", "; ".join(parts))
+        try:
+            return Item(item_id, task, prompt, "amount", repr(float(str(answer).replace(",", ""))))
+        except ValueError:
+            return None
     raise ValueError(f"no evaluation format '{fmt}'")
 
 
@@ -72,6 +114,17 @@ def score(item: Item, response: str) -> tuple[str | None, bool]:
     if item.kind == "numeric":
         value = extract_number(response)
         return (None if value is None else f"{value:g}"), numbers_match(value, float(item.gold))
+    answer = extract_final(response)
+    if item.kind == "amount":  # 0.5 % tolerance, '%' allowed, scale words and $ ignored (metrics.amount_matches)
+        parsed = parse_amount(answer)
+        correct = any(amount_matches(parsed, float(g)) for g in (item.gold, item.alt) if g)
+        return (None if parsed is None else f"{parsed[0]:.10g}{'%' if parsed[1] else ''}"), correct
+    if item.kind == "span":  # normalized exact match
+        parsed = None if answer is None else normalize_span(answer)
+        return parsed, parsed is not None and parsed == normalize_span(item.gold)
+    if item.kind == "spans":  # the same items in any order
+        found = None if answer is None else span_set(answer)
+        return ("; ".join(sorted(found)) if found else None), found is not None and found == span_set(item.gold)
     raise ValueError(item.kind)
 
 

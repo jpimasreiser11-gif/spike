@@ -1,6 +1,10 @@
 # Data sources for SPIKE adapters. Every entry records the license as published by the source and how
 # SPIKE may use it. prepare.py re-checks the license from the Hugging Face Hub at download time and
 # refuses anything that is not on the allowlist (training/spike_train/licenses.py).
+# A source is either `hub:` (+ config, split) or `urls: [{url, sha256}]` with `revision`, `license` and `license_url`
+# (files fetched at a pinned commit and verified against their sha256 on every load; the Hub is not asked, so the
+# recorded license is what the gate checks; see training/spike_train/sources.py).
+# `filter: {column: [values]}` keeps only the rows of a Hub source whose column has one of the values.
 #
 # role: train  -> may be used for training data
 #       eval   -> evaluation only; prepare.py decontaminates training data against these
@@ -77,7 +81,80 @@ sources:
     license: apache-2.0
     role: train
     format: sujet
-    provenance: Aggregation of 18 public finance datasets (sentiment, QA, NER, classification). Upstream sources should be audited before redistribution of derived weights.
+    # the per-row `dataset` column names the upstream source; only the audited permissive ones are used
+    filter:
+      dataset:
+        - ugursa/Yahoo-Finance-News-Sentences
+        - zeroshot/twitter-financial-news-topic
+        - zeroshot/twitter-financial-news-sentiment
+        - yixuantt/FinEntity
+    provenance: >-
+      Subset of an aggregation of 18 public finance datasets, chosen by the `dataset` column after a license audit.
+      Kept: the four classification and entity-extraction sources above (no QA), uploader-claimed MIT or odc-by;
+      the news and tweet text in them is third-party. Excluded: gbharti/finance-alpaca (text-davinci-003 and
+      GPT-3.5 outputs, CC BY-NC), dylanalloy/ehc-contrived-financial (OpenAI davinci-turbo outputs),
+      amphora/lmsys-finance (GPT-4 and Claude outputs), financial_phrasebank and its copies
+      AdaptLLM/finance-tasks_FPB, KennNguyenDev/FiQA_Financial_Phrasebank_Combined, AdiOO7/llama-2-finance
+      (CC BY-NC-SA 3.0), AdaptLLM/finance-tasks_FiQA_SA (FiQA, non-commercial), AdaptLLM/finance-tasks_Headline and
+      _ConvFinQA (no license; ConvFinQA overlaps FinQA), ceadar-ie/FinTalk-19k (answer provenance unverified),
+      nickmuchi/financial-classification, lighthouzai/finqabench and adityamavle/FinRiskAnalysis (unknown
+      provenance or LLM-generated).
+  # FinQA and TAT-QA are fetched from GitHub at a pinned commit (the Hub is not needed): every file is checked
+  # against its sha256 on every load, the license is the one recorded here (MIT, LICENSE file at `license_url`)
+  # and goes through the same allowlist gate. Both are human-annotated.
+  finqa-train:
+    urls:
+      - {url: https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867befa6840783e58be38c9efb9229d742/dataset/train.json, sha256: 49f237eb9779b569473b26b08048867d04635a7cc39ad6a7a5664c55bb428db6}
+    revision: 0f16e2867befa6840783e58be38c9efb9229d742
+    repo: https://github.com/czyssrs/FinQA
+    license: mit
+    license_url: https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867befa6840783e58be38c9efb9229d742/LICENSE
+    role: train
+    format: finqa_train           # `finqa` plus the step-consistency filter below; finqa-test uses plain `finqa`
+    provenance: >-
+      FinQA (Chen et al., EMNLP 2021): questions over S&P 500 earnings reports written by financial experts, with the
+      supporting facts and the calculation program annotated. 6,251 questions. GOLD-FACTS setting: the prompt gives the
+      annotated supporting facts (`gold_inds`) and no retrieval is involved, so scores are not comparable with
+      retriever-based FinQA leaderboards. The training target is the annotated program rendered as lines such as
+      "5829 - 5735 = 94", then "Answer: <annotated answer>". Rows whose annotated step results contradict their own
+      arguments (385 of 6,251, e.g. "2.5 / 1.6 = 0.9" or a lost minus sign) are dropped, so the model is not taught
+      wrong arithmetic; the test split is not filtered.
+  finqa-test:
+    urls:
+      - {url: https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867befa6840783e58be38c9efb9229d742/dataset/test.json, sha256: 831dbfb2e785dbc227f895ce3f24046433467aec67b09db2bd6ac7692a8a30dc}
+    revision: 0f16e2867befa6840783e58be38c9efb9229d742
+    repo: https://github.com/czyssrs/FinQA
+    license: mit
+    license_url: https://raw.githubusercontent.com/czyssrs/FinQA/0f16e2867befa6840783e58be38c9efb9229d742/LICENSE
+    role: eval
+    format: finqa
+    provenance: FinQA test split, 1,147 questions, gold-facts setting (see finqa-train). Scored against the program's result (0.5 % tolerance; a percentage may be written as such) or the annotated answer; yes/no questions by yes/no. The dev split is not registered.
+  tatqa-train:
+    urls:
+      - {url: https://raw.githubusercontent.com/NExTplusplus/TAT-QA/870accc41953dcde885aabeb963d94aabdc0fbc3/dataset_raw/tatqa_dataset_train.json, sha256: 2df6e722cdbaaa37efcbfb280f5c9a15be29a6ec18f618ef936fe63cc6d07c69}
+    revision: 870accc41953dcde885aabeb963d94aabdc0fbc3
+    repo: https://github.com/NExTplusplus/TAT-QA
+    license: mit
+    license_url: https://raw.githubusercontent.com/NExTplusplus/TAT-QA/870accc41953dcde885aabeb963d94aabdc0fbc3/LICENSE
+    role: train
+    format: tatqa
+    explode: questions            # one row per question: the document's table and paragraphs plus the question as `qa`
+    provenance: >-
+      TAT-QA (Zhu et al., ACL 2021): questions over tables plus text from financial reports, annotated by finance
+      experts. 2,201 documents, 13,215 questions (span, multi-span, count, arithmetic). The repository LICENSE is MIT;
+      the Hugging Face card says CC BY 4.0, both permissive. The training target is the annotated derivation (when
+      there is one) and "Answer: <answer> <scale>".
+  tatqa-test:
+    urls:
+      - {url: https://raw.githubusercontent.com/NExTplusplus/TAT-QA/870accc41953dcde885aabeb963d94aabdc0fbc3/dataset_raw/tatqa_dataset_test_gold.json, sha256: c4d08418359c1d76468dec420ee748a37f48c06b63cb8ec2766f19d5d314b597}
+    revision: 870accc41953dcde885aabeb963d94aabdc0fbc3
+    repo: https://github.com/NExTplusplus/TAT-QA
+    license: mit
+    license_url: https://raw.githubusercontent.com/NExTplusplus/TAT-QA/870accc41953dcde885aabeb963d94aabdc0fbc3/LICENSE
+    role: eval
+    format: tatqa
+    explode: questions
+    provenance: TAT-QA test split with gold answers (tatqa_dataset_test_gold.json), 277 documents, 1,663 questions. Numbers are scored with a 0.5 % tolerance ignoring scale words, % and $; spans by normalized exact match; multi-span as an unordered set. The dev split is not registered.
 
   # ------------------------------------------------------------------ cross-domain evaluation
   mmlu-pro:

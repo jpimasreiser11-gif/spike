@@ -29,7 +29,9 @@ with the data attributions below. No adapter has been released yet.
 | SmolTalk (smol-magpie-ultra) | `HuggingFaceTB/smoltalk` | Apache-2.0 | **excluded** | generated with Llama-3.1-405B-Instruct; the Llama 3.1 license (§1.b.i) requires "Llama" at the beginning of the name of any distributed model trained on its outputs, so SPIKE does not use it |
 | MedMCQA | `openlifescienceai/medmcqa` | Apache-2.0 | medicine train + eval | Pal et al., 2022 |
 | PubMedQA (pqa_artificial, pqa_labeled) | `qiaojin/PubMedQA` | MIT | medicine train / eval | Jin et al., 2019 |
-| Sujet-Finance-Instruct-177k | `sujet-ai/Sujet-Finance-Instruct-177k` | Apache-2.0 | finance train | aggregates 18 public datasets; their upstream terms must be audited before any finance adapter is released |
+| Sujet-Finance-Instruct-177k (subset) | `sujet-ai/Sujet-Finance-Instruct-177k` | Apache-2.0 (aggregate); each row keeps its upstream license | finance train | only rows from `ugursa/Yahoo-Finance-News-Sentences`, `zeroshot/twitter-financial-news-topic`, `zeroshot/twitter-financial-news-sentiment` and `yixuantt/FinEntity` (classification and entity extraction, uploader-claimed MIT / odc-by; the news and tweet text is third-party). The other upstream sources were audited and excluded (OpenAI/Anthropic-generated answers, non-commercial or unlicensed content, unverified provenance; list in `training/datasets.yaml`) |
+| FinQA | `github.com/czyssrs/FinQA` at commit `0f16e28`, fetched by URL | MIT | finance train + eval | Chen et al., EMNLP 2021; used in the gold-facts setting (supporting facts given), not comparable with retriever-based results |
+| TAT-QA | `github.com/NExTplusplus/TAT-QA` at commit `870accc`, fetched by URL | MIT (repository LICENSE; the Hub card says CC BY 4.0) | finance train + eval | Zhu et al., ACL 2021 |
 | MMLU-Pro | `TIGER-Lab/MMLU-Pro` | MIT | eval only | Wang et al., 2024 |
 | GSM8K | `openai/gsm8k` | MIT | eval only | Cobbe et al., 2021 |
 | medical-o1-reasoning-SFT | `FreedomIntelligence/medical-o1-reasoning-SFT` | Apache-2.0 | **excluded** | generated with GPT-4o; OpenAI's terms restrict using outputs to build competing models |
