@@ -40,7 +40,7 @@ BASE = f"https://raw.githubusercontent.com/czyssrs/FinQA/{REV}"
 
 
 def registry() -> dict:
-    return yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    return yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
 
 
 # ------------------------------------------------------------------ rows (shaped like the real files)
@@ -152,6 +152,28 @@ def test_row_filter_keeps_listed_values_and_a_filter_matching_nothing_is_an_erro
         list(sources.filtered({"filter": {"dataset": ["misspelled/name"]}}, rows))
 
 
+def test_balanced_cap_takes_the_first_rows_of_each_allowed_value_and_stops_streaming():
+    src = {"filter": {"dataset": ["a", "b", "c"]}}
+    pulled = []
+
+    def stream():  # a first, then b, then c with a row of another dataset between them, then a long tail of c
+        for i, d in enumerate("aaaaabbbxbcccccccccc"):
+            pulled.append(i)
+            yield {"dataset": d, "n": i}
+
+    got = list(sources.filtered(src, stream(), per_value=3))
+    assert [(r["dataset"], r["n"]) for r in got] == [("a", 0), ("a", 1), ("a", 2), ("b", 5), ("b", 6), ("b", 7), ("c", 10), ("c", 11), ("c", 12)]
+    assert pulled[-1] == 12  # nothing after the last needed row is read
+    assert list(sources.filtered(src, stream(), per_value=3)) == got  # deterministic
+    short = [{"dataset": "a", "n": 0}, {"dataset": "b", "n": 1}, {"dataset": "b", "n": 2}, {"dataset": "c", "n": 3}]
+    assert [r["n"] for r in sources.filtered(src, short, per_value=2)] == [0, 1, 2, 3]  # a short value is not topped up
+    with pytest.raises(ValueError, match=r"\['c'\] matched no row"):
+        list(sources.filtered(src, short[:3], per_value=2))
+    for bad in ({}, {"filter": {"dataset": ["a"], "lang": ["en"]}}):
+        with pytest.raises(ValueError, match="exactly one column"):
+            list(sources.filtered(bad, short, per_value=2))
+
+
 def test_load_rows_counts_offset_and_limit_over_the_kept_rows(tmp_path, monkeypatch):
     payload = json.dumps([{"id": i, "kind": "keep" if i % 2 else "drop"} for i in range(10)]).encode()
     monkeypatch.setattr(sources, "_get", lambda url: payload)
@@ -173,7 +195,7 @@ def test_prepare_refuses_a_url_source_whose_recorded_license_is_not_allowed(tmp_
     reg = {"sources": registry()}
     reg["sources"]["finqa-train"]["license"] = "cc-by-nc-4.0"
     (tmp_path / "training").mkdir()
-    (tmp_path / "training" / "datasets.yaml").write_text(yaml.safe_dump(reg))
+    (tmp_path / "training" / "datasets.yaml").write_text(yaml.safe_dump(reg), encoding="utf-8")
     monkeypatch.setattr(prepare, "ROOT", tmp_path)
     monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: "mit")
     monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training/configs/finance.yaml"), "--out", str(tmp_path / "out")])
@@ -433,10 +455,12 @@ def test_existing_scoring_is_unchanged_by_the_new_kinds():
 # ------------------------------------------------------------------ the recipe
 def test_finance_recipe_trains_on_audited_sources_and_is_scored_on_the_held_out_tests():
     reg = registry()
-    cfg = yaml.safe_load((ROOT / "training" / "configs" / "finance.yaml").read_text())
-    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text())["suites"]
-    assert [(e["source"], e.get("max")) for e in cfg["domain_sources"]] == [
-        ("sujet-finance", 8000), ("finqa-train", None), ("tatqa-train", None)]
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "finance.yaml").read_text(encoding="utf-8"))
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
+    assert [(e["source"], e.get("max"), e.get("max_per_value")) for e in cfg["domain_sources"]] == [
+        ("sujet-finance", 8000, 2000), ("finqa-train", None, None), ("tatqa-train", None, None)]
+    assert 4 * 2000 == 8000 and len(reg["sujet-finance"]["filter"]["dataset"]) == 4  # every upstream dataset has a share
+    assert reg["finqa-train"]["format"] == "finqa_train" and reg["finqa-test"]["format"] == "finqa"
     assert cfg["replay"]["ratio"] == 0.3 and [e["source"] for e in cfg["replay"]["sources"]] == ["oasst2"]
     assert set(cfg["decontaminate_against"]) == {"mmlu-pro", "finqa-test", "tatqa-test"}
     assert cfg["train"]["max_seq_length"] == 768 and eval_args(cfg) == ["--max-tokens", "2048"]
@@ -474,10 +498,10 @@ def test_run_eval_loads_items_from_a_url_source_with_the_suite_sampling(tmp_path
 def test_prepare_builds_the_finance_mix_from_filtered_hub_rows_and_pinned_files(tmp_path, monkeypatch):
     reg = registry()
     keep = reg["sujet-finance"]["filter"]["dataset"]
-    sujet = [{"dataset": keep[i % 4], "user_prompt": f"Classify the sentiment of headline {i}: shares of company {i} rose",
-              "answer": "positive"} for i in range(20)]
-    sujet += [{"dataset": "gbharti/finance-alpaca", "user_prompt": f"EXCLUDED prompt {i} about budgeting", "answer": "a reply"}
-              for i in range(5)]
+    sujet = [{"dataset": "gbharti/finance-alpaca", "user_prompt": f"EXCLUDED prompt {i} about budgeting", "answer": "a reply"}
+             for i in range(5)]
+    sujet += [{"dataset": d, "user_prompt": f"Classify the sentiment of headline {d} {i}: shares of company {i} rose",
+               "answer": "positive"} for d in keep for i in range(8)]  # stream order: all of one dataset, then the next
     oasst = [{"message_id": f"{k}{i}", "parent_id": None if k == "q" else f"q{i}", "role": "prompter" if k == "q" else "assistant",
               "text": f"general {'question' if k == 'q' else 'answer'} {i}", "rank": None if k == "q" else 0, "lang": "en",
               "review_result": True, "deleted": False, "synthetic": False} for i in range(40) for k in "qa"]
@@ -489,13 +513,15 @@ def test_prepare_builds_the_finance_mix_from_filtered_hub_rows_and_pinned_files(
                              2.5, [step("minus1-1", "10", "7.5", "2.5")],
                              {"text_1": "the company repurchased 10 million shares in the fourth quarter of the year and "
                                         "7.5 million shares in the third quarter of the same year ."})
+    wrong_sum = finqa_row("what is the total of the two quarterly dividends paid to the shareholders?", "5", 5.0,
+                          [step("add1-1", "2", "2", "5")], {"text_1": "the first dividend was 2 and the second was 2 ."})
     leaked_tatqa = tatqa_row("What was the exact amount of deferred revenue recognised in fiscal 2019 for the segment?", "7", "span")
     leaked_tatqa["paragraphs"] = [{"order": 1, "text": "Deferred revenue recognised in fiscal 2019 for the reportable segment "
                                                       "was entirely related to multi year support contracts signed earlier ."}]
     files = {
-        "train.json": [leaked_finqa, *[finqa_row(f"what is the ratio of item {i} to item {i + 1}?", "1.5", 1.5,
-                                                 [step("divide1-1", "3", "2", "1.5")],
-                                                 {"text_1": f"item {i} was 3 and item {i + 1} was 2"}) for i in range(6)]],
+        "train.json": [leaked_finqa, wrong_sum, *[finqa_row(f"what is the ratio of item {i} to item {i + 1}?", "1.5", 1.5,
+                                                            [step("divide1-1", "3", "2", "1.5")],
+                                                            {"text_1": f"item {i} was 3 and item {i + 1} was 2"}) for i in range(6)]],
         "test.json": [leaked_finqa],
         "tatqa_dataset_train.json": [leaked_tatqa, *[tatqa_row(f"How many items did segment {i} have?", "4", "count", "", "a ## b")
                                                      for i in range(4)]],
@@ -504,17 +530,25 @@ def test_prepare_builds_the_finance_mix_from_filtered_hub_rows_and_pinned_files(
     monkeypatch.setattr(prepare, "url_rows", lambda src: iter(files[src["urls"][0]["url"].rsplit("/", 1)[-1]]))
     monkeypatch.setattr(prepare.licenses, "hub_license", lambda repo: {s["hub"]: s["license"] for s in reg.values() if "hub" in s}[repo])
     monkeypatch.setattr(prepare, "load_token_counter", lambda base_model: lambda chat: 100)
-    monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training/configs/finance.yaml"), "--out", str(tmp_path)])
+    recipe = yaml.safe_load((ROOT / "training" / "configs" / "finance.yaml").read_text(encoding="utf-8"))
+    assert recipe["domain_sources"][0]["source"] == "sujet-finance"
+    recipe["domain_sources"][0] = {"source": "sujet-finance", "max": 20, "max_per_value": 3}  # the real recipe, a small cap
+    config = tmp_path / "recipe.yaml"
+    config.write_text(yaml.safe_dump(recipe), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["prepare.py", str(config), "--out", str(tmp_path)])
     assert prepare.main() == 0
-    manifest = json.loads((tmp_path / "finance" / "manifest.json").read_text())
+    manifest = json.loads((tmp_path / "finance" / "manifest.json").read_text(encoding="utf-8"))
     srcs = manifest["sources"]
-    assert srcs["sujet-finance"]["kept"] == 20 and srcs["sujet-finance"]["filter"] == reg["sujet-finance"]["filter"]
+    assert srcs["sujet-finance"]["kept"] == 12 and srcs["sujet-finance"]["filter"] == reg["sujet-finance"]["filter"]
     assert srcs["finqa-train"]["kept"] == 6 and srcs["tatqa-train"]["kept"] == 4  # the two leaked test questions are out
     assert manifest["dropped"]["contaminated"] == 2
+    assert manifest["dropped"]["format_or_quality"] == 1  # the FinQA row whose own sum is wrong
     assert srcs["finqa-train"]["urls"] == reg["finqa-train"]["urls"] and srcs["finqa-train"]["revision"] == REV
     assert srcs["finqa-train"]["license_hub"] == "mit" and srcs["tatqa-test"]["role"] == "eval"
     assert "hub" not in srcs["finqa-train"] and srcs["sujet-finance"]["hub"] == "sujet-ai/Sujet-Finance-Instruct-177k"
-    written = (tmp_path / "finance" / "train.jsonl").read_text() + (tmp_path / "finance" / "valid.jsonl").read_text()
-    assert "EXCLUDED" not in written and "repurchased 10 million" not in written
+    written = (tmp_path / "finance" / "train.jsonl").read_text(encoding="utf-8") + (tmp_path / "finance" / "valid.jsonl").read_text(encoding="utf-8")
+    assert "EXCLUDED" not in written and "repurchased 10 million" not in written and "dividends paid" not in written
+    for d in keep:  # the first 3 rows of each upstream dataset, none of the later ones
+        assert all(f"headline {d} {i}:" in written for i in range(3)) and f"headline {d} 3:" not in written, d
     counts = manifest["counts"]
-    assert counts["domain"] == 30 and counts["train"] + counts["valid"] - 30 == int(30 * 0.3 / 0.7)
+    assert counts["domain"] == 22 and counts["train"] + counts["valid"] - 22 == int(22 * 0.3 / 0.7)

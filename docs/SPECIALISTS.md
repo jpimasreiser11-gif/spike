@@ -26,7 +26,7 @@ presents it as trained.
 |---|---|---|---|---|---|
 | Spike Core | general reasoning, planning, synthesis | no | none: it is the base model | `general` suite | base |
 | Spike Medicine | clinical reasoning, pharmacology, physiology, diagnostics, EBM | **yes** | `training/configs/medicine.yaml`: MedMCQA train with explanations (24k) + PubMedQA artificial (6k) + 30 % replay | MedMCQA validation (1k), PubMedQA labeled (500), MMLU-Pro health; ≥ +3 pts, p < 0.05 | recipe ready, not trained |
-| Spike Finance | analysis, accounting, valuation, corporate and personal finance | **yes** | `finance.yaml`: Sujet-Finance-Instruct (30k) + 30 % replay | MMLU-Pro business + economics; ≥ +3 pts, p < 0.05 | recipe ready, not trained; upstream licence audit of the 18 aggregated sources needed before release |
+| Spike Finance | analysis, accounting, valuation, corporate and personal finance | **yes** | `finance.yaml`: FinQA train (MIT, 5,367 chats after the checks below) + TAT-QA train (MIT, 7,064) + up to 8,000 Sujet-Finance rows (the 4 of its 18 upstream datasets whose licenses were audited: 2,000 each) + 30 % replay. FinQA and TAT-QA come from files pinned by commit and sha256; FinQA rows whose own arithmetic is wrong (385 of 6,251) are dropped | FinQA test (600, gold-facts setting: the supporting facts are in the prompt, so not comparable with retriever-based leaderboards) and TAT-QA test (600), exact answers; MMLU-Pro business + economics; ≥ +3 pts, p < 0.05; general suite may drop ≤ 1.5 | recipe ready, not trained; the counts are measured on the real files with the real `prepare.py` (Sujet and oasst2 need the Hub and are not counted) |
 | Spike Marketing | strategy, positioning, copy, SEO, campaigns, analytics | no | `marketing.yaml`: 24 hand-written seeds expanded by the local teacher to ~6k tasks, rubric-filtered (score ≥ 8) + 35 % replay | 24 held-out prompts, position-debiased pairwise judge, greedy answers; win rate ≥ 0.60 and sign test p ≤ 0.05, and the general suite may drop ≤ 1.5 pts (both required) | recipe ready, not trained |
 | Spike Law | legal concepts, contracts, compliance, jurisdiction-aware | **yes** | not yet: needs a permissively licensed legal QA corpus | MMLU-Pro law (600) | prompt profile |
 | Spike Math | algebra to proofs, step-by-step, verified | no | not yet (candidate: verified teacher distillation on numeric tasks, `distill.verify` numeric) | GSM8K (500), MMLU-Pro math (600) | prompt profile |
@@ -42,8 +42,10 @@ presents it as trained.
 
 - **Medicine**: MedMCQA reflects Indian entrance exams; accuracy on exams is not clinical safety. The adapter
   must never be presented as a medical device; the UI notice says so.
-- **Finance**: Sujet aggregates sources with their own terms; regulatory and market facts change over time
-  and the model has no live data unless the user enables `web_fetch`.
+- **Finance**: Sujet aggregates sources with their own terms, so only the 4 audited upstream datasets are
+  used (the exclusions are written in `datasets.yaml`); TAT-QA loses 35 % of its questions to the 768-token
+  limit and FinQA is scored with the facts given; regulatory and market facts change over time and the
+  model has no live data unless the user enables `web_fetch`.
 - **Marketing**: the judge is also the teacher (possible self-preference bias); 24 prompts detect only large
   effects. Human review is required before release.
 - **All**: a 4B model hallucinates; exact-answer evals bound how often, pairwise evals do not.

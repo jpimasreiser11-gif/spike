@@ -65,7 +65,7 @@ def url_rows(src: dict, cache: Path | None = None) -> Iterator[dict]:
     validate(src)
     explode = src.get("explode")
     for entry in src["urls"]:
-        docs = json.loads(read_verified(entry, cache))
+        docs = json.loads(read_verified(entry, cache).decode("utf-8"))
         if not isinstance(docs, list):
             raise ValueError(f"{entry['url']}: expected a JSON list of rows")
         for doc in docs:
@@ -76,21 +76,39 @@ def url_rows(src: dict, cache: Path | None = None) -> Iterator[dict]:
                 yield doc
 
 
-def filtered(src: dict, rows: Iterable[dict]) -> Iterator[dict]:
+def filtered(src: dict, rows: Iterable[dict], per_value: int | None = None) -> Iterator[dict]:
     """Apply `filter: {column: [allowed values]}` (a Hub dataset that aggregates sources of different licenses, such
     as Sujet-Finance, is kept per upstream source). A filter that matches no row at all is an error, not an empty
-    source; rows without the column are dropped."""
+    source; rows without the column are dropped.
+
+    `per_value` (a config entry's `max_per_value`) keeps at most that many rows for each allowed value of the
+    filter's one column: the first ones in stream order, so the cap is deterministic and no value can crowd out
+    the others. Streaming stops once every value has its share; a value with no row at all is an error. Nothing
+    is redistributed when a value has fewer rows than the cap."""
     allowed = src.get("filter")
+    if per_value is not None and (not allowed or len(allowed) != 1):
+        raise ValueError("max_per_value needs a source whose filter names exactly one column")
     if not allowed:
         yield from rows
         return
+    column, values = next(iter(allowed.items()))
+    counts = dict.fromkeys(values, 0)
     kept = 0
     for row in rows:
-        if all(row.get(column) in values for column, values in allowed.items()):
-            kept += 1
-            yield row
+        if not all(row.get(c) in vs for c, vs in allowed.items()):
+            continue
+        if per_value is not None:
+            if counts[row[column]] >= per_value:
+                continue
+            counts[row[column]] += 1
+        kept += 1
+        yield row
+        if per_value is not None and all(n >= per_value for n in counts.values()):
+            return
     if not kept:
         raise ValueError(f"filter {allowed} matched no row; check the column and values against the dataset")
+    if per_value is not None and (missing := [v for v, n in counts.items() if not n]):
+        raise ValueError(f"filter value(s) {missing} matched no row; check them against the dataset")
 
 
 def origin(src: dict) -> dict:

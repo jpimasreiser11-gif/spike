@@ -40,14 +40,14 @@ from spike_train.data import (  # noqa: E402
 from spike_train.sources import filtered, origin, url_rows  # noqa: E402
 
 
-def load_rows(src: dict, offset: int = 0, limit: int | None = None):
+def load_rows(src: dict, offset: int = 0, limit: int | None = None, per_value: int | None = None):
     if "urls" in src:  # pinned files instead of the Hub (spike_train/sources.py)
         ds = url_rows(src)
     else:
         from datasets import load_dataset
 
         ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True)
-    for i, row in enumerate(filtered(src, ds)):  # `filter:` of the registry entry; offset and limit count kept rows
+    for i, row in enumerate(filtered(src, ds, per_value)):  # `filter:` of the registry entry; offset, limit count kept rows
         if i < offset:
             continue
         if limit is not None and i >= offset + limit:
@@ -206,8 +206,9 @@ def main() -> int:
         for entry in entries:
             src = checked(entry["source"], "train")
             start, limit = entry.get("offset", 0), entry.get("max")
+            cap = {"per_value": entry["max_per_value"]} if "max_per_value" in entry else {}  # balanced filtered source
             if src["format"] in BUILDERS:  # needs every row of the source before it can emit a chat
-                built = BUILDERS[src["format"]](load_rows(src), **src.get("options", {}))
+                built = BUILDERS[src["format"]](load_rows(src, **cap), **src.get("options", {}))
                 if not built:
                     raise SystemExit(f"source '{entry['source']}' produced no chats; check its schema against the builder")
                 manifest["sources"][entry["source"]]["built"] = len(built)
@@ -215,7 +216,7 @@ def main() -> int:
             else:
                 fmt = FORMATTERS[src["format"]]
                 candidates = (fmt(row, sys_prompt) if src["format"] != "messages" else fmt(row)
-                              for row in load_rows(src, start, limit))
+                              for row in load_rows(src, start, limit, **cap))
             kept = 0
             for chat in candidates:
                 if chat is None or not passes_quality(chat):

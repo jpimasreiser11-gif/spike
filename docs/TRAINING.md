@@ -48,6 +48,13 @@ config. Never report smoke-run numbers as results.
   (`--temperature` changes it and is recorded in its summary).
 - Training data was decontaminated against every eval source listed in the config (see `manifest.json`:
   `dropped.contaminated`).
+- A source is a Hub dataset (`hub:`) or JSON files from URLs (`urls: [{url, sha256}]` with `revision`, `license`
+  and `license_url`, used when a dataset is only published as files, like FinQA and TAT-QA). Every URL must contain
+  the pinned commit; the sha256 of every file is checked on each load, cached or not, and a mismatch stops the
+  run. For a URL source the license gate checks the license recorded in `datasets.yaml`. A Hub source that mixes
+  upstream licenses can carry `filter: {column: [values]}`, and its config entry `max_per_value: N` keeps the
+  first N rows of each value in stream order (a value with fewer rows is not topped up). `format: finqa_train`
+  drops FinQA rows whose own calculation steps disagree with their arguments; the eval keeps every row.
 - `summary.json` (with llama.cpp build, host, settings) and `run.json` (data hashes, versions, chip) are
   committed together. Only then may `adapter_status` change to `trained` in the catalogue.
 
