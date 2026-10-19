@@ -53,6 +53,14 @@ hand: `SPIKE_RESUME=1 training/train.sh <id>`. It needs mlx-lm 0.32.2 (pinned); 
 trains with mlx-lm's own loop and no resume checkpoints. Tested with real mlx on Linux CPU (a run stopped and resumed
 ends with the same adapter and optimizer state as an uninterrupted one); not yet on Apple silicon.
 
+First supervised run on a Mac (not yet done): `pip install -r training/requirements-mac.txt` (mlx-lm 0.32.2), then
+`pytest -q tests/test_resume.py tests/test_ramguard.py tests/test_gated_delta_chunked.py`; a short real run (a copy of
+the config with `iters: 48`, `save_every: 16`) stopped with SIGTERM mid-run and resumed with `SPIKE_RESUME=1`, compared
+with an uninterrupted one (Metal: tiny float differences, not bit equality); the chunked gated-delta timing on 64
+chats (≈ 112 s before); checkpoint size and write time; then
+`SPIKE_MLX_MEMORY_GB=20 SPIKE_MLX_CACHE_GB=2 nohup training/scripts/train_supervised.sh medicine >/dev/null 2>&1 &`
+and only one guard on the run.
+
 Quick smoke run before a long one: add `--limit 50` to the evaluation and reduce `epochs` in a copy of the
 config. Never report smoke-run numbers as results.
 
