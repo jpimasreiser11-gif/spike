@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-# Licenses that allow commercial use and redistribution of derived model weights.
-TRAIN_ALLOWLIST = {"apache-2.0", "mit", "bsd-2-clause", "bsd-3-clause", "cc-by-4.0", "cc0-1.0", "odc-by", "llama3.1"}
+# Licenses that allow commercial use and redistribution of derived model weights. Not llama3.1: its section 1.b.i
+# makes any distributed model trained on Llama outputs start its name with "Llama" (docs/RESEARCH.md).
+TRAIN_ALLOWLIST = {"apache-2.0", "mit", "bsd-2-clause", "bsd-3-clause", "cc-by-4.0", "cc0-1.0", "odc-by"}
 # Licenses acceptable for evaluation only (results may be published; data is never trained on).
-EVAL_ALLOWLIST = TRAIN_ALLOWLIST | {"cc-by-sa-4.0", "cc-by-nc-4.0", "cc-by-nc-sa-4.0"}
+EVAL_ALLOWLIST = TRAIN_ALLOWLIST | {"llama3.1", "cc-by-sa-4.0", "cc-by-nc-4.0", "cc-by-nc-sa-4.0"}
 
 
 def normalize(license_id: str | None) -> str:
