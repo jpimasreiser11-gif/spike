@@ -9,6 +9,8 @@
 # a model unless you accept that step (-NoModel leaves it out, ~2.7 GB).
 # A step you accepted that fails stops it with exit 1. "Done." is printed only after `spike doctor --strict`
 # passed: llama-server found and, unless the model was left out, a model on disk.
+# Keep it ASCII and 5.1-compatible (no ??, ?:, && / ||, -AsHashtable, $IsWindows): Windows PowerShell reads a file without
+# a BOM as ANSI, and tests/test_installers.py checks both.
 [CmdletBinding()]
 param([switch]$Yes, [switch]$NoModel)
 $ErrorActionPreference = 'Stop'
@@ -16,9 +18,19 @@ Set-Location (Join-Path $PSScriptRoot '..')
 
 function Have([string]$Name) { [bool](Get-Command $Name -ErrorAction SilentlyContinue) }
 function Fail([string]$Message) { Write-Host "`nerror: $Message" -ForegroundColor Red; exit 1 }
+# Quiet { command } -> the command's output without its stderr; the exit code stays in $LASTEXITCODE. Windows PowerShell 5.1
+# turns a native command's stderr into a terminating error under $ErrorActionPreference = 'Stop' (also with 2>$null), so
+# a probe that may fail (pipx not installed yet, the Microsoft Store "python" stub) runs under 'Continue'.
+function Quiet([scriptblock]$Command) {
+    $ErrorActionPreference = 'Continue'  # local to this function
+    $global:LASTEXITCODE = 0
+    & $Command 2>$null
+}
 
 # Step "description" { command } -> prints the command, asks, runs it. Returns $true when it worked, $false when
-# it failed and $null when the user skipped it.
+# it failed and $null when the user skipped it. Success is the exit code: pip, npm and winget write warnings to stderr,
+# which 5.1 would otherwise count as a failure, so the command runs under 'Continue' (a cmdlet that must stop the step
+# says -ErrorAction Stop).
 function Step([string]$What, [scriptblock]$Command) {
     Write-Host "`n== $What"
     $shown = $Command.ToString().Trim().Replace('@pyArgs', '$($pyArgs -join '' '')')
@@ -27,20 +39,21 @@ function Step([string]$What, [scriptblock]$Command) {
         $answer = Read-Host '   Run it? [y/N]'
         if ($answer -notmatch '^[yY]') { Write-Host '   skipped'; return $null }
     }
+    $ErrorActionPreference = 'Continue'  # local to this function
     $global:LASTEXITCODE = 0
     try { & $Command | Out-Host } catch { Write-Host "   failed: $_" -ForegroundColor Yellow; return $false }
     if ($LASTEXITCODE -ne 0) { Write-Host "   failed (exit $LASTEXITCODE)" -ForegroundColor Yellow; return $false }
     return $true
 }
 
-Write-Host "SPIKE installer (Windows $([Environment]::OSVersion.Version), $env:PROCESSOR_ARCHITECTURE)"
+Write-Host "SPIKE installer (Windows $([Environment]::OSVersion.Version), $env:PROCESSOR_ARCHITECTURE, PowerShell $($PSVersionTable.PSVersion))"
 
 # 1. Python 3.11+ (the py launcher first, then python on PATH)
 $py = $null
 foreach ($candidate in @(@('py', '-3'), @('python'))) {
     if (Have $candidate[0]) {
         $args0 = @($candidate | Select-Object -Skip 1)
-        & $candidate[0] @args0 -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>$null
+        Quiet { & $candidate[0] @args0 -c 'import sys; sys.exit(sys.version_info < (3, 11))' } | Out-Null
         if ($LASTEXITCODE -eq 0) { $py = $candidate; break }
     }
 }
@@ -49,7 +62,7 @@ $pyExe = $py[0]; $pyArgs = @($py | Select-Object -Skip 1)
 Write-Host "Python: $(& $pyExe @pyArgs --version)"
 
 # 2. pipx (installs SPIKE in its own environment)
-& $pyExe @pyArgs -m pipx --version 2>$null | Out-Null
+Quiet { & $pyExe @pyArgs -m pipx --version } | Out-Null
 if ($LASTEXITCODE -ne 0) {
     if (-not (Step 'Install pipx for this user' { & $pyExe @pyArgs -m pip install --user pipx })) { Fail 'pipx is required.' }
     Step "Add pipx's app folder to PATH" { & $pyExe @pyArgs -m pipx ensurepath } | Out-Null
@@ -58,13 +71,13 @@ if ($LASTEXITCODE -ne 0) {
 # 3. Web app (built once from source; release packages will ship it prebuilt)
 if (-not (Test-Path 'web\dist\index.html')) {
     if (-not (Have 'npm')) { Fail 'Node.js 18+ with npm is needed to build the web app: https://nodejs.org' }
-    $built = Step 'Build the web app' { Push-Location web; try { npm ci; if ($LASTEXITCODE -eq 0) { npm run build } } finally { Pop-Location } }
+    $built = Step 'Build the web app' { Push-Location web -ErrorAction Stop; try { npm ci; if ($LASTEXITCODE -eq 0) { npm run build } } finally { Pop-Location } }
     if (-not $built) { Fail 'the web app must be built before installing.' }
 }
 
 # 4. SPIKE itself
 if (-not (Step 'Install SPIKE with pipx' { & $pyExe @pyArgs -m pipx install --force '.[docs,finance,data,motion]' })) { Fail 'SPIKE was not installed.' }
-$binDir = (& $pyExe @pyArgs -m pipx environment --value PIPX_BIN_DIR 2>$null)
+$binDir = @(Quiet { & $pyExe @pyArgs -m pipx environment --value PIPX_BIN_DIR })[0]
 if (-not $binDir) { $binDir = Join-Path $env:USERPROFILE '.local\bin' }
 $spike = @('spike.exe', 'spike') | ForEach-Object { Join-Path $binDir $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $spike) { $spike = 'spike' }
