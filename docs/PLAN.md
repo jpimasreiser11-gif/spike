@@ -104,7 +104,7 @@ claimed until measured.
 
 ## 19. Installation and distribution
 - **Decision**: `pipx`/`uv tool` install of the Python package with the built web app inside; `scripts/install.sh` / `install.ps1` show and confirm each step, install llama.cpp through its official Homebrew formula or winget package (or point to the official releases) and run `spike doctor`; model download with license check and SHA-256 verification (`spike models pull`).
-- **Acceptance**: fresh-machine install to first answer in ≤ 3 commands, verified per platform. **Status**: ✅ on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): installer, model download and a first answer from the real model (`.github/workflows/installers.yml`, STATUS.md); wheel and sdist build verified; ⬜ desktop Windows with PowerShell 5.1.
+- **Acceptance**: fresh-machine install to first answer in ≤ 3 commands, verified per platform. **Status**: ✅ on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): installer, model download and a first answer from the real model (`.github/workflows/installers.yml`, STATUS.md); wheel and sdist build verified; ✅ Windows PowerShell 5.1 and Linux without Homebrew on clean runners (2026-10-20); ⬜ a desktop (non-server) Windows.
 
 ## 20. Tests and benchmarks
 - **Decision**: pytest (unit, API, real llama-server integration, official-converter export), Vitest, Playwright smoke, router eval, model evals with Wilson CIs and McNemar, `spike bench`.

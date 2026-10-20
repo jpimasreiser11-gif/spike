@@ -17,7 +17,7 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   dependency graph merged by Core.
 - `spike tune` measures threads and KV cache on the user's machine; `spike bench` records hardware and build.
 - Measured speed: 16 GB x86 4-core CPU-only 6.2 tok/s at 1K context, 5.1 at 8K; Apple M4 Max 82 tok/s; 3.6 GiB
-  resident.
+  anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
 - Chat, projects, files, artifacts panel (isolated frame), Word/Excel/PowerPoint/PDF output, Markdown with
@@ -50,6 +50,9 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Installers tested on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): install, model
   download and a first answer from the real model. They now stop with an error when a step fails, and
   `--no-model`/`-NoModel` skip the download.
+- Installers also pass on Windows PowerShell 5.1 and on Linux without Homebrew, where they download llama.cpp's
+  official prebuilt build (pinned b11709, SHA-256 checked). They prefer Python 3.13, 3.12 or 3.11: Python 3.15 has
+  no duckdb wheel and the install failed.
 - Marketing (judged by pairwise win rate) is accepted only if the general suite also holds, both in the
   training script and in `spike adapters install`; pairwise answers are greedy; distillation checks the
   teacher's Hub license before use and records it in every example; prepare.py stops on a recipe with no
@@ -67,4 +70,4 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a
-  desktop Windows with PowerShell 5.1.
+  desktop (non-server) Windows.
