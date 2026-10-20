@@ -59,6 +59,11 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   commits with sha256 checks; finance eval adds exact-answer FinQA and TAT-QA test sets.
 - Training on a shared Mac runs under a RAM guard: it stops when swap grows or free memory runs low, waits until
   memory is free again and resumes exactly where it stopped (optimizer state, schedule and data order included).
+- Forge checks the saved files itself before its checker reads them: Python compiles, reads no undefined name
+  and imports (through the `python` tool and its permission), JSON and CSV parse; a failure sends the step back
+  with the error. Not yet measured with real weights.
+- Model cards for pairwise-judged adapters (marketing), with every training source's license and the
+  attribution CC-BY and ODC-BY ask for; `llama3.1` is no longer accepted for training data or teachers.
 
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a

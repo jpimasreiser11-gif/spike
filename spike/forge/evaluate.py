@@ -182,7 +182,7 @@ async def run_task(base: Orchestrator, task: dict[str, Any], mode: str, folder: 
             elif ev["type"] == "forge_report":
                 extra["rounds"] = ev["rounds"]
             elif ev["type"] == "verify":
-                trace["verify"].append({k: ev[k] for k in ("round", "method", "note", "returned", "criteria")})
+                trace["verify"].append({k: ev[k] for k in ("round", "method", "note", "returned", "criteria", "checks")})
     except Exception as exc:  # a crash is a failed task, not a failed eval
         error = f"{exc.__class__.__name__}: {exc}"
     result = check_task(task, folder)

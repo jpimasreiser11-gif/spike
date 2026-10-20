@@ -136,28 +136,10 @@ async def run_agent(
                         ("The user did not answer in time; continue with your best assumption and say what you "
                          "assumed.", False)
             else:
-                policy, review = broker.policy_for_call(tool, call.arguments)
-                if policy == "deny":
-                    result_text, ok = (f"error: refused: {review.reason}" if review and review.policy == "deny"
-                                       else f"error: the user has disabled the '{call.name}' tool"), False
-                elif policy == "ask" and not broker.interactive:
-                    result_text, ok = (f"error: '{call.name}' needs the user's approval, which can only be given in "
-                                       "the SPIKE app; it is not available to this caller"), False
-                elif policy == "ask":
-                    # Yield the request first: the consumer forwards it to the UI before we block on it.
-                    req = broker.open(tool, call.arguments, review)
-                    yield {"type": "permission_request", "id": req.id, "tool": tool.name, "risk": tool.risk,
-                           "arguments": call.arguments, "call_id": call.id, **tag,
-                           **({"reason": review.reason, "code": review.code, "once": review.once, "domain": review.domain}
-                              if review and review.policy == "ask" else {})}
-                    decision = await broker.wait(req)
-                    yield {"type": "permission_resolved", "id": req.id, "decision": decision, **tag}
-                    if decision == "deny":
-                        result_text, ok = "error: the user denied this tool call", False
-                    else:
-                        result_text, ok, file, private, checkpoint, ui = await _execute(tool, call, checkpoints)
-                else:
-                    result_text, ok, file, private, checkpoint, ui = await _execute(tool, call, checkpoints)
+                outcome: list[Any] = []
+                async for ev in call_tool(tool, call, broker, checkpoints, tag, outcome):
+                    yield ev
+                result_text, ok, file, private, checkpoint, ui = outcome
             yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000],
                    **({"file": file} if file else {}), **({"checkpoint": checkpoint} if checkpoint and ok else {}),
                    **({"ui": ui} if ui else {}), **tag}
@@ -167,6 +149,33 @@ async def run_agent(
 
     run.error = f"stopped after {max_steps} tool steps without a final answer"
     yield {"type": "error", "message": run.error, **tag}
+
+
+async def call_tool(tool: Tool, call: ToolCall, broker: PermissionBroker, checkpoints: Checkpointer | None,
+                    tag: dict[str, Any], outcome: list[Any]) -> AsyncIterator[Event]:
+    """Run one tool call if the broker's policy lets it, asking the user first when the policy says ask. Yields the
+    permission events; leaves (text, ok, file, private, checkpoint, ui) in `outcome`. Everything SPIKE runs for a
+    model goes through here, the checks Forge runs on saved files included."""
+    refused = None
+    policy, review = broker.policy_for_call(tool, call.arguments)
+    if policy == "deny":
+        refused = (f"error: refused: {review.reason}" if review and review.policy == "deny"
+                   else f"error: the user has disabled the '{call.name}' tool")
+    elif policy == "ask" and not broker.interactive:
+        refused = (f"error: '{call.name}' needs the user's approval, which can only be given in "
+                   "the SPIKE app; it is not available to this caller")
+    elif policy == "ask":
+        # Yield the request first: the consumer forwards it to the UI before we block on it.
+        req = broker.open(tool, call.arguments, review)
+        yield {"type": "permission_request", "id": req.id, "tool": tool.name, "risk": tool.risk,
+               "arguments": call.arguments, "call_id": call.id, **tag,
+               **({"reason": review.reason, "code": review.code, "once": review.once, "domain": review.domain}
+                  if review and review.policy == "ask" else {})}
+        decision = await broker.wait(req)
+        yield {"type": "permission_resolved", "id": req.id, "decision": decision, **tag}
+        if decision == "deny":
+            refused = "error: the user denied this tool call"
+    outcome[:] = (refused, False, None, [], None, None) if refused else await _execute(tool, call, checkpoints)
 
 
 async def _execute(tool: Tool, call: ToolCall, checkpoints: Checkpointer | None

@@ -50,9 +50,12 @@ acknowledge reports within 7 days.
   runs with an isolated profile (no saved logins); the page snapshots it saves go to the workspace folder
   `.playwright-mcp/`.
 - Forge runs a blueprint only after you approve it, and its steps save files through the same file tools and
-  permission prompts as any chat. `spike forge eval` runs its checks as Python in a subprocess with CPU and memory
-  limits, in a temporary folder per task, and some checks import the module the model wrote; during the eval the
-  file tools and `python` run without asking and `web_fetch` is refused.
+  permission prompts as any chat. After a step saves a Python file, SPIKE imports it (not its `__main__` block) in
+  a temporary copy of the saved files through the `python` tool, so it asks like any `python` call, and it is not
+  imported where nobody can answer (`/v1`, MCP) or where `python` is off. `spike forge eval` runs its checks as
+  Python in a subprocess with CPU and memory limits, in a temporary folder per task, and some checks import the
+  module the model wrote; during the eval the file tools and `python` run without asking and `web_fetch` is
+  refused.
 - `spike dev` works only inside the folder you start it on (paths outside are refused, symlinks resolved). Edits and commands ask first, showing the diff or the command; `--accept-edits` lets edits through, never commands. Edits can be undone with `/undo`; what a command does cannot, and a command runs with your user's rights, not in a sandbox, so read it before allowing it. `-p` and input that is not a terminal refuse every ask. Started on your home folder or a disk root it warns first.
 - Imported design systems are text: `DESIGN.md` and `tokens.css` up to 64 KB each (zips up to 4 MB, no paths outside the archive). Tokens may only hold CSS custom properties: `@import`, `url(`, `</style`, `expression(` and `javascript:` are refused, so a pasted token block cannot load anything or break out of a page's style. Their preview runs in the artifacts sandbox, and imported names are escaped.
 - Real exchange orders (Spike Finance) are off by default. Turning them on needs an exchange, a list of markets, a per-order and a 24-hour limit, and your confirmation that the API key cannot withdraw funds (on Binance SPIKE asks the exchange and refuses a key that can); the exchange's test network is the default. A model can only propose an order: the chat shows it and nothing is sent until you click Confirm and then "Yes, send it", after the settings and limits are checked again; a proposal expires after 10 minutes and a second click cannot send it twice. The tool that proposes is never offered to `/v1` or MCP callers. Exchange keys go to the key store like provider keys and are never returned by the API; keys and real-order settings can only be changed, and orders confirmed, from a browser on the computer SPIKE runs on (not from another machine or another site). Backtests and paper trading use public prices only.

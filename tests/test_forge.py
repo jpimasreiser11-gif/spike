@@ -13,11 +13,13 @@ from spike.forge.blueprint import clean_path, from_user, make_blueprint, validat
 from spike.orchestrator import verify
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.orchestrator.planner import Subtask, validate_plan
-from spike.orchestrator.verify import MAX_ROUNDS, dependents, parse_verdict
+from spike.orchestrator.verify import MAX_ROUNDS, dependents, format_check, parse_verdict, run_outcome
+from spike.providers.guard import GuardedProvider
 from spike.server.app import create_app
 from spike.server.state import AppState
 from spike.specialists.catalog import load_catalog
-from spike.tools.base import PermissionBroker
+from spike.store.db import Store
+from spike.tools.base import HeadlessBroker, PermissionBroker
 from spike.tools.builtin import default_registry
 from tests.helpers import ScriptedProvider, call, text
 
@@ -33,8 +35,8 @@ def checker(*returned: tuple[str, str], criteria: list[bool] | None = None) -> s
     return json.dumps(out)
 
 
-def orchestrator(provider, tmp_path):
-    broker = PermissionBroker({"write_file": "allow"})
+def orchestrator(provider, tmp_path, broker=None):
+    broker = broker or PermissionBroker({"write_file": "allow"})
     return Orchestrator(CATALOG, lambda spec: Backend(provider=provider, model=None, adapter=None),
                         default_registry(tmp_path), broker)
 
@@ -240,6 +242,202 @@ async def test_the_checker_can_be_turned_off_for_chats_but_not_for_forge(tmp_pat
     assert any(e["type"] == "verify" for e in events)  # one step, still checked: it is a Forge task
 
 
+# ---------------------------------------------------------------- checks SPIKE runs on the saved files
+ALL_MET = checker(criteria=[True])
+SLUG = ("ACENTOS = {'á': 'a', 'ñ': 'n'}\n\n\ndef slugify(texto):\n    texto = texto.lower()\n"
+        "    for a, b in NAMES.items():\n        texto = texto.replace(a, b)\n    return texto\n")
+
+
+def code_step(*paths, instruction="Guarda el archivo"):
+    return blueprint([{"id": "t1", "specialist": "code", "instruction": instruction, "deliverables": list(paths)}],
+                     ["El archivo existe"])
+
+
+def write(path, content):
+    return call("write_file", {"path": path, "content": content})
+
+
+def allowed(**policies):
+    return PermissionBroker({"write_file": "allow", "python": "allow", **policies})
+
+
+async def test_a_name_nothing_defines_goes_back_with_the_error_and_is_fixed_in_round_2(tmp_path):
+    # the typo is inside the function: importing or running the file never reaches it, so SPIKE reads the names
+    provider = ScriptedProvider([
+        write("slug.py", SLUG.replace("NAMES", "ACCENTOS")), text("Guardé slug.py"), text(ALL_MET),  # the checker passes it
+        write("slug.py", SLUG.replace("NAMES", "ACENTOS")), text("Corregido"), text(ALL_MET),
+    ])
+    events = await run(orchestrator(provider, tmp_path, allowed()), "Escribe slug.py", OrchestratorOptions(forge=code_step("slug.py")))
+    assert [e["subtask"] for e in events if e["type"] == "subtask_start"] == ["t1", "t1.r2"]
+    first, second = [e for e in events if e["type"] == "verify"]
+    assert first["checks"][0]["program"] == {
+        "ok": False, "note": "would raise NameError: name 'ACCENTOS' is not defined at line 6: "
+                             "`for a, b in ACCENTOS.items():`"}
+    fix = first["returned"][0]["fix"]  # the checker had no complaint: this is SPIKE's
+    assert "slug.py would raise NameError: name 'ACCENTOS' is not defined at line 6" in fix
+    assert "save it again at exactly that path" in fix
+    # the checker is told as a fact, the specialist gets it as the reason to redo the file
+    asked = provider.requests[2].messages[-1].content
+    assert "# Checks SPIKE ran on the saved files" in asked
+    assert "- slug.py (t1), FAILED: would raise NameError: name 'ACCENTOS' is not defined at line 6" in asked
+    assert "NameError: name 'ACCENTOS' is not defined" in provider.requests[3].messages[-1].content
+    assert second["returned"] == [] and second["checks"][0]["program"]["ok"] is True
+    assert second["checks"][0]["program"]["note"] == "compiles, uses no name that is not defined, imports without an error"
+    assert "- slug.py (t1), passed: compiles" in provider.requests[5].messages[-1].content
+    report = next(e for e in events if e["type"] == "forge_report")
+    assert report["rounds"] == 2 and report["unresolved"] == [] and report["verified"]
+    assert "ACENTOS.items()" in (tmp_path / "slug.py").read_text(encoding="utf-8")
+
+
+async def test_a_file_that_fails_when_imported_goes_back_with_the_last_lines_of_the_traceback(tmp_path):
+    bad = "import json\nLIMITE = int('diez')\n"
+    provider = ScriptedProvider([write("util.py", bad), text("Guardé"), text(ALL_MET),
+                                 write("util.py", "LIMITE = 10\n"), text("Corregido"), text(ALL_MET)])
+    events = await run(orchestrator(provider, tmp_path, allowed()), "util.py", OrchestratorOptions(forge=code_step("util.py")))
+    first = next(e for e in events if e["type"] == "verify")
+    assert first["checks"][0]["program"] == {
+        "ok": False, "note": "raised ValueError: invalid literal for int() with base 10: 'diez' at line 2: `LIMITE = int('diez')`"}
+    assert "util.py raised ValueError" in first["returned"][0]["fix"]
+    assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 2
+
+
+async def test_a_json_file_that_does_not_parse_goes_back_and_is_fixed(tmp_path):
+    provider = ScriptedProvider([write("campana.json", '{"publico": "x", "canales": ["a", "b",]}'), text("Guardé"),
+                                 text(ALL_MET), write("campana.json", '{"publico": "x", "canales": ["a", "b"]}'),
+                                 text("Corregido"), text(ALL_MET)])
+    events = await run(orchestrator(provider, tmp_path), "campana.json", OrchestratorOptions(forge=code_step("campana.json")))
+    first, second = [e for e in events if e["type"] == "verify"]
+    assert first["checks"][0]["program"]["ok"] is False
+    assert "campana.json is not valid JSON: " in first["returned"][0]["fix"] and "line 1 column 38" in first["returned"][0]["fix"]
+    assert second["returned"] == [] and second["checks"][0]["program"] == {"ok": True, "note": "is valid JSON"}
+    assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 2
+
+
+async def test_files_that_pass_are_reported_as_passed_and_not_sent_back(tmp_path):
+    work = tmp_path / "ws"
+    work.mkdir()
+    imported, started = tmp_path / "imported", tmp_path / "started"
+    program = (f"open({str(imported)!r}, 'w').close()\nopen('scratch.txt', 'w').close()\n\n\ndef main():\n"
+               f"    input('nombre? ')\n    open({str(started)!r}, 'w').close()\n\n\n"
+               "if __name__ == '__main__':\n    main()\n")
+    files = {"app.py": program, "datos.json": '{"a": [1, 2]}', "ventas.csv": "mes,ventas\nene,100\nfeb,200\n",
+             "nota.md": "# Nota\nHola\n"}
+    provider = ScriptedProvider([*(write(p, c) for p, c in files.items()), text("Guardé todo"), text(ALL_MET)])
+    events = await run(orchestrator(provider, work, allowed()), "Guarda cuatro archivos",
+                       OrchestratorOptions(forge=code_step(*files)))
+    (verify_event,) = [e for e in events if e["type"] == "verify"]
+    assert verify_event["returned"] == [] and [c["program"]["ok"] for c in verify_event["checks"]] == [True] * 4
+    assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 1
+    asked = provider.requests[-1].messages[-1].content
+    assert asked.count(", passed: ") == 4 and "FAILED" not in asked and "not fully checked" not in asked
+    assert imported.exists() and not started.exists()  # imported, not started: the __main__ block did not run
+    assert sorted(p.name for p in work.iterdir()) == sorted(files)  # it ran in a copy: no scratch.txt here
+
+
+@pytest.mark.parametrize("setup, answer, ran, why", [
+    ("ask", "allow_once", True, ""),
+    ("ask", "deny", False, "the user denied this tool call"),
+    ("deny", None, False, "the user has disabled the 'python' tool"),
+    ("headless", None, False, "'python' needs the user's approval"),
+])
+async def test_nothing_is_imported_without_the_permission_the_python_tool_needs(tmp_path, setup, answer, ran, why):
+    work = tmp_path / "ws"
+    work.mkdir()
+    marker = tmp_path / "imported"
+    provider = ScriptedProvider([write("hola.py", f"open({str(marker)!r}, 'w').close()\n"), text("Guardé"),
+                                 text(ALL_MET)])
+    policies = {"write_file": "allow", **({"python": "deny"} if setup == "deny" else {})}
+    broker = HeadlessBroker(PermissionBroker(policies)) if setup == "headless" else PermissionBroker(policies)
+    orch = orchestrator(provider, work, broker)
+    events = []
+    async for ev in orch.run([], "hola.py", OrchestratorOptions(forge=code_step("hola.py"))):
+        events.append(ev)
+        if ev["type"] == "permission_request":
+            assert ev["tool"] == "python" and ev["risk"] == "execute" and "hola.py" in ev["arguments"]["code"]
+            assert broker.resolve(ev["id"], answer)
+    asked = [e for e in events if e["type"] == "permission_request"]
+    assert len(asked) == (1 if setup == "ask" else 0)
+    program = next(e for e in events if e["type"] == "verify")["checks"][0]["program"]
+    assert marker.exists() is ran
+    if ran:
+        assert program["ok"] is True
+    else:  # not run is not a failure: nothing goes back, and the checker is told what was not checked
+        assert program["ok"] is None and f"not imported: {why}" in program["note"]
+        assert "not fully checked" in provider.requests[-1].messages[-1].content
+    assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 1
+
+
+async def test_a_remote_checker_does_not_get_what_the_checks_quote_of_the_users_file(tmp_path):
+    secret = "ZX-ALBATROS-9931"
+    (tmp_path / "notas.txt").write_text(f"El código de acceso es {secret}.\n", encoding="utf-8")
+    store = Store(tmp_path / "s.db")
+    local = ScriptedProvider([call("read_file", {"path": "notas.txt"}),
+                              write("codigo.py", f"CODIGO = int('{secret}')\n"), text("Guardé codigo.py"),
+                              write("codigo.py", "CODIGO = 1\n"), text("Corregido")], name="local")
+    local.config.local = True
+    remote = ScriptedProvider([text(ALL_MET), text(ALL_MET)], name="remote")
+    guarded_local, guarded_remote = GuardedProvider(local, store), GuardedProvider(remote, store)
+
+    def resolve(spec):
+        return Backend(provider=guarded_local if spec.id == "code" else guarded_remote, model=None, adapter=None)
+
+    orch = Orchestrator(CATALOG, resolve, default_registry(tmp_path),
+                        PermissionBroker({"read_file": "allow", "write_file": "allow", "python": "allow"}))
+    events = await run(orch, "Guarda un código a partir de mis notas", OrchestratorOptions(forge=code_step("codigo.py")))
+    first = next(e for e in events if e["type"] == "verify")
+    assert secret in first["checks"][0]["program"]["note"]  # the check found the error and quoted the file
+    redo = next(r.messages[-1].content for r in local.requests if "sent your work back" in r.messages[-1].content)
+    assert secret in redo  # the local specialist that read the file is told what is wrong
+    sent = [m.content for r in remote.requests for m in r.messages]
+    assert all(secret not in c for c in sent)  # the remote checker is not
+    assert "- codigo.py (t1), FAILED: [file content withheld" in remote.requests[0].messages[-1].content
+    assert "- codigo.py (t1), passed: compiles" in remote.requests[1].messages[-1].content  # a pass says nothing private
+    assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 2
+
+
+@pytest.mark.parametrize("path, content, note", [
+    ("a.py", "def f(:\n    pass\n", "does not compile: SyntaxError: invalid syntax at line 1: `def f(:`"),
+    ("a.py", "def f():\n    return y\n", "would raise NameError: name 'y' is not defined at line 2: `return y`"),
+    ("a.json", '{"a": 1', "is not valid JSON: Expecting ',' delimiter: line 1 column 8 (char 7)"),
+    ("a.csv", "mes,ventas\nene,100\nfeb,200,9\n", "has 3 columns on line 3 but the header has 2"),
+    ("a.csv", 'mes,ventas\n"ene,100\n', "is not valid CSV: unexpected end of data (line 2)"),
+    ("a.tsv", "a\tb\n1\n", "has 1 columns on line 2 but the header has 2"),
+    ("a.md", " \n\n", "has no content"),
+])
+def test_files_that_are_wrong_are_found_without_running_them(path, content, note):
+    assert format_check(path, content) == {"ok": False, "note": note}
+
+
+def test_valid_python_is_never_flagged_for_a_name_it_does_define():
+    code = (
+        "import os.path\nimport numpy as np\nfrom typing import List\n\nTOTAL: int = 0\n\n\n"
+        "class A(List):\n    def f(self, *args, **kw):\n        global TOTAL\n        TOTAL = len(args)\n"
+        "        return [x for x in range(3)] + [__class__, __file__, __name__]\n\n\n"
+        "def g(n, k=os.path.sep):\n    try:\n        return n.real\n    except (OSError, ValueError) as exc:\n"
+        "        return str(exc)\n    finally:\n        pass\n\n\n"
+        "with open('x') as fh:\n    h = lambda z: z + len(fh.name)\nmatch h(1):\n    case [first, *rest]:\n"
+        "        print(first, rest)\n    case {'k': v, **others}:\n        print(v, others)\n"
+        "if (n := np.zeros(1)) is not None:\n    print(n)\n"
+    )
+    assert format_check("ok.py", code)["ok"] is True
+    assert format_check("star.py", "from math import *\nprint(sqrt(4), nada)\n")["ok"] is True  # names we cannot see
+    assert format_check("dyn.py", "globals()['x'] = 1\nprint(x)\n")["ok"] is True
+
+
+def test_an_import_that_cannot_be_judged_does_not_send_work_back():
+    trace = ('Traceback (most recent call last):\n  File "main.py", line 1, in <module>\n    nombre = input()\n'
+             "EOFError: EOF when reading a line")
+    missing = trace.replace("EOFError: EOF when reading a line", "ModuleNotFoundError: No module named 'pandas'")
+    static = "compiles"
+    for content in (f"[stderr]\n{trace}", f"[stderr]\n{missing}", "error: timed out after 30s",
+                    "error: the user denied this tool call"):
+        assert run_outcome("main.py", ["main.py"], content, False, static)["ok"] is None, content
+    assert run_outcome("main.py", ["main.py"], f"[stderr]\n{missing}", False, static)["note"].endswith(
+        "No module named 'pandas'")
+    assert run_outcome("main.py", ["main.py"], "(no output)", True, static) == {
+        "ok": True, "note": "compiles, imports without an error"}
+
+
 # ---------------------------------------------------------------- the app
 @pytest.fixture
 def app(tmp_path, monkeypatch):
@@ -384,4 +582,5 @@ async def test_the_harness_runs_forge_and_the_baseline_in_fresh_folders(tmp_path
     assert (kept / "primos-baseline" / "primos.txt").read_text(encoding="utf-8") == "2, 3, 5"
     trace = json.loads((kept / "primos-forge" / "_forge-trace.json").read_text(encoding="utf-8"))
     assert trace["blueprint"]["steps"][0]["deliverables"] == ["primos.txt"] and trace["verify"][0]["round"] == 1
+    assert trace["verify"][0]["checks"][0]["program"] == {"ok": True, "note": "has content"}  # what SPIKE's checks found
     assert not (kept / "primos-baseline" / "_forge-trace.json").exists() and "trace" not in forge

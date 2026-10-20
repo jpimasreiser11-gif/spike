@@ -155,9 +155,13 @@ integrator are fixed stages after any multi-step plan. Forge (`spike/forge/`) ad
 and acceptance criteria with constrained JSON; the user edits and approves it in the Forge screen, and `POST
 /api/chat` with `forge` runs it (`Blueprint.from_user` validates it strictly: known specialists, earlier
 dependencies, relative paths, no file saved twice). A step that saves files gets the file tools it needs for the
-run. The checker also judges each criterion; the answer ends with a `forge_report` (criteria, deliverables, rounds,
-what stayed unresolved). `spike forge eval` runs the ten tasks of `spike/forge/tasks.jsonl` in empty folders, with
-their checks run by SPIKE (Python in a limited subprocess), against the core model alone with `--baseline`.
+run. Before the checker, SPIKE checks the saved files itself (`verify.check_files`: Python compiles and uses no
+undefined name, JSON parses, CSV rows have equal width, text is not empty; each Python file is then imported through
+the `python` tool with its usual permission, in a temporary copy of the saved files): a failure is a fact in the
+checker's input, private when the file's author read the user's files, and sends the step back with the error. The
+checker also judges each criterion; the answer ends with a `forge_report` (criteria, deliverables, rounds, what
+stayed unresolved). `spike forge eval` runs the ten tasks of `spike/forge/tasks.jsonl` in empty folders, with their
+checks run by SPIKE (Python in a limited subprocess), against the core model alone with `--baseline`.
 
 **`spike dev` (C3).** `spike/dev/` reuses the orchestrator and the agent loop with its own registry: the usual file tools on the chosen folder plus `edit_file`, `search`, `find_files` and `run_command` as shared tools (every specialist gets them), its own permission broker (the app's policies; `--accept-edits` allows the edit tools) and its own store `$SPIKE_HOME/dev/sessions.db` with checkpoints in `$SPIKE_HOME/dev/checkpoints` (one conversation per run, titled `dev:<folder>`; `/undo` takes the latest checkpoint of any of them). The terminal (`spike/dev/terminal.py`) settles each permission request and question before the loop goes on, runs each request as a task on one event loop so Ctrl-C cancels the request and not the session, and allows 30 model calls per request.
 

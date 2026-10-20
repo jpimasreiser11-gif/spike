@@ -14,10 +14,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from spike.agent.loop import AgentRun, Checkpointer, Event, run_agent
+from spike.agent.loop import AgentRun, Checkpointer, Event, call_tool, run_agent
 from spike.contracts import check, repair_prompt
 from spike.core.context import fit_messages
-from spike.core.types import ChatRequest, Message
+from spike.core.types import ChatRequest, Message, ToolCall
 from spike.design.library import DesignSystem, design_prompt
 from spike.memory.service import Recall, memory_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
@@ -26,9 +26,14 @@ from spike.orchestrator.verify import (
     MAX_ROUNDS,
     RESULT_CHARS,
     Verdict,
+    check_files,
     dependents,
     file_checks,
     parse_verdict,
+    private_notes,
+    problems,
+    run_code,
+    run_outcome,
     saved_texts,
     verifier_prompt,
     verify_message,
@@ -422,7 +427,8 @@ class Orchestrator:
                       Message(role="user", content=verify_message(user_text, plan.subtasks, results, names, criteria,
                                                                   checks, files),
                               private=[results[t][:RESULT_CHARS] for t in tainted if results.get(t)]
-                              + [f["text"] for f in files if f["subtask"] in tainted])],
+                              + [f["text"] for f in files if f["subtask"] in tainted]
+                              + private_notes(checks, tainted))],
             model=core.model, adapter=core.adapter, temperature=0.0, max_tokens=1200,
             json_schema=verify_schema(ids, len(criteria)), reasoning=False,
         )
@@ -436,6 +442,26 @@ class Orchestrator:
         return parse_verdict(text, ids, criteria) or Verdict(method="unavailable", criteria=unchecked,
                                                               note="checker output was invalid")
 
+    async def _import_python(self, checks: list[dict[str, Any]], root: Path | None, opts: OrchestratorOptions
+                             ) -> AsyncIterator[Event]:
+        """Import each saved Python file that passed the static checks, through the `python` tool and the user's
+        permission for it (nothing runs unless that allows it), and put the outcome in the file's `program` entry."""
+        tool = self.tools.get("python")
+        files = [c["path"] for c in checks if c["ok"]]
+        for c in checks:
+            static = c.get("program")
+            if root is None or not static or static["ok"] is not True or Path(c["path"]).suffix.lower() != ".py":
+                continue
+            if tool is None or not opts.tools_enabled:
+                c["program"] = {"ok": None, "note": f"{static['note']}; not imported: the python tool is off"}
+                continue
+            call = ToolCall(id=f"check-{c['subtask']}-{c['path']}", name="python",
+                            arguments={"code": run_code(root, files, c["path"])})
+            outcome: list[Any] = []
+            async for ev in call_tool(tool, call, self.broker, None, {"subtask": c["subtask"]}, outcome):
+                yield ev
+            c["program"] = run_outcome(c["path"], files, outcome[0], outcome[1], static["note"])
+
     async def _check(self, plan: Plan, history: list[Message], user_text: str, results: dict[str, str],
                      owners: dict[str, str], opts: OrchestratorOptions, tainted: set[str],
                      outcome: list[Any]) -> AsyncIterator[Event]:
@@ -446,16 +472,17 @@ class Orchestrator:
         verdict, checks = Verdict(method="unavailable"), []
         for round_ in range(1, MAX_ROUNDS + 2):
             checks = file_checks(plan.subtasks, root)
+            check_files(checks, root)
             yield {"type": "verify_start", "round": round_}
+            async for ev in self._import_python(checks, root, opts):
+                yield ev
             usage: list[Event] = []
             verdict = await self._ask_checker(plan, user_text, results, criteria, checks, tainted, usage,
                                               saved_texts(checks, root))
             for ev in usage:
                 yield ev
-            for c in checks:
-                if not c["ok"]:
-                    note = f"The file {c['path']} was not saved: save it with your file tool at exactly that path."
-                    verdict.returned[c["subtask"]] = " ".join(x for x in (verdict.returned.get(c["subtask"]), note) if x)
+            for sid, note in problems(checks).items():  # a file SPIKE found missing or wrong always goes back
+                verdict.returned[sid] = " ".join(x for x in (verdict.returned.get(sid), note) if x)
             yield verdict.event(round_, checks)
             if not verdict.returned or round_ > MAX_ROUNDS:
                 break
