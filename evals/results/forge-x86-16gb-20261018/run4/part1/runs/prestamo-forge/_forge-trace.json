@@ -1,0 +1,66 @@
+{
+  "blueprint": {
+    "goal": "Calcular la cuota mensual de un préstamo de 10.000 € al 5 % de interés nominal anual durante 3 años usando el sistema francés y guardar el resultado junto con la fórmula en el archivo prestamo.md.",
+    "requirements": [
+      "Calcular la cuota mensual utilizando el sistema francés (intereses capitalizados mensualmente) para un préstamo de 10.000 € con una tasa del 5 % anual y una duración de 3 años.",
+      "Guardar el resultado numérico y la fórmula utilizada en un archivo llamado prestamo.md.",
+      "La fórmula debe estar explicada claramente en el archivo."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "math",
+        "instruction": "Calcular la cuota mensual de un préstamo de 10.000 € al 5 % de interés nominal anual durante 3 años aplicando el sistema francés (intereses capitalizados mensualmente). Utilizar la fórmula: Cuota = P * (1 + i)^n / ((1 + i)^n - 1), donde P es el principal, i es la tasa mensual y n es el número de meses. Guardar el resultado final y la fórmula en el archivo prestamo.md.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "prestamo.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo prestamo.md debe contener el valor numérico de la cuota mensual calculada.",
+      "El archivo prestamo.md debe contener la fórmula matemática utilizada para el cálculo.",
+      "El archivo prestamo.md debe explicar brevemente qué es el sistema francés en este contexto."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo prestamo.md debe contener el valor numérico de la cuota mensual calculada.",
+          "ok": true,
+          "note": "El archivo prestamo.md contiene el valor numérico de la cuota mensual (299.71 €), la fórmula matemática utilizada y una explicación breve del sistema francés. El cálculo es correcto para el sistema francés (amortización francesa) donde la cuota es constante. No se detectaron errores ni contradicciones."
+        },
+        {
+          "text": "El archivo prestamo.md debe contener la fórmula matemática utilizada para el cálculo.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El archivo prestamo.md debe explicar brevemente qué es el sistema francés en este contexto.",
+          "ok": null,
+          "note": ""
+        }
+      ],
+      "checks": [
+        {
+          "subtask": "t1",
+          "path": "prestamo.md",
+          "ok": true,
+          "bytes": 1299,
+          "program": {
+            "ok": true,
+            "note": "has content"
+          }
+        }
+      ]
+    }
+  ]
+}

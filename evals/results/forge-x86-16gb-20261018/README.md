@@ -1,7 +1,7 @@
 # Forge vs the core model alone, 16 GB x86, CPU only
 
-Three runs: run 1 (this folder's `forge-eval.json`), run 2 (`run2/`) and run 3 (`run3/`), the last two with
-every task's files.
+Four runs: run 1 (this folder's `forge-eval.json`), run 2 (`run2/`), run 3 (`run3/`) and run 4 (`run4/`), the last
+three with every task's files.
 
 ## Run 1
 
@@ -77,3 +77,27 @@ runs 1–2 (shared VM), so the 3.7× ratio is not a speed-up.
 All three runs, without run 1's cafeteria: Forge 23/29, the core model alone 25/29 (3 task runs only Forge passed, 5
 only the core passed; McNemar exact p ≈ 0.73). With this model Forge does not beat the model alone.
 
+
+## Run 4
+
+SPIKE at commit `35347ff`: before the checker, Forge now runs its own checks on the saved files (Python compiles,
+reads no name it never defines and imports without its `__main__` block; JSON and CSV parse; text is not empty) and
+sends a failure back for rework. Same machine and model. The container restarted during `campana`, so the run is in
+two parts: `part1/` (fizzbuzz to email; the process died before writing its JSON, so these results come from its
+log, with every task's files and traces kept) and `part2/` (`--only campana,quiz,cafeteria,ventas`, its own JSON;
+campana run again in both modes). `forge-eval.json` merges them.
+
+| mode | passed | total time |
+|---|---|---|
+| Forge | 9/10 | 8,471 s (2.4 h) |
+| core model alone | 9/10 | 1,424 s (24 min) |
+
+Both failed `campana` only: Forge's `canales` is again a list of objects (name, reason, format, frequency, budget
+share), and the core model's message was too long. The program checks ran on every saved file in every round and
+never failed, so they sent nothing back (slug.py was right this time). Forge's rework came from its checker: primos
+once (the file was still empty), facturas twice, rejecting a CSV that the task's own check passes, which took
+facturas to 3,266 s. Forge was 5.9 times slower.
+
+All four runs, without run 1's cafeteria: Forge 32/39, the core model alone 34/39; run 4 has no task that only one
+mode passed, so the paired test is unchanged (3 task runs only Forge passed, 5 only the core; McNemar exact
+p ≈ 0.73). With this model Forge still does not beat the model alone, and it is not announced.

@@ -1,0 +1,86 @@
+{
+  "blueprint": {
+    "goal": "Generar un archivo JSON llamado quiz.json con 5 preguntas de opción múltiple sobre el sistema solar, diseñadas para niños de 10 años, siguiendo un formato específico de objetos con campos pregunta, opciones y correcta.",
+    "requirements": [
+      "El archivo debe tener exactamente 5 preguntas.",
+      "Cada pregunta debe tener un campo 'pregunta' con texto adecuado para niños de 10 años.",
+      "Cada pregunta debe tener un campo 'opciones' que sea una lista de exactamente 4 textos.",
+      "Cada pregunta debe tener un campo 'correcta' que contenga un número entero entre 0 y 3 indicando el índice de la opción correcta.",
+      "El archivo debe ser válido JSON."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "education",
+        "instruction": "Crear un objeto JSON con 5 preguntas sobre el sistema solar adaptadas para niños de 10 años. Cada objeto debe tener las claves 'pregunta' (texto), 'opciones' (lista de 4 textos) y 'correcta' (índice 0-3). Guardar el resultado en el archivo quiz.json.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "quiz.json"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo quiz.json debe existir y ser un archivo válido JSON.",
+      "El archivo debe contener exactamente 5 objetos en la lista raíz.",
+      "Cada objeto debe tener las claves 'pregunta', 'opciones' y 'correcta'.",
+      "Cada objeto 'opciones' debe tener exactamente 4 elementos.",
+      "Cada valor de 'correcta' debe ser un número entero entre 0 y 3.",
+      "El contenido de las preguntas debe ser apropiado para niños de 10 años y relacionado con el sistema solar."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo quiz.json debe existir y ser un archivo válido JSON.",
+          "ok": true,
+          "note": "El archivo quiz.json es válido, contiene 5 objetos, cada uno tiene las claves requeridas, 4 opciones y un índice de correcta entre 0 y 3. El contenido es apropiado para niños de 10 años sobre el sistema solar."
+        },
+        {
+          "text": "El archivo debe contener exactamente 5 objetos en la lista raíz.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "Cada objeto debe tener las claves 'pregunta', 'opciones' y 'correcta'.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "Cada objeto 'opciones' debe tener exactamente 4 elementos.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "Cada valor de 'correcta' debe ser un número entero entre 0 y 3.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "El contenido de las preguntas debe ser apropiado para niños de 10 años y relacionado con el sistema solar.",
+          "ok": null,
+          "note": ""
+        }
+      ],
+      "checks": [
+        {
+          "subtask": "t1",
+          "path": "quiz.json",
+          "ok": true,
+          "bytes": 985,
+          "program": {
+            "ok": true,
+            "note": "is valid JSON"
+          }
+        }
+      ]
+    }
+  ]
+}

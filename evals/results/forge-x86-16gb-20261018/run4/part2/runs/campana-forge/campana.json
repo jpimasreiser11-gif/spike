@@ -1,0 +1,27 @@
+{
+  "publico": "Personas ocupadas (25-45 años) que quieren preparar comidas saludables y rápidas con resultados profesionales sin tiempo para cocinar",
+  "canales": [
+    {
+      "nombre": "Instagram",
+      "justificacion": "Comunidad visual de 120M+ usuarios, ideal para contenido visual de recetas paso a paso",
+      "formato": "Reels y posts con fotos de alta calidad",
+      "frecuencia": "3-4 veces por semana",
+      "share_budget": 40
+    },
+    {
+      "nombre": "TikTok",
+      "justificacion": "Alcance orgánico masivo entre usuarios 16-34, alta retención para contenido de cocina",
+      "formato": "Videos cortos de preparación de 30-60 segundos",
+      "frecuencia": "5-6 veces por semana",
+      "share_budget": 35
+    },
+    {
+      "nombre": "Google Ads",
+      "justificacion": "Captura intención de búsqueda específica para recetas y planes de comida",
+      "formato": "Búsqueda y Shopping",
+      "frecuencia": "Campaña continua",
+      "share_budget": 25
+    }
+  ],
+  "mensaje": "Cocina como un pro en 15 minutos. Recetas paso a paso, ingredientes locales y planificaciones adaptables. Tu plato favorito hoy."
+}

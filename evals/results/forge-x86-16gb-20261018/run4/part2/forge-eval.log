@@ -1,0 +1,13 @@
+FAIL forge    campana     414.6s
+       campana.json tiene publico, canales (3 o más) y mensaje corto: AssertionError: [{'nombre': 'Instagram', 'justificacion': 'Comunidad visual de 120M+ usuarios, ideal para contenido visual de recetas paso a paso', 'formato': 'Reels y posts con fotos de alta calidad', 'frecuencia': '3-4 veces por semana', 'share_budget': 40}, {'nombre': 'TikTok', 'justificacion': '
+FAIL baseline campana      78.1s
+       campana.json tiene publico, canales (3 o más) y mensaje corto: AssertionError: ¡Descubre el mundo de las recetas con App Recetas! Más de 10,000 recetas fáciles, saludables y deliciosas en tu bolsillo. ¡Prueba gratis hoy!
+pass forge    quiz        203.6s
+pass baseline quiz        139.2s
+pass forge    cafeteria   221.5s
+pass baseline cafeteria   116.6s
+pass forge    ventas     1538.3s
+pass baseline ventas      190.1s
+forge    3/4 = 75%  (95 % CI 30%–95%)
+baseline 3/4 = 75%  (95 % CI 30%–95%)
+wrote /root/w/out/run4b/forge-eval.json

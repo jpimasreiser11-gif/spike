@@ -1,0 +1,67 @@
+{
+  "blueprint": {
+    "goal": "Crear un archivo llamado plan.md con un plan de negocio para abrir una cafetería de una sola página.",
+    "requirements": [
+      "El documento debe contener exactamente cuatro secciones con títulos de nivel 2: ## Objetivo, ## Costes iniciales, ## Riesgos y ## Próximos pasos.",
+      "La sección ## Costes iniciales debe incluir una tabla de Markdown con al menos tres partidas de costes.",
+      "La tabla de costes debe incluir una fila de total que sume las partidas anteriores.",
+      "El archivo debe guardarse con el nombre relativo plan.md."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "writing",
+        "instruction": "Generar el contenido del texto para las secciones Objetivo, Riesgos y Próximos pasos, y redactar la tabla de costes iniciales con al menos tres partidas y una fila de total sumatoria, asegurando que los títulos sean exactamente ## Objetivo, ## Costes iniciales, ## Riesgos y ## Próximos pasos.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "plan.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo plan.md existe y contiene exactamente las cuatro secciones especificadas con los títulos correctos.",
+      "La sección Costes iniciales contiene una tabla Markdown válida con al menos 3 filas de datos y 1 fila de total.",
+      "El valor de la fila de total en la tabla es la suma aritmética de los valores de las 3 partidas."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo plan.md existe y contiene exactamente las cuatro secciones especificadas con los títulos correctos.",
+          "ok": true,
+          "note": "El archivo plan.md contiene exactamente las cuatro secciones solicitadas con los títulos correctos: ## Objetivo, ## Costes iniciales, ## Riesgos y ## Próximos pasos."
+        },
+        {
+          "text": "La sección Costes iniciales contiene una tabla Markdown válida con al menos 3 filas de datos y 1 fila de total.",
+          "ok": true,
+          "note": "La sección Costes iniciales contiene una tabla Markdown válida con 5 filas de datos (más de las 3 requeridas) y 1 fila de total."
+        },
+        {
+          "text": "El valor de la fila de total en la tabla es la suma aritmética de los valores de las 3 partidas.",
+          "ok": true,
+          "note": "La suma de las partidas (15.000 + 8.500 + 4.200 + 1.200 + 1.800) es 30.700, que coincide exactamente con el valor indicado en la fila de total."
+        }
+      ],
+      "checks": [
+        {
+          "subtask": "t1",
+          "path": "plan.md",
+          "ok": true,
+          "bytes": 2073,
+          "program": {
+            "ok": true,
+            "note": "has content"
+          }
+        }
+      ]
+    }
+  ]
+}

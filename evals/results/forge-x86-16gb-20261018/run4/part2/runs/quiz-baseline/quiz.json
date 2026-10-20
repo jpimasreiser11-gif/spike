@@ -1,0 +1,27 @@
+[
+  {
+    "pregunta": "¿Qué es el Sol?",
+    "opciones": ["Un planeta", "Una estrella", "Un cometa", "Un asteroide"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué planeta está más cerca del Sol?",
+    "opciones": ["Marte", "Júpiter", "Mercurio", "Venus"],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Cuántos planetas hay en nuestro sistema solar?",
+    "opciones": ["7", "8", "9", "10"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué planeta se conoce como el Planeta Rojo?",
+    "opciones": ["Venus", "Marte", "Júpiter", "Saturno"],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué es el planeta más grande de nuestro sistema solar?",
+    "opciones": ["Tierra", "Júpiter", "Saturno", "Urano"],
+    "correcta": 1
+  }
+]

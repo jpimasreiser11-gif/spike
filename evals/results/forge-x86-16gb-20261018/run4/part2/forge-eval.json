@@ -1,0 +1,117 @@
+{
+  "date_utc": "2026-10-20T07:35:51Z",
+  "spike_version": "0.1.0",
+  "platform": "Linux x86_64",
+  "provider": "SPIKE local (llama.cpp)",
+  "model": "spike-base",
+  "local": true,
+  "tasks": 4,
+  "summary": {
+    "forge": {
+      "passed": 3,
+      "n": 4,
+      "rate": 0.75,
+      "ci95": [
+        0.3006,
+        0.9544
+      ]
+    },
+    "baseline": {
+      "passed": 3,
+      "n": 4,
+      "rate": 0.75,
+      "ci95": [
+        0.3006,
+        0.9544
+      ]
+    }
+  },
+  "results": [
+    {
+      "id": "campana",
+      "mode": "forge",
+      "passed": false,
+      "failed": [
+        {
+          "check": "campana.json tiene publico, canales (3 o más) y mensaje corto",
+          "why": "AssertionError: [{'nombre': 'Instagram', 'justificacion': 'Comunidad visual de 120M+ usuarios, ideal para contenido visual de recetas paso a paso', 'formato': 'Reels y posts con fotos de alta calidad', 'frecuencia': '3-4 veces por semana', 'share_budget': 40}, {'nombre': 'TikTok', 'justificacion': '"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 414.6,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "campana",
+      "mode": "baseline",
+      "passed": false,
+      "failed": [
+        {
+          "check": "campana.json tiene publico, canales (3 o más) y mensaje corto",
+          "why": "AssertionError: ¡Descubre el mundo de las recetas con App Recetas! Más de 10,000 recetas fáciles, saludables y deliciosas en tu bolsillo. ¡Prueba gratis hoy!"
+        }
+      ],
+      "error": null,
+      "elapsed_s": 78.1
+    },
+    {
+      "id": "quiz",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 203.6,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "quiz",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 139.2
+    },
+    {
+      "id": "cafeteria",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 221.5,
+      "blueprint": "llm",
+      "steps": 1,
+      "rounds": 1
+    },
+    {
+      "id": "cafeteria",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 116.6
+    },
+    {
+      "id": "ventas",
+      "mode": "forge",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 1538.3,
+      "blueprint": "llm",
+      "steps": 2,
+      "rounds": 1
+    },
+    {
+      "id": "ventas",
+      "mode": "baseline",
+      "passed": true,
+      "failed": [],
+      "error": null,
+      "elapsed_s": 190.1
+    }
+  ]
+}

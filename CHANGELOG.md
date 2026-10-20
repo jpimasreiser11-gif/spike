@@ -42,8 +42,8 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.
 
-- Forge measured three times on the 16 GB x86 machine with the base model: 6, 9 and 8 of 10 tasks against 9, 8
-  and 9 for the core model alone, and 3.7-8.3x slower, so no gain is shown and it is not announced. Its checker now
+- Forge measured four times on the 16 GB x86 machine with the base model: 6, 9, 8 and 9 of 10 tasks against 9, 8,
+  9 and 9 for the core model alone, and 3.7-8.3x slower, so no gain is shown and it is not announced. Its checker now
   reads the saved files and no longer overrules correct numbers with its own estimates (work sent back in 1 task
   instead of 4-5).
 - An agent that reaches its tool-step limit gets one last call to answer instead of ending in an error.
@@ -61,7 +61,7 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   memory is free again and resumes exactly where it stopped (optimizer state, schedule and data order included).
 - Forge checks the saved files itself before its checker reads them: Python compiles, reads no undefined name
   and imports (through the `python` tool and its permission), JSON and CSV parse; a failure sends the step back
-  with the error. Not yet measured with real weights.
+  with the error. Measured once (run 4): they never fired, Forge 9/10 and the model alone 9/10, so no gain.
 - Model cards for pairwise-judged adapters (marketing), with every training source's license and the
   attribution CC-BY and ODC-BY ask for; `llama3.1` is no longer accepted for training data or teachers.
 

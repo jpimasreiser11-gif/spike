@@ -1,0 +1,88 @@
+{
+  "blueprint": {
+    "goal": "Generar datos de ventas mensuales ficticios para 2025 en un archivo CSV y un resumen analítico en un archivo Markdown.",
+    "requirements": [
+      "Crear un archivo CSV llamado ventas.csv con exactamente 12 filas (uno por mes de 2025) y dos columnas: 'mes' (texto) y 'ventas' (entero en euros).",
+      "Crear un archivo Markdown llamado resumen.md que contenga el total anual, el mes con las ventas más altas y la media mensual redondeada al entero más cercano.",
+      "Los datos de ventas deben ser consistentes internamente (el total anual debe coincidir con la suma de las ventas mensuales)."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "data",
+        "instruction": "Generar 12 valores enteros aleatorios para las ventas de 2025, crear un CSV con columnas 'mes' y 'ventas' donde 'mes' toma los valores 'enero', 'febrero', ..., 'diciembre' y 'ventas' toma los valores generados, guardar el archivo como ventas.csv.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "ventas.csv"
+        ]
+      },
+      {
+        "id": "t2",
+        "specialist": "data",
+        "instruction": "Leer ventas.csv, calcular la suma total de la columna 'ventas', identificar el mes con el valor máximo en 'ventas', calcular la media dividiendo la suma total entre 12 y redondear al entero más cercano, guardar estos tres resultados en un archivo resumen.md con etiquetas claras.",
+        "depends_on": [
+          "t1"
+        ],
+        "role": "execute",
+        "deliverables": [
+          "resumen.md"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo ventas.csv debe existir, tener 12 filas de datos y columnas 'mes' y 'ventas' con tipos correctos.",
+      "El archivo resumen.md debe existir y contener explícitamente el 'Total anual', el 'Mes con más ventas' y la 'Media mensual' (redondeada).",
+      "La suma de los valores en la columna 'ventas' de ventas.csv debe ser igual al 'Total anual' reportado en resumen.md."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo ventas.csv debe existir, tener 12 filas de datos y columnas 'mes' y 'ventas' con tipos correctos.",
+          "ok": true,
+          "note": "ventas.csv has 12 rows, correct columns, and integer values."
+        },
+        {
+          "text": "El archivo resumen.md debe existir y contener explícitamente el 'Total anual', el 'Mes con más ventas' y la 'Media mensual' (redondeada).",
+          "ok": true,
+          "note": "resumen.md exists and contains Total anual, Mes con más ventas, and Media mensual."
+        },
+        {
+          "text": "La suma de los valores en la columna 'ventas' de ventas.csv debe ser igual al 'Total anual' reportado en resumen.md.",
+          "ok": true,
+          "note": "Sum of ventas.csv (12500+15800+14200+18900+16500+13700+19200+17800+21300+23500+25600+28400 = 227400) matches Total anual in resumen.md."
+        }
+      ],
+      "checks": [
+        {
+          "subtask": "t1",
+          "path": "ventas.csv",
+          "ok": true,
+          "bytes": 171,
+          "program": {
+            "ok": true,
+            "note": "is valid CSV, the same columns in every row"
+          }
+        },
+        {
+          "subtask": "t2",
+          "path": "resumen.md",
+          "ok": true,
+          "bytes": 129,
+          "program": {
+            "ok": true,
+            "note": "has content"
+          }
+        }
+      ]
+    }
+  ]
+}

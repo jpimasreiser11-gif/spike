@@ -1,0 +1,9 @@
+{
+  "publico": "Personas de 25-45 años, mujeres y hombres, que buscan inspiración culinaria rápida, valoran calidad de ingredientes y tienen acceso a smartphones. Segmento principal: cocineros casuales y estudiantes universitarios interesados en cocinar. Otros segmentos: familias con 2+ hijos, profesionales ocupados, y usuarios de redes sociales activos en comunidades de cocina.",
+  "canales": [
+    {"nombre": "Instagram", "justificacion": "Alta densidad de contenido visual de recetas, audiencia demográfica coincide con 75% del público objetivo, formato ideal para mostrar antes/después de recetas", "formato": "Reels y carruseles con 3-5 pasos", "frecuencia": "3 veces por semana", "share_budget": 40},
+    {"nombre": "TikTok", "justificacion": "Algoritmo recomendado por recetas cortas, viralidad en segmentación demográfica joven, alto engagement de 60-70%", "formato": "Videos de 15-30 segundos mostrando técnicas", "frecuencia": "2 veces por semana", "share_budget": 35},
+    {"nombre": "Google Ads", "justificacion": "Captación de intención de búsqueda directa, usuarios activos en momentos de necesidad (buscando 'recetas rápidas', 'ingredientes para...', etc)", "formato": "Search ads + Shopping", "frecuencia": "Campaña continua", "share_budget": 25}
+  ],
+  "mensaje": "Descubre recetas deliciosas en menos de 30 segundos. Ingredientes de calidad, pasos simples, y descárgala ahora. ¡Tu cocina merece mejor!"
+}

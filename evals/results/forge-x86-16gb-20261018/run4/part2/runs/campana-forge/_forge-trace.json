@@ -1,0 +1,80 @@
+{
+  "blueprint": {
+    "goal": "Generar un archivo JSON llamado 'campana.json' que contenga el plan de lanzamiento de una campaña para una app de recetas con las claves especificadas y formatos requeridos.",
+    "requirements": [
+      "El archivo debe tener el nombre exacto 'campana.json'.",
+      "La clave 'publico' debe contener un texto descriptivo del público objetivo.",
+      "La clave 'canales' debe ser una lista con al menos 3 canales de distribución.",
+      "La clave 'mensaje' debe contener un texto publicitario de menos de 140 caracteres.",
+      "El formato debe ser válido JSON."
+    ],
+    "steps": [
+      {
+        "id": "t1",
+        "specialist": "marketing",
+        "instruction": "Crear un objeto JSON con las claves 'publico', 'canales' (lista de al menos 3 canales) y 'mensaje' (texto < 140 caracteres) para una app de recetas, guardarlo en el archivo 'campana.json' y verificar que el texto del mensaje cumpla el límite de longitud.",
+        "depends_on": [],
+        "role": "execute",
+        "deliverables": [
+          "campana.json"
+        ]
+      }
+    ],
+    "criteria": [
+      "El archivo 'campana.json' existe y es válido.",
+      "La clave 'publico' tiene contenido.",
+      "La clave 'canales' es una lista con al menos 3 elementos.",
+      "La clave 'mensaje' tiene menos de 140 caracteres.",
+      "No hay errores de sintaxis en el JSON."
+    ],
+    "method": "llm",
+    "note": ""
+  },
+  "verify": [
+    {
+      "round": 1,
+      "method": "llm",
+      "note": "",
+      "returned": [],
+      "criteria": [
+        {
+          "text": "El archivo 'campana.json' existe y es válido.",
+          "ok": true,
+          "note": "El archivo campana.json existe, es válido JSON, tiene la clave 'publico' con contenido, la clave 'canales' es una lista con 3 elementos (aunque cada elemento es un objeto, cumple la condición de ser una lista de al menos 3 elementos), y la clave 'mensaje' tiene 133 caracteres, que es menor que 140. No hay errores de sintaxis ni contradicciones."
+        },
+        {
+          "text": "La clave 'publico' tiene contenido.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La clave 'canales' es una lista con al menos 3 elementos.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "La clave 'mensaje' tiene menos de 140 caracteres.",
+          "ok": null,
+          "note": ""
+        },
+        {
+          "text": "No hay errores de sintaxis en el JSON.",
+          "ok": null,
+          "note": ""
+        }
+      ],
+      "checks": [
+        {
+          "subtask": "t1",
+          "path": "campana.json",
+          "ok": true,
+          "bytes": 1144,
+          "program": {
+            "ok": true,
+            "note": "is valid JSON"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "pregunta": "¿Cuál es el planeta más cercano al Sol?",
+    "opciones": [
+      "Venus",
+      "Mercurio",
+      "Marte",
+      "Tierra"
+    ],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Qué es el cuerpo central que orbita todo el sistema solar?",
+    "opciones": [
+      "Una estrella llamada Sol",
+      "Un planeta gigante",
+      "Una cometa",
+      "Una galaxia"
+    ],
+    "correcta": 0
+  },
+  {
+    "pregunta": "¿Cuántos planetas hay en el sistema solar si contamos los mayores?",
+    "opciones": [
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "correcta": 1
+  },
+  {
+    "pregunta": "¿Cuál es el planeta más grande del sistema solar?",
+    "opciones": [
+      "Tierra",
+      "Marte",
+      "Júpiter",
+      "Saturno"
+    ],
+    "correcta": 2
+  },
+  {
+    "pregunta": "¿Qué cuerpo celeste tiene muchas lunas y anillos de hielo?",
+    "opciones": [
+      "Marte",
+      "Júpiter",
+      "Saturno",
+      "Plutón"
+    ],
+    "correcta": 2
+  }
+]

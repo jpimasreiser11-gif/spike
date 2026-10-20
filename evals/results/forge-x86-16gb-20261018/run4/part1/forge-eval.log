@@ -1,0 +1,14 @@
+pass forge    fizzbuzz    826.4s
+pass baseline fizzbuzz    205.3s
+pass forge    slug        865.4s
+pass baseline slug        150.8s
+pass forge    primos      408.5s
+pass baseline primos       60.7s
+pass forge    facturas   3265.6s
+pass baseline facturas    231.9s
+pass forge    prestamo    544.1s
+pass baseline prestamo    188.4s
+pass forge    email       183.4s
+pass baseline email        62.8s
+FAIL forge    campana     377.9s
+       campana.json tiene publico, canales (3 o más) y mensaje corto: AssertionError: [{'nombre': 'Instagram', 'justificacion': 'Alta densidad de contenido visual de recetas, audiencia demográfica coincide con 75% del público objetivo, formato ideal para mostrar antes/después de recetas', 'formato': 'Reels y carruseles con 3-5 pasos', 'frecuencia': '3 veces por semana
