@@ -80,9 +80,9 @@ spike="$bin_dir/spike"
 # Linux without Homebrew gets llama.cpp's official prebuilt CPU build. The tag and the SHA-256 of each asset are pinned
 # here (sha256sum of <releases>/download/<tag>/llama-<tag>-bin-ubuntu-<arch>.tar.gz); change all three together.
 # SPIKE looks for llama-server in $SPIKE_HOME/bin before PATH, so a link there is enough.
-llama_tag=b11400
-llama_sha_x64=dbad8cd850aa22dff8e50c4adeebeba5750eb80f05e70cd3c8921331db139d1e
-llama_sha_arm64=df8e0d8111902f39fa9a697800e5a5ec11a69d69a2ee129c49459e1570257e3b
+llama_tag=b11709
+llama_sha_x64=092e1ac34609acabc116be143e42c6f410fa39b7787c597f89687692dea4c982
+llama_sha_arm64=b8dbdb3191785edd653860a1b004af78c31050e66f4715e861661fda85e239f1
 llama_releases=https://github.com/ggml-org/llama.cpp/releases
 llama_link="${SPIKE_HOME:-$HOME/.spike}/bin/llama-server"
 llama_root="${XDG_DATA_HOME:-$HOME/.local/share}/spike/llama.cpp"
