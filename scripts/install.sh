@@ -43,13 +43,16 @@ step() {
 
 echo "SPIKE installer ($(uname -s) $(uname -m))"
 
-# 1. Python 3.11+
+# 1. Python 3.11+: the versions CI tests first, since a newer Python can lack wheels (duckdb builds from source and
+# fails on Python 3.15); SPIKE's environment is created with this same interpreter
 py=""
 for c in python3.13 python3.12 python3.11 python3; do
   if have "$c" && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; then py="$c"; break; fi
 done
 [[ -n "$py" ]] || die "Python 3.11 or newer is required (https://www.python.org/downloads/ or 'brew install python@3.12')."
 echo "Python: $("$py" --version) ($(command -v "$py"))"
+"$py" -c 'import sys; sys.exit(sys.version_info[:2] > (3, 13))' \
+  || echo "   untested Python version: if a package fails to build, install Python 3.13 and re-run."
 
 # 2. pipx (installs SPIKE in its own environment, without touching system packages)
 if ! have pipx; then
@@ -71,7 +74,8 @@ if [[ ! -f web/dist/index.html ]]; then
 fi
 
 # 4. SPIKE itself
-step "Install SPIKE with pipx" "${pipx_cmd[@]}" install --force ".[docs,finance,data,motion]" || die "SPIKE was not installed."
+step "Install SPIKE with pipx" "${pipx_cmd[@]}" install --force --python "$(command -v "$py")" ".[docs,finance,data,motion]" \
+  || die "SPIKE was not installed."
 bin_dir="$("${pipx_cmd[@]}" environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
 spike="$bin_dir/spike"
 [[ -x "$spike" ]] || spike="spike"

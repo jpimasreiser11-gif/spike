@@ -48,9 +48,10 @@ function Step([string]$What, [scriptblock]$Command) {
 
 Write-Host "SPIKE installer (Windows $([Environment]::OSVersion.Version), $env:PROCESSOR_ARCHITECTURE, PowerShell $($PSVersionTable.PSVersion))"
 
-# 1. Python 3.11+ (the py launcher first, then python on PATH)
+# 1. Python 3.11+: the versions CI tests first through the py launcher, since a newer Python can lack wheels (duckdb
+# builds from source and fails on Python 3.15); then any py -3, then python on PATH. SPIKE's environment uses it too.
 $py = $null
-foreach ($candidate in @(@('py', '-3'), @('python'))) {
+foreach ($candidate in @(@('py', '-3.13'), @('py', '-3.12'), @('py', '-3.11'), @('py', '-3'), @('python'))) {
     if (Have $candidate[0]) {
         $args0 = @($candidate | Select-Object -Skip 1)
         Quiet { & $candidate[0] @args0 -c 'import sys; sys.exit(sys.version_info < (3, 11))' } | Out-Null
@@ -59,7 +60,10 @@ foreach ($candidate in @(@('py', '-3'), @('python'))) {
 }
 if (-not $py) { Fail 'Python 3.11 or newer is required: https://www.python.org/downloads/windows/' }
 $pyExe = $py[0]; $pyArgs = @($py | Select-Object -Skip 1)
-Write-Host "Python: $(& $pyExe @pyArgs --version)"
+$pyPath = Quiet { & $pyExe @pyArgs -c 'import sys; print(sys.executable)' }
+Write-Host "Python: $(& $pyExe @pyArgs --version) ($pyPath)"
+Quiet { & $pyExe @pyArgs -c 'import sys; sys.exit(sys.version_info[:2] > (3, 13))' } | Out-Null
+if ($LASTEXITCODE -ne 0) { Write-Host '   untested Python version: if a package fails to build, install Python 3.13 and re-run.' }
 
 # 2. pipx (installs SPIKE in its own environment)
 Quiet { & $pyExe @pyArgs -m pipx --version } | Out-Null
@@ -76,7 +80,7 @@ if (-not (Test-Path 'web\dist\index.html')) {
 }
 
 # 4. SPIKE itself
-if (-not (Step 'Install SPIKE with pipx' { & $pyExe @pyArgs -m pipx install --force '.[docs,finance,data,motion]' })) { Fail 'SPIKE was not installed.' }
+if (-not (Step 'Install SPIKE with pipx' { & $pyExe @pyArgs -m pipx install --force --python $pyPath '.[docs,finance,data,motion]' })) { Fail 'SPIKE was not installed.' }
 $binDir = @(Quiet { & $pyExe @pyArgs -m pipx environment --value PIPX_BIN_DIR })[0]
 if (-not $binDir) { $binDir = Join-Path $env:USERPROFILE '.local\bin' }
 $spike = @('spike.exe', 'spike') | ForEach-Object { Join-Path $binDir $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
