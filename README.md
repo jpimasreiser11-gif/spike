@@ -47,6 +47,23 @@ Local first, open source (Apache-2.0), and able to use external API models with 
 
 Scope, data and evaluation of each one: [docs/SPECIALISTS.md](docs/SPECIALISTS.md).
 
+## Why SPIKE
+
+1. **Small enough for the computer you have.** One 4B base model (Qwen3.5-4B, Q4_K_M) ran on a 16 GB CPU-only
+   machine at 5.1–6.2 tok/s up to an 8K prompt, with 3.6 GiB of anonymous memory (peak RSS 6.1 GiB, which also counts
+   the mapped model file). The slow cases are published too, below.
+2. **Specialists that share one model.** Thirteen specialists share the base in memory and, once trained, switch as
+   ~42 MB adapters (computed) without a reload. Today none is trained: each runs as a prompt profile on the base
+   model, is marked β, and is not claimed to beat the base until it passes its acceptance test.
+3. **Routing before spending compute.** A lexical router sends clear requests to a specialist without a model
+   call (46/50 on a held-out set, measured); only multi-domain or ambiguous requests get an LLM plan.
+4. **Local first, external APIs when you choose.** The same instructions, specialists and tools run on the local
+   model or on providers you allow; paid ones stay blocked until you enable them (tested against stand-in
+   endpoints, not yet against live services).
+5. **Evidence before announcements.** Each number comes with the command that reproduces it, and negative results
+   stay in [docs/STATUS.md](docs/STATUS.md): the multi-agent Forge mode showed no gain over the base model alone in
+   four runs, so it is not announced.
+
 ## Speed on real hardware (measured)
 
 Qwen3.5-4B Q4_K_M, llama.cpp, KV cache q8_0, 128 generated tokens, median of 3 runs:
@@ -60,6 +77,48 @@ Qwen3.5-4B Q4_K_M, llama.cpp, KV cache q8_0, 128 generated tokens, median of 3 r
 
 On a CPU-only computer SPIKE starts at an 8K context: a 32K prompt took about 1.5 h to the first word there. Raw reports and
 method: [docs/STATUS.md](docs/STATUS.md#measured-with-real-weights).
+
+## SPIKE next to Ollama, LM Studio, Open WebUI and Jan
+
+These tools do different jobs, and SPIKE is new. The table says what each one *is*; it does not rank quality or
+speed. Cells about the others come from each project's own repository, docs or site, checked 2026-10-20 (sources
+below). **"not checked"** means it was not looked up for this table, not that the feature is missing. The SPIKE column
+follows [docs/STATUS.md](docs/STATUS.md).
+
+| | SPIKE | Ollama | LM Studio | Open WebUI | Jan |
+|---|---|---|---|---|---|
+| Code license | Apache-2.0 | MIT | Proprietary app, free to use at home and at work; its CLI, SDKs and MLX engine are MIT | Own license since v0.6.6: a branding clause on top of BSD-3-style terms (its docs: not OSI-approved); BSD-3 up to v0.6.5 | Apache-2.0 |
+| Runs models on your computer | Yes, through llama.cpp | Yes (cloud models are optional) | Yes, llama.cpp; MLX on Apple Silicon | Connects to Ollama and OpenAI-compatible servers that run the models | Yes, llama.cpp |
+| Models you get | Downloads one base, Qwen3.5-4B (SHA-256 checked). No specialist adapter is trained or accepted yet | A library of many open models from other makers | A catalog of other makers' models (56 listed, 47 local) and Hugging Face search | Whatever its connected servers offer | Downloads models from Hugging Face |
+| Routes a request to a specialist by itself | Yes: lexical router plus a planner for multi-domain requests; specialists are prompt profiles for now | not checked | not checked | Not described in its feature docs; you pick a model or a preset | not checked |
+| OpenAI-compatible API | Yes: `/v1` with `spike-auto` or one specialist; tested with the official `openai` client | Yes, a subset: chat completions, responses, completions, embeddings, models | Yes: responses, chat completions, completions, embeddings, models | Its own API has an OpenAI-compatible chat completions endpoint | Yes: local server at `127.0.0.1:1337/v1` |
+| MCP | Client (stdio, Streamable HTTP) and server; tested with the official MCP SDK, not with Claude Code, Cursor or Codex | Client not checked; its docs offer a web-search MCP server for other clients | MCP host since 0.3.17 | Native since v0.6.31, Streamable HTTP only (stdio via the mcpo proxy) | Supported; needs a model with tool calling |
+| GPU backends | CPU and Metal measured; no other GPU backend tested | NVIDIA CUDA, AMD ROCm, Apple Metal, Vulkan | Apple Silicon on macOS; 4 GB+ VRAM recommended on Windows; the rest not checked | Left to the server it connects to | CUDA (NVIDIA), Vulkan (AMD, Intel), Metal |
+| Several users | No accounts or roles: built for one person on one computer | not checked | not checked | Yes: roles, groups, per-resource permissions | not checked |
+| CPU-only, 16 GB speed numbers published by the project | Yes: 6.2 tok/s at a 1K prompt and 5.1 at 8K, 4 cores (above) | not checked | not checked | not checked | not checked |
+
+Sources, all checked 2026-10-20:
+
+- **Ollama**: [LICENSE](https://github.com/ollama/ollama/blob/main/LICENSE) (MIT), [quickstart](https://docs.ollama.com/quickstart) and [FAQ](https://docs.ollama.com/faq) (runs locally), [model library](https://ollama.com/library), [OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility), [hardware support](https://docs.ollama.com/gpu), [web search (MCP server)](https://docs.ollama.com/capabilities/web-search), [docs index](https://docs.ollama.com/llms.txt).
+- **LM Studio**: [terms](https://lmstudio.ai/terms) (proprietary software), [free for work](https://lmstudio.ai/blog/free-for-work), [GitHub organization](https://github.com/lmstudio-ai) (MIT repositories), [docs home](https://lmstudio.ai/docs/app) (llama.cpp, MLX), [model catalog](https://lmstudio.ai/models), [OpenAI compatibility](https://lmstudio.ai/docs/developer/openai-compat), [MCP](https://lmstudio.ai/docs/app/mcp), [system requirements](https://lmstudio.ai/docs/app/system-requirements).
+- **Open WebUI**: [LICENSE](https://github.com/open-webui/open-webui/blob/main/LICENSE), [license page](https://docs.openwebui.com/license/), [README](https://github.com/open-webui/open-webui) (connects to Ollama and OpenAI-compatible APIs, roles and groups), [getting started](https://docs.openwebui.com/getting-started/), [features](https://docs.openwebui.com/features/), [API endpoints](https://docs.openwebui.com/getting-started/api-endpoints), [MCP](https://docs.openwebui.com/features/extensibility/mcp).
+- **Jan**: [LICENSE](https://github.com/janhq/jan/blob/main/LICENSE) and [README](https://github.com/janhq/jan) (Apache-2.0, Hugging Face models, local server), [API server](https://docs.jan.ai/desktop/api-server), [MCP](https://www.jan.ai/docs/desktop/mcp), [local engine](https://docs.jan.ai/desktop/llama-cpp) (llama.cpp, CUDA, Vulkan, Metal).
+
+What they do that SPIKE does not:
+
+- **Ollama** offers a library of many models where SPIKE offers one base, documents four GPU backends, and lists many
+  integrations. SPIKE can point at an Ollama server as an OpenAI-compatible provider (not tried against the real product).
+- **LM Studio** is a desktop app with an in-app model catalog, a CLI, SDKs and a headless mode (`llmster`).
+- **Open WebUI** describes itself as multi-user, with roles and groups, document search (RAG) and a model arena.
+  SPIKE is one person on one computer.
+- **Jan** is a desktop app with installers for Windows, macOS and Linux. SPIKE is a Python package plus llama.cpp,
+  set up from the terminal or by the installer scripts; it has no packaged desktop app.
+- **SPIKE is new**: it has the measurements in this repository and no track record yet.
+
+Not claimed here: that SPIKE answers better than any of them (no specialist has an accepted evaluation verdict, and
+none is shown to beat the base model), or that it is faster (the others were not benchmarked). SPIKE's bet is a
+router and specialists on one small model that fits a CPU-only 16 GB computer, with numbers published next to the
+command that reproduces them.
 
 ## Quick start
 
