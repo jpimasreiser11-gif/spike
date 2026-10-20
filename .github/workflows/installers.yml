@@ -2,9 +2,15 @@ name: Installers
 
 # Runs the real installers, including the ~2.7 GB model download, and asks the installed SPIKE for one answer.
 # It is slow and macOS minutes cost 10x in this private repo, so it never runs on pull requests or on every push:
-# only by hand, or on main when an installer or this file changes.
+# only by hand, or on main when an installer or this file changes. By hand, `only` picks jobs by id (comma-separated),
+# so the expensive macOS one can be left out: ubuntu-brew, ubuntu-nobrew, macos, windows-pwsh, windows-ps51 (default all).
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Job ids to run, comma-separated (ubuntu-brew, ubuntu-nobrew, macos, windows-pwsh, windows-ps51), or all"
+        type: string
+        default: all
   push:
     branches: [main]
     paths:
@@ -16,18 +22,53 @@ permissions:
   contents: read
 
 concurrency:
-  group: installers-${{ github.ref }}
+  group: installers-${{ github.ref }}-${{ inputs.only || 'all' }}
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - id: pick
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+
+          # brew: Homebrew on PATH (Linux); ps: the PowerShell that runs install.ps1 (Windows)
+          ALL = [
+              {"id": "ubuntu-brew", "name": "ubuntu-latest, Homebrew", "os": "ubuntu-latest", "brew": True},
+              {"id": "ubuntu-nobrew", "name": "ubuntu-latest, no Homebrew", "os": "ubuntu-latest", "brew": False},
+              {"id": "macos", "name": "macos-latest", "os": "macos-latest"},
+              {"id": "windows-pwsh", "name": "windows-latest, PowerShell 7", "os": "windows-latest", "ps": "pwsh"},
+              {"id": "windows-ps51", "name": "windows-latest, Windows PowerShell 5.1", "os": "windows-latest", "ps": "powershell"},
+          ]
+          ids = [job["id"] for job in ALL]
+          wanted = [w.strip() for w in os.environ.get("ONLY", "").split(",") if w.strip()]
+          if not wanted or wanted == ["all"]:
+              wanted = ids
+          unknown = [w for w in wanted if w not in ids]
+          if unknown:
+              sys.exit(f"unknown job id {unknown}; choose from {ids} or all")
+          picked = [job for job in ALL if job["id"] in wanted]
+          print("running:", [job["id"] for job in picked])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("matrix=" + json.dumps({"include": picked}) + "\n")
+          PY
+
   install:
-    name: Install (${{ matrix.os }})
+    name: Install (${{ matrix.name }})
+    needs: plan
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,18 +78,58 @@ jobs:
         with:
           node-version: 22
       - name: Homebrew on PATH (Linux), as for a user who has it
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.brew
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           echo "$HOMEBREW_PREFIX/bin" >> "$GITHUB_PATH"
           echo "$HOMEBREW_PREFIX/sbin" >> "$GITHUB_PATH"
           brew --version
+      - name: No Homebrew and no llama-server on PATH (Linux), as for a user without them
+        if: runner.os == 'Linux' && !matrix.brew
+        run: |
+          case ":$PATH:" in *linuxbrew*) echo "Homebrew is on PATH: $PATH"; exit 1 ;; esac
+          if command -v brew; then echo "brew is on PATH"; exit 1; fi
+          if command -v llama-server; then echo "llama-server is already on PATH"; exit 1; fi
+          echo "brew: none, llama-server: none"
+      - name: The SHA-256 values pinned in install.sh are GitHub's digests of the release assets (x64 and arm64)
+        if: runner.os == 'Linux' && !matrix.brew
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(sed -n 's/^llama_tag=//p' scripts/install.sh)"
+          for arch in x64 arm64; do
+            pinned="$(sed -n "s/^llama_sha_$arch=//p" scripts/install.sh)"
+            digest="$(gh api "repos/ggml-org/llama.cpp/releases/tags/$tag" --jq ".assets[] | select(.name == \"llama-$tag-bin-ubuntu-$arch.tar.gz\") | .digest")"
+            echo "$arch  pinned sha256:$pinned  GitHub $digest"
+            [ "$digest" = "sha256:$pinned" ]
+          done
       - name: scripts/install.sh --yes
         if: runner.os != 'Windows'
         run: bash scripts/install.sh --yes
-      - name: scripts/install.ps1 -Yes
-        if: runner.os == 'Windows'
-        run: pwsh -File scripts/install.ps1 -Yes
+      # Windows PowerShell 5.1 (Desktop edition) is powershell.exe; PowerShell 7 is pwsh.exe. Both are on the runner.
+      - name: scripts/install.ps1 -Yes (PowerShell 7)
+        if: matrix.ps == 'pwsh'
+        shell: pwsh
+        run: |
+          Write-Host "PowerShell $($PSVersionTable.PSVersion), $($PSVersionTable.PSEdition) edition"
+          pwsh -File scripts/install.ps1 -Yes
+      - name: scripts/install.ps1 -Yes (Windows PowerShell 5.1)
+        if: matrix.ps == 'powershell'
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion
+          if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSEdition -ne 'Desktop') { throw 'this is not Windows PowerShell 5.1' }
+          # 5.1 turns what a native command writes to stderr into an error, and this shell stops on errors: look at the exit code
+          $ErrorActionPreference = 'Continue'
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1 -Yes
+          exit $LASTEXITCODE
+      - name: llama-server comes from the installer's pinned download (Linux without Homebrew)
+        if: runner.os == 'Linux' && !matrix.brew
+        run: |
+          link="$HOME/.spike/bin/llama-server"
+          ls -l "$link"
+          readlink -f "$link" | grep -E '/spike/llama\.cpp/b[0-9]+/llama-server$'
+          "$link" --version
 
       # Each step is a new process: it sees neither the installer's PATH nor winget's, so add them here.
       - name: SPIKE on PATH (pipx's app folder)
