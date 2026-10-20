@@ -53,8 +53,8 @@ Scope, data and evaluation of each one: [docs/SPECIALISTS.md](docs/SPECIALISTS.m
    machine at 5.1–6.2 tok/s up to an 8K prompt, with 3.6 GiB of anonymous memory (peak RSS 6.1 GiB, which also counts
    the mapped model file). The slow cases are published too, below.
 2. **Specialists that share one model.** Thirteen specialists share the base in memory and, once trained, switch as
-   ~42 MB adapters (computed) without a reload. Today none is trained: each runs as a prompt profile on the base
-   model, is marked β, and is not claimed to beat the base until it passes its acceptance test.
+   ~42 MB adapters (computed) without a reload. Today none has a trained adapter that passed its acceptance test:
+   each runs as a prompt profile on the base model, is marked β, and is not claimed to beat the base until it passes.
 3. **Routing before spending compute.** A lexical router sends clear requests to a specialist without a model
    call (46/50 on a held-out set, measured); only multi-domain or ambiguous requests get an LLM plan.
 4. **Local first, external APIs when you choose.** The same instructions, specialists and tools run on the local
@@ -70,10 +70,10 @@ Qwen3.5-4B Q4_K_M, llama.cpp, KV cache q8_0, 128 generated tokens, median of 3 r
 
 | machine | prompt | time to first word | generation | memory |
 |---|---|---|---|---|
-| 16 GB x86, 4 cores, CPU only | 1K tokens | 52 s | 6.2 tok/s | 3.6 GiB resident |
-| | 8K tokens | 13 min | 5.1 tok/s | 3.6 GiB resident |
-| Apple M4 Max, Metal | 1K tokens | 0.9 s | 82 tok/s | 3.6 GiB |
-| | 8K tokens | 7.2 s | 80 tok/s | 3.6 GiB |
+| 16 GB x86, 4 cores, CPU only | 1K tokens | 52 s | 6.2 tok/s | 3.6 GiB anonymous, 6.1 GiB RSS with the mapped model file |
+| | 8K tokens | 13 min | 5.1 tok/s | 3.6 GiB anonymous, 6.1 GiB RSS |
+| Apple M4 Max, Metal | 1K tokens | 0.9 s | 82 tok/s | 3.6 GiB RSS |
+| | 8K tokens | 7.2 s | 80 tok/s | 3.6 GiB RSS |
 
 On a CPU-only computer SPIKE starts at an 8K context: a 32K prompt took about 1.5 h to the first word there. Raw reports and
 method: [docs/STATUS.md](docs/STATUS.md#measured-with-real-weights).
@@ -95,7 +95,6 @@ follows [docs/STATUS.md](docs/STATUS.md).
 | MCP | Client (stdio, Streamable HTTP) and server; tested with the official MCP SDK, not with Claude Code, Cursor or Codex | Client not checked; its docs offer a web-search MCP server for other clients | MCP host since 0.3.17 | Native since v0.6.31, Streamable HTTP only (stdio via the mcpo proxy) | Supported; needs a model with tool calling |
 | GPU backends | CPU and Metal measured; no other GPU backend tested | NVIDIA CUDA, AMD ROCm, Apple Metal, Vulkan | Apple Silicon on macOS; 4 GB+ VRAM recommended on Windows; the rest not checked | Left to the server it connects to | CUDA (NVIDIA), Vulkan (AMD, Intel), Metal |
 | Several users | No accounts or roles: built for one person on one computer | not checked | not checked | Yes: roles, groups, per-resource permissions | not checked |
-| CPU-only, 16 GB speed numbers published by the project | Yes: 6.2 tok/s at a 1K prompt and 5.1 at 8K, 4 cores (above) | not checked | not checked | not checked | not checked |
 
 Sources, all checked 2026-10-20:
 
