@@ -83,7 +83,7 @@ class Fake:
     def export(self, cmd: list[str]) -> int:
         mlx, out, work = (Path(flag(cmd, f)) for f in ("--adapter", "--out", "--work"))
         name = flag(cmd, "--name")
-        self.exported[name] = {"config": json.loads((mlx / "adapter_config.json").read_text()),
+        self.exported[name] = {"config": json.loads((mlx / "adapter_config.json").read_text(encoding="utf-8")),
                                "weights": (mlx / "adapters.safetensors").resolve()}
         out.mkdir(parents=True, exist_ok=True)
         (out / f"{name}.gguf").write_bytes(b"GGUF")
@@ -105,7 +105,7 @@ class Fake:
         (out / "predictions.jsonl").write_text("{}\n")
         code = 0
         if "--acceptance" in cmd:
-            acceptance = yaml.safe_load(Path(flag(cmd, "--acceptance")).read_text())["acceptance"]
+            acceptance = yaml.safe_load(Path(flag(cmd, "--acceptance")).read_text(encoding="utf-8"))["acceptance"]
             summary["acceptance"] = {}
             for stem in stems:
                 ok, reasons = check_acceptance(summary, acceptance, stem)
@@ -226,7 +226,7 @@ def test_a_checkpoint_older_than_the_recorded_run_is_refused(world):
         sweep.plan(["0.5"], "medicine", world.adapter, TOTAL, started=started)
     os.utime(ckpt, (started + 1, started + 1))
     assert sweep.plan(["0.5"], "medicine", world.adapter, TOTAL, started=started)[0].iteration == 400
-    record = json.loads((world.runs / "run.json").read_text())  # main() reads started_utc from run.json
+    record = json.loads((world.runs / "run.json").read_text(encoding="utf-8"))  # main() reads started_utc from run.json
     (world.runs / "run.json").write_text(json.dumps({**record, "started_utc": "2999-01-01T00:00:00Z"}))
     with pytest.raises(SystemExit, match="written before the recorded run started"):
         world.go()
@@ -248,21 +248,21 @@ def test_planned_iterations_come_from_the_run_record_or_mlx_lora_yaml(world):
 
 # ------------------------------------------------------------------------------------- scaled adapters
 def test_the_scaled_adapter_folder_multiplies_the_scale_keeps_everything_else_and_links_the_checkpoint(world, tmp_path):
-    original = (world.adapter / "adapter_config.json").read_text()
+    original = (world.adapter / "adapter_config.json").read_text(encoding="utf-8")
     c = sweep.plan(["0.5@0.25"], "medicine", world.adapter, TOTAL)[0]
     dest = tmp_path / "mlx"
     sweep.write_scaled_adapter(c, world.adapter, dest)
     sweep.write_scaled_adapter(c, world.adapter, dest)  # again: a re-run replaces the link, no error
-    config = json.loads((dest / "adapter_config.json").read_text())
+    config = json.loads((dest / "adapter_config.json").read_text(encoding="utf-8"))
     expected = json.loads(original)
     expected["lora_parameters"]["scale"] = SCALE * 0.25
     assert config == expected and config["lora_parameters"]["rank"] == RANK
     assert (dest / "adapters.safetensors").is_symlink()
     assert (dest / "adapters.safetensors").resolve() == (world.adapter / "0000400_adapters.safetensors").resolve()
-    assert (world.adapter / "adapter_config.json").read_text() == original   # the run's own config is not touched
+    assert (world.adapter / "adapter_config.json").read_text(encoding="utf-8") == original   # the run's own config is not touched
     one = sweep.plan(["0.5"], "medicine", world.adapter, TOTAL)[0]
     sweep.write_scaled_adapter(one, world.adapter, tmp_path / "mlx1")
-    assert json.loads((tmp_path / "mlx1" / "adapter_config.json").read_text()) == json.loads(original)
+    assert json.loads((tmp_path / "mlx1" / "adapter_config.json").read_text(encoding="utf-8")) == json.loads(original)
     (world.adapter / "adapter_config.json").write_text(json.dumps({"lora_parameters": {"rank": 4}}))
     with pytest.raises(SystemExit, match="no lora_parameters.scale"):
         sweep.write_scaled_adapter(c, world.adapter, tmp_path / "mlx2")
@@ -273,18 +273,18 @@ def test_the_peft_alpha_of_a_scaled_candidate_is_scale_times_candidate_scale_tim
     c = sweep.plan([spec], "medicine", world.adapter, TOTAL)[0]
     sweep.write_scaled_adapter(c, world.adapter, tmp_path / "mlx")
     weights = read_safetensors(tmp_path / "mlx" / "adapters.safetensors")   # through the link
-    config = json.loads((tmp_path / "mlx" / "adapter_config.json").read_text())
+    config = json.loads((tmp_path / "mlx" / "adapter_config.json").read_text(encoding="utf-8"))
     tensors, peft = convert(weights, config, None)
     assert peft["r"] == RANK and peft["lora_alpha"] == pytest.approx(SCALE * factor * RANK)
     assert peft["lora_alpha"] / peft["r"] == pytest.approx(SCALE * factor)     # the multiplier PEFT and llama.cpp apply
-    unscaled = convert(weights, json.loads((world.adapter / "adapter_config.json").read_text()), None)[0]
+    unscaled = convert(weights, json.loads((world.adapter / "adapter_config.json").read_text(encoding="utf-8")), None)[0]
     assert all(np.array_equal(tensors[k], unscaled[k]) for k in tensors)         # only alpha changes, not the weights
 
 
 # --------------------------------------------------------------------------------------------- the rule
 def test_the_rule_is_the_recipes_own_with_every_suite_renamed_to_select():
-    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
-    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text())["suites"]
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text(encoding="utf-8"))
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
     rule = sweep.select_rule(cfg["acceptance"], suites)
     assert rule == {"primary": {"suite": "medicine-select", "min_gain_points": 3.0, "max_p_value": 0.05},
                     "regression": {"suite": "general-select", "max_drop_points": 1.5}}
@@ -303,13 +303,13 @@ def test_the_rule_is_the_recipes_own_with_every_suite_renamed_to_select():
 
 
 def test_the_sweep_refuses_a_recipe_without_select_suites_or_without_an_exact_answer_rule():
-    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
-    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text())["suites"]
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text(encoding="utf-8"))
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
     with pytest.raises(SystemExit, match="no suite medicine-select, general-select"):
         sweep.select_rule(cfg["acceptance"], {k: v for k, v in suites.items() if not k.endswith("-select")})
     with pytest.raises(SystemExit, match="no suite general-select"):
         sweep.select_rule(cfg["acceptance"], {k: v for k, v in suites.items() if k != "general-select"})
-    marketing = yaml.safe_load((ROOT / "training" / "configs" / "marketing.yaml").read_text())
+    marketing = yaml.safe_load((ROOT / "training" / "configs" / "marketing.yaml").read_text(encoding="utf-8"))
     with pytest.raises(SystemExit, match="not judged by exact-answer suites"):
         sweep.select_rule(marketing["acceptance"], suites)
     assert sweep.select_rule({"primary": cfg["acceptance"]["primary"]}, suites)["primary"]["suite"] == "medicine-select"
@@ -370,7 +370,7 @@ def test_a_sweep_exports_each_candidate_once_evaluates_them_together_and_runs_th
     assert flag(final, "--acceptance") == str(world.root / "training" / "configs" / "medicine.yaml")
     assert flag(final, "--max-tokens") == "2048" and flag(final, "--out") == str(world.sweep / "final")
 
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert out["specialist"] == "medicine" and out["recipe"] == "training/configs/medicine.yaml"
     assert out["run"] == {"git_commit": "abc1234", "iters": TOTAL, "started_utc": None} and out["exit_code"] == 0
     assert out["select"]["suites"] == ["medicine-select", "general-select"]
@@ -390,7 +390,7 @@ def test_a_sweep_exports_each_candidate_once_evaluates_them_together_and_runs_th
                             "accepted": True, "exit_code": 0, "reused": False,
                             "reasons": ["medicine: +7.00 pts (need ≥ 3.0), p = 0.001 (need ≤ 0.05)",
                                         "general: -1.00 pts (max drop 1.5)"]}
-    markdown = (world.sweep / "summary.md").read_text()
+    markdown = (world.sweep / "summary.md").read_text(encoding="utf-8")
     assert all(s in markdown for s in stems) and "ACCEPTED" in markdown and "Chosen: `" + stems[2] + "`" in markdown
     printed = capsys.readouterr().out
     assert (f"spike adapters install training/runs/medicine/sweep/gguf/{stems[2]}.gguf --specialist medicine "
@@ -406,12 +406,12 @@ def test_python_and_base_are_passed_to_the_export_when_given(world):
 def test_a_rejected_final_run_is_the_verdict_and_exits_2(world, capsys):
     world.fake.table["it1000-s0.5"]["general"] = (-4.0, 0.001)   # the acceptance sample disagrees with the select one
     assert world.go() == 2
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert out["chosen"] == "spike-medicine-it1000-s0.5" and out["exit_code"] == 2
     assert out["final"]["accepted"] is False and out["final"]["exit_code"] == 2
     assert out["final"]["reasons"][-1] == "general: -4.00 pts (max drop 1.5)"
     assert "REJECTED" in capsys.readouterr().out
-    assert "REJECTED" in (world.sweep / "summary.md").read_text()
+    assert "REJECTED" in (world.sweep / "summary.md").read_text(encoding="utf-8")
 
 
 def test_no_candidate_passing_the_select_rule_exits_2_without_running_the_acceptance_suites(world, capsys):
@@ -419,18 +419,18 @@ def test_no_candidate_passing_the_select_rule_exits_2_without_running_the_accept
     world.fake.table["it1000-s0.5"]["medicine-select"] = (7.5, 0.2)    # not significant
     assert world.go() == 2
     assert world.fake.scripts() == ["export_adapter.py"] * 3 + ["run_eval.py"]
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert out["chosen"] is None and out["final"] is None and out["exit_code"] == 2
     assert len(out["candidates"]) == 3 and not any(r["passes"] for r in out["candidates"])   # all are reported
     assert "no candidate passes" in capsys.readouterr().out
-    assert "Chosen: none" in (world.sweep / "summary.md").read_text()
+    assert "Chosen: none" in (world.sweep / "summary.md").read_text(encoding="utf-8")
     assert not (world.sweep / "final").exists()
 
 
 def test_no_final_stops_after_choosing(world, capsys):
     assert world.go("--no-final") == 0
     assert world.fake.scripts() == ["export_adapter.py"] * 3 + ["run_eval.py"]
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert out["chosen"] == "spike-medicine-it1000-s0.5" and out["final"] is None and out["exit_code"] == 0
     assert "without --no-final" in capsys.readouterr().out
 
@@ -439,17 +439,17 @@ def test_candidates_given_on_the_command_line_replace_the_default(world):
     world.fake.table["it400-s0.75"] = {"medicine-select": (3.5, 0.01), "general-select": (0.0, 1.0)}
     world.fake.table["it600-s0.75"] = {"medicine-select": (4.0, 0.01), "general-select": (0.0, 1.0)}
     assert world.go("--candidate", "0.5@0.75", "--candidate", "0.65@0.75", "--no-final") == 0   # 0.65 -> 600, 0.5 -> 400
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert [r["stem"] for r in out["candidates"]] == ["spike-medicine-it400-s0.75", "spike-medicine-it600-s0.75"]
 
 
 def test_a_finished_sweep_run_again_does_nothing_and_gives_the_same_summary(world):
     assert world.go() == 0
-    first = (world.sweep / "summary.json").read_text()
+    first = (world.sweep / "summary.json").read_text(encoding="utf-8")
     world.fake.calls.clear()
     assert world.go() == 0
     assert world.fake.calls == []
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert out["final"]["reused"] is True and out["final"]["accepted"] is True and out["final"]["exit_code"] == 0
     assert {**out, "final": {**out["final"], "reused": False}} == json.loads(first)
 
@@ -481,11 +481,11 @@ def test_more_candidates_than_a_finished_select_run_are_added_with_resume_fewer_
     assert world.go("--candidate", "0.25", "--candidate", "0.5", "--no-final") == 0
     cmd = calls_of(world, "run_eval.py")[0]
     assert flag(cmd, "--resume") == str(world.sweep / "select") and len(flags(cmd, "--adapter")) == 2
-    out = json.loads((world.sweep / "summary.json").read_text())
+    out = json.loads((world.sweep / "summary.json").read_text(encoding="utf-8"))
     assert [r["iteration"] for r in out["candidates"]] == [200, 400]
     with pytest.raises(SystemExit, match="spike-medicine-it400-s1, which this run does not ask for"):
         world.go("--candidate", "0.25", "--no-final")                  # it400 was tried: it must stay in the report
-    assert json.loads((world.sweep / "select" / "summary.json").read_text())["variants"][1:] == [
+    assert json.loads((world.sweep / "select" / "summary.json").read_text(encoding="utf-8"))["variants"][1:] == [
         "spike-medicine-it200-s1", "spike-medicine-it400-s1"]
 
 
@@ -502,7 +502,7 @@ def test_the_acceptance_suites_run_once_a_second_choice_does_not_get_another_loo
 def test_final_results_without_a_verdict_are_finished_with_resume(world):
     assert world.go() == 0
     final = world.sweep / "final"
-    summary = json.loads((final / "summary.json").read_text())
+    summary = json.loads((final / "summary.json").read_text(encoding="utf-8"))
     del summary["acceptance"]                                          # run without --acceptance
     (final / "summary.json").write_text(json.dumps(summary))
     world.fake.calls.clear()
@@ -575,7 +575,7 @@ def test_export_adapter_writes_the_runs_own_files_unless_told_otherwise(tmp_path
     run_dir = root / "training" / "runs" / "medicine"
     assert (tmp_path / "out" / "spike-medicine.gguf").is_file()          # spike-<specialist>.gguf, as before
     assert (run_dir / "peft" / "adapter_model.safetensors").is_file() and (run_dir / "peft" / "adapter_config.json").is_file()
-    report = json.loads((run_dir / "export.json").read_text())
+    report = json.loads((run_dir / "export.json").read_text(encoding="utf-8"))
     assert report["gguf"] == str(tmp_path / "out" / "spike-medicine.gguf") and report["peft"]["lora_alpha"] == SCALE * RANK
     assert cmd[cmd.index("--outfile") + 1] == str(tmp_path / "out" / "spike-medicine.gguf")
     assert cmd[2] == str(run_dir / "peft")
@@ -588,10 +588,10 @@ def test_export_adapter_name_and_work_move_the_gguf_peft_and_export_json(tmp_pat
     assert (tmp_path / "out" / "spike-medicine-it400-s0.5.gguf").is_file()
     assert not (tmp_path / "out" / "spike-medicine.gguf").exists()
     assert cmd[2] == str(work / "peft") and (work / "peft" / "adapter_model.safetensors").is_file()
-    assert json.loads((work / "export.json").read_text())["gguf"] == str(tmp_path / "out" / "spike-medicine-it400-s0.5.gguf")
+    assert json.loads((work / "export.json").read_text(encoding="utf-8"))["gguf"] == str(tmp_path / "out" / "spike-medicine-it400-s0.5.gguf")
     assert not (run_dir / "export.json").exists() and not (run_dir / "peft").exists()   # the run's own record is untouched
     # --work does not move where the default adapter is read from: this one came from training/runs/medicine/adapter
-    assert json.loads((work / "peft" / "adapter_config.json").read_text())["r"] == RANK
+    assert json.loads((work / "peft" / "adapter_config.json").read_text(encoding="utf-8"))["r"] == RANK
 
 
 def test_export_adapter_name_is_a_stem_not_a_path(tmp_path, monkeypatch):
@@ -635,4 +635,4 @@ def test_a_scaled_candidate_converts_with_llama_cpp_and_the_gguf_carries_the_sca
         assert proc.returncode == 0, proc.stderr[-3000:]
         meta = read_gguf(tmp_path / "gguf" / f"{c.stem}.gguf").metadata
         assert meta["general.type"] == "adapter" and meta["adapter.lora.alpha"] == pytest.approx(SCALE * factor * RANK)
-        assert json.loads((work / "export.json").read_text())["check"]["alpha"] == pytest.approx(SCALE * factor * RANK)
+        assert json.loads((work / "export.json").read_text(encoding="utf-8"))["check"]["alpha"] == pytest.approx(SCALE * factor * RANK)
