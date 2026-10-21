@@ -35,6 +35,7 @@ from spike_train.evaluation import (  # noqa: E402
     free_port,
     make_item,
     rescore,
+    reusable_rows,
     score,
     summarize,
 )
@@ -71,7 +72,11 @@ async def run(args: argparse.Namespace) -> int:
     suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
     catalog = load_catalog()
     run_id = time.strftime("%Y%m%d-%H%M%S")
-    out = Path(args.out or ROOT / "evals" / "results" / run_id)
+    out = Path(args.resume or args.out or ROOT / "evals" / "results" / run_id)
+    saved: list[dict] = []
+    if args.resume:  # an interrupted run: keep its complete (task, variant) groups, generate the rest
+        saved = [json.loads(line) for line in (out / "predictions.jsonl").open(encoding="utf-8")]
+        run_id = out.name
     out.mkdir(parents=True, exist_ok=True)
 
     server = None
@@ -92,6 +97,8 @@ async def run(args: argparse.Namespace) -> int:
                 "parallel": args.parallel, "kv_cache_type": args.kv_cache_type, "max_tokens": args.max_tokens, "seed": args.seed, "limit": args.limit, "suites": args.suites, "decoding": "greedy",
                 "thinking": False, "host": platform.platform(), "machine": platform.machine(),
                 "props": (await client.http.get(f"{base_url}/props")).json().get("build_info")}
+        if args.resume:
+            meta["resumed"] = {"date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "saved_rows": len(saved)}
         predictions: list[dict] = []
         pred_file = (out / "predictions.jsonl").open("w", encoding="utf-8")
         for suite_name in args.suites.split(","):
@@ -101,6 +108,14 @@ async def run(args: argparse.Namespace) -> int:
                 items = load_items(task, registry, args.seed, args.limit)
                 for variant, lora in variants.items():  # one variant at a time: a batch never mixes adapters
                     t0 = time.perf_counter()
+                    reused = reusable_rows(saved, suite_name, task["name"], variant, [it.id for it in items])
+                    if reused is not None:
+                        for r in reused:
+                            pred_file.write(json.dumps(r, ensure_ascii=False) + "\n")
+                        predictions.extend(reused)
+                        print(f"{suite_name}/{task['name']} [{variant}] n={len(reused)} reused from the interrupted run",
+                              file=sys.stderr)
+                        continue
 
                     async def answer(item: Item, lora=lora, variant=variant, system=system, suite_name=suite_name) -> dict:
                         res = await client.chat(system, item.prompt, lora, args.max_tokens, seed=args.seed)
@@ -207,6 +222,8 @@ def main() -> int:
     ap.add_argument("--kv-cache-type", default="q8_0", help="same default as the SPIKE runtime")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out")
+    ap.add_argument("--resume", metavar="RUN_DIR",
+                    help="finish an interrupted run in RUN_DIR with the same arguments: complete groups are reused")
     ap.add_argument("--rescore", metavar="RUN_DIR",
                     help="re-score a finished run's predictions.jsonl with the current extractors (no model run)")
     args = ap.parse_args()

@@ -35,6 +35,7 @@ from spike_train.evaluation import (  # noqa: E402
     make_item,
     pairwise_summary,
     rescore,
+    reusable_rows,
     score,
     summarize,
 )
@@ -472,6 +473,16 @@ def test_summarize_and_acceptance():
     acceptance["regression"]["max_drop_points"] = 0.5
     assert not check_acceptance(s, acceptance, "spike-medicine")[0]
     assert not check_acceptance(s, {"primary": {"suite": "finance", "min_gain_points": 3}}, "spike-medicine")[0]
+
+
+def test_resume_reuses_only_complete_groups():
+    saved = [{"suite": "s", "task": "t", "variant": "base", "item": f"t/{i}"} for i in range(3)]
+    saved += [{"suite": "s", "task": "t", "variant": "spike-x", "item": "t/0"}]  # cut off mid-group
+    ids = ["t/0", "t/1", "t/2"]
+    assert [r["item"] for r in reusable_rows(saved, "s", "t", "base", ids)] == ids
+    assert reusable_rows(saved, "s", "t", "spike-x", ids) is None  # incomplete: generate again
+    assert reusable_rows(saved, "s", "t", "base", ["t/0", "t/1", "t/9"]) is None  # other items: never mixed
+    assert reusable_rows(saved, "other", "t", "base", ids) is None
 
 
 def test_rescore_recomputes_parsed_and_correct_from_saved_responses():

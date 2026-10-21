@@ -139,6 +139,16 @@ def rescore(predictions: list[dict], items: dict[str, Item]) -> list[dict]:
     return out
 
 
+def reusable_rows(saved: list[dict], suite: str, task: str, variant: str, item_ids: list[str]) -> list[dict] | None:
+    """Rows of an interrupted run that can stand in for generating (suite, task, variant) again: only when they
+    cover exactly the same items (greedy decoding with identical settings gives the same answers)."""
+    rows = [r for r in saved if (r["suite"], r["task"], r["variant"]) == (suite, task, variant)]
+    if sorted(r["item"] for r in rows) != sorted(item_ids):
+        return None
+    order = {item_id: i for i, item_id in enumerate(item_ids)}
+    return sorted(rows, key=lambda r: order[r["item"]])
+
+
 def _accuracy(rows: list[dict]) -> dict[str, Any]:
     n = len(rows)
     correct = sum(r["correct"] for r in rows)
