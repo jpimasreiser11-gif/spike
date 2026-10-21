@@ -74,6 +74,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   rule, then runs the acceptance suites once on it; every candidate tried is reported. `export_adapter.py` gained
   `--name` and `--work` so a sweep never overwrites the run's export. Built and tested, not yet run on the real
   medicine checkpoints.
+- Unattended fix for a rejection for forgetting (`training/fix_forgetting.py`): the checkpoint sweep, and if nothing is accepted
+  one retrain whose only change is self-generated replay (archive of the first run, base-only llama-server, `self_replay.py`,
+  `prepare.py --self-replay`, RAM-guarded training, the sweep again), one detached command that stops at the first accepted
+  result and continues where it stopped when run again. Built and tested with fakes, not yet run on the Mac.
 - Model cards for pairwise-judged adapters (marketing), with every training source's license and the
   attribution CC-BY and ODC-BY ask for; `llama3.1` is no longer accepted for training data or teachers.
 

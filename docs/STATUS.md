@@ -215,6 +215,13 @@ yet measured).
   choice, scaled adapters, reuse after an interruption, the choice rule, exit codes, the summary), and a tiny scaled
   candidate through llama.cpp's real converter whose GGUF alpha is scale × SCALE × rank. Built and tested with fakes;
   not run on the real medicine checkpoints, so whether any checkpoint or scale passes is not known.
+- Unattended fix for the medicine rejection (`training/fix_forgetting.py`, docs/TRAINING.md): one detached command runs the
+  checkpoint sweep and, if nothing is accepted, archives the first run, generates the base model's own replay answers
+  with a base-only llama-server, prepares, trains under the RAM guard and sweeps again, stopping at the first accepted result,
+  and continues where it stopped when run again. Round 2's only recipe change is self-generated replay. Built and tested
+  with fakes for the scripts and the server (53 tests, at every step boundary an interruption and a re-run) and with the
+  real llama-server on a tiny model for the server flags; not run on the Mac yet, so no real step, timing or verdict is
+  known.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.
