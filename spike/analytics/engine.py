@@ -168,6 +168,8 @@ class Session:
         self.con = self.db.connect(":memory:", config={"memory_limit": MEMORY, "threads": THREADS,
                                                         "temp_directory": self._tmp.name,
                                                         "max_temp_directory_size": "2GB"})
+        # DuckDB 2.0 runs execute() lazily and refuses the next statement until the result is read to its end, so
+        # every statement whose rows are not needed ends in .fetchall() (an empty list, as in 1.x)
         self.reserved = {r[0] for r in self.con.execute(
             "SELECT keyword_name FROM duckdb_keywords() WHERE keyword_category = 'reserved'").fetchall()}
 
@@ -196,11 +198,11 @@ class Session:
             except self.db.Error as exc:
                 raise DataError(f"could not read '{given}': {first_lines(exc)}") from exc
         for statement in LOCK:
-            self.con.execute(statement)
+            self.con.execute(statement).fetchall()
 
     def _table(self, name: str, given: str, sheet: str | None = None) -> None:
         cols = [(r[0], r[1]) for r in self.con.execute(f"DESCRIBE {ident(name, self.reserved)}").fetchall()]
-        rows = self.con.execute(f"SELECT count(*) FROM {ident(name, self.reserved)}").fetchone()[0]
+        rows = self.con.execute(f"SELECT count(*) FROM {ident(name, self.reserved)}").fetchall()[0][0]
         self.tables.append(Table(name, given, rows, cols, sheet))
         if len(self.tables) > MAX_TABLES:
             raise DataError(f"more than {MAX_TABLES} tables")
@@ -208,21 +210,21 @@ class Session:
     def _load_csv(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
         sql = f"CREATE TABLE {ident(name)} AS SELECT * FROM read_csv(?, auto_detect=true{{}})"
-        self.con.execute(sql.format(""), [str(path)])
-        delimiter = self.con.execute("SELECT Delimiter FROM sniff_csv(?)", [str(path)]).fetchone()[0]
+        self.con.execute(sql.format(""), [str(path)]).fetchall()
+        delimiter = self.con.execute("SELECT Delimiter FROM sniff_csv(?)", [str(path)]).fetchall()[0][0]
         if delimiter == ";":  # Spanish and other European exports: decimal commas, when that types more numbers
             numbers = self._numeric_columns(name)
             alt = f"{name}__comma"
             try:
-                self.con.execute(sql.replace(ident(name), alt).format(", decimal_separator=','"), [str(path)])
+                self.con.execute(sql.replace(ident(name), alt).format(", decimal_separator=','"), [str(path)]).fetchall()
             except self.db.Error:
                 pass
             else:
                 if self._numeric_columns(alt) > numbers:
-                    self.con.execute(f"DROP TABLE {ident(name)}")
-                    self.con.execute(f"ALTER TABLE {alt} RENAME TO {ident(name)}")
+                    self.con.execute(f"DROP TABLE {ident(name)}").fetchall()
+                    self.con.execute(f"ALTER TABLE {alt} RENAME TO {ident(name)}").fetchall()
                 else:
-                    self.con.execute(f"DROP TABLE {alt}")
+                    self.con.execute(f"DROP TABLE {alt}").fetchall()
         self._table(name, given)
 
     def _numeric_columns(self, name: str) -> int:
@@ -230,12 +232,12 @@ class Session:
 
     def _load_parquet(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
-        self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM read_parquet(?)", [str(path)])
+        self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM read_parquet(?)", [str(path)]).fetchall()
         self._table(name, given)
 
     def _load_json(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
-        self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM read_json_auto(?)", [str(path)])
+        self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM read_json_auto(?)", [str(path)]).fetchall()
         self._table(name, given)
 
     def _from_frame(self, frame: Any, name: str) -> None:
@@ -249,7 +251,7 @@ class Session:
         view = f"frame_{uuid.uuid4().hex[:8]}"
         self.con.register(view, frame)
         try:
-            self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM {view}")
+            self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM {view}").fetchall()
         finally:
             self.con.unregister(view)
 
