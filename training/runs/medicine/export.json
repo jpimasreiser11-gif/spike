@@ -1,0 +1,64 @@
+{
+  "gguf": "/Users/jpima/.spike/adapters/spike-medicine.gguf",
+  "peft": {
+    "peft_type": "LORA",
+    "task_type": "CAUSAL_LM",
+    "base_model_name_or_path": "Qwen/Qwen3.5-4B",
+    "r": 16,
+    "lora_alpha": 32.0,
+    "lora_dropout": 0.05,
+    "target_modules": [
+      "down_proj",
+      "gate_proj",
+      "k_proj",
+      "o_proj",
+      "q_proj",
+      "up_proj",
+      "v_proj"
+    ],
+    "bias": "none",
+    "fan_in_fan_out": false,
+    "inference_mode": true
+  },
+  "check": {
+    "arch": "qwen35",
+    "tensors": 256,
+    "alpha": 32.0,
+    "bytes": 42485024
+  },
+  "live_check": {
+    "adapter": "spike-medicine",
+    "probes": 4,
+    "outputs_changed": 4,
+    "samples": [
+      {
+        "probe": "Give three concrete recommendations for the most common problem in your field, with a reason for each.",
+        "base": "Hello. I am Spike Medicine. As a physician-level medical assistant, I focus on high-yield, evidence-based interventions that improve patient outcomes while minimizing harm.\n\nWhile \"the most common problem\" varies by setting (e.g., primary care vs. emergency medicine), **Hypertension (High Blood Pressure)**",
+        "adapter": "1. The most common problem in my field is the lack of adequate training and education for healthcare professionals. To address this, I recommend that healthcare institutions invest in comprehensive training programs that cover a wide range of topics, including clinical skills, patient communication, and ethical considerations. This will ensure that healthcare professionals are well-equipped to",
+        "base_repeat_identical": true,
+        "changed": true
+      },
+      {
+        "probe": "Explica en cuatro frases un concepto básico de tu especialidad a alguien que empieza.",
+        "base": "Como asistente médico basado en evidencia, mi especialidad se centra en el diagnóstico diferencial sistemático para identificar la causa más probable de un síntoma antes de prescribir tratamientos. Utilizo guías clínicas validadas con niveles de evidencia altos (como las de la OMS o sociedades médicas) para determinar dosis precis",
+        "adapter": "La medicina es la ciencia que se encarga de la prevención, diagnóstico y tratamiento de las enfermedades.\nLa medicina es la ciencia que se encarga de la prevención, diagnóstico y tratamiento de las enfermedades.\nLa medicina es la ciencia que se encarga de la prevención, diagnóstico y tratamiento de las enfermedades.\nLa",
+        "base_repeat_identical": true,
+        "changed": true
+      },
+      {
+        "probe": "What is a frequent mistake beginners make in your domain, and how do you avoid it?",
+        "base": "Hello. I am Spike Medicine. While I can process vast amounts of medical literature and apply evidence-based guidelines to hypothetical scenarios, I must state clearly at the outset: **I am an AI assistant, not a licensed physician. I cannot examine a patient, perform physical assessments, or provide a definitive diagnosis for a real-world",
+        "adapter": "One common mistake beginners make in the field of medicine is misdiagnosing a patient's condition. This can happen due to a lack of knowledge or experience, or due to a lack of attention to detail. To avoid this mistake, it is important to take the time to carefully examine the patient and gather all the necessary",
+        "base_repeat_identical": true,
+        "changed": true
+      },
+      {
+        "probe": "List the first questions you would ask a new client before giving any advice.",
+        "base": "Hello. I am Spike Medicine. Before we can discuss any specific medical advice, treatment plan, or differential diagnosis, I must establish a baseline of safety and context. In evidence-based medicine, the quality of our reasoning is entirely dependent on the accuracy of the initial data.\n\nHere are the critical questions I would ask a",
+        "adapter": "The first questions you would ask a new client before giving any advice are:\n\n1. What is your name?\n2. How old are you?\n3. What is your gender?\n4. What is your occupation?\n5. What is your marital status?\n6. Do you have any chronic",
+        "base_repeat_identical": true,
+        "changed": true
+      }
+    ]
+  }
+}

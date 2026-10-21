@@ -1,0 +1,160 @@
+{
+  "specialist": "medicine",
+  "config": {
+    "specialist": "medicine",
+    "base_model": "Qwen/Qwen3.5-4B",
+    "hypothesis": "LoRA on explanation-rich medical MCQ data plus PubMed reasoning improves medical QA accuracy of the 4B base without degrading general knowledge.\n",
+    "acceptance": {
+      "primary": {
+        "suite": "medicine",
+        "min_gain_points": 3.0,
+        "max_p_value": 0.05
+      },
+      "regression": {
+        "suite": "general",
+        "max_drop_points": 1.5
+      }
+    },
+    "domain_sources": [
+      {
+        "source": "medmcqa",
+        "max": 24000
+      },
+      {
+        "source": "pubmedqa-artificial",
+        "max": 6000
+      }
+    ],
+    "distill": {
+      "enabled": false,
+      "tasks_from": {
+        "source": "medmcqa",
+        "offset": 24000,
+        "max": 4000
+      }
+    },
+    "replay": {
+      "ratio": 0.3,
+      "sources": [
+        {
+          "source": "oasst2",
+          "max": 13000
+        }
+      ]
+    },
+    "eval": {
+      "max_tokens": 2048
+    },
+    "decontaminate_against": [
+      "medmcqa-eval",
+      "pubmedqa-labeled",
+      "mmlu-pro"
+    ],
+    "valid_fraction": 0.02,
+    "seed": 0,
+    "train": {
+      "epochs": 1.0,
+      "batch_size": 1,
+      "grad_accumulation_steps": 16,
+      "learning_rate": 0.0001,
+      "lr_schedule": {
+        "name": "cosine_decay",
+        "warmup": 100,
+        "arguments": [
+          0.0001,
+          "auto",
+          1e-05
+        ]
+      },
+      "max_seq_length": 768,
+      "grad_checkpoint": true,
+      "mask_prompt": true,
+      "num_layers": -1,
+      "lora_parameters": {
+        "rank": 16,
+        "scale": 2.0,
+        "dropout": 0.05,
+        "keys": [
+          "self_attn.q_proj",
+          "self_attn.k_proj",
+          "self_attn.v_proj",
+          "self_attn.o_proj",
+          "mlp.gate_proj",
+          "mlp.up_proj",
+          "mlp.down_proj"
+        ]
+      }
+    }
+  },
+  "created_utc": "2026-10-20T08:39:25Z",
+  "sources": {
+    "medmcqa-eval": {
+      "hub": "openlifescienceai/medmcqa",
+      "license_hub": "apache-2.0",
+      "license_registry": "apache-2.0",
+      "role": "eval",
+      "provenance": "",
+      "indexed_prompts": 1448
+    },
+    "pubmedqa-labeled": {
+      "hub": "qiaojin/PubMedQA",
+      "license_hub": "mit",
+      "license_registry": "mit",
+      "role": "eval",
+      "provenance": "",
+      "indexed_prompts": 1000
+    },
+    "mmlu-pro": {
+      "hub": "TIGER-Lab/MMLU-Pro",
+      "license_hub": "mit",
+      "license_registry": "mit",
+      "role": "eval",
+      "provenance": "12k 10-option questions in 14 categories; used per category for domain and regression evals.",
+      "indexed_prompts": 12032
+    },
+    "medmcqa": {
+      "hub": "openlifescienceai/medmcqa",
+      "license_hub": "apache-2.0",
+      "license_registry": "apache-2.0",
+      "role": "train",
+      "provenance": "Indian medical entrance exam questions (AIIMS/NEET-PG) with expert explanations.",
+      "kept": 12376
+    },
+    "pubmedqa-artificial": {
+      "hub": "qiaojin/PubMedQA",
+      "license_hub": "mit",
+      "license_registry": "mit",
+      "role": "train",
+      "provenance": "Automatically generated yes/no questions from PubMed abstracts.",
+      "kept": 5817
+    },
+    "oasst2": {
+      "hub": "OpenAssistant/oasst2",
+      "license_hub": "apache-2.0",
+      "license_registry": "apache-2.0",
+      "role": "train",
+      "provenance": "Human-written conversations collected by OpenAssistant (2023); only reviewed, non-deleted, non-synthetic messages are used.",
+      "built": 13002,
+      "kept": 11939
+    }
+  },
+  "dropped": {
+    "format_or_quality": 11377,
+    "duplicate": 1,
+    "contaminated": 19,
+    "too_long": 1472
+  },
+  "counts": {
+    "domain": 18192,
+    "replay_available": 11939,
+    "train": 25469,
+    "valid": 519,
+    "replay_ratio_target": 0.3,
+    "replay_ratio_actual": 0.3,
+    "iters": 25469
+  },
+  "files": {
+    "train.jsonl": "e0c220fb3f71aa8520d906b1a29b79e2b6e27233543b402c5581efe9729af383",
+    "valid.jsonl": "7c8397494414b4f065c46dbfd7c5efd717e5d4fed68dff75a0d978c80b1eeca5"
+  }
+}
