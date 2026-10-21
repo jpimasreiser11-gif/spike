@@ -144,10 +144,33 @@ Evidence: `evals/results/baseline-mac-20261017/summary.{json,md}`. A diagnostic,
 many medicine answers end with a disclaimer and name no option (scored as wrong), and 94 % of PubMedQA answers
 hit the 512-token limit. The adapter verdict comes from base and adapter evaluated in one run at 2048 tokens.
 
-**Training data, medicine** (`training/data/medicine/manifest.json` on the Mac): 26,050 training examples,
-6,513 iterations; replay 0.30 of the mix from 13,002 OpenAssistant chats built from the real dataset (12,994
-kept); MedMCQA keeps 12,609 of 24,000 rows (short explanations and multi-answer questions dropped); 21 examples
-removed for sharing a 13-gram with an eval set.
+**Training data, medicine** (`training/data/medicine/manifest.json`, the run below): 25,469 training and 519
+validation chats; MedMCQA keeps 12,376 of 24,000 rows (short explanations and multi-answer questions dropped),
+PubMedQA artificial 5,817, OpenAssistant replay 11,939 (0.30 of the mix); 19 chats removed for sharing a 13-gram
+with an eval set and 1,472 over 768 tokens.
+
+**First trained adapter: medicine, REJECTED by its acceptance criteria** (`evals/results/20261020-202442/`,
+`training/runs/medicine/{run,export}.json`). LoRA r16 on all attention and MLP projections, one epoch, 25,469
+steps on joan's M4 Max from 08:40 to 18:24 UTC on 2026-10-20 (9 h 44 min, exit 0), exported to a 42.5 MB GGUF
+that changed 4 of 4 live probe outputs. Base and adapter evaluated in one run (Metal, greedy, thinking off,
+max_tokens 2048, llama-server b11669-620d2225c); a Mac restart cut the run and `run_eval.py --resume` finished it,
+regenerating only the missing group:
+
+| suite | n | base | adapter | Δ (pts) | McNemar p |
+|---|---|---|---|---|---|
+| medicine (pooled) | 2,318 | 0.322 | 0.641 | +31.92 | < 1e-6 |
+| · MedMCQA validation | 1,000 | 0.280 | 0.613 | +33.30 | |
+| · PubMedQA labeled | 500 | 0.428 | 0.820 | +39.20 | |
+| · MMLU-Pro health | 818 | 0.309 | 0.567 | +25.79 | |
+| general (MMLU-Pro history, philosophy, psychology, other) | 800 | 0.639 | 0.562 | −7.62 | 2.4e-5 |
+
+The medicine gain clears its bar (≥ 3 pts, p ≤ 0.05) but general knowledge drops 7.62 pts against a 1.5-pt limit,
+so the adapter is rejected and Medicine stays a prompt profile. The base often names no option (405 of 1,000
+MedMCQA answers unparsed vs 54 with the adapter), so part of the gain is answer format; on the items where both
+gave a parseable option the gain stays (+21.0 MedMCQA, +18.5 health) and so does the drop (−6.9 general). The live
+probes show the forgetting: the adapter drops the specialist's persona and safety framing ("I am an AI
+assistant, not a licensed physician"), answers in a generic style and repeated one Spanish sentence three times.
+Training time matched the ≈ 10 h projection below.
 
 **Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
 2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
@@ -165,11 +188,11 @@ yet measured).
 
 ## Built, not yet measured with real weights
 
-- Any trained adapter. Medicine on joan's Mac has not finished: the 2026-10-18 run died at step 5,200 of 25,469
-  when its session ended, and the 2026-10-19 relaunch was stopped by the RAM guard at step 2,440 when other apps
-  pushed swap from 7.1 to 11.3 GB. mlx-lm restarts from zero after a stop, so training now runs under a RAM
-  guard that stops it, waits for free memory and resumes exactly from the last checkpoint (tested with real mlx
-  on Linux CPU: stopped-and-resumed equals uninterrupted; not yet run on Apple silicon).
+- An accepted adapter: the first one, medicine, was trained and rejected (above). Before it, the 2026-10-18 run died
+  at step 5,200 of 25,469 when its session ended and the 2026-10-19 one was stopped by the RAM guard at step
+  2,440. Training can now run under a RAM guard that stops it, waits for free memory and resumes exactly from
+  the last checkpoint (tested with real mlx on Linux CPU: stopped-and-resumed equals uninterrupted; not yet run on
+  Apple silicon: the medicine run used a plain watcher and the stock trainer).
 - Finance data after a license audit of Sujet-Finance-Instruct-177k's 18 upstream sources: 4 kept (news and tweet
   classification, FinEntity; at most 2,000 rows each), 14 excluded (outputs of OpenAI or Anthropic models,
   non-commercial licenses, or unknown provenance). Questions with calculations come from FinQA and TAT-QA (MIT,
@@ -205,8 +228,10 @@ yet measured).
 
 1. ~~Benchmark CPU-only and Metal on the Mac, and CPU-only on the 16 GB x86 target~~ (done, above).
 2. ~~Baseline evals on the Mac~~ (done, above).
-3. Train, export and evaluate the medicine adapter; accept or reject by its criteria.
-4. Finance, then marketing (teacher distillation).
+3. ~~Train, export and evaluate the medicine adapter; accept or reject by its criteria~~ (done: rejected for
+   forgetting, above).
+4. Fix the forgetting on medicine with the same criteria (choices made on a general sample disjoint from the
+   acceptance suite, every attempt reported), then finance with what works, then marketing (teacher distillation).
 5. Long-context eval; orchestrated vs single-model pairwise eval.
 6. ~~Choose the repository, enable CI~~ (done); publish with measured tables once joan agrees.
 7. ~~Forge: checks SPIKE runs itself on the saved files~~ (built and measured in run 4: no gain). Forge stays

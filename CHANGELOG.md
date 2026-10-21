@@ -68,6 +68,11 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Model cards for pairwise-judged adapters (marketing), with every training source's license and the
   attribution CC-BY and ODC-BY ask for; `llama3.1` is no longer accepted for training data or teachers.
 
+### Measured and rejected
+- First trained adapter, medicine (LoRA r16, 25,469 steps, 9 h 44 min on an M4 Max): +31.9 pts on the medicine
+  suite but −7.6 pts on the general suite against a 1.5-pt limit, so it is rejected and Medicine stays a prompt
+  profile. `run_eval.py --resume` finishes an interrupted evaluation without regenerating complete groups.
+
 ### Not measured yet
 - Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a
   desktop (non-server) Windows.
