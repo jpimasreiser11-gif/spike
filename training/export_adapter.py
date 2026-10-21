@@ -2,12 +2,16 @@
 
     python training/export_adapter.py medicine --llama-cpp ~/src/llama.cpp \
         [--adapter training/runs/medicine/adapter] [--base Qwen/Qwen3.5-4B] [--out ~/.spike/adapters] \
-        [--check-model ~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf]
+        [--check-model ~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf] [--name STEM] [--work DIR]
 
 1. MLX -> PEFT: transpose A/B, alpha = scale * r, module names mapped and checked against the base checkpoint.
 2. PEFT -> GGUF with llama.cpp's own convert_lora_to_gguf.py (needs the base config only, not its weights).
 3. GGUF metadata check (adapter type, alpha, tensor count).
 4. --check-model: load base + adapter in llama-server and require that the adapter changes greedy outputs.
+
+The GGUF is <out>/<STEM>.gguf (--name, default spike-<specialist>); peft/ and export.json go to --work (default
+training/runs/<specialist>/). Exporting something else, e.g. a checkpoint (training/sweep_checkpoints.py), with
+both set never overwrites the run's committed export.json or the installed adapter.
 """
 
 from __future__ import annotations
@@ -113,18 +117,23 @@ def main() -> int:
     ap.add_argument("--python", default=sys.executable, help="interpreter with the converter's requirements")
     ap.add_argument("--check-model", help="base GGUF for the live check")
     ap.add_argument("--ngl", type=int, default=99)
+    ap.add_argument("--name", help="file stem of the GGUF (default spike-<specialist>)")
+    ap.add_argument("--work", help="where peft/ and export.json are written (default training/runs/<specialist>)")
     args = ap.parse_args()
+    if args.name and Path(args.name).name != args.name:
+        ap.error(f"--name is a file stem, not a path: {args.name}")
 
     run_dir = ROOT / "training" / "runs" / args.specialist
+    work_dir = Path(args.work).expanduser() if args.work else run_dir
     adapter_dir = Path(args.adapter or run_dir / "adapter")
     base_dir = resolve_base(args.base)
-    peft = to_peft(adapter_dir, base_dir, args.base, run_dir / "peft")
+    peft = to_peft(adapter_dir, base_dir, args.base, work_dir / "peft")
     print(f"PEFT adapter: r={peft['r']} alpha={peft['lora_alpha']} targets={peft['target_modules']} tensors={peft['tensors']}")
 
-    out = Path(args.out).expanduser() / f"spike-{args.specialist}.gguf"
+    out = Path(args.out).expanduser() / f"{args.name or 'spike-' + args.specialist}.gguf"
     out.parent.mkdir(parents=True, exist_ok=True)
     converter = Path(args.llama_cpp).expanduser() / "convert_lora_to_gguf.py"
-    subprocess.run([args.python, str(converter), str(run_dir / "peft"), "--base", str(base_dir),
+    subprocess.run([args.python, str(converter), str(work_dir / "peft"), "--base", str(base_dir),
                     "--outfile", str(out), "--outtype", args.outtype], check=True)
     report = {"gguf": str(out), "peft": {k: v for k, v in peft.items() if k != "tensors"}, "check": check_gguf(out, peft)}
     print(f"GGUF adapter: {out} ({report['check']['tensors']} tensors, arch {report['check']['arch']})")
@@ -135,7 +144,7 @@ def main() -> int:
         system = load_catalog().get(args.specialist).system_prompt
         report["live_check"] = asyncio.run(live_check(Path(args.check_model).expanduser(), out, system, args.ngl))
         print(f"live check: adapter changed {report['live_check']['outputs_changed']}/{len(PROBES)} greedy outputs")
-    (run_dir / "export.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    (work_dir / "export.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     return 0
 
 

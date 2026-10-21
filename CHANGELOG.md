@@ -69,6 +69,11 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   own greedy answers to the replay prompts, under the specialist's system prompt, replace the human-written ones;
   it refuses a generator whose license is not allowed and a server with a LoRA applied. Built and tested, not yet
   measured. Every training chat now goes through one filter, so a too-long correction is counted once, not twice.
+- Checkpoint sweep against forgetting without retraining (`training/sweep_checkpoints.py`): exports saved checkpoints
+  and the final adapter at a smaller LoRA scale, picks one on the `*-select` suites with the recipe's own acceptance
+  rule, then runs the acceptance suites once on it; every candidate tried is reported. `export_adapter.py` gained
+  `--name` and `--work` so a sweep never overwrites the run's export. Built and tested, not yet run on the real
+  medicine checkpoints.
 - Model cards for pairwise-judged adapters (marketing), with every training source's license and the
   attribution CC-BY and ODC-BY ask for; `llama3.1` is no longer accepted for training data or teachers.
 

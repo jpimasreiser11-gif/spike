@@ -208,6 +208,13 @@ yet measured).
   llama-server with a tiny random-weight model); not run with the real model yet and
   its effect on forgetting is not measured. The rejected run's human replay (oasst2) had no system prompt while
   the domain chats had the specialist's; whether that mismatch adds to the forgetting is not measured either.
+- Checkpoint sweep (`training/sweep_checkpoints.py`, docs/TRAINING.md): the other cheap try for the medicine rejection,
+  without retraining: the saved checkpoints (every 200 iterations) and the final adapter at a smaller LoRA scale are
+  exported, compared on `medicine-select` and `general-select` with the recipe's own rule, and the acceptance suites
+  run once on the one chosen. 53 tests with a recording runner in place of the exporter and `run_eval.py` (checkpoint
+  choice, scaled adapters, reuse after an interruption, the choice rule, exit codes, the summary), and a tiny scaled
+  candidate through llama.cpp's real converter whose GGUF alpha is scale × SCALE × rank. Built and tested with fakes;
+  not run on the real medicine checkpoints, so whether any checkpoint or scale passes is not known.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.
