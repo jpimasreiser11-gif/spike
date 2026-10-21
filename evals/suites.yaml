@@ -1,6 +1,9 @@
 # Evaluation suites. Each task reads an eval-only source from training/datasets.yaml, takes a seeded random
 # sample of `n` items (all items when n is omitted) and is answered by every variant with the same prompt.
 # `general` is the regression suite: categories outside every specialist domain trained so far.
+# `*-select` suites are for choosing between training runs, checkpoints or settings: `skip` takes the items after
+# the acceptance sample of the same task, so with the same --seed (default 0) they never overlap it, and the
+# acceptance suites are run once, on the chosen variant.
 suites:
   medicine:
     specialist: medicine
@@ -38,3 +41,12 @@ suites:
     specialist: core
     tasks:
       - {name: mmlu-pro-general, source: mmlu-pro, categories: [history, philosophy, psychology, other], n: 800}
+  general-select:
+    specialist: core
+    tasks:
+      - {name: mmlu-pro-general-select, source: mmlu-pro, categories: [history, philosophy, psychology, other], skip: 800, n: 400}
+  medicine-select:
+    specialist: medicine
+    tasks:
+      - {name: medmcqa-val-select, source: medmcqa-eval, skip: 1000, n: 400}
+      - {name: pubmedqa-labeled-select, source: pubmedqa-labeled, skip: 500, n: 200}

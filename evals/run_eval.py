@@ -58,6 +58,7 @@ def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list
         rows = [r for r in rows if r.get("category") in set(task["categories"])]
     items = [it for i, r in enumerate(rows) if (it := make_item(task["name"], src["format"], i, r))]
     random.Random(seed).shuffle(items)
+    items = items[task.get("skip", 0):]  # `skip`: the items after another task's sample, disjoint at the same seed
     if not items:
         raise SystemExit(f"task '{task['name']}' produced no items")
     n = min(x for x in (task.get("n"), limit, len(items)) if x)

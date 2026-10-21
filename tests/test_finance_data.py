@@ -489,6 +489,10 @@ def test_run_eval_loads_items_from_a_url_source_with_the_suite_sampling(tmp_path
     items = run_eval.load_items(task, reg, 0, None)
     assert len(items) == 3 and [i.id for i in items] == sorted(i.id for i in items)
     assert [i.id for i in run_eval.load_items(task, reg, 0, None)] == [i.id for i in items]  # seeded
+    select = run_eval.load_items({**task, "skip": 3, "n": 5}, reg, 0, None)  # a *-select task: the rest of the shuffle
+    assert len(select) == 2 and not {i.id for i in select} & {i.id for i in items}
+    with pytest.raises(SystemExit, match="produced no items"):
+        run_eval.load_items({**task, "skip": 5}, reg, 0, None)
     with pytest.raises(SystemExit, match="not an eval source"):
         run_eval.load_items(task, {"finqa-test": {**reg["finqa-test"], "role": "train"}}, 0, None)
     with pytest.raises(SystemExit, match="not an eval source"):
