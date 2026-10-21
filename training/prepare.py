@@ -1,13 +1,15 @@
 """Build the training set for one specialist adapter.
 
     python training/prepare.py training/configs/medicine.yaml [--out training/data] [--distilled FILE]
-        [--corrections spike-training.jsonl]
+        [--corrections spike-training.jsonl] [--self-replay FILE]
 
 Steps: license check per source (and per distillation teacher) -> download -> format to chat -> quality filter ->
 dedupe -> 13-gram decontamination against every eval set -> blend with general replay data -> split ->
 write train/valid JSONL, an mlx-lm config and a manifest with counts, licenses and file hashes.
 A recipe with no domain_sources (marketing) needs --distilled data: with none, the run stops instead of writing
 an empty training set.
+A recipe with `replay: {self_generated: true}` takes its replay from the base model's own answers (--self-replay FILE,
+made by training/self_replay.py); with no file the run stops. Without it, replay is the human-written sources.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ import json
 import math
 import sys
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import yaml
@@ -69,6 +72,82 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def gate_source(name: str, src: dict, role: str, offline: bool = False) -> str:
+    """The license a registry source is gated on (as the Hub publishes it; the registry's own when `offline`).
+    SystemExit unless `role` may use the source."""
+    hub = src["license"] if offline else licenses.source_license(src)
+    ok, reason = licenses.check(hub, role)
+    if role == "train" and src["role"] != "train":
+        raise SystemExit(f"refusing source '{name}' for training: registry role is '{src['role']}'")
+    if not ok:
+        raise SystemExit(f"refusing source '{name}': {reason}")
+    return hub
+
+
+def candidate_chats(name: str, src: dict, entry: dict, sys_prompt: str | None) -> tuple[Iterator[dict | None], int | None]:
+    """The chats (None for a row its formatter rejects) of one config entry before any filter, and how many a
+    whole-source builder made (None for row-by-row formats). self_replay.py takes its prompts from these chats."""
+    start, limit = entry.get("offset", 0), entry.get("max")
+    cap = {"per_value": entry["max_per_value"]} if "max_per_value" in entry else {}  # balanced filtered source
+    if src["format"] in BUILDERS:  # needs every row of the source before it can emit a chat
+        built = BUILDERS[src["format"]](load_rows(src, **cap), **src.get("options", {}))
+        if not built:
+            raise SystemExit(f"source '{name}' produced no chats; check its schema against the builder")
+        return iter(built[start: None if limit is None else start + limit]), len(built)
+    fmt = FORMATTERS[src["format"]]
+    return ((fmt(row, sys_prompt) if src["format"] != "messages" else fmt(row)
+             for row in load_rows(src, start, limit, **cap)), None)
+
+
+def check_generators(file: str, generators: dict[str, str | None], kind: str, offline: bool) -> dict[str, dict]:
+    """The license of every model that wrote a data file's answers, checked again: live from the Hub like a dataset's, or
+    when `offline` the one the generator recorded, still against the allowlist. The manifest record per repo."""
+    record = {}
+    for repo, recorded in generators.items():
+        try:
+            if offline:
+                ok, reason = licenses.check(recorded, "train")
+                if not ok:
+                    raise ValueError(f"{kind} '{repo}': {reason}")
+                lic = reason
+            else:
+                lic = licenses.teacher_license(repo, kind)
+        except ValueError as exc:
+            raise SystemExit(f"refusing {Path(file).name}: {exc}") from exc
+        record[repo] = {"license_hub": lic, "license_recorded": recorded}
+    return record
+
+
+def load_self_replay(path: Path, system: str,
+                     prompt_sources: set[str]) -> tuple[list[tuple[str, dict]], dict[str, str | None]]:
+    """(prompt source, chat) of every row of a self_replay.py file, and the generators (repo -> license recorded when it
+    wrote them) behind them. Stops on a row that names no generator, is not (system, user, assistant) under the
+    specialist's current system prompt, or has prompts from a source the recipe does not list: it is not what the
+    recipe asked for, or its license would be unknown."""
+    rows: list[tuple[str, dict]] = []
+    generators: dict[str, str | None] = {}
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        chat = json.loads(line)
+        meta = chat.pop("meta", None) or {}
+        where = f"{path.name}:{n}"
+        if meta.get("source") != "self_replay" or not meta.get("generator"):
+            raise SystemExit(f"{where} has no self-replay record; make it again with training/self_replay.py "
+                             "(it records the generator's repo and license)")
+        messages = chat.get("messages") or []
+        if [m.get("role") for m in messages] != ["system", "user", "assistant"] or messages[0].get("content") != system:
+            raise SystemExit(f"{where} is not a (system, user, assistant) chat under the specialist's current system "
+                             "prompt; make the file again with training/self_replay.py")
+        if meta.get("prompt_source") not in prompt_sources:
+            raise SystemExit(f"{where} has prompts from '{meta.get('prompt_source')}', which replay.sources of the config "
+                             f"does not list ({', '.join(sorted(prompt_sources)) or 'none'})")
+        if generators.setdefault(meta["generator"], meta.get("generator_license")) != meta.get("generator_license"):
+            raise SystemExit(f"{where} records another license for '{meta['generator']}' than the rows before it")
+        rows.append((meta["prompt_source"], chat))
+    return rows, generators
+
+
 def load_distilled(path: Path) -> tuple[list[dict], dict[str, str | None]]:
     """Chats of a distill.py file, and the teachers (repo -> license recorded when it wrote them) behind them.
     A row without a teacher record stops the run: its license would be unknown."""
@@ -109,6 +188,8 @@ def main() -> int:
     ap.add_argument("--distilled", action="append", default=[], help="extra verified chat JSONL from distill.py")
     ap.add_argument("--corrections", action="append", default=[],
                     help="approved corrections from `spike evolve dataset` (spike-training.jsonl); only this specialist's")
+    ap.add_argument("--self-replay", help="the base model's own answers to general prompts (training/self_replay.py), "
+                                          "used as the replay data instead of the human-written replay sources")
     ap.add_argument("--skip-license-check", action="store_true", help="only for offline dry runs; never for releases")
     args = ap.parse_args()
 
@@ -126,14 +207,8 @@ def main() -> int:
         src = registry[name]
         if manifest["sources"].get(name, {}).get("role") == role:
             return src
-        declared = src["license"]
-        hub = declared if args.skip_license_check else licenses.source_license(src)
-        ok, reason = licenses.check(hub, role)
-        if role == "train" and src["role"] != "train":
-            raise SystemExit(f"refusing source '{name}' for training: registry role is '{src['role']}'")
-        if not ok:
-            raise SystemExit(f"refusing source '{name}': {reason}")
-        manifest["sources"][name] = {**origin(src), "license_hub": hub, "license_registry": declared,
+        hub = gate_source(name, src, role, args.skip_license_check)
+        manifest["sources"][name] = {**origin(src), "license_hub": hub, "license_registry": src["license"],
                                      "role": role, "provenance": src.get("provenance", "")}
         return src
 
@@ -148,6 +223,13 @@ def main() -> int:
 
     if not (cfg.get("domain_sources") or args.distilled or args.corrections):
         raise no_domain_data()  # marketing without distilled data: stop now, not after the eval sets are downloaded
+    if (cfg.get("replay") or {}).get("self_generated") and not args.self_replay:  # same: no human-written fallback
+        raise SystemExit(f"'{cfg['specialist']}' takes its replay from the base model's own answers (replay.self_generated) "
+                         "but no file was given: serve the base model with llama-server (no adapter), run "
+                         f"`python training/self_replay.py {args.config} --base-url http://127.0.0.1:PORT/v1 "
+                         f"--out training/data/{cfg['specialist']}/self_replay.jsonl`, then pass it with --self-replay")
+    if args.self_replay and not Path(args.self_replay).is_file():
+        raise SystemExit(f"--self-replay {args.self_replay}: no such file")
 
     # 0. every license and registry role, before anything is downloaded
     for name in cfg.get("decontaminate_against", []):
@@ -158,20 +240,17 @@ def main() -> int:
     for path in args.distilled:  # a teacher's terms travel with every example it wrote: same allowlist as datasets
         chats, teachers = load_distilled(Path(path))
         distilled[path] = chats
-        record = {"role": "train", "teachers": {}}
-        for repo, recorded in teachers.items():
-            try:
-                if args.skip_license_check:  # offline: trust the license distill.py recorded, still on the allowlist
-                    ok, reason = licenses.check(recorded, "train")
-                    if not ok:
-                        raise ValueError(f"teacher '{repo}': {reason}")
-                    lic = reason
-                else:  # live from the Hub, like the datasets
-                    lic = licenses.teacher_license(repo)
-            except ValueError as exc:
-                raise SystemExit(f"refusing {Path(path).name}: {exc}") from exc
-            record["teachers"][repo] = {"license_hub": lic, "license_recorded": recorded}
-        manifest["sources"][f"distilled:{Path(path).name}"] = record
+        # offline: trust the license distill.py recorded, still on the allowlist; otherwise live from the Hub
+        manifest["sources"][f"distilled:{Path(path).name}"] = {
+            "role": "train", "teachers": check_generators(path, teachers, "teacher", args.skip_license_check)}
+    self_rows: list[tuple[str, dict]] = []
+    if args.self_replay:  # the base model's answers: its terms travel with them like a teacher's (the model card reads `teachers`)
+        self_path = Path(args.self_replay)
+        prompt_sources = {e["source"] for e in cfg.get("replay", {}).get("sources", [])}
+        self_rows, generators = load_self_replay(self_path, system, prompt_sources)
+        manifest["sources"][f"self_replay:{self_path.name}"] = {
+            "role": "train", "self_generated": True, "sha256": sha256(self_path), "rows": len(self_rows),
+            "teachers": check_generators(args.self_replay, generators, "generator", args.skip_license_check)}
 
     # 1. contamination index from every eval set
     index = ContaminationIndex()
@@ -205,18 +284,9 @@ def main() -> int:
         chats = []
         for entry in entries:
             src = checked(entry["source"], "train")
-            start, limit = entry.get("offset", 0), entry.get("max")
-            cap = {"per_value": entry["max_per_value"]} if "max_per_value" in entry else {}  # balanced filtered source
-            if src["format"] in BUILDERS:  # needs every row of the source before it can emit a chat
-                built = BUILDERS[src["format"]](load_rows(src, **cap), **src.get("options", {}))
-                if not built:
-                    raise SystemExit(f"source '{entry['source']}' produced no chats; check its schema against the builder")
-                manifest["sources"][entry["source"]]["built"] = len(built)
-                candidates = iter(built[start: None if limit is None else start + limit])
-            else:
-                fmt = FORMATTERS[src["format"]]
-                candidates = (fmt(row, sys_prompt) if src["format"] != "messages" else fmt(row)
-                              for row in load_rows(src, start, limit, **cap))
+            candidates, built = candidate_chats(entry["source"], src, entry, sys_prompt)
+            if built is not None:
+                manifest["sources"][entry["source"]]["built"] = built
             kept = 0
             for chat in candidates:
                 if chat is None or not passes_quality(chat):
@@ -261,7 +331,23 @@ def main() -> int:
             "license_hub": "the user's own conversations, approved one by one; answers by SPIKE's local model"}
     if not domain:
         raise no_domain_data()
-    replay = collect(cfg.get("replay", {}).get("sources", []), None)
+    if args.self_replay:  # the same filters as any chat; these prompts are decontaminated here, not when the file was made
+        replay, per_source = [], dict.fromkeys(prompt_sources, 0)
+        for source, chat in self_rows:
+            if not passes_quality(chat):
+                manifest["dropped"]["format_or_quality"] += 1
+            elif too_long(chat):  # counts itself
+                pass
+            elif index.contaminated(text_of(chat)):
+                manifest["dropped"]["contaminated"] += 1
+            else:
+                replay.append(chat)
+                per_source[source] += 1
+        for source, kept in per_source.items():
+            manifest["sources"][source]["kept"] = kept
+        manifest["sources"][f"self_replay:{Path(args.self_replay).name}"]["kept"] = len(replay)
+    else:
+        replay = collect(cfg.get("replay", {}).get("sources", []), None)
 
     before = len(domain)
     domain = list(dedupe(domain))

@@ -59,21 +59,31 @@ class Teacher:
         self.sem = asyncio.Semaphore(concurrency)
         self.client = httpx.AsyncClient(timeout=timeout)
 
-    async def chat(self, messages: list[dict[str, str]], temperature: float = 0.7, max_tokens: int = 4096,
-                   thinking: bool = True) -> tuple[str, str]:
+    async def complete(self, messages: list[dict[str, str]], temperature: float = 0.7, max_tokens: int = 4096,
+                       thinking: bool = True) -> dict[str, Any]:
+        """One completion: the answer, any reasoning, why generation stopped ("stop", or "length" when it hit
+        `max_tokens`) and the tokens it used."""
         body = {"model": self.model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens,
                 "chat_template_kwargs": {"enable_thinking": thinking}}
         async with self.sem:
             r = await self.client.post(f"{self.base_url}/chat/completions", json=body, headers=self.headers)
         r.raise_for_status()
-        msg = r.json()["choices"][0]["message"]
+        data = r.json()
+        choice = data["choices"][0]
+        msg = choice["message"]
         reasoning = msg.get("reasoning_content") or ""
         content = msg.get("content") or ""
         if not reasoning and "<think>" in content:
             m = re.search(r"(?s)<think>(.*?)</think>", content)
             reasoning = m.group(1).strip() if m else ""
             content = strip_think(content)
-        return content.strip(), reasoning.strip()
+        return {"content": content.strip(), "reasoning": reasoning.strip(), "finish_reason": choice.get("finish_reason"),
+                "completion_tokens": (data.get("usage") or {}).get("completion_tokens")}
+
+    async def chat(self, messages: list[dict[str, str]], temperature: float = 0.7, max_tokens: int = 4096,
+                   thinking: bool = True) -> tuple[str, str]:
+        done = await self.complete(messages, temperature, max_tokens, thinking)
+        return done["content"], done["reasoning"]
 
     async def review(self, task: Task, response: str) -> int:
         content, _ = await self.chat(

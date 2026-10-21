@@ -57,6 +57,27 @@ in source: `iters` counts micro-batches; the optimizer and LR schedule step ever
 Lesson applied from the sciences44 report: acceptance is decided by task metrics on held-out data, never by
 validation loss.
 
+**Replay written by the base model itself (an option, not yet measured).** The first medicine adapter, trained with
+30 % oasst2 replay (human answers), was rejected for forgetting ([STATUS.md](STATUS.md)); its live probes lost the
+persona and safety framing the base shows under the same system prompt and repeated a sentence. Two properties of
+that replay, read from `prepare.py`: its answers are in a style the base model does not write, and its chats carry
+no system prompt (`collect(..., None)`) while the domain chats do. `training/self_replay.py` makes the other kind: the
+same prompts (the first user turn of the replay-source chats), answered by the base model itself, greedy, thinking off,
+under the specialist's system prompt, so a replay row asks the adapter to keep doing what the base already does.
+The idea that targets from the model's own distribution drift less is what two papers report, in settings that are
+not this one (read: their arXiv pages, not their code). Self-Distillation Fine-Tuning ([Yang et al.,
+arXiv:2402.13669](https://arxiv.org/abs/2402.13669)) has the model rewrite the task's reference answers itself and
+reports, on Llama-2-7b-chat with LoRA, a smaller loss of safety and helpfulness than vanilla fine-tuning, with
+general-knowledge benchmarks little changed by either. Self-Synthesized Rehearsal ([Huang et al.,
+arXiv:2403.01244](https://arxiv.org/abs/2403.01244)) has the model generate its own rehearsal instances for continual
+learning when the original data is unavailable, and reports general-domain ability preserved as well as or better
+than conventional rehearsal. SPIKE's variant replays real prompts with the model's own answers instead, and whether it
+keeps the general suite within 1.5 points on Qwen3.5-4B is open until a run is evaluated. Limits to keep in mind:
+the answers come from the Q4_K_M GGUF that SPIKE serves while LoRA trains the bf16 weights; the base's own habits
+(it named no option in 405 of 1,000 MedMCQA answers, STATUS.md) are copied too, since the filters only remove
+truncated, empty, reasoning-bearing and looping answers; the replay is single-turn; and because the human
+replay had no system prompt and this one does, a comparison of the two changes both at once.
+
 ## 5. Datasets (Hub licenses re-checked automatically at download time; URL sources use the license recorded with their pinned commit)
 
 | Source | License | Use | Notes |

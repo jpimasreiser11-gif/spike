@@ -54,18 +54,19 @@ def hub_model_license(repo: str) -> str | None:
     return _hub_license("models", repo)
 
 
-def teacher_license(repo: str) -> str:
-    """The Hub license of a distillation teacher if its outputs may train released weights; ValueError otherwise.
+def teacher_license(repo: str, kind: str = "teacher") -> str:
+    """The Hub license of a distillation teacher (`kind` names another kind of generator in the message, e.g. the base
+    model writing its own replay) if its outputs may train released weights; ValueError otherwise.
 
-    An unreadable or missing license is a refusal, the same as for a dataset: the teacher's terms travel with
+    An unreadable or missing license is a refusal, the same as for a dataset: the generator's terms travel with
     every example it wrote."""
     import httpx
 
     try:
         lic = hub_model_license(repo)
     except httpx.HTTPError as exc:
-        raise ValueError(f"teacher '{repo}': cannot read its license on the Hugging Face Hub ({exc})") from exc
+        raise ValueError(f"{kind} '{repo}': cannot read its license on the Hugging Face Hub ({exc})") from exc
     ok, reason = check(lic, "train")
     if not ok:
-        raise ValueError(f"teacher '{repo}': {reason}")
+        raise ValueError(f"{kind} '{repo}': {reason}")
     return reason
