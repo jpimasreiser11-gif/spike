@@ -33,6 +33,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from fractions import Fraction
 from pathlib import Path
 
@@ -99,9 +100,11 @@ def list_checkpoints(adapter_dir: Path) -> dict[int, Path]:
     return found
 
 
-def plan(specs: list[str], specialist: str, adapter_dir: Path, total: int, finished: bool = True) -> list[Candidate]:
+def plan(specs: list[str], specialist: str, adapter_dir: Path, total: int, finished: bool = True,
+         started: float | None = None) -> list[Candidate]:
     """The candidates the --candidate values stand for, in order, without repeats. `finished`: the training run ended
-    (run.json's exit_code), so adapters.safetensors is the weights of iteration `total`."""
+    (run.json's exit_code), so adapters.safetensors is the weights of iteration `total`. `started` (run.json's
+    started_utc, epoch seconds): a file written before it was left by an earlier, aborted run in the same folder."""
     checkpoints = list_checkpoints(adapter_dir)
     final = adapter_dir / "adapters.safetensors"
     out: dict[tuple[int, Fraction], Candidate] = {}
@@ -117,6 +120,9 @@ def plan(specs: list[str], specialist: str, adapter_dir: Path, total: int, finis
         else:  # exact arithmetic: a tie is a tie. min() with the iteration in the key takes the earlier one
             iteration = min(checkpoints, key=lambda it: (abs(it - fraction * total), it))
             checkpoint = checkpoints[iteration]
+        if started is not None and checkpoint.stat().st_mtime < started:
+            raise SystemExit(f"{checkpoint} was written before the recorded run started (run.json started_utc): it is "
+                             "from an earlier run in the same folder, not a checkpoint of this one")
         if (iteration, scale) in out:
             out[iteration, scale].asked.append(text)
             continue
@@ -140,7 +146,9 @@ def load_run(specialist: str) -> dict:
     if not isinstance(iters, int) or iters <= 0:
         raise SystemExit(f"cannot tell how many iterations were planned: {path} has no counts.iters "
                          f"and training/data/{specialist}/mlx_lora.yaml has no iters")
-    return {"git_commit": record.get("git_commit"), "iters": iters, "exit_code": record.get("exit_code")}
+    started = record.get("started_utc")
+    return {"git_commit": record.get("git_commit"), "iters": iters, "exit_code": record.get("exit_code"),
+            "started_utc": started}
 
 
 def rule_suites(acceptance: dict) -> list[str]:
@@ -314,7 +322,9 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"{recipe.name}: {exc}") from None
     run_info = load_run(spec)
     finished = run_info.pop("exit_code") in (None, 0)
-    candidates = plan(args.candidate or DEFAULT_CANDIDATES, spec, adapter_dir, run_info["iters"], finished)
+    started = (datetime.strptime(run_info["started_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC).timestamp()
+               if run_info.get("started_utc") else None)
+    candidates = plan(args.candidate or DEFAULT_CANDIDATES, spec, adapter_dir, run_info["iters"], finished, started)
     model = Path(args.model).expanduser()
     if not model.is_file():
         raise SystemExit(f"base model not found: {model}")

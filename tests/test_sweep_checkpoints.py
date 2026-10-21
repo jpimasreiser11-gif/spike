@@ -216,15 +216,31 @@ def test_the_final_adapter_of_a_run_that_did_not_finish_is_not_iteration_total(w
     assert world.fake.calls == []
 
 
+def test_a_checkpoint_older_than_the_recorded_run_is_refused(world):
+    """medicine's folder held two aborted runs before the recorded one: a file they left must never be a candidate."""
+    import os
+
+    ckpt = world.adapter / "0000400_adapters.safetensors"
+    started = ckpt.stat().st_mtime + 60
+    with pytest.raises(SystemExit, match="written before the recorded run started"):
+        sweep.plan(["0.5"], "medicine", world.adapter, TOTAL, started=started)
+    os.utime(ckpt, (started + 1, started + 1))
+    assert sweep.plan(["0.5"], "medicine", world.adapter, TOTAL, started=started)[0].iteration == 400
+    record = json.loads((world.runs / "run.json").read_text())  # main() reads started_utc from run.json
+    (world.runs / "run.json").write_text(json.dumps({**record, "started_utc": "2999-01-01T00:00:00Z"}))
+    with pytest.raises(SystemExit, match="written before the recorded run started"):
+        world.go()
+
+
 def test_planned_iterations_come_from_the_run_record_or_mlx_lora_yaml(world):
-    assert sweep.load_run("medicine") == {"git_commit": "abc1234", "iters": TOTAL, "exit_code": 0}
+    assert sweep.load_run("medicine") == {"git_commit": "abc1234", "iters": TOTAL, "exit_code": 0, "started_utc": None}
     (world.runs / "run.json").write_text(json.dumps({"git_commit": "d00d", "counts": {}}))
     with pytest.raises(SystemExit, match="cannot tell how many iterations"):
         sweep.load_run("medicine")
     data = world.root / "training" / "data" / "medicine"
     data.mkdir(parents=True)
     (data / "mlx_lora.yaml").write_text("iters: 777\n")
-    assert sweep.load_run("medicine") == {"git_commit": "d00d", "iters": 777, "exit_code": None}
+    assert sweep.load_run("medicine") == {"git_commit": "d00d", "iters": 777, "exit_code": None, "started_utc": None}
     (world.runs / "run.json").unlink()
     with pytest.raises(SystemExit, match="run.json not found"):
         sweep.load_run("medicine")
@@ -356,7 +372,7 @@ def test_a_sweep_exports_each_candidate_once_evaluates_them_together_and_runs_th
 
     out = json.loads((world.sweep / "summary.json").read_text())
     assert out["specialist"] == "medicine" and out["recipe"] == "training/configs/medicine.yaml"
-    assert out["run"] == {"git_commit": "abc1234", "iters": TOTAL} and out["exit_code"] == 0
+    assert out["run"] == {"git_commit": "abc1234", "iters": TOTAL, "started_utc": None} and out["exit_code"] == 0
     assert out["select"]["suites"] == ["medicine-select", "general-select"]
     assert out["select"]["rule"]["primary"]["suite"] == "medicine-select" and out["select"]["results"].endswith("sweep/select")
     assert out["chosen"] == stems[2]
