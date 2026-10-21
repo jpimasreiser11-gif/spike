@@ -72,7 +72,7 @@ def run(cmd: list[str]) -> int:
 
 def shown(path: Path) -> str:
     try:
-        return str(Path(path).resolve().relative_to(ROOT.resolve()))
+        return Path(path).resolve().relative_to(ROOT.resolve()).as_posix()  # the same record on every OS
     except ValueError:
         return str(path)
 
