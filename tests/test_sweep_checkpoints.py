@@ -230,6 +230,13 @@ def test_a_checkpoint_older_than_the_recorded_run_is_refused(world):
     (world.runs / "run.json").write_text(json.dumps({**record, "started_utc": "2999-01-01T00:00:00Z"}))
     with pytest.raises(SystemExit, match="written before the recorded run started"):
         world.go()
+    # a run the RAM guard restarted: started_utc is the last attempt's, run_started_utc when the run began
+    (world.runs / "run.json").write_text(json.dumps({**record, "started_utc": "2999-01-01T00:00:00Z",
+                                                     "run_started_utc": "2000-01-01T00:00:00Z"}), encoding="utf-8")
+    assert sweep.load_run("medicine")["started_utc"] == "2000-01-01T00:00:00Z"
+    (world.runs / "run.json").write_text(json.dumps({**record, "started_utc": "2999-01-01T00:00:00Z",
+                                                     "run_started_utc": None}), encoding="utf-8")
+    assert sweep.load_run("medicine")["started_utc"] is None   # a resumed attempt that could not tell: no check
 
 
 def test_planned_iterations_come_from_the_run_record_or_mlx_lora_yaml(world):

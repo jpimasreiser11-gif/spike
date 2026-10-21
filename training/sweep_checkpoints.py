@@ -103,8 +103,8 @@ def list_checkpoints(adapter_dir: Path) -> dict[int, Path]:
 def plan(specs: list[str], specialist: str, adapter_dir: Path, total: int, finished: bool = True,
          started: float | None = None) -> list[Candidate]:
     """The candidates the --candidate values stand for, in order, without repeats. `finished`: the training run ended
-    (run.json's exit_code), so adapters.safetensors is the weights of iteration `total`. `started` (run.json's
-    started_utc, epoch seconds): a file written before it was left by an earlier, aborted run in the same folder."""
+    (run.json's exit_code), so adapters.safetensors is the weights of iteration `total`. `started` (when the run began,
+    epoch seconds): a file written before it was left by an earlier, aborted run in the same folder."""
     checkpoints = list_checkpoints(adapter_dir)
     final = adapter_dir / "adapters.safetensors"
     out: dict[tuple[int, Fraction], Candidate] = {}
@@ -121,7 +121,7 @@ def plan(specs: list[str], specialist: str, adapter_dir: Path, total: int, finis
             iteration = min(checkpoints, key=lambda it: (abs(it - fraction * total), it))
             checkpoint = checkpoints[iteration]
         if started is not None and checkpoint.stat().st_mtime < started:
-            raise SystemExit(f"{checkpoint} was written before the recorded run started (run.json started_utc): it is "
+            raise SystemExit(f"{checkpoint} was written before the recorded run started (run.json): it is "
                              "from an earlier run in the same folder, not a checkpoint of this one")
         if (iteration, scale) in out:
             out[iteration, scale].asked.append(text)
@@ -146,7 +146,9 @@ def load_run(specialist: str) -> dict:
     if not isinstance(iters, int) or iters <= 0:
         raise SystemExit(f"cannot tell how many iterations were planned: {path} has no counts.iters "
                          f"and training/data/{specialist}/mlx_lora.yaml has no iters")
-    started = record.get("started_utc")
+    # run_started_utc (train.sh): when the run began, across the RAM guard's resumed attempts, each of which rewrites
+    # started_utc; a resumed attempt that cannot tell records None, and older records (one attempt each) lack the key
+    started = record["run_started_utc"] if "run_started_utc" in record else record.get("started_utc")
     return {"git_commit": record.get("git_commit"), "iters": iters, "exit_code": record.get("exit_code"),
             "started_utc": started}
 

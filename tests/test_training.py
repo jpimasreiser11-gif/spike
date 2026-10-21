@@ -1,7 +1,11 @@
 """Unit tests for the training and evaluation utilities (no downloads, no model)."""
 
 import json
+import os
+import shlex
+import shutil
 import struct
+import subprocess
 import sys
 from pathlib import Path
 
@@ -349,7 +353,7 @@ def distill_run(tmp_path, monkeypatch, teacher, *flags: str, hub=None):
     out = tmp_path / "out" / "distilled.jsonl"
     monkeypatch.setattr(sys, "argv", ["distill.py", str(cfg), "--out", str(out), *flags])
     assert distill.main() == 0
-    return [json.loads(line) for line in out.read_text().splitlines()]
+    return [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
 
 
 def test_distill_records_the_teacher_and_its_license_on_every_row(tmp_path, monkeypatch, capsys):
@@ -448,9 +452,9 @@ def test_eval_args_come_from_the_training_config():
 def test_medicine_eval_uses_2048_tokens_through_run_specialist():
     import yaml
 
-    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text(encoding="utf-8"))
     assert eval_args(cfg) == ["--max-tokens", "2048"]
-    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text()
+    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text(encoding="utf-8")
     assert "spike_train.evaluation import eval_args" in script and '"${eval_extra[@]}"' in script
 
 
@@ -619,7 +623,7 @@ def run_pairwise(tmp_path, monkeypatch, *flags: str, general: Path | None = None
         argv += ["--general-eval", str(general)]
     monkeypatch.setattr(sys, "argv", argv)
     code = pairwise.main()
-    return code, json.loads((tmp_path / "out" / "summary.json").read_text())
+    return code, json.loads((tmp_path / "out" / "summary.json").read_text(encoding="utf-8"))
 
 
 def write_run(folder: Path, run: dict) -> Path:
@@ -667,7 +671,7 @@ def test_pairwise_with_a_regression_limit_stops_early_without_the_general_run(tm
 
 
 def test_run_specialist_runs_the_general_suite_before_the_pairwise_judge():
-    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text()
+    script = (ROOT / "training" / "scripts" / "run_specialist.sh").read_text(encoding="utf-8")
     start = script.index("if [[ $spec == marketing ]]")
     marketing = script[start:script.index("\nelse\n", start)]
     assert marketing.index("python evals/run_eval.py --suites general") < marketing.index("python evals/pairwise.py")
@@ -718,7 +722,7 @@ def prepare_env(tmp_path, monkeypatch, extra: list[str] | None = None, config: s
         "pubmedqa-labeled": [PUBMED],
         "mmlu-pro": [MMLU],
     }
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     by_hub = {}
     for name, src in registry.items():
         if "hub" in src:  # URL sources (FinQA, TAT-QA) are not on the Hub
@@ -744,7 +748,7 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     import yaml
 
     out = run_prepare(tmp_path, monkeypatch)
-    manifest = json.loads((out / "manifest.json").read_text())
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["dropped"]["contaminated"] == 1  # the leaked eval question never reaches training
     assert manifest["dropped"]["too_long"] == 1  # longer than max_seq_length: dropped, never truncated
     assert manifest["sources"]["medmcqa"]["kept"] == 40
@@ -755,10 +759,10 @@ def test_prepare_pipeline_end_to_end_with_fake_sources(tmp_path, monkeypatch):
     replay_in_mix = counts["train"] + counts["valid"] - domain
     assert domain == 50 and replay_in_mix == int(domain * 0.3 / 0.7)
     assert abs(counts["replay_ratio_actual"] - 0.3) < 0.01
-    mlx = yaml.safe_load((out / "mlx_lora.yaml").read_text())
+    mlx = yaml.safe_load((out / "mlx_lora.yaml").read_text(encoding="utf-8"))
     assert mlx["iters"] == counts["iters"] and mlx["lr_schedule"]["arguments"][1] != "auto"
     assert mlx["lora_parameters"]["keys"][0] == "self_attn.q_proj" and mlx["mask_prompt"] is True
-    lines = (out / "train.jsonl").read_text().splitlines()
+    lines = (out / "train.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == counts["train"] and all(json.loads(x)["messages"][-1]["role"] == "assistant" for x in lines)
 
 
@@ -777,12 +781,12 @@ def test_prepare_adds_the_users_approved_corrections_for_its_specialist(tmp_path
                                       example("medicine", LEAKED), example("finance", "¿Qué es el EBITDA?"),
                                       example("medicine", "LONG ¿Cuánto ibuprofeno puede tomar un adulto al día?")]) + "\n")
     out = run_prepare(tmp_path / "data", monkeypatch, ["--corrections", str(corrections)])
-    manifest = json.loads((out / "manifest.json").read_text())
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["sources"]["corrections:spike-training.jsonl"]["kept"] == 1  # the leaked one and finance's are out
     assert manifest["counts"]["domain"] == 51 and manifest["dropped"]["contaminated"] == 2
     assert manifest["dropped"]["too_long"] == 2  # the long correction counts once, beside the long domain chat
-    chats = [json.loads(x) for x in [*(out / "train.jsonl").read_text().splitlines(),
-                                     *(out / "valid.jsonl").read_text().splitlines()]]
+    chats = [json.loads(x) for x in [*(out / "train.jsonl").read_text(encoding="utf-8").splitlines(),
+                                     *(out / "valid.jsonl").read_text(encoding="utf-8").splitlines()]]
     mine = [c for c in chats if "paracetamol" in c["messages"][1]["content"]]
     assert len(mine) == 1 and mine[0]["messages"][0]["content"] == load_catalog().get("medicine").system_prompt
 
@@ -822,12 +826,12 @@ def test_prepare_stops_when_the_recipe_has_no_domain_data(tmp_path, monkeypatch)
 
 def test_prepare_records_the_real_teacher_license_of_distilled_data(tmp_path, monkeypatch):
     out = run_prepare(tmp_path, monkeypatch, ["--distilled", str(distilled_file(tmp_path))], config="marketing")
-    manifest = json.loads((out / "manifest.json").read_text())
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     record = manifest["sources"]["distilled:distilled.jsonl"]
     lic = {"license_hub": "apache-2.0", "license_recorded": "apache-2.0"}
     assert record == {"role": "train", "teachers": {TEACHER: lic}, "kept": 40}
     assert "Apache-2.0 teacher" not in json.dumps(manifest) and manifest["counts"]["domain"] == 40
-    trained = [json.loads(line) for line in (out / "train.jsonl").read_text().splitlines()]
+    trained = [json.loads(line) for line in (out / "train.jsonl").read_text(encoding="utf-8").splitlines()]
     assert all("meta" not in chat for chat in trained)  # the provenance stays in the manifest
 
 
@@ -865,7 +869,7 @@ def test_prepare_offline_trusts_the_recorded_teacher_license_but_still_applies_t
                       config="marketing")
     monkeypatch.setattr(prepare.licenses, "hub_model_license", no_hub)
     assert prepare.main() == 0
-    assert json.loads((out / "manifest.json").read_text())["sources"]["distilled:distilled.jsonl"]["teachers"][TEACHER][
+    assert json.loads((out / "manifest.json").read_text(encoding="utf-8"))["sources"]["distilled:distilled.jsonl"]["teachers"][TEACHER][
         "license_hub"] == "apache-2.0"
     for recorded, reason in (("other", "license 'other' is not allowed"), (None, "no license declared")):
         bad = distilled_file(tmp_path / str(recorded), teacher_license=recorded)  # None: row names no license
@@ -881,9 +885,9 @@ def test_prepare_refuses_excluded_replay_sources(tmp_path, monkeypatch, source):
     import prepare
     import yaml
 
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     assert registry[source]["role"] == "excluded"
-    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text())
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text(encoding="utf-8"))
     cfg["replay"]["sources"].append({"source": source, "max": 10})
     (tmp_path / "cfg.yaml").write_text(yaml.safe_dump(cfg))
     monkeypatch.setattr(prepare, "load_rows", lambda src, offset=0, limit=None: iter([]))
@@ -901,7 +905,7 @@ def test_training_configs_fit_a_36gb_mac_with_the_same_effective_batch():
     import yaml
 
     for path in (ROOT / "training" / "configs").glob("*.yaml"):
-        train = yaml.safe_load(path.read_text())["train"]
+        train = yaml.safe_load(path.read_text(encoding="utf-8"))["train"]
         assert train["batch_size"] == 1 and train["grad_accumulation_steps"] == 16, path.name
         assert train["max_seq_length"] <= 768, path.name  # measured: 18.7 GB peak RSS at 768, OOM at 1024
         sched = prepare.training_schedule(train, 26050)
@@ -912,9 +916,9 @@ def test_training_configs_fit_a_36gb_mac_with_the_same_effective_batch():
 def test_no_training_config_uses_an_excluded_source():
     import yaml
 
-    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text())["sources"]
+    registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     for path in (ROOT / "training" / "configs").glob("*.yaml"):
-        cfg = yaml.safe_load(path.read_text())
+        cfg = yaml.safe_load(path.read_text(encoding="utf-8"))
         used = [s["source"] for s in cfg.get("domain_sources", []) + (cfg.get("replay") or {}).get("sources", [])]
         assert all(registry[name]["role"] == "train" for name in used), path.name
 
@@ -928,3 +932,46 @@ def test_shared_prompt_templates_do_not_count_as_contamination():
     other = mcq_prompt("Which enzyme is deficient in classic phenylketonuria?", ["PAH", "G6PD", "HGPRT", "None"])
     assert not idx.contaminated(other)
     assert not idx.contaminated(pubmedqa_prompt({**PUBMED, "context": {"contexts": ["Other abstract text."]}}))
+
+
+@pytest.mark.skipif(sys.platform == "win32" or not shutil.which("bash"), reason="train.sh is a bash script for the Mac")
+def test_train_sh_keeps_when_the_run_began_across_resumed_attempts(tmp_path):
+    """Under the RAM guard every attempt has SPIKE_RESUME=1 and rewrites run.json; run_started_utc stays the first
+    attempt's while there is a resume checkpoint to continue, so the sweep keeps the checkpoints written before a restart."""
+    import stat
+    import time
+
+    root = tmp_path / "repo"
+    (root / "training").mkdir(parents=True)
+    shutil.copy(ROOT / "training" / "train.sh", root / "training")
+    data = root / "training" / "data" / "medicine"
+    data.mkdir(parents=True)
+    (data / "mlx_lora.yaml").write_text("iters: 10\n", encoding="utf-8")
+    (data / "manifest.json").write_text(json.dumps({"specialist": "medicine", "files": {}, "counts": {}}), encoding="utf-8")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake = bin_dir / "python"  # the import check and lora.py are faked; the run record is written by the real Python
+    fake.write_text(f'#!/usr/bin/env bash\ncase "$1" in -c) exit 0;; */lora.py) exit "${{LORA_EXIT:-0}}";; esac\n'
+                    f'exec {shlex.quote(sys.executable)} "$@"\n', encoding="utf-8")
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    run_dir = root / "training" / "runs" / "medicine"
+
+    def attempt(resume: bool, code: int = 0) -> dict:
+        env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}", "LORA_EXIT": str(code)}
+        env.pop("SPIKE_RESUME", None)
+        if resume:
+            env["SPIKE_RESUME"] = "1"
+        subprocess.run(["bash", str(root / "training" / "train.sh"), "medicine"], env=env, check=False,
+                       capture_output=True)
+        return json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+
+    first = attempt(resume=True, code=143)               # nothing to resume: this attempt starts the run
+    assert first["run_started_utc"] == first["started_utc"]
+    (run_dir / "adapter" / "resume" / "0000200").mkdir(parents=True)
+    (run_dir / "adapter" / "resume" / "0000200" / "resume.json").write_text("{}", encoding="utf-8")
+    time.sleep(1.1)                                      # a later attempt, one second on at least
+    second = attempt(resume=True)
+    assert second["started_utc"] > first["started_utc"] and second["run_started_utc"] == first["started_utc"]
+    time.sleep(1.1)
+    fresh = attempt(resume=False)                        # without SPIKE_RESUME lora.py starts again at iteration 0
+    assert fresh["run_started_utc"] == fresh["started_utc"] > first["started_utc"]
