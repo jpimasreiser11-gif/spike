@@ -452,6 +452,20 @@ def test_existing_scoring_is_unchanged_by_the_new_kinds():
     assert Item("x", "t", "p", "amount", "1.0").alt == ""
 
 
+def test_every_select_task_takes_the_items_after_its_acceptance_sample():
+    """A `<suite>-select` task reads the same source and categories as one task of `<suite>` and skips exactly that
+    task's sample, so with the same seed choosing never sees an acceptance item."""
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
+    selects = [name for name in suites if name.endswith("-select")]
+    assert {"medicine-select", "general-select", "finance-select"} <= set(selects)
+    for name in selects:
+        accept = suites[name.removesuffix("-select")]
+        assert suites[name]["specialist"] == accept["specialist"]
+        for task in suites[name]["tasks"]:
+            twin = [t for t in accept["tasks"] if (t["source"], t.get("categories")) == (task["source"], task.get("categories"))]
+            assert len(twin) == 1 and twin[0].get("n") == task["skip"] and task["n"] > 0, task["name"]
+
+
 # ------------------------------------------------------------------ the recipe
 def test_finance_recipe_trains_on_audited_sources_and_is_scored_on_the_held_out_tests():
     reg = registry()

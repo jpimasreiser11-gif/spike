@@ -50,3 +50,8 @@ suites:
     tasks:
       - {name: medmcqa-val-select, source: medmcqa-eval, skip: 1000, n: 400}
       - {name: pubmedqa-labeled-select, source: pubmedqa-labeled, skip: 500, n: 200}
+  finance-select:                     # MMLU-Pro business and economics are used whole by `finance`: none left to select on
+    specialist: finance
+    tasks:
+      - {name: finqa-test-select, source: finqa-test, skip: 600, n: 300}
+      - {name: tatqa-test-select, source: tatqa-test, skip: 600, n: 300}
