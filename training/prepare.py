@@ -274,9 +274,15 @@ def main() -> int:
     max_len = cfg["train"].get("max_seq_length")
     n_tokens = load_token_counter(cfg["base_model"]) if max_len else None
 
-    def too_long(chat: dict) -> bool:
-        if n_tokens and n_tokens(chat) > max_len:
+    def keep(chat: dict | None) -> bool:
+        """The filters every training chat passes, counting each drop once under its reason."""
+        if chat is None or not passes_quality(chat):
+            manifest["dropped"]["format_or_quality"] += 1
+        elif n_tokens and n_tokens(chat) > max_len:
             manifest["dropped"]["too_long"] += 1
+        elif index.contaminated(text_of(chat)):
+            manifest["dropped"]["contaminated"] += 1
+        else:
             return True
         return False
 
@@ -289,16 +295,9 @@ def main() -> int:
                 manifest["sources"][entry["source"]]["built"] = built
             kept = 0
             for chat in candidates:
-                if chat is None or not passes_quality(chat):
-                    manifest["dropped"]["format_or_quality"] += 1
-                    continue
-                if too_long(chat):
-                    continue
-                if index.contaminated(text_of(chat)):
-                    manifest["dropped"]["contaminated"] += 1
-                    continue
-                chats.append(chat)
-                kept += 1
+                if keep(chat):
+                    chats.append(chat)
+                    kept += 1
             manifest["sources"][entry["source"]]["kept"] = kept
         return chats
 
@@ -306,7 +305,7 @@ def main() -> int:
     for path, chats in distilled.items():
         kept = 0
         for chat in chats:
-            if passes_quality(chat) and not too_long(chat) and not index.contaminated(text_of(chat)):
+            if keep(chat):
                 domain.append(chat)
                 kept += 1
         manifest["sources"][f"distilled:{Path(path).name}"]["kept"] = kept
@@ -319,11 +318,7 @@ def main() -> int:
                 continue
             chat["messages"] = [{"role": "system", "content": system},
                                 *(m for m in chat["messages"] if m["role"] != "system")]
-            dropped = ("format_or_quality" if not passes_quality(chat) else "too_long" if too_long(chat)
-                       else "contaminated" if index.contaminated(text_of(chat)) else None)
-            if dropped:
-                manifest["dropped"][dropped] += 1
-            else:
+            if keep(chat):
                 domain.append(chat)
                 kept += 1
         manifest["sources"][f"corrections:{Path(path).name}"] = {
@@ -334,13 +329,7 @@ def main() -> int:
     if args.self_replay:  # the same filters as any chat; these prompts are decontaminated here, not when the file was made
         replay, per_source = [], dict.fromkeys(prompt_sources, 0)
         for source, chat in self_rows:
-            if not passes_quality(chat):
-                manifest["dropped"]["format_or_quality"] += 1
-            elif too_long(chat):  # counts itself
-                pass
-            elif index.contaminated(text_of(chat)):
-                manifest["dropped"]["contaminated"] += 1
-            else:
+            if keep(chat):
                 replay.append(chat)
                 per_source[source] += 1
         for source, kept in per_source.items():

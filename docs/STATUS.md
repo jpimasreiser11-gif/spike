@@ -203,6 +203,11 @@ yet measured).
   duplicates; 26,823 training and 547 validation chats (30 % replay). The finance eval adds
   FinQA test (supporting facts given, so not comparable with retriever-based leaderboards) and TAT-QA test, 600
   each, to MMLU-Pro business and economics.
+- Self-generated replay (`training/self_replay.py`, docs/TRAINING.md): the base model's own answers as anti-forgetting
+  data, an option for the medicine retry. 41 tests (a scripted server, plus the server check against a real
+  llama-server with a tiny random-weight model); not run with the real model yet and
+  its effect on forgetting is not measured. The rejected run's human replay (oasst2) had no system prompt while
+  the domain chats had the specialist's; whether that mismatch adds to the forgetting is not measured either.
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.

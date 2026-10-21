@@ -774,11 +774,13 @@ def test_prepare_adds_the_users_approved_corrections_for_its_specialist(tmp_path
 
     corrections = tmp_path / "spike-training.jsonl"
     corrections.write_text("\n".join([example("medicine", "¿Qué dosis de paracetamol es segura para un adulto sano?"),
-                                      example("medicine", LEAKED), example("finance", "¿Qué es el EBITDA?")]) + "\n")
+                                      example("medicine", LEAKED), example("finance", "¿Qué es el EBITDA?"),
+                                      example("medicine", "LONG ¿Cuánto ibuprofeno puede tomar un adulto al día?")]) + "\n")
     out = run_prepare(tmp_path / "data", monkeypatch, ["--corrections", str(corrections)])
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["sources"]["corrections:spike-training.jsonl"]["kept"] == 1  # the leaked one and finance's are out
     assert manifest["counts"]["domain"] == 51 and manifest["dropped"]["contaminated"] == 2
+    assert manifest["dropped"]["too_long"] == 2  # the long correction counts once, beside the long domain chat
     chats = [json.loads(x) for x in [*(out / "train.jsonl").read_text().splitlines(),
                                      *(out / "valid.jsonl").read_text().splitlines()]]
     mine = [c for c in chats if "paracetamol" in c["messages"][1]["content"]]

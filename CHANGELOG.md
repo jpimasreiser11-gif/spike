@@ -65,6 +65,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Forge checks the saved files itself before its checker reads them: Python compiles, reads no undefined name
   and imports (through the `python` tool and its permission), JSON and CSV parse; a failure sends the step back
   with the error. Measured once (run 4): they never fired, Forge 9/10 and the model alone 9/10, so no gain.
+- Self-generated replay against forgetting (`training/self_replay.py`, `prepare.py --self-replay`): the base model's
+  own greedy answers to the replay prompts, under the specialist's system prompt, replace the human-written ones;
+  it refuses a generator whose license is not allowed and a server with a LoRA applied. Built and tested, not yet
+  measured. Every training chat now goes through one filter, so a too-long correction is counted once, not twice.
 - Model cards for pairwise-judged adapters (marketing), with every training source's license and the
   attribution CC-BY and ODC-BY ask for; `llama3.1` is no longer accepted for training data or teachers.
 
