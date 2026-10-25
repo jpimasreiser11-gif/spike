@@ -70,6 +70,17 @@ config. Never report smoke-run numbers as results.
 
 ## 3. What makes a result valid
 
+- Checkpoint sweeps now write `sweep/inputs.json` **before** any export/evaluation: SHA-256 of
+  the base GGUF, selected checkpoints, adapter configuration, recipe, run record, suite definitions,
+  converter, available local evaluation sources and exported GGUFs. A retry checks those bytes before
+  reusing work. New candidates can be added; existing inputs cannot be silently replaced. A changed
+  input/export or an old sweep without this receipt stops with a `sweep provenance` error and retains
+  the evidence. Do not manufacture a receipt for an old result or delete it to bypass the check.
+  Preserve the original experiment; a deliberate new experiment needs its own record and must respect
+  the separation of selection and acceptance data. Hashing is streamed, including the base GGUF.
+  This checks local input identity, not scientific correctness or a signed provenance chain; remote
+  dataset/model repository revisions, runtime dependencies and the outer `fix_forgetting.json` step
+  cache still need separate review. Direct `run_eval.py --resume` does not use this sweep receipt.
 - The eval compares the base model **with the same system prompt** against base + adapter, same items,
   greedy decoding, thinking off, explicit adapter scales (ADR 0004); `pairwise.py` generates greedily too
   (`--temperature` changes it and is recorded in its summary).

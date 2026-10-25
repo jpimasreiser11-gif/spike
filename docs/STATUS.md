@@ -5,6 +5,13 @@ Rule: nothing is listed as done without the evidence next to it. Measured ≠ co
 
 _Last update: 2026-10-18, `main` of the private GitHub repository `spike`._
 
+Review on 2026-10-25: a separate follow-up branch checked this main and fixed checkpoint-sweep cache
+provenance. On macOS: 856 Python tests passed (14 skipped), 49 training/MLX tests passed separately
+(overlap with the main suite), 27 web tests, production build and browser smoke passed. These are
+software checks, not a new model-quality measurement. Medicine remains rejected and Forge has no
+demonstrated gain. See [review and handoff](audits/2026-10-25-project-handoff.md) and
+[exact changes for Claude](CODEX-HANDOFF.md). Historical measurements below retain their original scope.
+
 ## Verified (with evidence)
 
 | Area | Evidence | How to reproduce |
