@@ -10,7 +10,7 @@ _Last update: 2026-10-18, `main` of the private GitHub repository `spike`._
 | Area | Evidence | How to reproduce |
 |---|---|---|
 | Provider layer (OpenAI-compatible, Anthropic, tool emulation, paid-call guard) | 17 tests pass | `pytest tests/test_providers.py` |
-| Router accuracy, held-out test split (never used for tuning) | **measured**: primary 46/50 = 0.92 (Wilson 95 % CI 0.81–0.97); exact set 40/50 = 0.80 (0.67–0.89); dev 22/24 | `pytest -s tests/test_core.py -k router_eval` |
+| Router accuracy, held-out test split (never used for tuning) | **measured**: primary 46/50 = 0.92 (Wilson 95 % CI 0.81–0.97); exact set 40/50 = 0.80 (0.67–0.89); dev 22/24. **A set of 130 questions written blind on 2026-10-26 (10 per specialist, half Spanish; never used for tuning) gives primary 60/130 = 0.46 (0.38–0.55), exact 48/130 = 0.37: the original split was written alongside the keywords and overstated it; requests with no keyword fall back to Core. Being fixed (M9)** | `pytest -s tests/test_core.py -k router_eval` |
 | Planner validation, DAG execution, synthesis, agent loop, permissions, context trimming | unit tests pass | `pytest tests/test_core.py` |
 | HTTP API, persistence, SSE chat | tests pass | `pytest tests/test_server.py` |
 | Real llama-server: lifecycle, streaming, adapter isolation in every switch order vs fresh-server ground truth | tests pass against llama.cpp 62318cd (tiny random model) | `SPIKE_LLAMA_SERVER=… pytest tests/test_llamacpp_integration.py` |

@@ -59,7 +59,7 @@ claimed until measured.
 
 ## 9. Multi-model orchestration
 - **Decision**: lexical router → JSON-schema planner only when needed → DAG → synthesis. [ADR 0003](adr/0003-orchestration.md).
-- **Acceptance**: router test split ≥ 0.85 primary (met: 0.92); orchestrated answers beat single-model answers on a multi-domain set (pairwise) — pending real weights.
+- **Acceptance**: router test split ≥ 0.85 primary (met on the original split: 0.92; a set written blind later gives 0.46, being fixed in M9); orchestrated answers beat single-model answers on a multi-domain set (pairwise) — pending real weights.
 - **Status**: ✅ router measured; 🟡 end-to-end quality.
 
 ## 10. External providers

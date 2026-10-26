@@ -21,7 +21,8 @@ Local first, open source (Apache-2.0), and able to use external API models with 
   small LoRA adapter (~42 MB, computed). Switching specialist costs no reload.
 - **An orchestrator, not a chain of calls.** A zero-cost lexical router handles clear requests; only
   multi-domain or ambiguous ones get an LLM plan (JSON, schema-validated), executed as a dependency graph
-  and merged by Core. Router accuracy on a held-out set: 0.92 (46/50), measured.
+  and merged by Core. Router accuracy: 0.92 (46/50) on the original test split, but only 0.46 (60/130) on a set written blind
+  later (2026-10-26), because the first questions were written with the keywords; being improved, measured.
 - **Your models, or theirs.** The same instructions, specialist bindings and tools work with llama.cpp,
   Ollama, LM Studio, OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Groq, Mistral, Together or any
   OpenAI-compatible server. Paid providers stay blocked until you allow them; keys live in your OS keychain.

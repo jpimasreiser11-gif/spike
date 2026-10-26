@@ -13,7 +13,7 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   request with explicit scales; external providers (OpenAI-compatible, Anthropic, Gemini, DeepSeek, Ollama,
   LM Studio and others) with the same instructions and tools. Paid providers stay blocked until allowed; keys in
   the OS keychain.
-- Orchestrator: lexical router (0.92 on a held-out set, measured), LLM plan only for multi-domain requests,
+- Orchestrator: lexical router (0.92 on its original test split; 0.46 on a set written blind later, see STATUS), LLM plan only for multi-domain requests,
   dependency graph merged by Core.
 - `spike tune` measures threads and KV cache on the user's machine; `spike bench` records hardware and build.
 - Measured speed: 16 GB x86 4-core CPU-only 6.2 tok/s at 1K context, 5.1 at 8K; Apple M4 Max 82 tok/s; 3.6 GiB
