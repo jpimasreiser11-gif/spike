@@ -32,6 +32,19 @@
     "chat": {
       "type": "object"
     },
+    "verification": {
+      "type": "object",
+      "description": "Always not_independently_verified: integrity since export, not proof that the work is correct.",
+      "properties": {
+        "status": {
+          "const": "not_independently_verified"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
     "machine": {
       "type": "object"
     },
