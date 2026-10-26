@@ -1,4 +1,4 @@
-import type { ChatEvent, ForgeReport, RunState, StoredMessage, VerifyState } from "./types";
+import type { ChatEvent, ForgeReport, RunState, StoredMessage, TrustState, VerifyState } from "./types";
 
 export const emptyRun = (): RunState => ({
   status: "idle",
@@ -122,6 +122,10 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
       return { ...state, privacy: { ...state.privacy, [ev.provider]: Math.max(state.privacy?.[ev.provider] ?? 0, ev.withheld) } };
     case "context_trimmed":
       return { ...state, trimmed: ev.dropped };
+    case "trust": {
+      const { type: _type, ...trust } = ev;
+      return { ...state, trust: trust as TrustState };
+    }
     case "error":
       return { ...state, status: "error", error: ev.message };
     case "done":
@@ -157,6 +161,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.contract) run.contract = meta.contract;
   if (meta.verify?.length) run.verify = meta.verify;
   if (meta.forge?.report) run.forge = { report: meta.forge.report };
+  if (meta.trust) run.trust = meta.trust;
   if (meta.questions?.length) {
     run.questions = meta.questions.map((q: any) => ({ ...q, options: q.options ?? [], status: q.answer == null ? "unanswered" : "answered" }));
   }

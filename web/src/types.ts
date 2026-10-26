@@ -184,6 +184,43 @@ export type QuestionState = {
   status: "pending" | "answered" | "unanswered";
 };
 
+export type TrustLabel = "verified" | "hypothesis" | "unchecked";
+
+/** A citation in a claim, checked against the sources of the run (spike/trust/citations.py). */
+export type CitationState = {
+  ref: string; how: "marked" | "cue" | "quote"; status: "ok" | "no_source" | "no_fragment" | "unsupported"; ok: boolean;
+  source?: string; label?: string; quote?: string; found?: number; score?: number; missing?: string[]; fragment?: string;
+};
+
+/** One claim of the answer and the label SPIKE's rules gave it; `why` names the rule. */
+export type ClaimState = {
+  id: string; text: string; label: TrustLabel; why: string; downgraded?: boolean;
+  basis?: { kind: string; label: string; score: number | null }[]; citations?: CitationState[];
+};
+
+/** A provider a second opinion can be asked of, with what it would send and cost (nothing is sent before the click). */
+export type EscalationOffer = {
+  provider_id: string; name: string; model: string; paid: boolean; blocked: string | null; files: "none" | "sent" | "withheld";
+  tokens_in: number; tokens_out: number; cost: number | null;
+};
+
+export type SecondOpinion = {
+  provider_id: string; name: string; model: string; text: string; tokens_in: number; tokens_out: number; estimated: boolean;
+  cost: number | null; files_withheld: number; time: number;
+};
+
+export type Escalation = {
+  reasons: ("unchecked" | "verifier")[]; unchecked: number; threshold: number; offers: EscalationOffer[];
+  status: "offered" | "answered"; error?: string; answer?: SecondOpinion;
+};
+
+/** The "trust" event: the answer's claims, labelled, and a second opinion on offer when it is low-confidence. */
+export type TrustState = {
+  claims: ClaimState[]; counts: Record<TrustLabel, number>; sources: { id: string; kind: string; label: string }[];
+  skipped?: number; model_pass?: { ran: boolean; lowered?: number; error?: string }; verifier_failed: boolean;
+  private: boolean; escalation?: Escalation;
+};
+
 export type RunState = {
   status: "idle" | "planning" | "running" | "verifying" | "synthesizing" | "done" | "error" | "stopped";
   route?: { mode: string; method: string; confidence: number; specialists: RouteSpecialist[] };
@@ -207,6 +244,7 @@ export type RunState = {
   contract?: { valid: boolean; attempts: number; errors: string[] }; // the answer had to be JSON for a schema
   verify?: VerifyState[];
   forge?: { report?: ForgeReport };
+  trust?: TrustState;
 };
 
 /** What the user's message taught SPIKE: notes saved at once ("recuerda que…"), or a rule proposed from a correction. */
@@ -246,6 +284,7 @@ export type Settings = {
   disabled_skills: string[];
   memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean; learn?: boolean };
   evolution?: { enabled: boolean; auto_router: boolean; training_data?: boolean };
+  trust: { enabled: boolean; escalate: boolean; escalate_unchecked: number; model_pass: boolean };
   finance?: { exchange: string; live: LiveSettings };
 };
 

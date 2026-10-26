@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, streamPost } from "../api";
-import { lang } from "../i18n";
+import { lang, t } from "../i18n";
 import { reasonText } from "../isolation";
 import type { Limits, Preset, ProviderInfo, SandboxStatus, Settings, Specialist, ToolInfo } from "../types";
 import { Connectors } from "./Connectors";
@@ -157,6 +157,31 @@ function General({ settings, save }: { settings: Settings; save: (p: Partial<Set
           </select>
         </label>
       </div>
+      <TrustSettings settings={settings} save={save} />
+    </div>
+  );
+}
+
+/** Trustworthy answers: claim labels, and when a low-confidence answer offers a second opinion (never sent unasked). */
+function TrustSettings({ settings, save }: { settings: Settings; save: (p: Partial<Settings>) => void }) {
+  const s = t.trust.settings;
+  const trust = settings.trust;
+  const set = (patch: Partial<Settings["trust"]>) => save({ trust: { ...trust, ...patch } });
+  return (
+    <div className="card trust-settings">
+      <b>{s.title}</b>
+      <label className="check"><input type="checkbox" checked={trust.enabled} onChange={(e) => set({ enabled: e.target.checked })} />{s.enabled}</label>
+      <label className="check"><input type="checkbox" checked={trust.escalate} disabled={!trust.enabled} onChange={(e) => set({ escalate: e.target.checked })} />{s.escalate}</label>
+      <label className="field"><span>{s.threshold}</span>
+        <input type="number" min="1" max="50" step="1" disabled={!trust.enabled || !trust.escalate} defaultValue={trust.escalate_unchecked}
+          key={trust.escalate_unchecked} aria-label={s.threshold}
+          onBlur={(e) => {
+            const n = Math.round(Number(e.target.value));
+            if (Number.isFinite(n) && n >= 1 && n <= 50) { if (n !== trust.escalate_unchecked) set({ escalate_unchecked: n }); } else e.target.value = String(trust.escalate_unchecked);
+          }} />
+      </label>
+      <label className="check"><input type="checkbox" checked={trust.model_pass} disabled={!trust.enabled} onChange={(e) => set({ model_pass: e.target.checked })} />{s.modelPass}</label>
+      <small className="muted">{s.hint}</small>
     </div>
   );
 }

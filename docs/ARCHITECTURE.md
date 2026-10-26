@@ -240,6 +240,69 @@ tools, and passthrough for `<provider>/<model>`.
 orchestrator, `spike_<id>` one specialist. One JSON-RPC handler serves stdio (`spike mcp`) and `POST /mcp`; runs
 use the headless broker and no memory, like `/v1`.
 
+## Trustworthy answers
+
+`spike/trust/` looks at an answer after it is written. No model decides that something is verified: the labels come
+from the fixed rules below, and the optional model pass can only lower one. Everything is lexical (words, numbers,
+names, quoted fragments), so it can show that an answer's words are or are not in a source of the run; it cannot show
+that a source is true or that the answer understood it.
+
+- **Evidence** (`evidence.py`). The sources of a run, collected from its own events (nothing is fetched again): what
+  the user wrote (and answered to `ask_user`), the notes and file passages memory recalled (each with its `mem:` id and
+  chunk), every successful tool result (the whole text: with `OrchestratorOptions.trust` the agent loop adds `full` to a
+  `tool_result` cut at 4000 characters, and the collector removes it, so it never reaches the client), what `python`,
+  `data_python` and `run_command` printed, files read, pages fetched, and files the model itself wrote (a source only for
+  a claim that names that file). A failed tool is no evidence.
+- **Claims** (`claims.py`). The answer is cut into sentences, list items and table rows. Code blocks, headings,
+  questions, lines ending in ":" and greetings or offers ("aquí tienes", "let me know") are not claims.
+- **Rules**, in order, for each claim: (1) a citation in it fails -> `unchecked`; (2) it has citations and all pass ->
+  `verified`; (3) no citation, but a source backs it -> `verified` (a tool result, printed output, a page, a file or a
+  recalled note that has every number and name of the claim and at least half its content words, or at least 0.8 of
+  them when the claim has no number or name to check; the user's own words restated; a tool's own arguments count for
+  words and numbers, but at least one number or name of the claim must be in the result itself, and an acronym such as
+  "IVA" need not be, since a result may not repeat it); (4) it hedges ("probablemente", "might"), infers ("por tanto"), advises
+  ("te recomiendo", "you should"), is conditional ("Si…", "If…") or is too generic to check (no number, no name, fewer
+  than 6 content words) -> `hypothesis`; (5) anything else is a fact nothing backs -> `unchecked`.
+- **Citation grammar.** The memory notes ask the model to cite as `[source: <file name or mem:id>]` and to quote
+  its words exactly. The inspector (`citations.py`) accepts three forms: a mark (`[fuente|source|mem|file|url: ref]`),
+  a cue and a quote (`Según notas.md, «…»`, `according to notes.md, "…"`), and a quote of 4 or more words found in a
+  source of the run (not one the model wrote itself), even with no attribution. Naming a file without a cue is not a citation, and a quote found in no
+  source is not judged (it may be someone else's). A reference resolves by exact name, the end of a path, the start of a
+  memory id, or "memoria"/"notes" for any recalled note.
+- **Does the fragment exist?** Both texts are folded (case, accents, quote and dash styles, whitespace). The fragment
+  must be found word for word, or by similarity of at least 0.85 (`FRAGMENT_MIN`, difflib ratio over words), with `...`
+  allowed to skip text in order. A near match whose numbers or names differ from the source is rejected.
+- **Does it support the claim?** The claim is compared with the passage around the fragment (60 words; a source of up to
+  150 words is read whole): the share of the claim's content words (plurals stemmed) in the passage must reach 0.5
+  (`SUPPORT_MIN`), **and every number and named entity of the claim must be in the passage**. Numbers are compared by
+  value (`1.200`, `1,200` and `1200` are one number; `1.200` can also be 1.2). So a number changed from the source scores
+  0 and fails; the check reports which one is missing. A citation that fails makes its claim `unchecked`, whatever else
+  backs it. Statuses: `ok`, `no_source` (not among the run's sources), `no_fragment`, `unsupported`.
+- **Where it shows.** The `trust` event (before `done`) carries the claims with label, rule (`why`), what backs each
+  and its citation checks, the counts, and `verifier_failed`; the server stores it in `meta.trust` (not in `events`).
+  The app shows the summary chip ("3 verificadas · 1 hipótesis · 2 sin comprobar") under the answer and, behind "ver
+  comprobación" / "show checks", a badge per claim with the rule and each citation's result. With the setting
+  `trust.model_pass` on, one more call to the core model may lower labels it finds too generous (`parse_downgrades`
+  keeps only changes that lower; an unusable answer changes nothing).
+- **Hybrid escalation.** A run is low-confidence when it has at least `trust.escalate_unchecked` unchecked claims
+  (default 3, 1 to 50) or its checker failed or sent back work that stayed wrong (`escalate.py`). Then, and only if
+  `trust.escalate` is on and an external provider with an API key exists that the run did not already use, the trust event carries an
+  `escalation` offer: for each such provider, tokens in (of what would really be sent) and out (at most `max_tokens`),
+  the cost at the provider's own `price_in` / `price_out` (null when it has none), whether the guard would block it, and
+  what happens to the user's files. **Nothing is sent when the offer is made.** The button "Preguntar a <provider>" calls
+  `POST /api/messages/{user message id}/escalate`, which sends the question, the answer and the unchecked claims (never
+  the conversation, memory or tool results) through the provider's `GuardedProvider`: the paid-call permission and the
+  monthly limits apply (403 with the guard's text), and when the answer quotes the user's files (`private`) they are
+  replaced by a notice unless that provider has `share_files` (the call is logged with `files_withheld`). The reply is
+  stored with the message (`meta.trust.escalation.answer`, with tokens and cost); a second click is refused (409), and a
+  failed call (502) can be asked again.
+- **Settings** (`trust`): `enabled` (default on), `escalate` (on), `escalate_unchecked` (3), `model_pass` (off).
+- **Not measured.** The thresholds are fixed engineering choices, not tuned on data. How often models follow the citation
+  format, how often the lexical check disagrees with a human reader, and the real cost of the extra model pass have not
+  been measured with real weights. Known limits: a paraphrase of a source is `unchecked` unless it keeps the source's
+  numbers and names; numbers in different formats ("1 200" with a plain space, spelled-out numbers, dates in other
+  orders) may fail support; only the first 60 claims are labelled; and a source can be wrong.
+
 ## Training and evaluation (offline, on the developer Mac)
 
 `training/` builds data, trains mlx-lm LoRA adapters and exports them to GGUF; `evals/` measures base vs.

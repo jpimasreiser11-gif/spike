@@ -678,6 +678,42 @@ await page.screenshot({ path: `${out}/07x-python-isolation.png` });
 await pyCard.getByRole("button", { name: "Permitir una vez" }).click();
 await page.getByText("Resultado de python: 42", { exact: false }).waitFor({ timeout: 15000 });
 
+// Trustworthy answers: the summary chip under the answer, a badge per claim behind "ver comprobación", a fabricated
+// citation caught, and a second opinion that is offered but sent only after the click (DeepSeek, added above, is
+// served by the scripted provider here; the call log shows when it was really called)
+const remoteCalls = async () => (await (await fetch(`${base}/api/calls?remote=true`)).json()).filter((c) => c.provider_id === "deepseek").length;
+const callsBefore = await remoteCalls();
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Haz una comprobación de fuentes con contrato.md");
+await page.keyboard.press("Enter");
+const trustBox = page.locator(".msg.assistant").last().locator("[data-trust]");
+await trustBox.locator("[data-trust-summary]").waitFor({ timeout: 15000 });
+const trustSummary = ((await trustBox.locator("[data-trust-summary]").textContent()) ?? "").trim();
+if (trustSummary !== "1 verificada · 3 sin comprobar") fail("the summary chip says: " + trustSummary);
+if (await trustBox.locator("[data-claim-label]").count()) fail("the claims should be hidden until 'ver comprobación' is pressed");
+await trustBox.getByRole("button", { name: "ver comprobación" }).click();
+const badges = await trustBox.locator("[data-claim-label]").evaluateAll((els) => els.map((e) => e.getAttribute("data-claim-label")));
+if (badges.join(",") !== "verified,unchecked,unchecked,unchecked") fail("the claim badges are " + badges.join(","));
+const failedCitation = trustBox.locator('[data-citation="unsupported"]');
+await failedCitation.waitFor({ timeout: 5000 });
+if (!(await failedCitation.textContent())?.includes("falta en la fuente: 90")) fail("the changed number is not shown: " + (await failedCitation.textContent()));
+await trustBox.locator('[data-claim-label="verified"] .claim-badge').getByText("verificada").waitFor();
+const offer = trustBox.locator('[data-offer="deepseek"]');
+await offer.getByRole("button", { name: "Preguntar a DeepSeek" }).waitFor({ timeout: 5000 });
+if (!(await offer.textContent())?.includes("no se enviará")) fail("the offer does not say the user's files stay out: " + (await offer.textContent()));
+if ((await remoteCalls()) !== callsBefore) fail("a provider was called before the user pressed the button");
+await page.screenshot({ path: `${out}/07y-trust.png` });
+await offer.getByRole("button", { name: "Preguntar a DeepSeek" }).click();
+await trustBox.locator("[data-second-opinion]").getByText("Soy SPIKE", { exact: false }).waitFor({ timeout: 10000 });
+if ((await remoteCalls()) !== callsBefore + 1) fail(`pressing the button should make exactly one call, got ${(await remoteCalls()) - callsBefore}`);
+await trustBox.locator("[data-second-opinion]").getByText("Segunda opinión de DeepSeek", { exact: false }).waitFor();
+await page.reload();
+await page.locator(".conv-title", { hasText: "comprobación de fuentes" }).first().click();
+const storedBox = page.locator(".msg.assistant").last().locator("[data-trust]");
+await storedBox.locator("[data-trust-summary]").getByText("1 verificada · 3 sin comprobar").waitFor({ timeout: 10000 });
+await storedBox.locator("[data-second-opinion]").waitFor({ timeout: 5000 }); // the second opinion is kept with the answer
+if (await storedBox.locator("[data-offer]").count()) fail("an answered offer must not offer to ask again");
+
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
 const dp = await dark.newPage();
@@ -688,6 +724,13 @@ await dp.locator(".conv-title", { hasText: "Calcula el IVA de 120" }).click(); /
 await dp.locator(".forge-report").getByText("2/2 criteria met").waitFor({ timeout: 5000 });
 if ((await dp.locator(".trace .role-verify").count()) < 2) fail("stored Forge answer lost its checker passes");
 await dp.screenshot({ path: `${out}/08b-forge-dark-en.png` });
+await dp.locator(".conv-title", { hasText: "comprobación de fuentes" }).first().click(); // a stored trust report, in English
+const enTrust = dp.locator(".msg.assistant").last().locator("[data-trust]");
+await enTrust.locator("[data-trust-summary]").getByText("1 verified · 3 unchecked").waitFor({ timeout: 5000 });
+await enTrust.getByRole("button", { name: "show checks" }).click();
+await enTrust.locator('[data-claim-label="unchecked"] .claim-badge').first().getByText("unchecked").waitFor({ timeout: 5000 });
+await enTrust.getByText("Second opinion from DeepSeek", { exact: false }).waitFor({ timeout: 5000 });
+await dp.screenshot({ path: `${out}/08c-trust-dark-en.png` });
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-ES", isMobile: true, hasTouch: true });
 const mp = await mobile.newPage();
 await mp.goto(base);

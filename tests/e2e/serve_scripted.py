@@ -60,6 +60,12 @@ body{background:var(--bg,#fff);color:var(--fg,#111);font-family:var(--font-body,
 <rect x="20" y="80" width="210" height="40"/><text x="296" y="46">90</text><text x="236" y="106">70</text></svg>
 </body></html>"""
 SENT_BACK: set[str] = set()  # Forge tasks whose first check already sent work back
+CONTRACT = "# Contrato\n\nEl cliente Norte paga a 60 días.\nLos demás clientes pagan a 30 días.\n"
+# After read_file on CONTRACT: a quote that is in it, a citation with a changed number, and two claims nothing backs.
+TRUST_ANSWER = ("Según contrato.md, «el cliente Norte paga a 60 días».\n\n"
+                "El cliente Norte paga a 90 días [fuente: contrato.md].\n\n"
+                "La empresa tiene 40 empleados en Madrid.\n\n"
+                "El contrato se firmó en 2019 con un depósito de 5.000 €.")
 
 
 def checker_answer(request) -> str:
@@ -140,6 +146,11 @@ class DemoProvider(Provider):
                               arguments={"code": "print(6 * 7)"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "comprobación de fuentes" in last.content.lower() and "read_file" in tools:  # Trust
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c15", name="read_file",
+                                                                   arguments={"path": "contrato.md"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "archivo" in last.content.lower() and request.tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c1", name="write_file",
                               arguments={"path": "notas.md", "content": "# Notas\n"}))
@@ -183,6 +194,8 @@ class DemoProvider(Provider):
             return
         if last.role == "tool" and last.name == "ask_user":
             answer = f"Entendido ({last.content}). Para España, el IVA general es del **21 %**."
+        elif last.role == "tool" and last.name == "read_file":
+            answer = TRUST_ANSWER
         elif last.role == "user" and "landing" in last.content.lower() and "# Design system:" in system:
             tokens = system.split("```css\n", 1)[1].split("\n```", 1)[0]  # pasted as the design system asks
             answer = ("Tu landing con el sistema de diseño:\n\n```html\n<title>Landing</title>\n<style>" + tokens +
@@ -341,6 +354,7 @@ def main() -> None:
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
     (home / "ws").mkdir(parents=True, exist_ok=True)
+    (home / "ws" / "contrato.md").write_text(CONTRACT, encoding="utf-8")
     (home / "ws" / "ventas.csv").write_text("fecha,region,producto,unidades,precio\n2024-01-15,norte,A,10,2.50\n"
                                             "2024-01-20,sur,B,4,10.00\n2024-02-03,norte,B,6,10.00\n"
                                             "2024-02-10,sur,A,8,2.50\n2024-02-28,norte,A,2,2.50\n"

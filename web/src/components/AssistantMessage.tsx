@@ -12,6 +12,7 @@ import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
 import { SpecMark } from "./SpecMark";
+import { TrustBar } from "./Trust";
 
 function Collapsible({ title, children, defaultOpen = false, live = false }: {
   title: React.ReactNode;
@@ -443,6 +444,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
           <span className="muted">{run.status === "planning" ? t.planning : run.status === "verifying" ? t.verifying : run.status === "synthesizing" ? t.synthesizing : t.thinking}</span>
         </div>
       ) : null}
+
+      {run.trust && !live && <TrustBar trust={run.trust} messageId={messageId} replay={replay} />}
 
       {run.forge?.report && <ForgeReportCard report={run.forge.report} projectId={projectId} replay={replay} />}
 
