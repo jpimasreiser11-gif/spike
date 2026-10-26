@@ -117,7 +117,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
             ) : tab === "connectors" ? (
               <Connectors />
             ) : tab === "memory" ? (
-              <Memory settings={settings} save={save} />
+              <Memory settings={settings} save={save} onClose={onClose} />
             ) : tab === "evolution" ? (
               <Evolution settings={settings} save={save} />
             ) : tab === "privacy" ? (

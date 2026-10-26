@@ -367,8 +367,9 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
           {run.memory && (
             <span className="chip memory-chip" tabIndex={0} title={[
               ...(run.memory.rules ? [`${run.memory.rules} × ${M.kinds.rule}`] : []),
-              ...run.memory.notes.map((n) => `${M.kinds[n.kind] ?? n.kind}: ${n.preview}`),
-            ].join("\n")}>◆ {t.memoryUsed} · {run.memory.rules + run.memory.notes.length}</span>
+              ...run.memory.notes.map((n) => `${M.kinds[n.kind] ?? n.kind}${n.source.startsWith("file:") ? ` ${n.source.slice(5)}` : ""}: ${n.preview}`),
+              ...(run.memory.glossary?.length ? [`${M.glossary}: ${run.memory.glossary.join(", ")}`] : []),
+            ].join("\n")}>◆ {t.memoryUsed} · {run.memory.rules + run.memory.notes.length + (run.memory.glossary?.length ?? 0)}</span>
           )}
           {run.privacy && Object.keys(run.privacy).length > 0 && (
             <span className="chip privacy-chip" tabIndex={0} title={`${t.withheldTitle} ${Object.keys(run.privacy).join(", ")}`}>

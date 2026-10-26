@@ -104,7 +104,7 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
       return names.length ? { ...state, skills: [...(state.skills ?? []), ...names] } : state;
     }
     case "memory":
-      return { ...state, memory: { rules: ev.rules, semantic: ev.semantic, notes: ev.notes } };
+      return { ...state, memory: { rules: ev.rules, semantic: ev.semantic, notes: ev.notes, glossary: ev.glossary } };
     case "contract":
       return { ...state, contract: { valid: ev.valid, attempts: ev.attempts, errors: ev.errors ?? [] } };
     case "question":
@@ -148,7 +148,9 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.plan) run.plan = meta.plan;
   if (meta.skills?.length) run.skills = meta.skills;
   if (meta.design) run.design = meta.design;
-  if (meta.memory) run.memory = { rules: meta.memory.rules, semantic: meta.memory.semantic, notes: meta.memory.notes };
+  if (meta.memory) {
+    run.memory = { rules: meta.memory.rules, semantic: meta.memory.semantic, notes: meta.memory.notes, glossary: meta.memory.glossary };
+  }
   if (meta.privacy) run.privacy = meta.privacy;
   if (meta.events?.length) run.events = meta.events;
   if (meta.learn) run.learn = meta.learn;

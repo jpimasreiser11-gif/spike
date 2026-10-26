@@ -127,6 +127,11 @@ describe("memory", () => {
     expect(applyEvent(emptyRun(), ev).memory?.notes[0].preview).toBe("paga a 60 días");
     const stored = runFromStored({ role: "assistant", content: "ok", meta: { memory: ev } } as any);
     expect(stored.memory?.rules).toBe(1);
+    // the glossary terms applied in an answer survive both the live event and the stored one
+    const withTerms = { ...ev, notes: [], glossary: ["invoice", "refund"] };
+    expect(applyEvent(emptyRun(), withTerms).memory?.glossary).toEqual(["invoice", "refund"]);
+    expect(runFromStored({ role: "assistant", content: "ok", meta: { memory: withTerms } } as any).memory?.glossary).toEqual(["invoice", "refund"]);
+    expect(applyEvent(emptyRun(), ev).memory?.glossary).toBeUndefined();
   });
 });
 

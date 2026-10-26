@@ -536,3 +536,23 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .video-card { margin: 8px 0; display: grid; gap: 6px; }
 .video-card video, .video-card img { width: 100%; height: auto; max-height: 70vh; border-radius: 10px; border: 1px solid var(--border); background: #000; object-fit: contain; }
 .video-card figcaption { overflow-wrap: anywhere; }
+
+/* Settings › Memory: sub-sections, indexed folders, glossary, study topics, graph */
+.memory-sub { align-self: flex-start; max-width: 100%; overflow-x: auto; }
+.memory-sub button { white-space: nowrap; }
+.field.narrow { flex: 0 1 120px; min-width: 90px; }
+.folder-path { overflow-wrap: anywhere; font-size: 13px; }
+.folder-job { display: grid; gap: 4px; }
+.folder-job progress { width: 160px; max-width: 100%; height: 8px; accent-color: var(--ground, #3a8f6b); }
+.folder-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-files ul { margin: 6px 0 0; padding-left: 18px; max-height: 14em; overflow: auto; }
+.glossary-translation { overflow-wrap: anywhere; }
+.mastery { display: inline-flex; gap: 3px; }
+.mastery i { width: 14px; height: 6px; border-radius: 3px; background: var(--border-strong); }
+.mastery i.on { background: var(--ground, #3a8f6b); }
+.tutor-due { color: var(--warn); }
+.tutor-topic.due { border-color: var(--warn); }
+.graph-img { width: 100%; max-width: 960px; height: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.graph-nodes ul { margin: 4px 0 0; padding-left: 18px; max-height: 16em; overflow: auto; display: grid; gap: 3px; }
+.graph-nodes li.focus > .link-btn { font-weight: 700; }
+.graph-found { gap: 6px; }

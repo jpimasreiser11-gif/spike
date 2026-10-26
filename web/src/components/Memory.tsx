@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
 import type { MemoryItem, MemoryStatus, Project, Settings } from "../types";
+import { Glossary } from "./Glossary";
 import { IconTrash, IconUpload } from "./Icons";
+import { MemoryFolders } from "./MemoryFolders";
+import { MemoryGraph } from "./MemoryGraph";
+import { Tutor } from "./Tutor";
 
 export const M = lang === "es"
   ? {
@@ -17,6 +21,7 @@ export const M = lang === "es"
       edit: "Editar", save: "Guardar", cancel: "Cancelar", remove: "Eliminar", exportAll: "Exportar (.json)", importFile: "Importar",
       clear: "Borrar toda la memoria", confirmClear: "Sí, borrarla", imported: "Importados", empty: "Todavía no hay recuerdos.",
       byWords: "palabras", byMeaning: "significado",
+      glossary: "Glosario", sub: { notes: "Recuerdos", folders: "Carpetas", glossary: "Glosario", tutor: "Tutor", graph: "Grafo" },
     }
   : {
       intro: "SPIKE remembers what matters from your chats and your project files, and uses it when relevant. Everything stays on your computer; see, correct, export and delete it here.",
@@ -30,11 +35,34 @@ export const M = lang === "es"
       edit: "Edit", save: "Save", cancel: "Cancel", remove: "Delete", exportAll: "Export (.json)", importFile: "Import",
       clear: "Delete all memory", confirmClear: "Yes, delete it", imported: "Imported", empty: "No memories yet.",
       byWords: "words", byMeaning: "meaning",
+      glossary: "Glossary", sub: { notes: "Memories", folders: "Folders", glossary: "Glossary", tutor: "Tutor", graph: "Graph" },
     };
 
 const ADDABLE = ["fact", "decision", "preference", "rule"] as const;
 
-export function Memory({ settings, save }: { settings: Settings; save: (p: Partial<Settings>) => void }) {
+const SUBS = ["notes", "folders", "glossary", "tutor", "graph"] as const;
+type Sub = (typeof SUBS)[number];
+
+/** Settings › Memory: the notes SPIKE keeps, plus the folders it indexes, the glossary, study progress and the graph. */
+export function Memory({ settings, save, onClose }: { settings: Settings; save: (p: Partial<Settings>) => void; onClose: () => void }) {
+  const [sub, setSub] = useState<Sub>("notes");
+  return (
+    <div className="form">
+      <div className="seg memory-sub" role="tablist" aria-label="Memory">
+        {SUBS.map((k) => (
+          <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? "on" : ""} data-sub={k} onClick={() => setSub(k)}>{M.sub[k]}</button>
+        ))}
+      </div>
+      {sub === "notes" ? <Notes settings={settings} save={save} />
+        : sub === "folders" ? <MemoryFolders />
+        : sub === "glossary" ? <Glossary />
+        : sub === "tutor" ? <Tutor />
+        : <MemoryGraph onClose={onClose} />}
+    </div>
+  );
+}
+
+function Notes({ settings, save }: { settings: Settings; save: (p: Partial<Settings>) => void }) {
   const [status, setStatus] = useState<MemoryStatus | null>(null);
   const [items, setItems] = useState<MemoryItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);

@@ -2,6 +2,8 @@
 // Usage: node e2e/smoke.mjs [baseUrl] [screenshotDir]
 import { chromium } from "playwright-core";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const base = process.argv[2] || "http://127.0.0.1:8741";
 const out = process.argv[3] || "e2e/screenshots";
@@ -217,6 +219,94 @@ await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("¿A cuántos días paga el cliente Norte?");
 await page.keyboard.press("Enter");
 await page.locator(".memory-chip", { hasText: "Memoria · 1" }).waitFor({ timeout: 10000 });
+
+// memory folders: a folder added in Settings is indexed in the background and cited by a chat; what is hidden or
+// outside it is never read; forgetting the folder removes its files from memory
+const notesDir = fs.mkdtempSync(path.join(os.tmpdir(), "spike-folder-"));
+const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), "spike-outside-"));
+fs.writeFileSync(path.join(notesDir, "acuerdo.md"), "# Acuerdo\nEl proveedor Zafiro entrega los pedidos en 12 días laborables.\n");
+fs.mkdirSync(path.join(notesDir, ".privado"));
+fs.writeFileSync(path.join(notesDir, ".privado", "secreto.txt"), "clave quimeraoculta");
+fs.writeFileSync(path.join(outsideDir, "ajeno.txt"), "documento quimeraajena");
+try { fs.symlinkSync(path.join(outsideDir, "ajeno.txt"), path.join(notesDir, "enlace.txt")); } catch { /* no symlinks here */ }
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Memoria" }).click();
+await page.getByRole("tab", { name: "Carpetas" }).click();
+await page.getByLabel("Ruta absoluta de la carpeta").fill(notesDir);
+await page.getByRole("button", { name: "Añadir carpeta e indexar" }).click();
+await page.locator('[data-testid="folder-job"][data-state="done"]').waitFor({ timeout: 20000 });
+if ((await page.getByTestId("folder-files").innerText()) !== "1") fail("folder indexing should read only acuerdo.md");
+await page.getByRole("button", { name: "Archivos", exact: true }).click();
+await page.locator(".folder-files code", { hasText: "acuerdo.md" }).waitFor();
+if (await page.locator(".folder-files code", { hasText: /secreto|enlace/ }).count()) fail("hidden or linked files were indexed");
+await page.screenshot({ path: `${out}/07g-memory-folders.png` });
+for (const word of ["quimeraoculta", "quimeraajena"]) {
+  const hits = await (await page.request.get(`${base}/api/memory?q=${word}`)).json();
+  if (hits.length) fail(`${word} was found in memory: a hidden file or one outside the folder was read`);
+}
+await page.keyboard.press("Escape");
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("¿Cuándo entrega Zafiro los pedidos?");
+await page.keyboard.press("Enter");
+const folderChip = page.locator(".memory-chip").last();
+await folderChip.waitFor({ timeout: 10000 });
+if (!(await folderChip.getAttribute("title"))?.includes(path.join(notesDir, "acuerdo.md").split(path.sep).join("/"))) fail("the answer should cite the file's path");
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Memoria" }).click();
+await page.getByRole("tab", { name: "Carpetas" }).click();
+await page.getByRole("button", { name: `Olvidar carpeta: ${notesDir}` }).click();
+await page.getByRole("button", { name: "Sí, olvidarla" }).click();
+await page.getByTestId("memory-folder").waitFor({ state: "detached" });
+const afterForget = await (await page.request.get(`${base}/api/memory?q=Zafiro`)).json();
+if (afterForget.length) fail("forgetting a folder should remove its files from memory");
+
+// glossary: a term of the conversation reaches the answer as a rule; tutor: a review moves the next date
+await page.getByRole("tab", { name: "Glosario" }).click();
+await page.getByLabel("Término", { exact: true }).fill("factura");
+await page.getByLabel("Traducción o definición").fill("invoice");
+await page.getByLabel("Idioma").fill("en");
+await page.getByRole("dialog").getByRole("button", { name: "Añadir", exact: true }).click();
+await page.locator('[data-testid="glossary-entry"]', { hasText: "invoice" }).waitFor();
+await page.screenshot({ path: `${out}/07h-glossary.png` });
+await page.getByRole("tab", { name: "Tutor" }).click();
+await page.getByLabel("Tema que estudias").fill("Álgebra lineal");
+await page.getByRole("button", { name: "Añadir tema" }).click();
+const topic = page.locator('[data-testid="tutor-topic"]', { hasText: "Álgebra lineal" });
+await topic.waitFor();
+if ((await topic.getAttribute("data-due")) !== "true") fail("a new topic should be due at once");
+await topic.locator('button[data-grade="4"]').click();
+await page.locator('[data-testid="tutor-topic"][data-due="false"]', { hasText: "en 1 día" }).waitFor();
+await page.screenshot({ path: `${out}/07i-tutor.png` });
+await page.keyboard.press("Escape");
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Revisa la factura del cliente Norte");
+await page.keyboard.press("Enter");
+await page.locator(".memory-chip").last().waitFor({ timeout: 10000 });
+if (!(await page.locator(".memory-chip").last().getAttribute("title"))?.includes("Glosario: factura")) fail("the glossary term should show on the answer");
+
+// knowledge graph: entities from the notes, drawn as an SVG and opened in the artifacts panel
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Memoria" }).click();
+await page.getByRole("tab", { name: "Grafo" }).click();
+await page.getByTestId("graph-stats").waitFor();
+await page.waitForFunction(() => { const i = document.querySelector('[data-testid="graph-image"]'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 })
+  .catch(() => fail("the memory graph picture did not load"));
+await page.screenshot({ path: `${out}/07j-graph.png` });
+await page.getByRole("button", { name: "Abrir en el panel" }).click();
+await page.locator(".artifact-panel").waitFor();
+await page.frameLocator(".artifact-frame").locator("svg").first().waitFor();
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+// clean up what this block added, through the UI
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Memoria" }).click();
+await page.getByRole("tab", { name: "Glosario" }).click();
+await page.getByRole("button", { name: "Eliminar: factura" }).click();
+await page.getByRole("tab", { name: "Tutor" }).click();
+await page.getByRole("button", { name: "Eliminar: Álgebra lineal" }).click();
+await page.getByTestId("tutor-topic").waitFor({ state: "detached" });
+await page.keyboard.press("Escape");
+fs.rmSync(notesDir, { recursive: true, force: true });
+fs.rmSync(outsideDir, { recursive: true, force: true });
 
 // learning: "recuerda que…" is saved at once (with undo); a correction proposes a rule the user edits and saves
 await page.getByRole("button", { name: "Nuevo chat" }).click();

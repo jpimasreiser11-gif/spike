@@ -327,6 +327,7 @@ export type MemoryUse = {
   rules: number;
   semantic: boolean;
   notes: { id: string; kind: string; source: string; preview: string; by: string[] }[];
+  glossary?: string[]; // the glossary terms that were applied in this answer
 };
 
 export type MemoryItem = {
@@ -380,4 +381,44 @@ export type UsageRow = {
   tokens_out: number;
   cost: number;
   estimated: number;
+};
+
+/** A folder the user chose to index into memory, with the progress of its indexing job. */
+export type FolderJob = {
+  state: "queued" | "scanning" | "indexing" | "embedding" | "done" | "error" | "cancelled";
+  total: number; done: number; indexed: number; unchanged: number; removed: number; embedded: number;
+  skipped: Record<string, number>; current: string; started: number; finished: number;
+  error: string; warning: string; force: boolean;
+};
+export type MemoryFolder = {
+  id: string; path: string; scope: string; include: string[]; exclude: string[];
+  max_file_bytes: number; max_files: number; added: number; indexed: number; files: number; chunks: number;
+  skipped: Record<string, number>; job: FolderJob | null;
+};
+export type MemoryFolders = {
+  folders: MemoryFolder[];
+  defaults: { include: string[]; exclude: string[]; max_file_bytes: number; max_files: number };
+};
+export type FolderFile = { path: string; size: number; status: string; mtime_ns: number };
+
+export type GlossaryEntry = {
+  id: string; scope: string; term: string; translation: string; lang: string; note: string; created: number; updated: number;
+};
+
+export type StudyTopic = {
+  id: string; scope: string; name: string; notes: string; mastery: number; ease: number; interval_days: number;
+  lapses: number; reviews: number; last_quality: number | null; last_review: number | null; next_review: number;
+  due: boolean; overdue_days: number; created: number;
+};
+export type StudyTopics = { now: number; due: number; topics: StudyTopic[] };
+
+export type GraphNode = { id: string; type: "entity" | "note"; kind: string; label: string; weight: number; source?: string };
+export type GraphEdge = { id?: string; source: string; target: string; type: string; label?: string; status?: string; weight: number };
+export type MemoryGraph = {
+  nodes: GraphNode[]; edges: GraphEdge[]; focus: string | null;
+  stats: { entities: number; relations: number; proposed: number };
+};
+export type GraphRelation = {
+  id: string; source: string; target: string; from: string; to: string; label: string;
+  status: "proposed" | "confirmed" | "rejected"; origin: string; scope: string; memory: string | null;
 };
