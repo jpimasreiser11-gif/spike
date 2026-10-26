@@ -1,0 +1,11 @@
+.lab { width: min(1200px, 100%); overflow-y: auto; }
+.lab-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.lab-fields textarea { width: 100%; resize: vertical; }
+.lab-fields .row { margin: 12px 0; flex-wrap: wrap; }
+.lab-quote { padding: 16px; border: 1px solid var(--border); border-radius: 12px; margin: 16px 0; }
+.lab-table { overflow-x: auto; margin: 16px 0; }
+.lab table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.lab th, .lab td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.lab td { min-width: 110px; }
+.lab td:first-child { min-width: 200px; }
+.lab pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 440px; }

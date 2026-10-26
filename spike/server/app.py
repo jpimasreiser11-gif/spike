@@ -42,6 +42,7 @@ from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.evolution_api import create_evolution_router
+from spike.server.lab_api import create_lab_router
 from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
 from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
@@ -327,6 +328,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             return await call_next(request)
 
     app.include_router(create_router(st))
+    app.include_router(create_lab_router(st))
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)

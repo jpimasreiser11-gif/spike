@@ -19,6 +19,15 @@ const es = {
     steps: { rescue: "Rescate", load: "Carga", contract: "Contrato", explain: "Plan SQL", query: "Consulta", forecast: "Previsión", chart: "Gráfico",
       encoding: "Codificación", delimiter: "Separador", header: "Cabecera", decimal_comma: "Coma decimal", dates: "Fechas", duplicates: "Duplicados", empty_columns: "Columnas vacías" } as Record<string, string>,
   },
+  lab: {
+    title: "Lab", close: "Volver al chat", intro: "Compara el mismo prompt o hasta 16 casos JSON entre especialistas y proveedores. No se envía nada hasta ejecutar. Máximo 32 respuestas, 128 tokens de salida por respuesta, sin herramientas. Se guardan las últimas 50 ejecuciones en este ordenador.",
+    prompt: "Prompt", cases: "Casos de evaluación (JSON opcional)", casesHint: 'Lista de {"prompt":"…", "expected":"…"}. Puntuación: coincidencia exacta sin espacios exteriores; sin expected no se puntúa.',
+    specialist: "Especialista", provider: "Proveedor", binding: "Configuración del especialista", add: "Añadir comparación", remove: "Quitar", comparePreview: "Estimar comparación", probePreview: "Estimar prueba de proveedor", execute: "Ejecutar ahora", cost: "Coste estimado", noPrice: "Sin precios configurados: coste desconocido", estimateHint: "Estimación según tus precios por millón y el límite de salida; no es un tope de gasto. La facturación de imágenes depende del proveedor. Revisa los permisos y límites en Ajustes → Proveedores.",
+    probeHint: "La prueba usa el proveedor de la primera fila: hasta cinco solicitudes sintéticas pequeñas (herramientas, JSON, imagen, streaming y contexto). Nunca ejecuta herramientas. Solo comprueba compatibilidad de solicitudes; el contexto probado es un mínimo estimado, no el máximo. Otros protocolos quedan sin probar.",
+    calls: "Solicitudes", blocked: "Bloqueado por permisos de pago o límites mensuales", busy: "Ejecutando…", history: "Ejecuciones guardadas", export: "Exportar JSON", result: "Resultado", latency: "Latencia (ms)", tokens: "Tokens entrada / salida", score: "Puntuación exacta", estimated: "estimados", profile: "perfil de instrucciones", adapter: "adaptador", context: "Contexto probado (tokens estimados)", invalid: "Revisa los casos JSON y los destinos (máximo 8).", failed: "La operación falló. Revisa el proveedor o vuelve a estimar.",
+    tools: "Herramientas", json: "Modo JSON", vision: "Visión", streaming: "Streaming", observed: "Observado", not_observed: "No observado", untested: "Sin probar", ok: "Completado",
+  },
+
   newChat: "Nuevo chat",
   recents: "Recientes",
   settings: "Ajustes",
@@ -243,6 +252,15 @@ const en: Dict = {
     steps: { rescue: "Rescue", load: "Load", contract: "Contract", explain: "SQL plan", query: "Query", forecast: "Forecast", chart: "Chart",
       encoding: "Encoding", delimiter: "Delimiter", header: "Header", decimal_comma: "Decimal comma", dates: "Dates", duplicates: "Duplicates", empty_columns: "Empty columns" } as Record<string, string>,
   },
+  lab: {
+    title: "Lab", close: "Back to chat", intro: "Compare the same prompt or up to 16 JSON cases across specialists and providers. Nothing is sent until execution. Up to 32 answers, 128 output tokens per answer, without tools. The last 50 runs are saved on this computer.",
+    prompt: "Prompt", cases: "Evaluation cases (optional JSON)", casesHint: 'List of {"prompt":"…", "expected":"…"}. Score: exact match after trimming outer whitespace; no score without expected.',
+    specialist: "Specialist", provider: "Provider", binding: "Specialist configuration", add: "Add comparison", remove: "Remove", comparePreview: "Estimate comparison", probePreview: "Estimate provider probe", execute: "Run now", cost: "Estimated cost", noPrice: "No prices configured: unknown cost", estimateHint: "Estimate at your prices per million and the output limit; this is not a spending cap. Image billing depends on the provider. Review permissions and limits in Settings → Providers.",
+    probeHint: "The probe uses the first row's provider: up to five tiny synthetic requests (tools, JSON, image, streaming and context). Tools are never executed. It only checks request compatibility; tested context is an estimated minimum, not the maximum. Other protocols remain untested.",
+    calls: "Requests", blocked: "Blocked by paid-call permission or monthly limits", busy: "Running…", history: "Saved runs", export: "Export JSON", result: "Result", latency: "Latency (ms)", tokens: "Input / output tokens", score: "Exact-match score", estimated: "estimated", profile: "instruction profile", adapter: "adapter", context: "Tested context (estimated tokens)", invalid: "Check the JSON cases and targets (up to 8).", failed: "The operation failed. Check the provider or estimate again.",
+    tools: "Tools", json: "JSON mode", vision: "Vision", streaming: "Streaming", observed: "Observed", not_observed: "Not observed", untested: "Untested", ok: "Completed",
+  },
+
   newChat: "New chat",
   recents: "Recents",
   settings: "Settings",
