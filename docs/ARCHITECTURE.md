@@ -89,9 +89,13 @@ In a project's chats the file tools work in that project's own folder (`$SPIKE_H
 
 **Code isolation (`spike/tools/sandbox.py`).** `python`, `data_python` and `spike dev`'s `run_command` can run inside
 the computer's own sandbox. SPIKE ships none: it builds the command line for a program the user already has. The
-setting `sandbox` (Settings → Tools, `PUT /api/settings`) is `auto` (default: isolate when possible), `off` (never)
-or `required` (refuse to run code when there is no working sandbox; the tool's `review()` returns a deny, so nobody
-is asked to approve code that will not run). `GET /api/sandbox` says what the computer offers and why not.
+setting `sandbox` (Settings → Tools, `PUT /api/settings`) is `auto` (default: isolate the code a model writes, `python`
+and `data_python`, when possible), `off` (never) or `required` (isolate everything, `run_command` too, and refuse to
+run code when there is no working sandbox; the tool's `review()` returns a deny, so nobody is asked to approve code
+that will not run). Under `auto` a `run_command` is **not** isolated: the user approves each exact command, and
+isolation would stop `npm install`, `git pull` and tools installed under the home folder. Its card and result say
+`not isolated: approved commands run outside the sandbox in auto mode` (reason code `approved_command`, not the "no
+sandbox" codes). `GET /api/sandbox` says what the computer offers and why not.
 Detection runs once per start (and again each time Settings is opened): the program is found (`shutil.which("bwrap")`,
 `/usr/bin/sandbox-exec`) and then tried with the real flags on a harmless Python start, so a `bwrap` that cannot
 create namespaces here counts as missing, with what it printed as the reason.
@@ -100,15 +104,16 @@ create namespaces here counts as missing, with what it printed as the reason.
 |---|---|---|---|
 | Program | `bwrap` (bubblewrap) on `PATH` | `/usr/bin/sandbox-exec -p <profile>` (generated SBPL profile) | none: the code runs as before and the result says `not isolated: <reason>` |
 | Network | none (own network namespace, `--unshare-net`; not even the loopback) | denied by the profile | open |
-| Writes | only the working folder (`run_command`: the workspace; `python`: its own temp folder) and a private `/tmp` (a tmpfs, so it uses RAM); everything else is read-only or absent | only the same folders plus a private temp folder SPIKE creates and removes, and `/dev/null` | anywhere the user can |
+| Writes | only the working folder (`run_command`, under `required`: the workspace; `python`: its own temp folder) and a private `/tmp` (a tmpfs, so it uses RAM); everything else is read-only or absent | only the same folders plus a private temp folder SPIKE creates and removes, and `/dev/null` | anywhere the user can |
 | Reads | `/usr`, `/bin`, `/sbin`, `/lib*` (host symlinks kept), a few `/etc` files (loader cache, user and group names, time zone, `alternatives`, `os-release`, `terminfo`), the Python interpreter's prefixes, the writable folders; `python` also reads the workspace (not writable, so Forge's import check can read the saved files; `data_python` sees only its copies of the files) | the system (`/usr`, `/bin`, `/sbin`, `/System`, `/Library`, `/Applications`, `/opt`, `/private/etc`, a few `/private/var/db` folders), the interpreter, the writable folders and the workspace; the home folder's contents are not readable, but names and sizes of other files can be seen | everything the user can read |
 | Other | own PID and IPC namespaces, capabilities dropped, new session, dies with its parent | no process or Mach service access beyond starting programs | |
 
 What it does not do: filter system calls (no seccomp profile), limit CPU or memory (the `python` tool keeps its
 rlimits; `run_command` has none), hide environment variables (they are passed on; `HOME` and `TMPDIR` point to the
 private temp folder), or protect against a kernel bug. Programs that live outside the system folders, such as ones
-installed under the home folder by nvm, cargo or pyenv, are not visible to an isolated `run_command`, and commands
-that need the network (`npm install`, `git pull`) fail: set `sandbox` to `off` to run those. NixOS and other systems
+installed under the home folder by nvm, cargo or pyenv, are not visible to a `run_command` isolated under `required`,
+and commands that need the network (`npm install`, `git pull`) fail there: that is why `auto` leaves approved commands
+alone, and `required` is for people who want every command contained. NixOS and other systems
 that keep programs outside `/usr` are reported as "does not work here" by the detection. The macOS profile has been
 generated and checked as text and with a fake `sandbox-exec`; `sandbox-exec` is deprecated by Apple but still ships.
 The result of every isolated or not-isolated run ends with a line `[sandbox: isolated (bwrap): …]` or
@@ -192,7 +197,7 @@ checker also judges each criterion; the answer ends with a `forge_report` (crite
 stayed unresolved). `spike forge eval` runs the ten tasks of `spike/forge/tasks.jsonl` in empty folders, with their
 checks run by SPIKE (Python in a limited subprocess), against the core model alone with `--baseline`.
 
-**`spike dev` (C3).** `spike/dev/` reuses the orchestrator and the agent loop with its own registry: the usual file tools on the chosen folder plus `edit_file`, `search`, `find_files` and `run_command` as shared tools (every specialist gets them), its own permission broker (the app's policies; `--accept-edits` allows the edit tools) and its own store `$SPIKE_HOME/dev/sessions.db` with checkpoints in `$SPIKE_HOME/dev/checkpoints` (one conversation per run, titled `dev:<folder>`; `/undo` takes the latest checkpoint of any of them). The terminal (`spike/dev/terminal.py`) settles each permission request and question before the loop goes on, runs each request as a task on one event loop so Ctrl-C cancels the request and not the session, and allows 30 model calls per request. `run_command` runs in the sandbox described under Tools when there is one (no network; writes only in the folder), and the startup line and each approval prompt say whether it is.
+**`spike dev` (C3).** `spike/dev/` reuses the orchestrator and the agent loop with its own registry: the usual file tools on the chosen folder plus `edit_file`, `search`, `find_files` and `run_command` as shared tools (every specialist gets them), its own permission broker (the app's policies; `--accept-edits` allows the edit tools) and its own store `$SPIKE_HOME/dev/sessions.db` with checkpoints in `$SPIKE_HOME/dev/checkpoints` (one conversation per run, titled `dev:<folder>`; `/undo` takes the latest checkpoint of any of them). The terminal (`spike/dev/terminal.py`) settles each permission request and question before the loop goes on, runs each request as a task on one event loop so Ctrl-C cancels the request and not the session, and allows 30 model calls per request. `run_command` runs in the sandbox described under Tools only when the setting is `required` (no network; writes only in the folder); under `auto`, the default, the user's approval of each exact command is the guard and the command runs with their rights, and the startup line and each approval prompt say which of the two it is.
 
 **Spike Design (C4).** `spike/design/library.py` keeps design systems as folders with `DESIGN.md` and an optional `tokens.css`: bundled ones in `spike/design/systems/`, the user's in `$SPIKE_HOME/design-systems/` (same id = the user's wins). `OrchestratorOptions.design` adds a section to the system message of every specialist and of the integrator in the run (Forge steps included; not the checker, which only judges results): the tokens without comments, the request to paste them into the first `<style>`, then DESIGN.md cut to a fifth of the context. The chat's `design_system` overrides the project's `design`; `"none"` drops it. `GET /api/design-systems/{id}/preview` returns a sample page that the app shows in the same sandbox and CSP as artifacts.
 

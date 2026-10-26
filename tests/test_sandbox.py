@@ -161,6 +161,24 @@ def test_the_mode_is_one_of_auto_off_required():
     assert box.mode == "auto"
 
 
+def test_an_approved_command_is_isolated_only_under_required_and_says_why_it_is_not_under_auto():
+    for platform in ("win32", "linux"):  # whether or not the computer has a sandbox
+        box = Sandbox("auto", platform=platform, which=lambda name: None)
+        found = box.isolation(command=True)
+        assert found == Isolation(False, "none", "approved commands run outside the sandbox in auto mode", "approved_command")
+        assert found.line() == "not isolated: approved commands run outside the sandbox in auto mode"
+        assert box.isolation().code != "approved_command"  # the code a model writes is another case
+        with box.wrapped(["sh", "-c", "ls"], cwd="/w", writable=["/w"], command=True) as run:
+            assert run.argv == ["sh", "-c", "ls"] and run.env == {} and run.new_session and not run.isolation.isolated
+        assert box.review() is None
+    off = Sandbox("off", platform="win32")
+    assert off.isolation(command=True).code == "off" and off.isolation().code == "off"
+    strict = Sandbox("required", platform="win32")
+    assert strict.isolation(command=True).code == "windows" and strict.review() is not None  # required: no exception
+    with pytest.raises(SandboxRefused), strict.wrapped(["sh"], cwd="/w", writable=["/w"], command=True):
+        pytest.fail("the command must not start")
+
+
 @pytest.mark.parametrize(("platform", "code"), [("win32", "windows"), ("freebsd14", "unsupported_os")])
 def test_other_systems_run_the_code_as_before_and_say_why(platform, code):
     box = Sandbox("auto", platform=platform)
@@ -295,12 +313,31 @@ async def test_python_runs_through_bwrap_and_does_not_start_a_second_session(tmp
 
 
 @posix
-async def test_run_command_goes_through_bwrap_in_the_workspace(tmp_path):
+async def test_run_command_is_not_wrapped_under_auto_even_with_a_sandbox_present(tmp_path):
     log = tmp_path / "log"
     fake = fake_bwrap(tmp_path, log)
     ws = Workspace(tmp_path / "proj")
     ws.root.mkdir()
     box = Sandbox("auto", platform="linux", which=lambda name: str(fake))
+    assert box.available().isolated
+    before = log.read_text(encoding="utf-8")  # the probe
+    out = await RunCommand(ws, box).run({"command": "pwd"})
+    assert out.ok, out.content
+    assert out.content.splitlines() == ["exit code 0", str(ws.root),
+                                        f"{NOTE}not isolated: approved commands run outside the sandbox in auto mode]"]
+    assert out.data["isolation"]["code"] == "approved_command" and out.data["isolation"]["isolated"] is False
+    assert log.read_text(encoding="utf-8") == before  # bwrap was not started for it
+    py = await PythonRunner(sandbox=box).run({"code": "print(1)"})  # model-written code in the same mode is wrapped
+    assert py.data["isolation"]["isolated"] is True and log.read_text(encoding="utf-8") != before
+
+
+@posix
+async def test_run_command_goes_through_bwrap_in_the_workspace_when_required(tmp_path):
+    log = tmp_path / "log"
+    fake = fake_bwrap(tmp_path, log)
+    ws = Workspace(tmp_path / "proj")
+    ws.root.mkdir()
+    box = Sandbox("required", platform="linux", which=lambda name: str(fake))
     out = await RunCommand(ws, box).run({"command": "pwd; echo \"$TMPDIR\""})
     assert out.ok, out.content
     assert strip_note(out.content).splitlines() == ["exit code 0", str(ws.root), "/tmp"]
@@ -406,7 +443,9 @@ def test_the_permission_card_says_whether_the_run_will_be_isolated(tmp_path):
                if e["type"] == "permission_request")
     assert ask["isolation"]["code"] == "off"
     run = ask_events([RunCommand(Workspace(tmp_path), NONE)], call("run_command", {"command": "ls"}))
-    assert next(e for e in run if e["type"] == "permission_request")["isolation"]["isolated"] is False
+    card = next(e for e in run if e["type"] == "permission_request")["isolation"]
+    assert card["isolated"] is False and card["code"] == "approved_command"  # not "no sandbox": a command is not wrapped
+    assert card["line"] == "not isolated: approved commands run outside the sandbox in auto mode"
     other = ask_events(registry.subset(["write_file"]), call("write_file", {"path": "a", "content": "b"}))
     assert "isolation" not in next(e for e in other if e["type"] == "permission_request")
 
@@ -418,6 +457,11 @@ def test_the_permission_card_says_isolated_when_it_will_be(tmp_path):
     events = ask_events(default_registry(tmp_path, box).subset(["python"]), call("python", {"code": "print(1)"}))
     ask = next(e for e in events if e["type"] == "permission_request")
     assert ask["isolation"] == Isolation(True, "bwrap").to_dict()
+    command = ask_events([RunCommand(Workspace(tmp_path), box)], call("run_command", {"command": "ls"}))
+    assert next(e for e in command if e["type"] == "permission_request")["isolation"]["code"] == "approved_command"
+    box.mode = "required"
+    command = ask_events([RunCommand(Workspace(tmp_path), box)], call("run_command", {"command": "ls"}))
+    assert next(e for e in command if e["type"] == "permission_request")["isolation"]["isolated"] is True
 
 
 @pytest.mark.parametrize("headless", [False, True])

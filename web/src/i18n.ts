@@ -115,7 +115,8 @@ const es = {
   isolation: {
     yes: "aislado", no: "sin aislamiento", detail: "sin red; escribe solo en la carpeta de trabajo y en una temporal privada",
     reasons: {
-      off: "el aislamiento está desactivado en Ajustes", windows: "Windows no tiene un aislamiento que SPIKE pueda usar",
+      off: "el aislamiento está desactivado en Ajustes",
+      approved_command: "los comandos aprobados se ejecutan fuera del aislamiento en modo auto", windows: "Windows no tiene un aislamiento que SPIKE pueda usar",
       unsupported_os: "este sistema no tiene un aislamiento conocido", no_bwrap: "bubblewrap (bwrap) no está instalado",
       bwrap_failed: "bwrap no funciona en este ordenador", no_sandbox_exec: "no se encontró sandbox-exec",
       sandbox_exec_failed: "sandbox-exec no funciona en este ordenador",
@@ -260,7 +261,8 @@ const en: Dict = {
   isolation: {
     yes: "isolated", no: "not isolated", detail: "no network; writes only in the working folder and a private temp folder",
     reasons: {
-      off: "isolation is off in Settings", windows: "Windows has no isolation SPIKE can use",
+      off: "isolation is off in Settings",
+      approved_command: "approved commands run outside the sandbox in auto mode", windows: "Windows has no isolation SPIKE can use",
       unsupported_os: "this system has no known isolation", no_bwrap: "bubblewrap (bwrap) is not installed",
       bwrap_failed: "bwrap does not work on this computer", no_sandbox_exec: "sandbox-exec was not found",
       sandbox_exec_failed: "sandbox-exec does not work on this computer",

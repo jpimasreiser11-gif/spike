@@ -225,7 +225,7 @@ export type Settings = {
   default_provider: string;
   specialist_bindings: Record<string, { provider_id?: string; model?: string }>;
   tool_policies: Record<string, "allow" | "ask" | "deny">;
-  sandbox: "auto" | "off" | "required"; // isolate code-running tools (python, run_command) when the computer can | never | refuse without
+  sandbox: "auto" | "off" | "required"; // isolate python and data_python when the computer can | never | also run_command, and refuse without
   tools_enabled: boolean;
   use_planner: boolean;
   parallel: boolean;

@@ -56,7 +56,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "default_provider": "spike-local",
     "specialist_bindings": {},  # specialist id -> {"provider_id": ..., "model": ...}
     "tool_policies": {},
-    "sandbox": "auto",  # code-running tools (python, run_command): auto = isolate when the computer can | off | required
+    "sandbox": "auto",  # auto = isolate python and data_python when the computer can | off | required (run_command too)
     "tools_enabled": True,
     "use_planner": True,
     "parallel": False,

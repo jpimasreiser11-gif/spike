@@ -285,7 +285,7 @@ def main(session: DevSession, loop: asyncio.AbstractEventLoop, prompt: str | Non
     edits = "edits without asking" if session.broker.policies.get("edit_file") == "allow" else "edits ask first"
     out(f"SPIKE dev · {session.root}", style="bold")
     out(f"{session.specialist} on {provider}{f' ({model})' if model else ''} · {edits} · commands ask first · "
-        f"sandbox: {session.state.sandbox.isolation().line()} · /help", style="dim")
+        f"sandbox: {session.state.sandbox.isolation(command=True).line()} · /help", style="dim")
     if session.root in (Path.home(), Path(session.root.anchor)):
         out("warning: this is your whole home folder or disk; SPIKE can change anything in it with your OK",
             style="yellow")

@@ -31,9 +31,9 @@ const L = lang === "es"
       tune: "Optimizar mi equipo", tuneHint: "Prueba varias configuraciones del modelo local en este ordenador (hilos y caché) y guarda la más rápida. Tarda unos minutos; el motor local se detiene mientras tanto.",
       tuneQuick: "Prueba rápida (menos precisa)", tuning: "Midiendo…", threads: "hilos", gen: "generación", prompt: "lectura", failedCfg: "no arranca",
       tuneSaved: "Guardado", ctxEstimated: "contexto estimado por memoria, no medido", lastTune: "Última optimización", noModelTune: "Primero elige un modelo local.",
-      sandbox: "Aislamiento del código", sandboxMode: "Aislar python y run_command",
-      sandboxHint: "Con aislamiento, el código que ejecuta SPIKE no tiene red y solo escribe en su carpeta de trabajo y en una temporal privada. Usa bubblewrap (Linux) o sandbox-exec (macOS) si tu ordenador lo tiene; en Windows no hay aislamiento. Con aislamiento no funcionan los comandos que necesitan red (npm install, git pull).",
-      sandboxAuto: "Automático: aislar si se puede", sandboxOff: "Desactivado: nunca aislar", sandboxRequired: "Obligatorio: no ejecutar código sin aislamiento",
+      sandbox: "Aislamiento del código", sandboxMode: "Aislar el código que ejecuta SPIKE",
+      sandboxHint: "El código que escribe un modelo (python, data_python) se ejecuta aislado si tu ordenador lo permite: sin red y escribiendo solo en su carpeta de trabajo y en una temporal privada. Usa bubblewrap (Linux) o sandbox-exec (macOS); en Windows no hay aislamiento. Los comandos de spike dev (run_command) los apruebas tú, uno a uno: en modo automático se ejecutan sin aislar, para que sigan funcionando npm install, git pull y tus herramientas. Solo el modo obligatorio los aísla, y entonces no tienen red.",
+      sandboxAuto: "Automático: aislar python y data_python si se puede", sandboxOff: "Desactivado: no aislar nada", sandboxRequired: "Obligatorio: aislar también los comandos y no ejecutar código sin aislamiento",
       sandboxOn: "disponible", sandboxNone: "no disponible", sandboxBlocked: "Con «Obligatorio» y sin aislamiento disponible, SPIKE no ejecutará python ni run_command.",
     }
   : {
@@ -53,9 +53,9 @@ const L = lang === "es"
       tune: "Optimize for my computer", tuneHint: "Tries a few settings of the local model on this computer (threads and cache) and keeps the fastest. Takes a few minutes; the local engine stops meanwhile.",
       tuneQuick: "Quick run (less precise)", tuning: "Measuring…", threads: "threads", gen: "generation", prompt: "prompt", failedCfg: "does not start",
       tuneSaved: "Saved", ctxEstimated: "context estimated from memory, not measured", lastTune: "Last optimization", noModelTune: "Choose a local model first.",
-      sandbox: "Code isolation", sandboxMode: "Isolate python and run_command",
-      sandboxHint: "When isolated, the code SPIKE runs has no network and writes only in its working folder and a private temp folder. It uses bubblewrap (Linux) or sandbox-exec (macOS) if your computer has it; Windows has no isolation. Commands that need the network (npm install, git pull) do not work when isolated.",
-      sandboxAuto: "Automatic: isolate when possible", sandboxOff: "Off: never isolate", sandboxRequired: "Required: do not run code without isolation",
+      sandbox: "Code isolation", sandboxMode: "Isolate the code SPIKE runs",
+      sandboxHint: "The code a model writes (python, data_python) runs isolated when your computer can: no network, and writes only in its working folder and a private temp folder. It uses bubblewrap (Linux) or sandbox-exec (macOS); Windows has no isolation. You approve the commands of spike dev (run_command) one by one: in automatic mode they run without isolation, so npm install, git pull and your tools keep working. Only required mode isolates them, and then they have no network.",
+      sandboxAuto: "Automatic: isolate python and data_python when possible", sandboxOff: "Off: isolate nothing", sandboxRequired: "Required: isolate commands too, and do not run code without isolation",
       sandboxOn: "available", sandboxNone: "not available", sandboxBlocked: "With “Required” and no isolation available, SPIKE will not run python or run_command.",
     };
 

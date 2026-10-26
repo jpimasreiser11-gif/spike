@@ -143,9 +143,9 @@ class FindFiles(Tool):
 class RunCommand(Tool):
     name = "run_command"
     description = ("Run a shell command in the workspace folder (tests, builds, git status…) and return its output and "
-                   "exit code. The user approves each command; files a command changes cannot be undone. Where the "
-                   "computer has a sandbox (bubblewrap on Linux, sandbox-exec on macOS) the command has no network "
-                   "and writes only in the workspace; the last line of the result says whether it was isolated.")
+                   "exit code. The user approves each command; files a command changes cannot be undone. The command "
+                   "runs with the user's rights, unless the user set the sandbox to required: then it has no network "
+                   "and writes only in the workspace. The last line of the result says whether it was isolated.")
     parameters = {"type": "object", "properties": {
         "command": {"type": "string"}, "timeout_s": {"type": "integer", "description": "default 120, at most 600"}},
         "required": ["command"]}
@@ -160,7 +160,7 @@ class RunCommand(Tool):
         return self.sandbox.review()  # `required` and no sandbox: refused before anyone is asked
 
     def isolation(self, args: dict[str, Any]) -> dict[str, Any] | None:
-        return self.sandbox.isolation().to_dict()
+        return self.sandbox.isolation(command=True).to_dict()
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
         command = str(args.get("command") or "").strip()
@@ -171,7 +171,7 @@ class RunCommand(Tool):
                  "stdin": asyncio.subprocess.DEVNULL}
         try:
             with self.sandbox.wrapped(["/bin/sh", "-c", command], cwd=self.workspace.root,
-                                      writable=[self.workspace.root]) as box:
+                                      writable=[self.workspace.root], command=True) as box:
                 if os.name == "nt":  # cmd.exe, quoted the way it expects (a list would escape inner quotes as \")
                     proc = await asyncio.create_subprocess_shell(command, **pipes)
                 else:

@@ -134,7 +134,7 @@ await page.getByRole("dialog").locator('[data-skill="financial-ratio-analysis"]'
 await page.getByRole("tab", { name: "Herramientas" }).click();
 const sandboxCard = page.getByRole("dialog").getByTestId("sandbox");
 await sandboxCard.getByText("Aislamiento del código").waitFor();
-const sandboxMode = sandboxCard.getByRole("combobox", { name: "Aislar python y run_command" });
+const sandboxMode = sandboxCard.getByRole("combobox", { name: "Aislar el código que ejecuta SPIKE" });
 if ((await sandboxMode.inputValue()) !== "auto") fail("the sandbox setting should start on auto");
 await sandboxMode.selectOption("required");
 await page.waitForFunction(async () => (await (await fetch("/api/settings")).json()).sandbox === "required", null, { timeout: 5000 })

@@ -1,11 +1,14 @@
 """OS-level isolation for the tools that run code (`python`, `data_python`, `run_command`). With the setting `sandbox`
-on `auto` (the default) a run is wrapped in the computer's own sandbox when there is one: `bwrap` (bubblewrap) on
-Linux, `/usr/bin/sandbox-exec` on macOS. The wrapped program cannot reach the network, sees only the system, the
-Python interpreter and the folders it is given, and writes only in its working folder and a private temporary folder.
-Windows, or a computer without the program, runs the code as before and says so (`isolated: false` with the reason);
-`required` refuses to run code then, `off` never wraps. SPIKE ships no sandbox of its own: it only builds the command
-line for the program the user already has (detected with `shutil.which`, then tried once with a harmless command, so
-a bwrap that cannot create namespaces here counts as missing)."""
+on `auto` (the default) the code a model writes (`python`, `data_python`) is wrapped in the computer's own sandbox
+when there is one: `bwrap` (bubblewrap) on Linux, `/usr/bin/sandbox-exec` on macOS. The wrapped program cannot reach
+the network, sees only the system, the Python interpreter and the folders it is given, and writes only in its working
+folder and a private temporary folder. A shell command (`run_command`, which the user approves word by word) is
+wrapped only under `required`: under `auto` it runs as the user's own, and says so, because isolating it would stop
+`npm install`, `git pull` and tools installed under the home folder. Windows, or a computer without the program,
+runs the code as before and says so (`isolated: false` with the reason); `required` refuses to run code then, `off`
+never wraps. SPIKE ships no sandbox of its own: it only builds the command line for the program the user already has
+(detected with `shutil.which`, then tried once with a harmless command, so a bwrap that cannot create namespaces here
+counts as missing)."""
 
 from __future__ import annotations
 
@@ -46,7 +49,8 @@ class Isolation:
     isolated: bool
     backend: str = "none"  # bwrap | sandbox-exec | none
     reason: str = ""  # why not isolated
-    code: str = ""  # off | windows | unsupported_os | no_bwrap | bwrap_failed | no_sandbox_exec | sandbox_exec_failed
+    code: str = ""  # off | approved_command | windows | unsupported_os | no_bwrap | bwrap_failed | no_sandbox_exec |
+    # sandbox_exec_failed
 
     def line(self) -> str:
         if self.isolated:
@@ -244,10 +248,13 @@ class Sandbox:
         return (message[-1] if message else f"exit code {done.returncode}")[:200]
 
     # ------------------------------------------------------------------ what a run gets
-    def isolation(self) -> Isolation:
-        """How a run would be isolated now, with the setting applied."""
+    def isolation(self, command: bool = False) -> Isolation:
+        """How a run would be isolated now, with the setting applied. `command`: a shell command the user approves
+        as written (`run_command`), which only `required` isolates."""
         if self.mode == "off":
             return Isolation(False, "none", "the sandbox is off in Settings", "off")
+        if command and self.mode == "auto":
+            return Isolation(False, "none", "approved commands run outside the sandbox in auto mode", "approved_command")
         return self.available()
 
     def status(self, refresh: bool = False) -> dict[str, Any]:
@@ -267,11 +274,12 @@ class Sandbox:
 
     @contextmanager
     def wrapped(self, argv: Sequence[str], *, cwd: str | Path, writable: Sequence[str | Path],
-                readable: Sequence[str | Path] = ()) -> Iterator[Wrapped]:
-        """`argv` ready to start: wrapped in the sandbox when there is one and the setting allows it. `writable`
-        folders can be written (the working folder), `readable` ones only read. Raises `SandboxRefused` when the
-        setting is `required` and there is none. A private temporary folder that macOS needs is removed on exit."""
-        iso = self.isolation()
+                readable: Sequence[str | Path] = (), command: bool = False) -> Iterator[Wrapped]:
+        """`argv` ready to start: wrapped in the sandbox when there is one and the setting allows it (`command`: a
+        shell command, see `isolation`). `writable` folders can be written (the working folder), `readable` ones only
+        read. Raises `SandboxRefused` when the setting is `required` and there is none. A private temporary folder
+        that macOS needs is removed on exit."""
+        iso = self.isolation(command)
         if self.mode == "required" and not iso.isolated:
             raise SandboxRefused(iso)
         if not iso.isolated:

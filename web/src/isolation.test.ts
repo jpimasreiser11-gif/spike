@@ -4,7 +4,7 @@ import { isolationText, reasonText } from "./isolation";
 import { applyEvent, emptyRun } from "./run";
 
 // every `code` spike/tools/sandbox.py can give a run that is not isolated
-const CODES = ["off", "windows", "unsupported_os", "no_bwrap", "bwrap_failed", "no_sandbox_exec", "sandbox_exec_failed"];
+const CODES = ["off", "approved_command", "windows", "unsupported_os", "no_bwrap", "bwrap_failed", "no_sandbox_exec", "sandbox_exec_failed"];
 
 describe("isolation text", () => {
   it("has every reason in Spanish and English", () => {
@@ -18,6 +18,11 @@ describe("isolation text", () => {
     expect(isolationText(off, dicts.es.isolation)).toBe("sin aislamiento: bubblewrap (bwrap) no está instalado");
     expect(isolationText(on, dicts.en.isolation)).toBe("isolated (bwrap): no network; writes only in the working folder and a private temp folder");
     expect(isolationText(off, dicts.en.isolation)).toBe("not isolated: bubblewrap (bwrap) is not installed");
+  });
+  it("says why an approved command runs outside the sandbox under auto, apart from the no-sandbox reasons", () => {
+    const cmd = { isolated: false, backend: "none", reason: "approved commands run outside the sandbox in auto mode", code: "approved_command" };
+    expect(isolationText(cmd, dicts.es.isolation)).toBe("sin aislamiento: los comandos aprobados se ejecutan fuera del aislamiento en modo auto");
+    expect(isolationText(cmd, dicts.en.isolation)).toBe("not isolated: approved commands run outside the sandbox in auto mode");
   });
   it("keeps what the system said when a sandbox program fails, and the server's text for an unknown code", () => {
     const failed = { reason: "bwrap does not work here: bwrap: No permissions to creating new namespace", code: "bwrap_failed" };
