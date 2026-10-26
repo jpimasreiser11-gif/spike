@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { chartPng, chartSvg, chartView } from "../chart";
 import { lang } from "../i18n";
 import type { ChartUi, CodeRunUi, DataTableInfo, DataTableUi, DataUi, ToolState } from "../types";
+import { AnalyticsEvidence } from "./AnalyticsEvidence";
 import { ArtifactContext } from "./Artifact";
 import { Markdown, markdownHtml } from "./Markdown";
 
@@ -61,6 +62,7 @@ function DataTableView({ ui }: { ui: DataTableUi }) {
       <header><b>{ui.title || D.result}</b><span className="muted small">{rowsNote(ui.rows.length, ui.truncated)}</span></header>
       {ui.columns.length > 0 && <DataTable columns={ui.columns} types={ui.types} rows={ui.rows} />}
       <SqlBlock sql={ui.sql} tables={ui.tables} />
+      <AnalyticsEvidence ui={ui} />
     </section>
   );
 }
@@ -110,6 +112,7 @@ function ChartView({ ui }: { ui: ChartUi }) {
       </div>
       {showData && <DataTable columns={ui.columns} types={ui.types} rows={ui.rows} />}
       <SqlBlock sql={ui.sql} tables={ui.tables} />
+      <AnalyticsEvidence ui={ui} />
     </section>
   );
 }

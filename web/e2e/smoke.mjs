@@ -602,6 +602,10 @@ const cells = (await chartCard.locator(".data-grid td").allTextContents()).join(
 if (cells !== "norte|90|sur|70") fail("the chart's data is " + cells);
 await chartCard.locator(".data-sql summary").click();
 await chartCard.getByText("GROUP BY region").waitFor();
+await chartCard.getByText("Evidencias del análisis", { exact: true }).click();
+await chartCard.getByText("Vista previa SQL de solo lectura", { exact: true }).waitFor();
+await chartCard.getByText("Linaje", { exact: true }).waitFor();
+await chartCard.locator(".analytics-evidence pre").first().filter({ hasText: "LIMIT 5001" }).waitFor();
 await page.screenshot({ path: `${out}/07q-data-chart.png` });
 await page.getByRole("button", { name: "Ver informe" }).click();
 const reportFrame = page.frameLocator(".artifact-frame");
