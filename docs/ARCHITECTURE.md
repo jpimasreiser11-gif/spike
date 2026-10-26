@@ -204,6 +204,24 @@ answers' `meta.route` names `spike-local`; approved ones export through `GET /ap
 or `spike evolve dataset`. `adapters.install_checked` reloads the engine with the new adapter, answers the same
 eval and rolls back on any loss.
 
+**Evolution EV3, EV8 and EV6.** *Tool strategy* (`strategy.py`): after each chat run `AppState.record_strategy` writes
+one `tool_runs` row per tool result and per skill used, keyed by task type (the specialist plus `intent_of`, a fixed
+regex list); a row is a success only if the tool returned without error, the step was not retried (`replace_from`) or
+undone (`POST /api/checkpoints/{id}/undo`) and the user's next message did not correct the answer (`flag_correction`). `SkillLibrary.select`
+asks `SkillLibrary.prefer` (set by `AppState._prefer_skills`) to reorder only skills whose router score ties the best,
+only among themselves, only if each has 5 recorded uses; the rule in use is a `strategy` version (a snapshot of the
+counts) that `strategy.learn` keeps only if the 12 labelled skill cases (`skill_labeled.jsonl`) route no worse with it
+and `router_check`, `catalog_check` and `skills_check` pass with it applied (`strategy_check` in `spike evolve check`
+repeats this). *Prompt regression* (`prompts.py`, EV8): `propose` stores an inactive `prompt:<specialist>` version
+(`report.status` = `candidate`); `compare` scores two variants on the same accepted eval questions with
+`candidates.judge`, `activate` blocks one more than `TOLERANCE_POINTS` (2.0) below the version in use or with fewer than
+3 questions, runs the other regression checks as a gate, and writes every verdict into the version with
+`EvolutionStore.annotate`. *Personal adapter* (`personal.py`, EV6): `build_set` lists approved corrections and the
+answers of marked chats, with exclusions; `run` drives the specialists' pipeline as external commands through an
+injectable runner and installs through `adapters.install` with the recipe `training/configs/personal.yaml`, so the
+acceptance rule, versioning and rollback are the specialists' own; the resolver in `AppState.orchestrator` gives Spike Core the adapter only
+while `evolution.personal_adapter` is on. The HTTP side is `server/evolution_api.py`; training is only a command.
+
 **Collective and Forge (C2).** Planner subtasks carry a role (`research` or `execute`); the checker and the
 integrator are fixed stages after any multi-step plan. Forge (`spike/forge/`) adds a first phase: `POST
 /api/forge/blueprint` drafts goal, requirements, steps (specialist, role, instruction, dependencies, files to save)

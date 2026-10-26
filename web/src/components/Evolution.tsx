@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
-import type { CheckResult, Checks, EvolutionItem, EvolutionOverview, RouterSplit, Settings } from "../types";
+import type { CheckResult, Checks, EvolutionItem, EvolutionOverview, PromptCheckResult, ReplayResult, RouterSplit, Settings } from "../types";
 import { LearnedPrompts, TrainingExamples } from "./EvolutionLearning";
+import { PersonalAdapter, ToolStrategy } from "./EvolutionTools";
 import { IconCopy } from "./Icons";
 
 export const E = lang === "es"
@@ -20,12 +21,21 @@ export const E = lang === "es"
       failures: "Fallos", failuresHint: "Errores de una respuesta o de una herramienta. Anota la causa y el arreglo; cuando lo compruebes, SPIKE propone una pregunta para vigilar que no vuelva.",
       cause: "Causa", fix: "Arreglo", verified: "Arreglo comprobado", copyIssue: "Copiar como issue", copied: "Copiado: no incluye tu pregunta",
       noFailures: "Ningún fallo registrado.", open: "abierto", fixed: "arreglado",
-      check: "Comprobación", checkHint: "La misma que `spike evolve check`: enrutador frente a su prueba protegida, catálogo, skills y adaptadores instalados.",
-      replay: "Repetir también las preguntas aceptadas (usa el modelo)", runCheck: "Comprobar ahora", checking: "Comprobando…",
+      check: "Comprobación", checkHint: "La misma que `spike evolve check`: enrutador frente a su prueba protegida, catálogo, skills, adaptadores instalados y el desempate de herramientas.",
+      replay: "Repetir también las preguntas aceptadas (usa el modelo)",
+      comparePrompts: "Comparar también las versiones de instrucciones (la en uso con la integrada y cada candidata con la en uso; usa el modelo)",
+      runCheck: "Comprobar ahora", checking: "Comprobando…",
       pass: "pasa", fail: "falla", noChecks: "sin comprobación de texto: solo que responda sin error",
       versions: "Versiones", noVersions: "Aún no hay versiones: se usan el enrutador integrado y los adaptadores que instalaste.",
       inUse: "en uso",
-      names: { router: "Enrutador", catalog: "Catálogo", skills: "Skills", adapters: "Adaptadores", replay: "Preguntas aceptadas" } as Record<string, string>,
+      names: { router: "Enrutador", catalog: "Catálogo", skills: "Skills", adapters: "Adaptadores", strategy: "Desempate", prompts: "Instrucciones", replay: "Preguntas aceptadas" } as Record<string, string>,
+      strategyNone: (n: number) => `ningún desempate aprendido en uso (${n} usos anotados)`,
+      promptsOk: (n: number) => n ? `${n} versiones de instrucciones dentro de la tolerancia` : "no hay versiones aprendidas ni candidatas que comparar",
+      promptsBad: (n: number) => `${n} versiones de instrucciones fuera de la tolerancia o sin poder compararse`,
+      promptRow: (r: PromptCheckResult) => r.evaluated && r.baseline && r.candidate
+        ? `${r.candidate.passed}/${r.questions} preguntas frente a ${r.baseline.passed}/${r.questions} (${(-(r.drop_points ?? 0) + 0).toFixed(1)} puntos; tolerancia -${r.tolerance_points})`
+        : `solo ${r.questions} preguntas de evaluación aceptadas con comprobación; acepta al menos 3 para poder comparar`,
+      promptWhat: { "in use": "en uso", candidate: "candidata" } as Record<string, string>,
       catalogOk: (n: number) => `${n} especialistas; todas sus herramientas existen`, skillsOk: (n: number) => `${n} skills válidas`,
       adaptersOk: (n: number) => n ? `${n} adaptadores instalados coinciden con los aceptados` : "ningún adaptador versionado",
       replayOk: (p: number, n: number) => n ? `${p} de ${n} pasan sus comprobaciones` : "no hay preguntas aceptadas",
@@ -44,12 +54,21 @@ export const E = lang === "es"
       failures: "Failures", failuresHint: "Errors of an answer or a tool. Write down the cause and the fix; once you verify it, SPIKE proposes a question that checks it stays fixed.",
       cause: "Cause", fix: "Fix", verified: "Fix verified", copyIssue: "Copy as issue", copied: "Copied: your question is not included",
       noFailures: "No failures recorded.", open: "open", fixed: "fixed",
-      check: "Check", checkHint: "The same as `spike evolve check`: router against its protected test, catalog, skills and installed adapters.",
-      replay: "Also answer the accepted questions again (runs the model)", runCheck: "Check now", checking: "Checking…",
+      check: "Check", checkHint: "The same as `spike evolve check`: router against its protected test, catalog, skills, installed adapters and the tool tie-break.",
+      replay: "Also answer the accepted questions again (runs the model)",
+      comparePrompts: "Also compare the prompt versions (the one in use with the built-in one, each candidate with the one in use; runs the model)",
+      runCheck: "Check now", checking: "Checking…",
       pass: "pass", fail: "fail", noChecks: "no text checks: only that it answers without error",
       versions: "Versions", noVersions: "No versions yet: the built-in router and the adapters you installed are used.",
       inUse: "in use",
-      names: { router: "Router", catalog: "Catalog", skills: "Skills", adapters: "Adapters", replay: "Accepted questions" } as Record<string, string>,
+      names: { router: "Router", catalog: "Catalog", skills: "Skills", adapters: "Adapters", strategy: "Tie-break", prompts: "Prompts", replay: "Accepted questions" } as Record<string, string>,
+      strategyNone: (n: number) => `no learned tie-break in use (${n} uses recorded)`,
+      promptsOk: (n: number) => n ? `${n} prompt versions within the tolerance` : "no learned or candidate prompt versions to compare",
+      promptsBad: (n: number) => `${n} prompt versions outside the tolerance or impossible to compare`,
+      promptRow: (r: PromptCheckResult) => r.evaluated && r.baseline && r.candidate
+        ? `${r.candidate.passed}/${r.questions} questions against ${r.baseline.passed}/${r.questions} (${(-(r.drop_points ?? 0) + 0).toFixed(1)} points; tolerance -${r.tolerance_points})`
+        : `only ${r.questions} accepted eval questions with checks; accept at least 3 to compare`,
+      promptWhat: { "in use": "in use", candidate: "candidate" } as Record<string, string>,
       catalogOk: (n: number) => `${n} specialists; every tool they list exists`, skillsOk: (n: number) => `${n} skills valid`,
       adaptersOk: (n: number) => n ? `${n} installed adapters match the accepted files` : "no versioned adapters",
       replayOk: (p: number, n: number) => n ? `${p} of ${n} pass their checks` : "no accepted questions",
@@ -57,6 +76,10 @@ export const E = lang === "es"
 
 /** A check's result in the reader's language; a failure keeps the technical detail SPIKE reported. */
 function summary(c: CheckResult): string {
+  if (c.name === "prompts") {
+    const rows = (c.results ?? []) as PromptCheckResult[];
+    return c.ok ? E.promptsOk(rows.length) : E.promptsBad(rows.filter((r) => !r.ok).length);
+  }
   if (!c.ok && c.name !== "replay") return c.detail;
   switch (c.name) {
     case "router": {
@@ -66,6 +89,7 @@ function summary(c: CheckResult): string {
     case "catalog": return E.catalogOk(c.count ?? 0);
     case "skills": return E.skillsOk(c.count ?? 0);
     case "adapters": return E.adaptersOk(c.count ?? 0);
+    case "strategy": return c.detail.startsWith("no learned") ? E.strategyNone(c.uses ?? 0) : c.detail;
     case "replay": return E.replayOk(c.passed ?? 0, c.total ?? 0);
     default: return c.detail;
   }
@@ -146,11 +170,15 @@ export function Evolution({ settings, save }: { settings: Settings; save: (p: Pa
   const [items, setItems] = useState<EvolutionItem[]>([]);
   const [checks, setChecks] = useState<CheckResult[] | null>(null);
   const [replay, setReplay] = useState(false);
+  const [comparePrompts, setComparePrompts] = useState(false);
   const [checking, setChecking] = useState(false);
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
   const [loads, setLoads] = useState(0);
   const evo = settings.evolution ?? { enabled: true, auto_router: true };
+  const promptRows = (c: CheckResult) => (c.results as PromptCheckResult[] | undefined)?.map((r) => (
+    <div key={`${r.specialist}:${r.version}`} className="muted">{r.ok ? E.pass : E.fail}: {r.specialist} {E.promptWhat[r.what] ?? r.what} v{r.version} · {E.promptRow(r)}</div>
+  ));
 
   const load = async () => {
     try {
@@ -216,6 +244,10 @@ export function Evolution({ settings, save }: { settings: Settings; save: (p: Pa
       <LearnedPrompts version={loads} />
       <TrainingExamples enabled={!!evo.training_data} items={items} run={run}
         setEnabled={(on) => save({ evolution: { ...evo, training_data: on } })} />
+      <ToolStrategy auto={evo.auto_strategy !== false} disabled={!evo.enabled} version={loads}
+        setAuto={(on) => save({ evolution: { ...evo, auto_strategy: on } })} />
+      <PersonalAdapter enabled={!!evo.personal_adapter} version={loads}
+        setEnabled={(on) => save({ evolution: { ...evo, personal_adapter: on } })} />
 
       <h3>{E.failures}</h3>
       <p className="small muted">{E.failuresHint}</p>
@@ -225,10 +257,11 @@ export function Evolution({ settings, save }: { settings: Settings; save: (p: Pa
       <h3>{E.check}</h3>
       <p className="small muted">{E.checkHint}</p>
       <label className="check"><input type="checkbox" checked={replay} onChange={(e) => setReplay(e.target.checked)} />{E.replay}</label>
+      <label className="check"><input type="checkbox" checked={comparePrompts} onChange={(e) => setComparePrompts(e.target.checked)} />{E.comparePrompts}</label>
       <div className="row">
         <button className="btn primary small" disabled={checking} onClick={async () => {
           setChecking(true); setErr("");
-          try { setChecks((await api.post<{ checks: CheckResult[] }>("/api/evolution/check", { replay })).checks); }
+          try { setChecks((await api.post<{ checks: CheckResult[] }>("/api/evolution/check", { replay, prompts: comparePrompts })).checks); }
           catch (e) { setErr(String((e as Error).message)); }
           setChecking(false);
         }}>{checking ? E.checking : E.runCheck}</button>
@@ -238,7 +271,7 @@ export function Evolution({ settings, save }: { settings: Settings; save: (p: Pa
           {checks.map((c) => (
             <li key={c.name} className={c.ok ? "ok" : "fail"}>
               <b>{c.ok ? "✓" : "✗"} {E.names[c.name] ?? c.name}</b> {summary(c)}
-              {c.results?.map((r) => (
+              {c.name === "prompts" ? promptRows(c) : (c.results as ReplayResult[] | undefined)?.map((r) => (
                 <div key={r.id} className="muted">{r.passed ? E.pass : E.fail}: {r.question}{r.problems.length ? ` (${r.problems.join("; ")})` : ""}{r.checked ? "" : ` · ${E.noChecks}`}</div>
               ))}
             </li>

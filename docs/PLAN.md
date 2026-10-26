@@ -206,8 +206,11 @@ Order of the next rounds, after the medicine verdict:
 | E2 | Routing learning: route corrections feed the router's dev set; new weights only if the protected test (0.92) does not drop | ✅ (keyword overlay; dev and test must not drop, corrections must improve) |
 | E3 | Failure library: cause + verified fix, kept locally, exportable as an issue | ✅ (copy as issue; nothing is posted) |
 | E4 | Benchmark generation: failures become candidate eval questions, reviewed by a person and decontaminated | ✅ (from corrections and fixed failures; checked against SPIKE's eval questions) |
-| E5 | Regression protection extended to the router, prompts and skills | ✅ (`spike evolve check`: router, catalog, skills, adapters, optional replay) |
+| E5 | Regression protection extended to the router, prompts and skills | ✅ (`spike evolve check`: router, catalog, skills, adapters, tool tie-break (EV3), optional prompt versions (EV8, `--prompts`) and replay) |
 | E6 | Versioning and rollback: active adapter/prompt/router version recorded from the run/export/summary files, `spike models history`, automatic return to the previous version when the new one fails its eval or the user rejects it | ✅ (router and adapters; an adapter that fails acceptance is refused, so nothing to return from; prompts are versioned as skills) |
+| EV3 | Tool strategy learning: success or failure of each tool and skill recorded per (name, task type = specialist + a fixed intent) from real runs, kept in `evolution.db`, shown as a table in Settings → Evolución and resettable | ✅ for skills (tie-break only: skills the router scores equal, at least 5 recorded uses each, and only as a snapshot that keeps skill routing at least as good on the 12 labelled cases and passes router/catalog/skills checks with it applied; `spike evolve strategy`, versioned, rollback). Tools are recorded and shown but not used to choose, and the planner is not changed. Not measured: that the tie-break improves answers |
+| EV8 | Prompt regression in `spike evolve check --prompts`: a candidate prompt version (`spike evolve candidate`) is compared with the version in use on the user's accepted eval questions (from corrections and fixed failures) with the deterministic scorers | ✅ (blocked when it scores more than 2.0 points of pass rate below the version in use, or fewer than 3 questions; verdict kept in the version history; `spike evolve activate`, `spike evolve rollback prompt:<specialist>`) |
+| EV6 | Personal adapter, off by default: LoRA on the user's approved corrections and marked chats (counts shown, any example excludable), with the specialists' pipeline, RAM guard and acceptance rule | 🟡 built, Apple silicon only (`spike evolve personal-adapter`; other platforms say it is not available). Tested with the pipeline stubbed: dataset rules, the general-suite gate (≤ 1.5 points, general-select then general), nothing activates without acceptance. Never trained on real weights here, so the hyperparameters and the effect are not measured |
 
 **Cheap additions to B/C:** answer contracts (`response_format` with validation in `/v1` and the UI) ✅, temporary chats
 (nothing saved, no memory) ✅, branch a chat when a message is edited ✅, human handoff (the agent pauses with a question
@@ -220,7 +223,7 @@ Apache-2.0), data-to-software template after Analytics, `spike skills validate` 
 localization, SVG vector designer, experiment designer, synthetic data (Faker), system diagnostic.
 
 **After launch or not now:** parallel minds, reverse studio, architecture explorer, parallel prototypes, 3D, game,
-audio and subtitle studios, knowledge graph, notebooks, prompt evolution, tool strategy learning, personal adapters;
+audio and subtitle studios, knowledge graph, notebooks, prompt evolution;
 no desktop control with the local model, device lab or multi-user review rooms.
 
 **v0.1 launch does not wait for C.** Before the repository goes public (the founder decides, from the founder's

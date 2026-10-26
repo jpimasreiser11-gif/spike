@@ -68,6 +68,57 @@ and only one guard on the run.
 Quick smoke run before a long one: add `--limit 50` to the evaluation and reduce `epochs` in a copy of the
 config. Never report smoke-run numbers as results.
 
+### 2b. A personal adapter (`spike evolve personal-adapter`, Evolution EV6)
+
+A LoRA for Spike Core, the general assistant, trained only on the user's own text so that it answers more the way
+they asked. **Off by default** (Settings → Evolución, or `spike evolve personal-adapter --enable`), **Apple silicon
+only** (it is trained with MLX; on any other computer the command and the Settings section say it is not available and
+do nothing), and everything stays on this computer.
+
+- **What goes in, and nothing else of the user's.** The corrections they approved one by one (the same examples as
+  `spike evolve dataset`; they count only while "Use my corrections to retrain" is on) and the chats they mark
+  (`--mark <chat id>` or Settings). From a marked chat, each answer that SPIKE's local model wrote is one example (with up
+  to 6 earlier messages as context); answers that ended in an error, came from an external service or another model
+  (their terms and licenses can forbid training on their output) or that the user's next message corrected are left out.
+  `--list` prints every example and `--exclude <id>` / `--include <id>` (or the checkboxes in Settings) take one out or
+  put it back; an excluded text is also removed from the context of its neighbours. The same question and answer from
+  two places counts once. Both places show the counts before anything runs. At least 30 examples are needed (a
+  safety floor of this design, not a measured threshold).
+- **The mix.** The examples are the domain data of `training/configs/personal.yaml` (`system_from: core`: they are trained
+  under Spike Core's system prompt, since `personal` has no catalog entry) and `prepare.py` adds the same public,
+  human-written general replay as for every specialist (OASST2, ratio 0.3) and decontaminates against MMLU-Pro. The
+  replay is public data, not the user's.
+- **The pipeline is the specialists' one**, run by the command with these steps (and `--yes` to skip the question):
+
+  | Step | Command (paths under `~/.spike/personal/`) |
+  |---|---|
+  | prepare | `python training/prepare.py training/configs/personal.yaml --corrections ~/.spike/personal/spike-personal.jsonl` |
+  | train | `training/scripts/train_supervised.sh personal` (the RAM guard; `SPIKE_UNSUPERVISED=1` runs `train.sh`); the command refuses to start on a Mac with less memory than the guard waits for (`RESUME_FREE_GB`, 22 GB) |
+  | export | `python training/export_adapter.py personal --llama-cpp <llama.cpp> --check-model <base.gguf> --out ~/.spike/personal/stage --work ~/.spike/personal/stage/work --name spike-personal --system-from core` (staging only: nothing reaches `~/.spike/adapters` before acceptance) |
+  | select | `python evals/run_eval.py --model <base.gguf> --adapter <stage>/spike-personal.gguf --max-tokens 2048 --suites general-select`; if general knowledge already dropped by more than the limit here, the run ends (rejected) before the longer one |
+  | evaluate | the same with `--suites general --acceptance training/configs/personal.yaml` |
+  | install | `adapters.install`: applies the recipe's rule to the measured numbers itself (not to run_eval's exit code), then versions the adapter as `adapter:personal` in `spike models history` |
+
+  `--llama-cpp` (or `$SPIKE_LLAMA_CPP`) and `--model` (or the local-engine model in Settings) say where llama.cpp and the
+  base GGUF are. Exit code 0 accepted, 2 rejected, 1 anything else (including 75 from the RAM guard, after which running
+  the command again resumes training from its last checkpoint).
+- **Acceptance.** The only criterion is that the general suite (MMLU-Pro) does not drop by more than **1.5 points**, the
+  specialists' limit. There is no public benchmark for "your way of working", so no gain is demanded, claimed or measured:
+  an accepted personal adapter means it did not make general knowledge worse on that sample, not that it is better for the
+  user. The recipe is refused if it loosens the rule. Without acceptance nothing is installed or activated.
+- **Files.** The examples file, the staged adapter, `training/data/personal` and `training/runs/personal` (weights trained
+  on the user's text) are deleted when a run ends, whatever the verdict; only a run that stopped while training keeps them,
+  so that running the command again can resume. The eval runs (`~/.spike/personal/eval-select`, `eval-general`: public
+  questions and the adapter's answers to them) are kept as the evidence of the verdict.
+- **Use.** Spike Core loads `spike-personal.gguf` only while the setting is on and an accepted version is installed (the
+  specialists keep their own adapters). Go back with `spike evolve rollback adapter:personal`; restart the local engine to
+  load or unload it.
+- **Not measured.** The pipeline is tested with the commands stubbed (`tests/test_personal_adapter.py`: dataset rules, the
+  two gates, clean-up, platform message) and `prepare.py` with the personal recipe on in-memory rows
+  (`tests/test_training.py`). It has never trained on real weights here (no Apple silicon): the hyperparameters (rank 8,
+  learning rate 5e-5, 2 epochs, effective batch 4 against 16 for the specialists: 40 examples plus their replay make about
+  25 optimizer updates, about 6 with a batch of 16) are conservative guesses, and nothing says yet how large or small the effect is.
+
 ## 3. What makes a result valid
 
 - The eval compares the base model **with the same system prompt** against base + adapter, same items,

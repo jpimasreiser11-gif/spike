@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, streamPost } from "../api";
 import { lang } from "../i18n";
-import type { EvolutionItem, LearnedPrompt } from "../types";
+import type { EvolutionItem, LearnedPrompt, PromptComparison } from "../types";
 import { Markdown } from "./Markdown";
 
 const L = lang === "es"
@@ -12,6 +12,13 @@ const L = lang === "es"
       tryLines: "Otras instrucciones que probar (una por línea)", rollback: "Volver a la anterior", ideas: "ideas para probar",
       done: (a: number, b: number, n: number) => `Aceptado: ${a} → ${b} de ${n} preguntas.`, notDone: "Sin cambios",
       answers: "respuestas", skill: "skill",
+      saveCandidate: "Guardar como candidata", candidate: "Candidata", waiting: "sin comparar", within: "dentro de la tolerancia", blockedBadge: "bloqueada",
+      candidateHint: "Una candidata no cambia nada hasta que la actives: SPIKE la compara con la versión en uso con tus preguntas de evaluación (las de tus correcciones y fallos arreglados) y la bloquea si saca más de 2 puntos menos. El resultado queda en el historial de versiones.",
+      candidateSaved: "Candidata guardada: aún no se usa.", activate: "Comparar y activar", activating: "Comparando…",
+      activated: "Activada: ", notActivated: "Bloqueada, no cambió nada: ",
+      verdict: (r: PromptComparison) => r.evaluated && r.baseline && r.candidate
+        ? `${r.candidate.passed}/${r.questions} preguntas frente a ${r.baseline.passed}/${r.questions} con la versión en uso (${(-(r.drop_points ?? 0) + 0).toFixed(1)} puntos; tolerancia -${r.tolerance_points})`
+        : `solo ${r.questions} preguntas de evaluación aceptadas con comprobación; acepta al menos 3 para poder comparar`,
       training: "Reentrenar con mis correcciones", trainingOpt: "Usar mis correcciones para reentrenar (desactivado por defecto)",
       trainingHint: "Cada corrección guardada puede convertirse en un ejemplo: tu pregunta, la respuesta tras corregir y la que corregiste. Solo se usan respuestas del modelo local de SPIKE (nunca de servicios externos ni de otros modelos), que pasen las comprobaciones, y solo las que apruebes. Todo se queda en tu ordenador; el archivo lo usa `training/prepare.py --corrections`.",
       review: "Buscar ejemplos nuevos", approve: "Aprobar", reject: "Rechazar", approved: "aprobados", skipped: "No utilizables",
@@ -25,6 +32,13 @@ const L = lang === "es"
       tryLines: "Other instructions to try (one per line)", rollback: "Go back to the previous one", ideas: "ideas to try",
       done: (a: number, b: number, n: number) => `Accepted: ${a} → ${b} of ${n} questions.`, notDone: "No change",
       answers: "answers", skill: "skill",
+      saveCandidate: "Save as candidate", candidate: "Candidate", waiting: "not compared", within: "within the tolerance", blockedBadge: "blocked",
+      candidateHint: "A candidate changes nothing until you activate it: SPIKE compares it with the version in use on your eval questions (from your corrections and fixed failures) and blocks it if it scores more than 2 points lower. The result is kept in the version history.",
+      candidateSaved: "Candidate saved: not in use yet.", activate: "Compare and activate", activating: "Comparing…",
+      activated: "Activated: ", notActivated: "Blocked, nothing changed: ",
+      verdict: (r: PromptComparison) => r.evaluated && r.baseline && r.candidate
+        ? `${r.candidate.passed}/${r.questions} questions against ${r.baseline.passed}/${r.questions} for the version in use (${(-(r.drop_points ?? 0) + 0).toFixed(1)} points; tolerance -${r.tolerance_points})`
+        : `only ${r.questions} accepted eval questions with checks; accept at least 3 to compare`,
       training: "Retrain with my corrections", trainingOpt: "Use my corrections to retrain (off by default)",
       trainingHint: "Each saved correction can become an example: your question, the answer after the correction and the one you corrected. Only answers from SPIKE's local model are used (never from external services or other models), only if they pass the checks, and only the ones you approve. Everything stays on your computer; `training/prepare.py --corrections` reads the file.",
       review: "Look for new examples", approve: "Approve", reject: "Reject", approved: "approved", skipped: "Not usable",
@@ -32,6 +46,7 @@ const L = lang === "es"
       download: "Download examples (.jsonl)", pairs: "Pairs for DPO (.jsonl)",
     };
 
+type Activation = PromptComparison & { activated: boolean; version: number };
 type Report = { accepted: boolean; reasons: string[]; questions: number; baseline?: { passed: number }; confirmed?: { passed: number }; changes?: string[] };
 
 function Specialist({ p, reload }: { p: LearnedPrompt; reload: () => void }) {
@@ -39,12 +54,32 @@ function Specialist({ p, reload }: { p: LearnedPrompt; reload: () => void }) {
   const [busy, setBusy] = useState<AbortController | null>(null);
   const [step, setStep] = useState("");
   const [result, setResult] = useState("");
+  const [comparing, setComparing] = useState(false);
   const learned = p.active?.data ?? {};
+  const typed = () => lines.split("\n").map((x) => x.trim()).filter(Boolean);
+  const saveCandidate = async () => {
+    setResult("");
+    try {
+      await api.post(`/api/evolution/prompts/${p.specialist}/candidate`, { instructions: typed() });
+      setLines(""); setResult(L.candidateSaved);
+    } catch (e) { setResult(String((e as Error).message)); }
+    reload();
+  };
+  const activate = async (version: number) => {
+    setComparing(true); setResult("");
+    try {
+      const r = await api.post<Activation>(`/api/evolution/prompts/${p.specialist}/activate`, { version });
+      setResult(r.activated ? `${L.activated}${L.verdict(r)}` : `${L.notActivated}${r.reason ?? L.verdict(r)}`);
+    } catch (e) { setResult(String((e as Error).message)); }
+    setComparing(false); reload();
+  };
+  const blocked = p.candidate?.report?.status === "blocked";
+  const regression: PromptComparison | undefined = p.candidate?.report?.regression;
   const optimize = async () => {
     const controller = new AbortController();
     setBusy(controller); setResult(""); setStep("");
     try {
-      await streamPost(`/api/evolution/prompts/${p.specialist}/optimize`, { instructions: lines.split("\n").map((x) => x.trim()).filter(Boolean) }, (ev) => {
+      await streamPost(`/api/evolution/prompts/${p.specialist}/optimize`, { instructions: typed() }, (ev) => {
         const e = ev as unknown as { type: string; label?: string; calls?: number; report?: Report; message?: string };
         if (e.type === "try") setStep(`${e.label} · ${e.calls} ${L.answers}`);
         if (e.type === "error") setResult(e.message ?? "");
@@ -75,10 +110,20 @@ function Specialist({ p, reload }: { p: LearnedPrompt; reload: () => void }) {
           <div className="row">
             {busy ? <button className="btn small" onClick={() => busy.abort()}>{L.stop}</button>
               : <button className="btn primary small" onClick={optimize}>{L.optimize}</button>}
+            <button className="btn small" disabled={!!busy || !lines.trim()} onClick={saveCandidate}>{L.saveCandidate}</button>
             {p.active && !busy && <button className="btn small" onClick={async () => { await api.post("/api/evolution/rollback", { component: `prompt:${p.specialist}` }); reload(); }}>{L.rollback}</button>}
             {step && <span className="small muted">{L.optimizing}: {step}</span>}
           </div>
         </>
+      )}
+      {p.candidate && (
+        <div className="small" data-testid={`evo-candidate-${p.specialist}`}>
+          <b>{L.candidate} v{p.candidate.id}</b> <span className={`badge ${blocked ? "warn" : ""}`}>{blocked ? L.blockedBadge : regression?.ok ? L.within : L.waiting}</span>
+          <ul>{(p.candidate.report?.changes ?? []).map((x: string) => <li key={x}>{x}</li>)}</ul>
+          {regression && <p className="muted">{L.verdict(regression)}</p>}
+          <p className="muted">{L.candidateHint}</p>
+          {p.questions >= 3 && <button className="btn primary small" disabled={comparing || !!busy} onClick={() => activate(p.candidate!.id)}>{comparing ? L.activating : L.activate}</button>}
+        </div>
       )}
       {result && <p className="small" role="status">{result}</p>}
     </div>
@@ -90,7 +135,7 @@ export function LearnedPrompts({ version }: { version: number }) {
   const [prompts, setPrompts] = useState<LearnedPrompt[]>([]);
   const load = () => { api.get<LearnedPrompt[]>("/api/evolution/prompts").then(setPrompts).catch(() => setPrompts([])); };
   useEffect(load, [version]);
-  const shown = prompts.filter((p) => p.questions > 0 || p.active);
+  const shown = prompts.filter((p) => p.questions > 0 || p.active || p.candidate);
   return (
     <>
       <h3>{L.prompts}</h3>

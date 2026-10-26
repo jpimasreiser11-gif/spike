@@ -334,6 +334,7 @@ code.cmd { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-
 
 /* skills */
 .skill-chip { color: var(--green-dark); background: var(--accent-soft); border-color: var(--ground); }
+.warn-box { border: 1px solid var(--warn); color: var(--warn); background: color-mix(in srgb, var(--warn) 7%, var(--surface)); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; margin: 6px 0; }
 .flash-box { border: 1px solid var(--ground); background: var(--accent-soft); color: var(--green-dark); border-radius: 10px; padding: 6px 12px; font-size: 13.5px; }
 a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-items: center; }
 .row .btn { display: inline-flex; align-items: center; gap: 6px; }
@@ -454,6 +455,7 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .tune-rows li.best { font-weight: 600; color: var(--green-dark); }
 
 /* Evolution settings tab */
+.form.evolution { grid-template-columns: minmax(0, 1fr); }  /* a wide table scrolls inside its box instead of widening the page */
 .evolution h3 { margin: 14px 0 0; font-size: 15px; }
 .evolution h4 { margin: 6px 0 0; font-size: 13px; color: var(--text-2); }
 .evo-item textarea, .evo-item input { width: 100%; }

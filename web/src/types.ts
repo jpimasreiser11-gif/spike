@@ -283,7 +283,7 @@ export type Settings = {
   skill_mode: "auto" | "router" | "model" | "off";
   disabled_skills: string[];
   memory: { enabled: boolean; embeddings: "auto" | "off"; auto_summary: boolean; learn?: boolean };
-  evolution?: { enabled: boolean; auto_router: boolean; training_data?: boolean };
+  evolution?: { enabled: boolean; auto_router: boolean; training_data?: boolean; auto_strategy?: boolean; personal_adapter?: boolean };
   trust: { enabled: boolean; escalate: boolean; escalate_unchecked: number; model_pass: boolean };
   finance?: { exchange: string; live: LiveSettings };
 };
@@ -310,16 +310,53 @@ export type EvolutionOverview = {
   versions: EvolutionVersion[];
 };
 
-/** Evolution level 2: a specialist's learned instructions and skills, and the eval they are checked against. */
+/** Evolution level 2: a specialist's learned instructions and skills, and the eval they are checked against. `candidate`
+ * is the newest prompt version the user proposed that is not in use (EV8): waiting to be activated, or blocked. */
 export type LearnedPrompt = {
   specialist: string; name: string; questions: number; ideas: string[]; skills: string[];
-  active: EvolutionVersion | null; versions: EvolutionVersion[];
+  active: EvolutionVersion | null; versions: EvolutionVersion[]; candidate?: EvolutionVersion | null;
 };
 
+/** EV8: one prompt version compared with another on the user's eval questions (`spike evolve check --prompts`). */
+export type PromptComparison = {
+  evaluated: boolean; ok: boolean; questions: number; tolerance_points: number; reason?: string;
+  baseline?: { passed: number; total: number }; candidate?: { passed: number; total: number };
+  drop_points?: number; lost?: string[]; gained?: string[]; origins?: Record<string, number>;
+};
+export type PromptCheckResult = PromptComparison & { specialist: string; what: "in use" | "candidate"; version: number };
+export type ReplayResult = { id: string; question: string; passed: boolean; problems: string[]; checked: boolean };
+
 export type CheckResult = {
-  name: string; ok: boolean; detail: string; count?: number; passed?: number; total?: number;
+  name: string; ok: boolean; detail: string; count?: number; passed?: number; total?: number; uses?: number;
   built_in?: Record<string, RouterSplit>; current?: Record<string, RouterSplit> | null;
-  results?: { id: string; question: string; passed: boolean; problems: string[]; checked: boolean }[];
+  results?: ReplayResult[] | PromptCheckResult[];
+};
+
+/** EV3: how often each tool or skill worked for a task type, counted from real runs. */
+export type StrategyRow = {
+  kind: "tool" | "skill"; name: string; task_type: string; n: number; good: number; retried: number; undone: number;
+  corrected: number; rate: number | null; enough: boolean; last?: number;
+};
+export type StrategyOverview = {
+  rows: StrategyRow[]; uses: number; active: EvolutionVersion | null; min_samples: number; margin: number;
+  versions: EvolutionVersion[];
+};
+export type StrategyLearned = { accepted: boolean; reasons: string[]; skills: number; uses: number; unchanged?: boolean };
+
+/** EV6: what a personal adapter would be trained on, whether this computer can train it, and what is in use. */
+export type PersonalEntry = {
+  id: string; source: "correction" | "chat"; conversation: string | null; question: string; answer: string;
+  excluded: boolean; duplicate: boolean;
+};
+export type PersonalOverview = {
+  enabled: boolean; training_data: boolean; available: boolean; reason: string;
+  counts: {
+    approved_corrections: number; corrections: number; chat_answers: number; excluded: number; duplicates: number;
+    used: number; needed: number; corrections_need_consent: boolean;
+  };
+  chats: { marked: number; missing: number; answers_not_used: { origin: number; corrected: number } };
+  entries: PersonalEntry[]; marked: { id: string; conversation: string; title: string }[];
+  active: EvolutionVersion | null; versions: EvolutionVersion[]; command: string;
 };
 
 export type ToolInfo = { name: string; description: string; risk: string; default_policy: string; policy: string };

@@ -391,6 +391,9 @@ await page.keyboard.press("Enter");
 await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeout: 10000 })
   .catch(() => fail("the learned router should send the same kind of question to Medicine"));
 await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
+// EV8: a candidate prompt version proposed through the API shows up in Settings → Evolución, not in use
+await page.evaluate(() => fetch("/api/evolution/prompts/finance/candidate", { method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ instructions: ["Cita siempre la norma"] }) }).then((r) => r.ok || Promise.reject(new Error(String(r.status)))));
 await page.getByRole("button", { name: "Ajustes" }).click();
 await page.getByRole("tab", { name: "Evolución" }).click();
 await page.getByTestId("evo-route").filter({ hasText: "medicine" }).waitFor();
@@ -412,6 +415,41 @@ await example.getByRole("button", { name: "Aprobar" }).click();
 await page.getByRole("link", { name: "Descargar ejemplos (.jsonl)" }).waitFor();
 const examples = await page.evaluate(() => fetch("/api/evolution/training.jsonl").then((r) => r.text()));
 if (!examples.includes("Tienes razón") || !examples.includes('"source": "spike-correction"')) fail("exported training examples");
+// EV3: the tool strategy table lists what was recorded from the chats above, and can be reset after a confirmation
+await page.getByRole("heading", { name: "Estrategia de herramientas" }).scrollIntoViewIfNeeded();
+await page.getByTestId("evo-strategy-row").first().waitFor({ timeout: 10000 })
+  .catch(() => fail("the tool strategy table should list the tools used in the chats above"));
+await page.getByTestId("evo-strategy").scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}/07y-evolution-strategy.png` });
+await page.getByRole("button", { name: "Olvidar los usos anotados" }).click();
+await page.getByRole("alertdialog").getByRole("button", { name: "Sí, olvidar" }).click();
+await page.getByTestId("evo-strategy").getByText("Aún no hay usos anotados").waitFor({ timeout: 10000 });
+// EV8: the candidate is listed with its state; the check can compare prompt versions, and with too few eval questions it says so
+const candidate = page.getByTestId("evo-candidate-finance");
+await candidate.scrollIntoViewIfNeeded();
+await candidate.getByText(/Candidata v\d+/).waitFor();
+await candidate.getByText("sin comparar").waitFor();
+await candidate.getByText("add: Cita siempre la norma").waitFor();
+await page.screenshot({ path: `${out}/07z-evolution-candidate.png` });
+await page.getByText("Comparar también las versiones de instrucciones").click();
+await page.getByRole("button", { name: "Comprobar ahora" }).click();
+await page.getByTestId("evo-checks").locator("li.fail", { hasText: "Instrucciones" }).waitFor({ timeout: 10000 });
+await page.getByTestId("evo-checks").getByText("acepta al menos 3 para poder comparar").waitFor();
+await page.getByTestId("evo-checks").locator("li.ok", { hasText: "Desempate" }).waitFor();
+// EV6: the personal adapter is off by default; on, it shows what would be used and lets the user mark a chat
+if (await page.getByTestId("evo-personal").count()) fail("the personal adapter should be off by default");
+await page.getByText("Activar el adaptador personal").click();
+await page.getByTestId("evo-personal").waitFor();
+if (process.platform !== "darwin") await page.getByTestId("evo-personal-unavailable").getByText("No disponible en este ordenador").waitFor();
+await page.getByTestId("evo-personal-counts").getByText(/se necesitan al menos 30/).waitFor();
+await page.getByLabel("Elige un chat para marcarlo").selectOption({ index: 1 });
+await page.getByRole("button", { name: "Marcar este chat" }).click();
+await page.getByTestId("evo-personal-marked").waitFor();
+await page.screenshot({ path: `${out}/07w-evolution-personal.png` });
+await page.getByTestId("evo-personal-marked").getByRole("button", { name: "Quitar" }).click();
+await page.getByTestId("evo-personal-marked").waitFor({ state: "detached" });
+await page.getByText("Activar el adaptador personal").click();
+await page.getByTestId("evo-personal").waitFor({ state: "detached" });
 await page.keyboard.press("Escape");
 
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
