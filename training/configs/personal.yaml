@@ -1,0 +1,40 @@
+# Personal adapter recipe (Evolution EV6, `spike evolve personal-adapter`). Off by default; Apple silicon only.
+# There is no public benchmark for "your way of working", so unlike the specialists there is no primary gain to
+# demand: the only criterion is that general knowledge does not drop (same limit as every specialist). The domain
+# data is not a registry source: it is the user's approved corrections and the chats they marked, written to a file by
+# `spike evolve personal-adapter` and passed with --corrections (prepare.py); nothing else of theirs is used.
+specialist: personal
+system_from: core                     # no catalog entry: the examples are trained under Spike Core's system prompt
+base_model: Qwen/Qwen3.5-4B          # Apache-2.0; same base as the specialists (ADR 0002)
+hypothesis: >
+  LoRA on a few dozen of the user's own approved corrections and marked chats makes the general assistant answer
+  more the way they asked, without degrading general knowledge. Whether it does is judged only by the acceptance
+  below; no gain is claimed or measured here. Hyperparameters are conservative guesses for a small set (rank 8,
+  learning rate 5e-5, two epochs), not tuned on any data.
+acceptance:
+  regression: {suite: general, max_drop_points: 1.5}   # measured on general-select first, then on general
+domain_sources: []
+replay:
+  ratio: 0.3                          # share of general data in the training mix (anti-forgetting), as the specialists
+  sources:
+    - {source: oasst2, max: 13000}       # human-written only; 13,002 chats are built from en+es
+eval:
+  max_tokens: 2048                    # base and adapter share it
+decontaminate_against: [mmlu-pro]    # the general suite is MMLU-Pro; the user's examples must not contain its questions
+valid_fraction: 0.1                  # a small set needs more than 2 % to validate on
+seed: 0
+train:
+  epochs: 2.0
+  batch_size: 1
+  grad_accumulation_steps: 4          # effective batch 4: a small set still gets several optimizer updates
+  learning_rate: 5.0e-5
+  lr_schedule: {name: cosine_decay, warmup: 5, arguments: [5.0e-5, auto, 5.0e-6]}
+  max_seq_length: 768                 # as the specialists (Metal memory); longer chats are dropped
+  grad_checkpoint: true
+  mask_prompt: true
+  num_layers: -1
+  lora_parameters:
+    rank: 8
+    scale: 2.0
+    dropout: 0.05
+    keys: [self_attn.q_proj, self_attn.k_proj, self_attn.v_proj, self_attn.o_proj, mlp.gate_proj, mlp.up_proj, mlp.down_proj]

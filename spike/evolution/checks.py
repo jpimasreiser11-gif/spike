@@ -4,6 +4,10 @@
 - catalog: the catalog and custom specialists load, and every tool they list exists;
 - skills: every installed skill is valid;
 - adapters: each installed adapter version is the file that was accepted (same SHA-256);
+- strategy: skill routing on the labelled requests is no worse with the learned tie-break applied (EV3);
+- prompts (optional, runs the model): each specialist's learned prompt scores no lower than the built-in one, and each
+  pending candidate prompt no lower than the one in use, on the local eval set, within `prompts.TOLERANCE_POINTS`
+  (EV8); a candidate that fails is blocked and the verdict is written to its version;
 - replay (optional, runs the model): accepted eval candidates are answered again and their checks applied.
 """
 
@@ -13,6 +17,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from spike.evolution import candidates as cand
+from spike.evolution import prompts, strategy
 from spike.evolution.adapters import sha256
 from spike.evolution.router_learning import apply_overlay, evaluate, load_labeled
 from spike.specialists.catalog import load_catalog
@@ -77,6 +82,44 @@ def adapters_check(state) -> dict[str, Any]:
                   count=count)
 
 
+def strategy_check(state) -> dict[str, Any]:
+    """The tie-break in use (EV3) must not make skill routing worse than the router's own order."""
+    preference = state.evolution.strategy_preference()
+    uses = state.evolution.store.count_runs()
+    if preference is None:
+        return _check("strategy", True, f"no learned tie-break in use ({uses} recorded uses)", uses=uses)
+    routing = strategy.compare_routing(state.skills, preference)
+    b, a = routing["before"], routing["after"]
+    detail = (f"skill routing {b['correct']}/{b['n']} -> {a['correct']}/{a['n']} with the learned tie-break"
+              + ("" if routing["ok"] else f"; now wrong: {'; '.join(a['wrong'])}"))
+    return _check("strategy", routing["ok"], detail, uses=uses, before=b["correct"], after=a["correct"], n=b["n"])
+
+
+async def prompts_check(state, answer: prompts.Answer | None = None) -> dict[str, Any]:
+    """EV8: for each specialist with a learned prompt or a pending candidate, score the versions on its accepted eval
+    questions. The version in use must not score lower than the built-in prompt, nor a candidate lower than the
+    version in use, beyond the tolerance; a candidate that does is blocked (its version says why)."""
+    store = state.evolution.store
+    results: list[dict[str, Any]] = []
+    for spec in state.catalog.specialists:
+        waiting, current = prompts.pending(store, spec), store.active(prompts.component(spec))
+        if not waiting and current is None:
+            continue
+        scores = prompts.Scores(prompts.eval_set(store, spec),
+                                answer or (lambda q, v, spec=spec: answer_with_variant(state, q, spec, v)))
+        if current is not None:
+            report = await prompts.compare(scores, prompts.Variant(), prompts.Variant.from_dict(current["data"]))
+            results.append({"specialist": spec, "what": "in use", "version": current["id"], **report})
+        for version in reversed(waiting):
+            report = await prompts.check_candidate(store, spec, version, scores)
+            results.append({"specialist": spec, "what": "candidate", "version": version["id"], **report})
+    bad = [r for r in results if not r["ok"]]
+    detail = ("no learned or candidate prompt versions to compare" if not results else
+              "; ".join(f"{r['specialist']} {r['what']} v{r['version']}: {prompts.verdict_text(r)}" for r in bad)
+              or f"{len(results)} prompt versions within {prompts.TOLERANCE_POINTS:g} points of what they are compared with")
+    return _check("prompts", not bad, detail, results=results)
+
+
 async def answer_with_spike(state, candidate: dict[str, Any]) -> tuple[str, str | None]:
     """Ask SPIKE the question as a new chat would (memory included, no one to approve tools)."""
     await state.ensure_adapters()
@@ -126,8 +169,12 @@ async def replay_check(state, answer: Answer | None = None) -> dict[str, Any]:
                   results=results, passed=len(results) - len(failed), total=len(results))
 
 
-async def run_checks(state, replay: bool = False, answer: Answer | None = None) -> dict[str, Any]:
-    checks = [router_check(state), catalog_check(state), skills_check(state), adapters_check(state)]
+async def run_checks(state, replay: bool = False, answer: Answer | None = None, prompt_versions: bool = False,
+                     prompt_answer: prompts.Answer | None = None) -> dict[str, Any]:
+    checks = [router_check(state), catalog_check(state), skills_check(state), adapters_check(state),
+              strategy_check(state)]
+    if prompt_versions:
+        checks.append(await prompts_check(state, prompt_answer))
     if replay:
         checks.append(await replay_check(state, answer))
     return {"ok": all(c["ok"] for c in checks), "checks": checks}

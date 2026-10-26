@@ -293,7 +293,8 @@ def test_tool_crashes_are_failures_and_denials_are_not(tmp_path):
 def test_check_runs_the_gate_and_replays_accepted_candidates(env):
     client, state, local, _ = env
     report = client.post("/api/evolution/check", json={}).json()
-    assert report["ok"] and [c["name"] for c in report["checks"]] == ["router", "catalog", "skills", "adapters"]
+    assert report["ok"] and [c["name"] for c in report["checks"]] == ["router", "catalog", "skills", "adapters",
+                                                                      "strategy"]
     state.evolution.store.add("candidate", {"question": "¿IVA general?", "checks": {"include": ["21%"]}},
                               status="accepted")
 

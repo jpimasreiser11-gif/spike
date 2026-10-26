@@ -1,0 +1,12 @@
+{"specialist": "code", "query": "Tengo un bug: el test falla con un traceback raro", "expected": "systematic-debugging"}
+{"specialist": "code", "query": "Implementa la funcionalidad de login con TDD, pruebas primero", "expected": "test-driven-development"}
+{"specialist": "finance", "query": "Calcula el margen EBITDA y el ROE de este balance", "expected": "financial-ratio-analysis"}
+{"specialist": "medicine", "query": "¿Cuál es el tratamiento de primera línea de la hipertensión según las guías?", "expected": "medical-evidence-summary"}
+{"specialist": "marketing", "query": "Prepara una campaña de lanzamiento con canales y KPI", "expected": "campaign-brief"}
+{"specialist": "code", "query": "Write an MCP server for my notes app", "expected": "mcp-builder"}
+{"specialist": "code", "query": "Revisa la accesibilidad y la UX de mi formulario", "expected": "web-design-guidelines"}
+{"specialist": "code", "query": "Hazme un vídeo animado de 8 segundos que presente mi app", "expected": "motion-scene"}
+{"specialist": "core", "query": "Make a short animated intro clip for my channel", "expected": "motion-scene"}
+{"specialist": "core", "query": "Hola, ¿qué tal estás?", "expected": null}
+{"specialist": "code", "query": "Hazme una página de prueba", "expected": null}
+{"specialist": "code", "query": "Calcula el margen EBITDA y el ROE", "expected": null}

@@ -791,6 +791,39 @@ def test_prepare_adds_the_users_approved_corrections_for_its_specialist(tmp_path
     assert len(mine) == 1 and mine[0]["messages"][0]["content"] == load_catalog().get("medicine").system_prompt
 
 
+def test_prepare_builds_the_personal_adapter_set_under_spike_cores_prompt(tmp_path, monkeypatch):
+    """EV6: the personal recipe has no domain source: the file `spike evolve personal-adapter` writes is the domain data,
+    only rows tagged spike-personal for the specialist `personal`, trained under Spike Core's system prompt (no catalog
+    entry exists for `personal`), with the same public general replay as every specialist."""
+    from spike.specialists.catalog import load_catalog
+
+    def example(question, source="spike-personal", specialist="personal"):
+        return json.dumps({"messages": [{"role": "system", "content": "otro prompt"}, {"role": "user", "content": question},
+                                        {"role": "assistant", "content": "Una respuesta escrita como me gusta, con detalle."}],
+                           "meta": {"specialist": specialist, "source": source, "id": question}})
+
+    mine = [example(f"Pregunta personal número {i} sobre cómo firmo los correos del trabajo") for i in range(40)]
+    others = [example("Una corrección de medicina", source="spike-correction", specialist="medicine"),
+              example("Una corrección con la etiqueta de un especialista", source="spike-correction", specialist="personal"),
+              example("Personal pero de otra receta", specialist="medicine")]
+    corrections = tmp_path / "spike-personal.jsonl"
+    corrections.write_text("\n".join([*mine, *others]) + "\n", encoding="utf-8")
+    out = run_prepare(tmp_path / "data", monkeypatch, ["--corrections", str(corrections)], config="personal")
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["specialist"] == "personal" and manifest["config"]["system_from"] == "core"
+    assert manifest["sources"]["corrections:spike-personal.jsonl"]["kept"] == 40 and manifest["counts"]["domain"] == 40
+    assert manifest["sources"]["oasst2"]["built"] == 200 and not any(n.startswith("smoltalk") for n in manifest["sources"])
+    assert manifest["counts"]["train"] + manifest["counts"]["valid"] - 40 == int(40 * 0.3 / 0.7)
+    chats = [json.loads(x) for x in [*(out / "train.jsonl").read_text(encoding="utf-8").splitlines(),
+                                     *(out / "valid.jsonl").read_text(encoding="utf-8").splitlines()]]
+    personal_chats = [c for c in chats if "Pregunta personal" in c["messages"][1]["content"]]
+    assert len(personal_chats) == 40 and not any("corrección" in c["messages"][1]["content"] for c in chats)
+    core = load_catalog().get("core").system_prompt
+    assert all(c["messages"][0] == {"role": "system", "content": core} for c in personal_chats)
+    assert (out / "mlx_lora.yaml").is_file() and manifest["config"]["acceptance"] == {
+        "regression": {"suite": "general", "max_drop_points": 1.5}}
+
+
 def distilled_file(tmp_path, n: int = 40, **meta) -> Path:
     """What training/distill.py writes for marketing: open-ended chats with the teacher recorded on every row."""
     meta = {"task_id": "marketing-0", "verified": False, "source": "distill", "teacher": TEACHER,
@@ -906,8 +939,12 @@ def test_training_configs_fit_a_36gb_mac_with_the_same_effective_batch():
 
     for path in (ROOT / "training" / "configs").glob("*.yaml"):
         train = yaml.safe_load(path.read_text(encoding="utf-8"))["train"]
-        assert train["batch_size"] == 1 and train["grad_accumulation_steps"] == 16, path.name
+        assert train["batch_size"] == 1, path.name
         assert train["max_seq_length"] <= 768, path.name  # measured: 18.7 GB peak RSS at 768, OOM at 1024
+        if path.stem == "personal":  # tens of examples, not tens of thousands: a smaller effective batch (4) so that two
+            assert train["grad_accumulation_steps"] == 4  # epochs still make a few dozen optimizer updates (EV6)
+            continue
+        assert train["grad_accumulation_steps"] == 16, path.name
         sched = prepare.training_schedule(train, 26050)
         assert sched["iters"] // 16 == prepare.training_schedule({**train, "batch_size": 4,
                                                                    "grad_accumulation_steps": 4}, 26050)["iters"] // 4

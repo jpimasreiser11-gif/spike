@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,8 @@ class SkillLibrary:
         self.roots = roots
         self.errors: list[str] = []
         self._skills: dict[str, Skill] = {}
+        # optional tie-break (Evolution EV3): (ranked [(score, name)], specialist, text) -> names in the order to use
+        self.prefer: Callable[[list[tuple[float, str]], str, str], list[str]] | None = None
         self.reload()
 
     def reload(self) -> None:
@@ -164,6 +167,10 @@ class SkillLibrary:
     def select(self, text: str, specialist: str, disabled: set[str] | None = None, k: int = 1) -> list[Skill]:
         scored = [(self.score(s, text), s.name, s) for s in self.available(specialist, disabled)]
         ranked = sorted((x for x in scored if x[0] >= MIN_SCORE), key=lambda x: (-x[0], x[1]))
+        if self.prefer is not None and len(ranked) > 1:  # may only reorder skills that already scored: never adds one
+            by_name = {name: skill for _, name, skill in ranked}
+            order = [n for n in self.prefer([(score, name) for score, name, _ in ranked], specialist, text) if n in by_name]
+            ranked = [(0.0, n, by_name[n]) for n in order] + [x for x in ranked if x[1] not in order]
         return [s for _, _, s in ranked[:k]]
 
 

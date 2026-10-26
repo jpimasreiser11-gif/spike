@@ -41,6 +41,7 @@ from spike.providers.guard import CURRENT_CHAT
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
+from spike.server.evolution_api import create_evolution_router
 from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
 from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
@@ -190,10 +191,11 @@ class DomainIn(BaseModel):
 
 class CheckIn(BaseModel):
     replay: bool = False  # also answer the accepted eval candidates again (runs the model)
+    prompts: bool = False  # also compare learned and candidate prompt versions on the eval questions (runs the model)
 
 
 class RollbackIn(BaseModel):
-    component: str  # "router", "adapter:<specialist>" or "prompt:<specialist>"
+    component: str  # "router", "strategy", "adapter:<specialist>", "adapter:personal" or "prompt:<specialist>"
 
 
 class OptimizeIn(BaseModel):
@@ -1069,6 +1071,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 ev["undone"] = True
             if hit:
                 store.update_message_meta(m["id"], m["meta"])
+                for ev in hit:  # EV3: an undone step is not a success of its tool
+                    state.evolution.flag_strategy([m["id"]], "undone", call=str(ev.get("id") or ""))
         return {"ok": True, "files": [f["path"] for f in cp["files"]]}
 
     @app.post("/api/messages/{mid}/learn")
@@ -1163,7 +1167,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def evolution_check(body: CheckIn) -> dict:
         from spike.evolution.checks import run_checks
 
-        return await run_checks(st(), replay=body.replay)
+        return await run_checks(st(), replay=body.replay, prompt_versions=body.prompts)
 
     @app.get("/api/evolution/prompts")
     async def learned_prompts() -> list[dict]:
@@ -1174,6 +1178,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         return [{"specialist": spec.id, "name": spec.name, "questions": len(prompts.eval_set(store, spec.id)),
                  "ideas": prompts.ideas_for(store, spec.id), "active": store.active(prompts.component(spec.id)),
                  "versions": store.versions(prompts.component(spec.id))[:5],
+                 "candidate": next((v for v in store.versions(prompts.component(spec.id)) if not v["active"]
+                                    and v["report"].get("status") in ("candidate", "blocked")), None),
                  "skills": [s.name for s in state.skills.all() if spec.id in (s.specialists or [])]}
                 for spec in state.catalog.specialists.values()]
 
@@ -1248,6 +1254,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             await state.start_runtime()  # llama-server loads adapters when it starts
             restarted = True
         return {"active": previous, "restarted": restarted}
+
+    app.include_router(create_evolution_router(st))  # EV3 tool strategy, EV8 candidate prompts, EV6 personal adapter
 
     # ---------------------------------------------------------------- memory
     def check_scope(scope: str) -> str:
@@ -1446,7 +1454,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             target = next((m for m in store.messages(conv["id"]) if m["id"] == body.replace_from), None)
             if target is None or target["role"] != "user":
                 raise HTTPException(400, "replace_from must be a user message of this conversation")
+            retried = next((m["id"] for m in store.messages(conv["id"])
+                            if m["role"] == "assistant" and m["created"] >= target["created"]), None)
             store.delete_messages_from(conv["id"], body.replace_from)
+            if retried:  # EV3: the answer that was just asked for again no longer counts as a success
+                state.evolution.flag_strategy([retried], "retried")
         history = [Message(role=m["role"], content=m["content"],
                            private=[m["content"]] if m["meta"].get("private") else [])  # answers that quote files
                    for m in store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
@@ -1494,8 +1506,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                     design_event = {"type": "design", **meta["design"]}
                     record(design_event)
                     yield _sse(design_event)
+                answered_before = any(m.role == "assistant" for m in history)
                 learned, saved = ({}, []) if temporary else state.learn_from(
-                    body.message, conv, user_message["id"], any(m.role == "assistant" for m in history))
+                    body.message, conv, user_message["id"], answered_before)
+                if not temporary:
+                    state.flag_correction(body.message, conv["id"], user_message["id"], answered_before)
                 if learned:
                     meta["learn"] = learned
                     for ev in ([{"type": "memory_saved", "saved": learned["saved"]}] if "saved" in learned else
@@ -1574,6 +1589,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         state.evolution.record_failures(body.message, meta, conv["id"], answer["id"])
                     except Exception as exc:  # recording a failure must never become one
                         log.warning("evolution: could not record a failure: %s", exc)
+                    try:
+                        state.record_strategy(body.message, meta, answer["id"])
+                    except Exception as exc:
+                        log.warning("evolution: could not record tool use: %s", exc)
                 if not error and not cancelled and not temporary:
                     state.background(state.maybe_summarize(conv["id"], body.provider_id))
 

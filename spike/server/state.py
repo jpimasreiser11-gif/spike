@@ -78,7 +78,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "disabled_skills": [],
     # Evolution: learn from corrections, route corrections and failures on this computer; a learned router is used
     # only after it passes its gate, and every version can be rolled back
-    "evolution": {"enabled": True, "auto_router": True, "training_data": False},  # training_data: opt-in (level 3)
+    # training_data: opt-in (level 3); auto_strategy: tie-breaks from past use refresh themselves, behind the check
+    # (EV3); personal_adapter: opt-in (EV6), off until the user turns it on
+    "evolution": {"enabled": True, "auto_router": True, "training_data": False, "auto_strategy": True,
+                  "personal_adapter": False},
     # the browser connector's domains ("allow" | "deny") and what other domains do ("ask" | "allow")
     "browser": {"domains": {}, "unknown": "ask"},
     # Spike Finance: public prices from this exchange; real orders off until the user sets them up
@@ -152,6 +155,7 @@ class AppState:
         self.evolution = Evolution(EvolutionStore(self.home / "evolution.db"))
         self.catalog = self._load_catalog()
         self.skills = SkillLibrary([(BUNDLED, "bundled"), (self.home / "skills", "user")])
+        self.skills.prefer = self._prefer_skills
         self.designs = DesignLibrary(self.home / "design-systems")
         if not self.store.list_providers():
             self._seed_providers()
@@ -306,8 +310,9 @@ class AppState:
             pid, model = self.binding(spec, override_provider)
             provider = self.provider(pid)
             adapter = None
-            if spec.adapter and provider.capabilities.adapters and spec.adapter in self.installed_adapters.get(pid, set()):
-                adapter = spec.adapter
+            wanted = spec.adapter or (self.personal_adapter() if spec.id == "core" else None)  # EV6: core only
+            if wanted and provider.capabilities.adapters and wanted in self.installed_adapters.get(pid, set()):
+                adapter = wanted
             max_ctx = provider.capabilities.max_context or (local_ctx if provider.config.local else 32768)
             budget = max(2048, max_ctx - (settings["max_tokens"] or 2048) - 512)
             return Backend(provider=provider, model=model, adapter=adapter, context_budget=budget)
@@ -577,14 +582,16 @@ class AppState:
 
     def rollback(self, component: str) -> dict[str, Any] | None:
         """Go back to the version a component's active version replaced (the built-in one when there is none)."""
-        from spike.evolution import adapters
+        from spike.evolution import adapters, personal
 
         if component == "router":
             previous = self.evolution.store.rollback("router")
             self.reload_catalog()
             return previous
-        if component.startswith("prompt:") and component[7:] in self.catalog.specialists:
+        if component == "strategy" or (component.startswith("prompt:") and component[7:] in self.catalog.specialists):
             return self.evolution.store.rollback(component)
+        if component == adapters.component(personal.PERSONAL):  # the personal adapter (EV6)
+            return adapters.rollback(self.evolution.store, self.adapters_path(), personal.PERSONAL)
         spec = self.catalog.specialists.get(component.removeprefix("adapter:"))
         if not component.startswith("adapter:") or spec is None:
             raise LookupError(f"unknown component '{component}'")
@@ -619,6 +626,99 @@ class AppState:
             answer or (lambda q, v: answer_with_variant(self, q, specialist, v)),
             prompts.ideas_for(self.evolution.store, specialist, typed), skills,
             max_calls or prompts.MAX_CALLS, progress, gate)
+
+    def propose_prompt(self, specialist: str, lines: list[str] | None = None,
+                       skills: dict[str, str] | None = None) -> dict[str, Any]:
+        """EV8: store a candidate prompt version for a specialist; it is used only after `activate_prompt`."""
+        from spike.evolution import prompts
+
+        if specialist not in self.catalog.specialists:
+            raise ValueError(f"unknown specialist '{specialist}'")
+        return prompts.propose(self.evolution.store, specialist, lines, skills)
+
+    async def activate_prompt(self, specialist: str, version: int | None = None, answer=None) -> dict[str, Any]:
+        """EV8: make a candidate prompt version the one in use, only if it scores within the tolerance of the version
+        in use on the local eval set and the other regression checks pass; `answer` replaces the model in tests."""
+        from spike.evolution import prompts
+        from spike.evolution.checks import answer_with_variant, catalog_check, router_check, skills_check
+
+        if specialist not in self.catalog.specialists:
+            raise ValueError(f"unknown specialist '{specialist}'")
+
+        def gate() -> tuple[bool, str]:
+            checks = [router_check(self), catalog_check(self), skills_check(self)]
+            return all(c["ok"] for c in checks), "; ".join(c["detail"] for c in checks if not c["ok"])
+
+        return await prompts.activate(self.evolution.store, specialist, version,
+                                      answer or (lambda q, v: answer_with_variant(self, q, specialist, v)), gate)
+
+    # ------------------------------------------------------------------ evolution: personal adapter (EV6)
+    def personal_adapter(self) -> str | None:
+        """The accepted personal adapter Spike Core loads, only while the setting is on."""
+        from spike.evolution import personal
+
+        return personal.in_use(self.evolution.store, self.evolution_settings(), self.adapters_path())
+
+    def personal_overview(self) -> dict[str, Any]:
+        """What the personal adapter would be trained on, whether it can be trained here and what is in use."""
+        from spike.evolution import adapters, personal
+
+        cfg = self.evolution_settings()
+        built = personal.build_set(self.evolution.store, self.store, bool(cfg["training_data"]))
+        entries = [{k: e[k] for k in ("id", "source", "conversation", "question", "answer", "excluded", "duplicate")}
+                   for e in built["entries"]]
+        return {"enabled": bool(cfg["personal_adapter"]), "training_data": bool(cfg["training_data"]),
+                **personal.availability(), "counts": built["counts"], "chats": built["chats"], "entries": entries,
+                "marked": [{"id": m["id"], "conversation": m["conversation"], "title": m.get("title", "")}
+                           for m in personal.marked(self.evolution.store)],
+                "active": self.evolution.store.active(adapters.component(personal.PERSONAL)),
+                "versions": self.evolution.store.versions(adapters.component(personal.PERSONAL))[:5],
+                "command": "spike evolve personal-adapter --llama-cpp ~/src/llama.cpp"}
+
+    # ------------------------------------------------------------------ evolution: tool strategy (EV3)
+    def _prefer_skills(self, ranked: list[tuple[float, str]], specialist: str, text: str) -> list[str]:
+        """The skill router's tie-break: the learned preference when Evolution is on and it passed its check."""
+        preference = self.evolution.strategy_preference() if self.evolution_settings()["enabled"] else None
+        return preference.order(ranked, specialist, text) if preference else [name for _, name in ranked]
+
+    def record_strategy(self, question: str, meta: dict[str, Any], message_id: str) -> None:
+        """A finished run's tools and skills, by task type; refreshes the tie-break every few new uses if automatic."""
+        from spike.evolution import strategy
+
+        if not self.evolution.record_strategy(question, meta, message_id) or not self.evolution_settings()["auto_strategy"]:
+            return
+        last = next(iter(self.evolution.store.versions(strategy.COMPONENT)), None)
+        if self.evolution.store.count_runs() - (last["report"].get("uses", 0) if last else 0) >= strategy.AUTO_EVERY:
+            self.learn_strategy()
+
+    def flag_correction(self, message: str, conversation_id: str, user_message_id: str, answered_before: bool) -> None:
+        """This message corrects the previous answer (the same patterns as the correction rule): what that answer
+        used no longer counts as a success."""
+        if not answered_before or not self.evolution_settings()["enabled"] or correction_rule(message) is None:
+            return
+        thread = self.store.messages(conversation_id)
+        at = next((i for i, m in enumerate(thread) if m["id"] == user_message_id), None)
+        previous = next((m for m in reversed(thread[:at]) if m["role"] == "assistant"), None) if at else None
+        if previous is not None:
+            self.evolution.flag_strategy([previous["id"]], "corrected")
+
+    def learn_strategy(self) -> dict[str, Any]:
+        """Snapshot the recorded uses as the skill router's tie-break; kept only if routing does not get worse and the
+        regression checks pass with it applied."""
+        from spike.evolution import strategy
+        from spike.evolution.checks import catalog_check, router_check, skills_check
+
+        def gate(preference: strategy.Preference) -> tuple[bool, str]:
+            with strategy.preferring(self.skills, preference):
+                checks = [router_check(self), catalog_check(self), skills_check(self)]
+            return all(c["ok"] for c in checks), "; ".join(c["detail"] for c in checks if not c["ok"])
+
+        return strategy.learn(self.evolution.store, self.skills, gate)
+
+    def reset_strategy(self) -> int:
+        from spike.evolution import strategy
+
+        return strategy.reset(self.evolution.store)
 
     # ------------------------------------------------------------------ memory
     def memory_settings(self) -> dict[str, Any]:

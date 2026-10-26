@@ -10,6 +10,7 @@ from typing import Any
 
 from spike import __version__
 from spike.evolution import candidates as cand
+from spike.evolution import strategy
 from spike.evolution.router_learning import apply_overlay, evaluate, gate, learn_overlay, load_labeled
 from spike.evolution.store import EvolutionStore
 from spike.specialists.catalog import Catalog
@@ -31,6 +32,7 @@ def _specialists(meta: dict[str, Any]) -> list[str]:
 class Evolution:
     def __init__(self, store: EvolutionStore):
         self.store = store
+        self._preference: tuple[int, strategy.Preference] | None = None
 
     # ------------------------------------------------------------------ E1 corrections
     def record_correction(self, thread: list[dict[str, Any]], correction_id: str, rule: str,
@@ -184,6 +186,33 @@ class Evolution:
 
     def export(self) -> str:
         return cand.export_jsonl(list(reversed(self.store.items("candidate", "accepted"))))
+
+    # ------------------------------------------------------------------ EV3 tool strategy
+    def record_strategy(self, question: str, meta: dict[str, Any], message: str) -> int:
+        """Record the tools and skills a finished run used, for the task type of the question. Returns how many."""
+        rows = strategy.observations(meta, question, message)
+        if rows:
+            self.store.add_runs(rows)
+        return len(rows)
+
+    def flag_strategy(self, messages: list[str], flag: str, call: str | None = None) -> int:
+        """The user retried, undid or corrected these answers: their uses stop counting as successes."""
+        return self.store.flag_runs(messages, flag, call)
+
+    def strategy_preference(self) -> strategy.Preference | None:
+        """The tie-break rule in use: the active snapshot of `strategy`, None for the router's own order."""
+        version = self.store.active(strategy.COMPONENT)
+        if version is None:
+            return None
+        if self._preference is None or self._preference[0] != version["id"]:
+            self._preference = (version["id"], strategy.Preference.from_version(version["data"]))
+        return self._preference[1]
+
+    def strategy_overview(self) -> dict[str, Any]:
+        active = self.store.active(strategy.COMPONENT)
+        return {"rows": strategy.table(self.store), "uses": self.store.count_runs(), "active": active,
+                "min_samples": strategy.MIN_SAMPLES, "margin": strategy.SKILL_MARGIN,
+                "versions": self.store.versions(strategy.COMPONENT)[:5]}
 
     # ------------------------------------------------------------------ overview
     def overview(self, base: Catalog) -> dict[str, Any]:

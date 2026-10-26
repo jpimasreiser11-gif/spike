@@ -7,6 +7,7 @@ import asyncio
 import codecs
 import json
 import logging
+import os
 import signal
 import sys
 import webbrowser
@@ -160,14 +161,18 @@ def cmd_evolve(args: argparse.Namespace) -> int:
         state = AppState()
         try:
             if args.action == "check":
+                from spike.evolution import prompts
                 from spike.evolution.checks import run_checks
 
-                report = await run_checks(state, replay=args.replay)
+                report = await run_checks(state, replay=args.replay, prompt_versions=args.prompts)
                 if args.json:
                     print(json.dumps(report, indent=2, ensure_ascii=False))
                 for c in [] if args.json else report["checks"]:
                     print(f"{'ok  ' if c['ok'] else 'FAIL'} {c['name']:<9} {c['detail']}")
-                    for r in c.get("results") or []:
+                    for r in (c.get("results") or []) if c["name"] == "prompts" else []:
+                        print(f"       {'ok  ' if r['ok'] else 'fail'} {r['specialist']} {r['what']} v{r['version']}: "
+                              f"{prompts.verdict_text(r)}")
+                    for r in [] if c["name"] == "prompts" else c.get("results") or []:
                         print(f"       {'pass' if r['passed'] else 'fail'} {r['question'][:70]}"
                               + (f"  ({'; '.join(r['problems'])})" if r["problems"] else "")
                               + ("" if r["checked"] else "  [no text checks: only that it answers without error]"))
@@ -201,6 +206,36 @@ def cmd_evolve(args: argparse.Namespace) -> int:
                         print(f"Best: {c['passed']}/{c['total']} on its second run, with: {'; '.join(report['changes'])}")
                 print("Accepted: now in use." if report["accepted"] else "Nothing changed: " + "; ".join(report["reasons"]))
                 return 0 if report["accepted"] else 1
+            if args.action == "strategy":
+                return evolve_strategy(state, args)
+            if args.action == "candidate":
+                if not args.component:
+                    print("error: name the specialist, e.g. spike evolve candidate medicine --try \"Cita la guía\"",
+                          file=sys.stderr)
+                    return 2
+                modes = dict(pair.split("=", 1) for pair in args.skill if "=" in pair)
+                version = state.propose_prompt(args.component, args.try_line, modes)
+                print(f"Candidate prompt v{version['id']} for {args.component}: {version['reason']}\n"
+                      f"It changes nothing yet. Compare it with `spike evolve check --prompts`; use it with "
+                      f"`spike evolve activate {args.component}`, which refuses it if it scores lower on your eval "
+                      f"questions than the version in use.")
+                return 0
+            if args.action == "activate":
+                if not args.component:
+                    print("error: name the specialist, e.g. spike evolve activate medicine", file=sys.stderr)
+                    return 2
+                from spike.evolution import prompts
+
+                report = await state.activate_prompt(args.component, args.version)
+                print(f"v{report['version']}: {prompts.verdict_text(report)}")
+                if report["activated"]:
+                    print(f"Activated: now in use. Go back with: spike evolve rollback prompt:{args.component}")
+                else:
+                    print("Blocked, nothing changed: " + (report.get("reason") or "it scores more than "
+                          f"{prompts.TOLERANCE_POINTS:g} points below the version in use"))
+                return 0 if report["activated"] else 1
+            if args.action == "personal-adapter":
+                return evolve_personal(state, args)
             if args.action == "dataset":
                 from spike.evolution import dataset
 
@@ -240,6 +275,92 @@ def cmd_evolve(args: argparse.Namespace) -> int:
             await state.close()
 
     return asyncio.run(run())
+
+
+def evolve_strategy(state, args: argparse.Namespace) -> int:
+    """`spike evolve strategy`: the tool and skill counts per task type, and the tie-break learned from them."""
+    from spike.evolution import strategy
+
+    if args.reset:
+        print(f"Forgot {state.reset_strategy()} recorded uses; skill ties go back to the router's own order.")
+        return 0
+    report = state.learn_strategy()
+    rows = state.evolution.strategy_overview()["rows"]
+    if args.json:
+        print(json.dumps({"rows": rows, "report": report}, indent=2, ensure_ascii=False))
+        return 0
+    print(f"{'kind':<6} {'name':<28} {'task type':<22} {'worked':>8}  rate")
+    for r in rows:
+        print(f"{r['kind']:<6} {r['name']:<28} {r['task_type']:<22} {r['good']:>3}/{r['n']:<4}  {r['rate']:.0%}"
+              + ("" if r["enough"] else f"  (needs {strategy.MIN_SAMPLES} uses to count)"))
+    if not rows:
+        print("Nothing recorded yet: tools and skills are counted as you use SPIKE.")
+    print("Used only to break ties between skills that score the same, once every one has "
+          f"{strategy.MIN_SAMPLES} recorded uses for the task type, and only if `spike evolve check` passes with it.")
+    if report["accepted"]:
+        print(f"Tie-break in use (v{report['version']}), from {report['uses']} recorded uses.")
+    else:
+        print("Not in use: " + "; ".join(report["reasons"]))
+    return 0
+
+
+def evolve_personal(state, args: argparse.Namespace) -> int:
+    """`spike evolve personal-adapter`: choose what goes into a personal adapter, then train it (Apple silicon)."""
+    from spike.evolution import personal
+
+    evo = state.evolution.store
+    if args.enable or args.disable:
+        state.update_settings({"evolution": {**state.evolution_settings(), "personal_adapter": bool(args.enable)}})
+        print("Personal adapter " + ("on: nothing is used until you mark chats or approve corrections, and nothing "
+                                     "is trained until you run this command and confirm." if args.enable else "off."))
+        return 0
+    enabled = bool(state.evolution_settings()["personal_adapter"])
+    if not enabled:
+        print("The personal adapter is off. Turn it on in Settings > Evolución or with "
+              "`spike evolve personal-adapter --enable`; nothing was done.", file=sys.stderr)
+        return 1
+    for cid in args.mark:
+        personal.mark_chat(evo, state.store, cid)
+    overview = personal.build_set(evo, state.store, bool(state.evolution_settings()["training_data"]))
+    known = {e["id"] for e in overview["entries"]}
+    for ref in [*args.exclude, *args.include]:
+        if ref not in known:
+            print(f"error: '{ref}' is not an example in the personal set (see --list)", file=sys.stderr)
+            return 2
+        personal.set_excluded(evo, ref, ref in args.exclude)
+    for cid in args.unmark:
+        personal.unmark_chat(evo, cid)
+    if args.exclude or args.include or args.mark or args.unmark:
+        overview = personal.build_set(evo, state.store, bool(state.evolution_settings()["training_data"]))
+    print("\n".join(personal.summary(overview)))
+    if args.list:
+        for e in overview["entries"]:
+            flag = "excluded" if e["excluded"] else "repeated" if e["duplicate"] else "used"
+            print(f"  {e['id']:<44} {e['source']:<10} {flag:<9} {e['question'][:60]!r}")
+        return 0
+    here = personal.availability()
+    if not here["available"]:
+        print("error: " + here["reason"], file=sys.stderr)
+        return 1
+    if overview["counts"]["used"] < personal.MIN_EXAMPLES:
+        print(f"error: at least {personal.MIN_EXAMPLES} examples are needed to train.", file=sys.stderr)
+        return 1
+    question = (f"Train a personal adapter on these {overview['counts']['used']} examples? "
+                "It takes hours and stays on this computer. [y/N] ")
+    if not args.yes and (not sys.stdin.isatty() or input(question).strip().lower() != "y"):
+        print("Not started. Run again with --yes to train without this question.", file=sys.stderr)
+        return 1
+    llama_cpp = args.llama_cpp or os.environ.get("SPIKE_LLAMA_CPP") or ""
+    model = args.model or state.settings()["local_runtime"].get("model") or ""
+    if not llama_cpp or not model:
+        print("error: pass --llama-cpp (the llama.cpp checkout) and --model (the base GGUF, or set it in Settings).",
+              file=sys.stderr)
+        return 2
+    result = personal.run(personal.Job(
+        evo, state.store, state.evolution_settings(), state.adapters_path(), state.home / "personal",
+        Path(llama_cpp).expanduser(), Path(model).expanduser(), runner=personal.run_command, log=print))
+    print(result["message"])
+    return {"accepted": 0, "rejected": 2}.get(result["status"], 1)
 
 
 def cmd_forge(args: argparse.Namespace) -> int:
@@ -549,13 +670,32 @@ def build_parser() -> argparse.ArgumentParser:
     t.set_defaults(func=cmd_tune)
 
     ev = sub.add_parser("evolve", help="check, learn, optimise or roll back what SPIKE learned from its use")
-    ev.add_argument("action", choices=["check", "router", "optimize", "dataset", "rollback", "export"])
-    ev.add_argument("component", nargs="?", help="optimize: a specialist; dataset: output folder; rollback: router, "
-                                                 "adapter:<specialist> or prompt:<specialist>; export: output file")
+    ev.add_argument("action", choices=["check", "router", "strategy", "optimize", "candidate", "activate", "dataset",
+                                       "personal-adapter", "rollback", "export"])
+    ev.add_argument("component", nargs="?", help="optimize, candidate, activate: a specialist; dataset: output "
+                                                 "folder; rollback: router, strategy, adapter:<specialist>, "
+                                                 "adapter:personal or prompt:<specialist>; export: output file")
     ev.add_argument("--try", dest="try_line", action="append", default=[],
-                    help="optimize: an instruction line to try, besides the rules saved from corrections")
+                    help="optimize: an instruction line to try, besides the rules saved from corrections; candidate: "
+                         "a line to add")
+    ev.add_argument("--skill", action="append", default=[], metavar="NAME=MODE",
+                    help="candidate: set a skill to always, off or auto")
+    ev.add_argument("--version", type=int, help="activate: the candidate version (default: the newest)")
     ev.add_argument("--max-calls", type=int, help="optimize: at most this many model answers (default 120)")
     ev.add_argument("--replay", action="store_true", help="check: answer the accepted eval candidates again")
+    ev.add_argument("--prompts", action="store_true",
+                    help="check: compare learned and candidate prompts on your eval questions (runs the model)")
+    ev.add_argument("--reset", action="store_true", help="strategy: forget every recorded tool and skill use")
+    ev.add_argument("--enable", action="store_true", help="personal-adapter: turn the feature on")
+    ev.add_argument("--disable", action="store_true", help="personal-adapter: turn the feature off")
+    ev.add_argument("--list", action="store_true", help="personal-adapter: list every example and whether it is used")
+    ev.add_argument("--mark", action="append", default=[], metavar="CHAT", help="personal-adapter: use this chat")
+    ev.add_argument("--unmark", action="append", default=[], metavar="CHAT", help="personal-adapter: stop using it")
+    ev.add_argument("--exclude", action="append", default=[], metavar="ID", help="personal-adapter: leave an example out")
+    ev.add_argument("--include", action="append", default=[], metavar="ID", help="personal-adapter: put it back")
+    ev.add_argument("--llama-cpp", help="personal-adapter: llama.cpp checkout (default $SPIKE_LLAMA_CPP)")
+    ev.add_argument("--model", help="personal-adapter: base GGUF (default: the local model in Settings)")
+    ev.add_argument("--yes", action="store_true", help="personal-adapter: train without asking")
     ev.add_argument("--json", action="store_true")
     ev.set_defaults(func=cmd_evolve)
 

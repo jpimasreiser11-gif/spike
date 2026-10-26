@@ -262,7 +262,7 @@ def test_cli_dataset_writes_the_approved_examples(env, tmp_path, capsys, monkeyp
     [example] = state.evolution.store.items("example")
     state.evolution.store.update(example["id"], status="approved")
     assert main(["evolve", "dataset", str(tmp_path / "out")]) == 0
-    assert len((tmp_path / "out" / "spike-training.jsonl").read_text().splitlines()) == 1
+    assert len((tmp_path / "out" / "spike-training.jsonl").read_text(encoding="utf-8").splitlines()) == 1
     assert dataset.LOCAL_ENGINE == "spike-local"
 
 

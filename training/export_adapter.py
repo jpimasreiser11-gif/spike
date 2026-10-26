@@ -119,6 +119,8 @@ def main() -> int:
     ap.add_argument("--ngl", type=int, default=99)
     ap.add_argument("--name", help="file stem of the GGUF (default spike-<specialist>)")
     ap.add_argument("--work", help="where peft/ and export.json are written (default training/runs/<specialist>)")
+    ap.add_argument("--system-from", help="catalog specialist whose system prompt the live check uses (default: the "
+                                          "specialist itself; the personal adapter uses core)")
     args = ap.parse_args()
     if args.name and Path(args.name).name != args.name:
         ap.error(f"--name is a file stem, not a path: {args.name}")
@@ -141,7 +143,7 @@ def main() -> int:
     if args.check_model:
         from spike.specialists.catalog import load_catalog
 
-        system = load_catalog().get(args.specialist).system_prompt
+        system = load_catalog().get(args.system_from or args.specialist).system_prompt
         report["live_check"] = asyncio.run(live_check(Path(args.check_model).expanduser(), out, system, args.ngl))
         print(f"live check: adapter changed {report['live_check']['outputs_changed']}/{len(PROBES)} greedy outputs")
     (work_dir / "export.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")

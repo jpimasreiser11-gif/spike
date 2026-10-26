@@ -4,9 +4,11 @@ $SPIKE_HOME/evolution.db. Nothing in it leaves the computer.
 Items: `correction` (a rule saved from a correction, with the question and the answer it corrected), `route` (the
 user retried an answer with another specialist), `failure` (a run or tool error, with the cause and fix the user
 writes), `candidate` (a proposed eval question made from the others) and `example` (a correction as training
-data, only when the user opted in). Versions: one row per change of a component (`router`, `adapter:<specialist>`,
-`prompt:<specialist>`); at most one is active, and rolling back activates the version it
-replaced (none active means the built-in behaviour)."""
+data, only when the user opted in) and `personal` (a chat marked for the personal adapter, or one item left out of it).
+Versions: one row per change of a component (`router`, `strategy`, `adapter:<specialist>`, `adapter:personal`,
+`prompt:<specialist>`); at most one is active, and rolling back activates the version it replaced (none active means
+the built-in behaviour). Runs: one row per tool or skill a chat used, with the task type and whether it worked (EV3).
+Only names, task types and flags are kept there, never the text of a chat."""
 
 from __future__ import annotations
 
@@ -30,9 +32,18 @@ CREATE TABLE IF NOT EXISTS versions (
   reason TEXT NOT NULL DEFAULT '', replaces INTEGER
 );
 CREATE INDEX IF NOT EXISTS versions_by_component ON versions(component, id);
+CREATE TABLE IF NOT EXISTS tool_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT NOT NULL, call TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL,
+  name TEXT NOT NULL, task_type TEXT NOT NULL, ok INTEGER NOT NULL, flag TEXT NOT NULL DEFAULT '',
+  created REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS tool_runs_by_message ON tool_runs(message);
+CREATE INDEX IF NOT EXISTS tool_runs_by_key ON tool_runs(kind, name, task_type);
 """
-KINDS = {"correction", "route", "failure", "candidate", "example"}
+KINDS = {"correction", "route", "failure", "candidate", "example", "personal"}
 MAX_ITEMS = 2000  # per kind; the oldest are dropped first
+MAX_RUNS = 20000  # tool and skill uses kept; the oldest are dropped first
+RUN_FLAGS = ("retried", "undone", "corrected")  # why a use that returned fine still does not count as a success
 
 
 class EvolutionStore:
@@ -144,3 +155,82 @@ class EvolutionStore:
                 self._conn.execute("UPDATE versions SET active = 1 WHERE id = ?", (current["replaces"],))
             self._conn.commit()
         return self.version(current["replaces"]) if current["replaces"] else None
+
+    def activate(self, version_id: int) -> dict[str, Any]:
+        """Make an existing version the active one of its component (a candidate that passed its check). What it
+        replaces becomes the version active now, so a rollback goes back to it."""
+        version = self.version(version_id)
+        if version is None:
+            raise LookupError(f"version {version_id} not found")
+        current = self.active(version["component"])
+        replaces = version["replaces"] if current and current["id"] == version_id else current["id"] if current else None
+        with self._lock:
+            self._conn.execute("UPDATE versions SET active = 0 WHERE component = ?", (version["component"],))
+            self._conn.execute("UPDATE versions SET active = 1, replaces = ? WHERE id = ?", (replaces, version_id))
+            self._conn.commit()
+        return self.version(version_id)  # type: ignore[return-value]
+
+    def deactivate(self, component: str) -> None:
+        """Go back to the built-in behaviour without losing the versions (they stay in the history)."""
+        self._exec("UPDATE versions SET active = 0 WHERE component = ?", (component,))
+
+    def annotate(self, version_id: int, report: dict[str, Any] | None = None, reason: str | None = None) -> dict[str, Any]:
+        """Add to a version's report (merged, key by key) and/or replace its reason: the result of a check."""
+        version = self.version(version_id)
+        if version is None:
+            raise LookupError(f"version {version_id} not found")
+        self._exec("UPDATE versions SET report = ?, reason = ? WHERE id = ?",
+                   (json.dumps({**version["report"], **(report or {})}, ensure_ascii=False),
+                    version["reason"] if reason is None else reason, version_id))
+        return self.version(version_id)  # type: ignore[return-value]
+
+    # -------------------------------------------------------------- tool and skill runs (EV3)
+    def add_runs(self, rows: list[dict[str, Any]]) -> None:
+        """Record uses of tools and skills: {message, call, kind, name, task_type, ok}."""
+        now = time.time()
+        with self._lock:
+            self._conn.executemany(
+                "INSERT INTO tool_runs (message, call, kind, name, task_type, ok, created) VALUES (?,?,?,?,?,?,?)",
+                [(r["message"], r.get("call", ""), r["kind"], r["name"], r["task_type"], int(bool(r["ok"])), now)
+                 for r in rows])
+            self._conn.execute("DELETE FROM tool_runs WHERE id NOT IN (SELECT id FROM tool_runs ORDER BY id DESC "
+                               "LIMIT ?)", (MAX_RUNS,))
+            self._conn.commit()
+
+    def flag_runs(self, messages: list[str], flag: str, call: str | None = None) -> int:
+        """Mark the uses recorded for these answers as retried, undone or corrected (only the first reason is kept);
+        `call` narrows it to one tool call. Returns how many uses changed."""
+        if flag not in RUN_FLAGS:
+            raise ValueError(f"unknown flag '{flag}'")
+        if not messages:
+            return 0
+        marks = ",".join("?" * len(messages))
+        sql = f"UPDATE tool_runs SET flag = ? WHERE flag = '' AND message IN ({marks})"
+        params: list[Any] = [flag, *messages]
+        if call is not None:
+            sql, params = sql + " AND call = ?", [*params, call]
+        with self._lock:
+            changed = self._conn.execute(sql, params).rowcount
+            self._conn.commit()
+        return changed
+
+    def run_stats(self) -> list[dict[str, Any]]:
+        """Per (kind, name, task type): uses and successes. A success is a use that returned without an error and
+        was not retried, undone or corrected afterwards."""
+        rows = self._exec("SELECT kind, name, task_type, COUNT(*) AS n, SUM(ok = 1 AND flag = '') AS good, "
+                          "SUM(flag = 'retried') AS retried, SUM(flag = 'undone') AS undone, "
+                          "SUM(flag = 'corrected') AS corrected, MAX(created) AS last FROM tool_runs "
+                          "GROUP BY kind, name, task_type ORDER BY kind, name, task_type")
+        return [{"kind": r["kind"], "name": r["name"], "task_type": r["task_type"], "n": r["n"], "good": r["good"],
+                 "retried": r["retried"], "undone": r["undone"], "corrected": r["corrected"], "last": r["last"]}
+                for r in rows]
+
+    def count_runs(self) -> int:
+        return self._exec("SELECT COUNT(*) AS n FROM tool_runs")[0]["n"]
+
+    def clear_runs(self) -> int:
+        """Forget every recorded use (Settings → Evolución → reset); returns how many there were."""
+        with self._lock:
+            deleted = self._conn.execute("DELETE FROM tool_runs").rowcount
+            self._conn.commit()
+        return deleted

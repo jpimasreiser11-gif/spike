@@ -197,7 +197,7 @@ def main() -> int:
     registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     from spike.specialists.catalog import load_catalog
 
-    system = load_catalog().get(cfg["specialist"]).system_prompt
+    system = load_catalog().get(cfg.get("system_from", cfg["specialist"])).system_prompt  # personal: Spike Core's
     out = Path(args.out) / cfg["specialist"]
     out.mkdir(parents=True, exist_ok=True)
     manifest: dict = {"specialist": cfg["specialist"], "config": cfg, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -309,12 +309,15 @@ def main() -> int:
                 domain.append(chat)
                 kept += 1
         manifest["sources"][f"distilled:{Path(path).name}"]["kept"] = kept
-    for path in args.corrections:  # Evolution level 3: the user's approved corrections (`spike evolve dataset`)
+    # Evolution level 3: the user's approved corrections (`spike evolve dataset`); for the personal adapter (EV6) the
+    # file is the one `spike evolve personal-adapter` writes, with its own source tag
+    wanted = "spike-personal" if cfg["specialist"] == "personal" else "spike-correction"
+    for path in args.corrections:
         kept = 0
         for line in Path(path).read_text(encoding="utf-8").splitlines():
             chat = json.loads(line)
             meta = chat.pop("meta", None) or {}
-            if meta.get("source") != "spike-correction" or meta.get("specialist") != cfg["specialist"]:
+            if meta.get("source") != wanted or meta.get("specialist") != cfg["specialist"]:
                 continue
             chat["messages"] = [{"role": "system", "content": system},
                                 *(m for m in chat["messages"] if m["role"] != "system")]
