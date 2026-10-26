@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spike.local/schemas/v1/project-export.schema.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "spike-project"
+    },
+    "version": {
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "design": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "instructions",
+        "mode"
+      ],
+      "additionalProperties": true
+    },
+    "conversations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created": {
+            "type": "number",
+            "minimum": 0
+          },
+          "updated": {
+            "type": "number",
+            "minimum": 0
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object"
+                },
+                "created": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "role",
+                "content",
+                "meta",
+                "created"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "title",
+          "mode",
+          "provider_id",
+          "created",
+          "updated",
+          "messages"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "project",
+    "conversations"
+  ],
+  "additionalProperties": false
+}

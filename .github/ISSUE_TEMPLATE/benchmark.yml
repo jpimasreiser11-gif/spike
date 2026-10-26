@@ -1,0 +1,20 @@
+name: Benchmark / Rendimiento
+description: Share anonymous measured results / Compartir mediciones anónimas
+title: "[bench] "
+body:
+  - type: markdown
+    attributes:
+      value: "Run / Ejecuta: spike bench --model <GGUF> --share. Review bench-share.json before posting / Revisa el JSON antes de publicar. Nothing is uploaded automatically / Nada se envía automáticamente."
+  - type: textarea
+    id: benchmark
+    attributes:
+      label: Anonymous JSON / JSON anónimo
+      description: Paste the share output only; never raw reports, paths, keys or personal data / Solo la salida anónima, sin rutas, claves ni datos personales.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Conditions / Condiciones
+      description: Optional workload and power settings; omit personal data / Carga y energía opcionales; omite datos personales.

@@ -43,6 +43,7 @@ jobs:
         run: |
           spike skills validate
           spike connectors validate
+      - run: python scripts/compat_matrix.py --check
       - name: Team task board is valid and BOARD.md is current
         if: runner.os == 'Linux' && matrix.python == '3.13'
         run: |

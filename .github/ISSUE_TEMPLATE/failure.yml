@@ -1,0 +1,22 @@
+name: Failure / Fallo
+description: Reproducible failure without secrets / Fallo reproducible sin secretos
+title: "[failure] "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: SPIKE version and OS / Versión de SPIKE y sistema
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected and actual result / Pasos, resultado esperado y real
+      description: Use synthetic inputs; remove usernames, paths, IPs and credentials / Usa datos de ejemplo; elimina usuarios, rutas, IPs y credenciales.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Selected evidence / Evidencia seleccionada
+      description: Review each file before sharing. A proof package can contain private chat text / Revisa cada archivo. El paquete de prueba puede contener texto privado.

@@ -544,9 +544,14 @@ def cmd_chat(args: argparse.Namespace) -> int:
 
 
 def cmd_bench(args: argparse.Namespace) -> int:
-    from spike.bench import run_benchmark
+    from spike.bench import run_benchmark, share_report
 
     result = asyncio.run(run_benchmark(args))
+    if getattr(args, "share", False):
+        result = share_report(result)
+        target = Path(args.out or "bench-share.json")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
     return 0
 
@@ -686,6 +691,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="llama-server context for every length (default: longest prompt + gen + 256)")
     b.add_argument("--port", type=int, default=8799)
     b.add_argument("--out", help="write the JSON report here")
+    b.add_argument("--share", action="store_true",
+                   help="save and print anonymous JSON / guardar e imprimir JSON anónimo (default: bench-share.json)")
     b.set_defaults(func=cmd_bench)
 
     t = sub.add_parser("tune", help="measure threads and KV cache on this machine and save the fastest settings")

@@ -54,7 +54,7 @@ def test_the_package_is_complete_consistent_and_keeps_secrets_out(env):
     zf = zipfile.ZipFile(io.BytesIO(r.content))
     names = set(zf.namelist())
     assert names == {"README.txt", "manifest.json", "chat.json", "calls.json", "file-changes.json", "chat.md",
-                     "SHA256SUMS"}
+                     "SHA256SUMS", "environment.json"}
     for line in zf.read("SHA256SUMS").decode().splitlines():  # what `sha256sum -c SHA256SUMS` checks
         digest, name = line.split("  ")
         assert hashlib.sha256(zf.read(name)).hexdigest() == digest
@@ -72,3 +72,18 @@ def test_the_package_is_complete_consistent_and_keeps_secrets_out(env):
     assert "## You" in md and "Escribe las notas" in md and "Tool `write_file`" in md and "notas.md" in md
     assert "| spike-local |" in md or "Model calls" in md
     assert client.get("/api/conversations/nope/proof").status_code == 404
+
+
+def test_api_can_select_only_environment_and_rejects_unknown_sections(env):
+    client, state, local, _ = env
+    cid = chat(client, local, "Private conversation", [text("Private answer")])
+    response = client.get(f"/api/conversations/{cid}/proof?include=environment")
+    assert response.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert 'chat.json' not in archive.namelist()
+        assert 'calls.json' not in archive.namelist()
+        assert b'Private' not in b''.join(archive.read(n) for n in archive.namelist())
+    assert client.get(f"/api/conversations/{cid}/proof?include=invalid").status_code == 400
+    response = client.get(f"/api/conversations/{cid}/proof?include=")
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        assert set(archive.namelist()) == {'README.txt', 'manifest.json', 'SHA256SUMS'}
