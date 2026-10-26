@@ -26,6 +26,38 @@ await page.goto(base);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
+// Lab opens with local history only; both preview and explicit execution are exercised before chat.
+const labPosts = [];
+page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/lab/")) labPosts.push(r.url()); });
+await page.getByRole("button", { name: "Lab", exact: true }).click();
+const lab = page.getByRole("region", { name: "Lab", exact: true });
+await lab.getByRole("heading", { name: "Ejecuciones guardadas" }).waitFor();
+if (labPosts.length) fail("opening Lab must not issue a provider call");
+await lab.getByLabel("Prompt", { exact: true }).fill("Hola, ¿quién eres?");
+await lab.getByRole("button", { name: "Añadir comparación" }).click();
+await lab.getByLabel("Especialista 2").selectOption("writing");
+await lab.getByRole("button", { name: "Estimar comparación", exact: true }).click();
+await lab.getByRole("button", { name: "Ejecutar ahora" }).waitFor();
+if (labPosts.length !== 1 || !labPosts[0].endsWith("/preview")) fail("Lab preview must not execute");
+await lab.getByRole("button", { name: "Ejecutar ahora" }).click();
+await lab.locator("tbody tr").nth(1).waitFor();
+if (await lab.locator("tbody tr").count() !== 2) fail("Lab must compare both targets");
+const labExport = lab.getByRole("link", { name: "Exportar JSON" });
+const exportedLab = await (await ctx.request.get(await labExport.getAttribute("href"))).json();
+if (exportedLab.rows.length !== 2) fail("Lab JSON export must contain both results");
+await lab.getByRole("button", { name: "Estimar prueba de proveedor", exact: true }).click();
+await lab.getByRole("button", { name: "Ejecutar ahora" }).waitFor();
+if (labPosts.filter((p) => p.endsWith("/execute")).length !== 1) fail("Lab probe preview must not execute");
+await lab.getByRole("button", { name: "Ejecutar ahora" }).click();
+await lab.getByText("Sin probar", { exact: true }).first().waitFor();
+if (await lab.locator("tbody tr").count() !== 5) fail("Lab must list all five capabilities");
+await page.screenshot({ path: `${out}/00-lab.png` });
+await lab.getByRole("button", { name: "Volver al chat" }).click();
+await page.getByRole("button", { name: "Lab", exact: true }).click();
+await lab.getByRole("button", { name: /Estimar comparación/ }).last().click();
+await lab.locator("tbody tr").nth(1).waitFor();
+await lab.getByRole("button", { name: "Volver al chat" }).click();
+
 // 1. direct chat
 await page.locator("#composer-input").fill("Hola, ¿quién eres?");
 await page.keyboard.press("Enter");

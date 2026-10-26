@@ -6,6 +6,7 @@ import { Composer } from "./components/Composer";
 import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
 import { IconBack, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
+import { Lab } from "./components/Lab";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { Replay } from "./components/Replay";
@@ -99,6 +100,7 @@ export default function App() {
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [forgeOpen, setForgeOpen] = useState(false);
+  const [labOpen, setLabOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [engine, setEngine] = useState<{ running: boolean } | null>(null);
   const [fatal, setFatal] = useState("");
@@ -349,6 +351,7 @@ export default function App() {
           {!sidebar && <button className="icon-btn" onClick={newChat} aria-label={t.newChat}><IconPlus /></button>}
           {project && <span className="crumb"><IconFolder size={15} /> {project.name}</span>}
           <div className="spacer" />
+          <button className="btn small" disabled={busy} onClick={() => setLabOpen(true)}>{t.lab.title}</button>
           {(empty || temporary) && (
             <button className={`btn small temp-toggle ${temporary ? "on" : ""}`} aria-pressed={temporary} disabled={!empty}
               onClick={() => setTemporary(!temporary)} title={t.temporaryHint}><IconTimer size={15} /> {t.temporaryChat}</button>
@@ -363,7 +366,9 @@ export default function App() {
 
         {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}
 
-        {creatorOpen ? (
+        {labOpen ? (
+          <Lab specialists={specialists} providers={providers} onClose={() => setLabOpen(false)} />
+        ) : creatorOpen ? (
           <Creator specialists={specialists} providers={providers} projectId={project?.id} designs={designs} projectDesign={project?.design}
             onRun={runForge} onClose={() => setCreatorOpen(false)} />
         ) : forgeOpen ? (
