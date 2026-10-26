@@ -140,3 +140,142 @@ def test_import_rejects_unsafe_archives(env, tmp_path):
     assert client.post("/api/projects/import", content=evil).status_code == 400
     assert not list(tmp_path.rglob("escaped.txt"))
     assert client.get("/api/projects").json() == []
+
+
+def test_project_archive_carries_notes_without_other_scopes_or_local_metadata(env):
+    client, state, _ = env
+    p, other = make(client), make(client)
+    memory = state.memory.store
+    memory.add("Responde en tablas", "rule", scope=f"project:{p['id']}",
+               source="/private/local/path", meta={"credential": "never-port-this"})
+    memory.add("Otra cuenta", "fact", scope=f"project:{other['id']}")
+    memory.add("Privado global", "fact")
+    archive = client.get(f"/api/projects/{p['id']}/export").content
+    with zipfile.ZipFile(io.BytesIO(archive)) as z:
+        manifest = json.loads(z.read("project.json"))
+    assert manifest["memories"] == [{"kind": "rule", "text": "Responde en tablas"}]
+    imported = client.post("/api/projects/import", content=archive).json()
+    notes = memory.list(scope=f"project:{imported['id']}")
+    assert [(m.kind, m.text, m.source, m.meta) for m in notes] == [("rule", "Responde en tablas", "", {})]
+    assert notes[0].id != memory.list(scope=f"project:{p['id']}")[0].id
+
+
+@pytest.mark.parametrize("memories", [None, {}, [{"kind": "invalid", "text": "x"}],
+                                     [{"kind": "rule", "text": " "}], ["not a memory"]])
+def test_project_import_validates_notes_before_creating_records(env, memories):
+    client, _, _ = env
+    manifest = {"format": "spike-project", "version": 1, "project": {"name": "x"}, "memories": memories}
+    r = client.post("/api/projects/import", content=zip_of({"project.json": json.dumps(manifest).encode()}))
+    assert r.status_code == 400, r.text
+    assert client.get("/api/projects").json() == []
+
+
+def test_project_import_rolls_back_notes_and_files_on_failure(env, monkeypatch):
+    from spike.projects import ProjectError
+
+    client, state, _ = env
+    manifest = {"format": "spike-project", "version": 1, "project": {"name": "x"},
+                "memories": [{"kind": "rule", "text": "Solo tablas"}]}
+    blob = zip_of({"project.json": json.dumps(manifest).encode(), "files/a.txt": b"a"})
+
+    def broken(*args):
+        raise ProjectError("write failed")
+
+    monkeypatch.setattr(state.project_files, "write", broken)
+    assert client.post("/api/projects/import", content=blob).status_code == 400
+    assert client.get("/api/projects").json() == []
+    assert state.memory.store.list() == []
+
+
+def test_project_file_symlinks_never_escape_or_enter_exports(env, tmp_path):
+    client, state, _ = env
+    p = make(client)
+    root = state.project_files.folder(p["id"])
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.txt"
+    secret.write_text("private", encoding="utf-8")
+    try:
+        (root / "link").symlink_to(outside, target_is_directory=True)
+        (root / "secret.txt").symlink_to(secret)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unavailable")
+    base = f"/api/projects/{p['id']}/files"
+    for path in ("link/secret.txt", "secret.txt"):
+        assert client.get(f"{base}/{path}").status_code == 400
+        assert client.put(f"{base}/{path}", content=b"overwritten").status_code == 400
+        assert client.delete(f"{base}/{path}").status_code == 400
+    assert secret.read_text(encoding="utf-8") == "private"
+    assert client.get(base).json() == []
+    with zipfile.ZipFile(io.BytesIO(client.get(f"/api/projects/{p['id']}/export").content)) as z:
+        assert z.namelist() == ["project.json"]
+
+
+def test_project_note_export_roundtrip_is_stable_and_skips_generated_indexes(env):
+    client, state, _ = env
+    p = make(client)
+    memory = state.memory.store
+    scope = f"project:{p['id']}"
+    memory.add("Primera nota", "decision", scope=scope)
+    memory.add("Segunda nota", "rule", scope=scope)
+    memory.add("Indexed text", "document", scope=scope, source="file:plan.txt")
+    memory.add("Generated summary", "summary", scope=scope, source="conversation:old-chat")
+    exported = client.get(f"/api/projects/{p['id']}/export").content
+    q = client.post("/api/projects/import", content=exported).json()
+    assert client.get(f"/api/projects/{q['id']}/export").content == exported
+    assert len(memory.list(scope=f"project:{q['id']}")) == 2
+
+
+def test_project_note_budget_rejected_without_partial_import(env, monkeypatch):
+    import spike.projects as projects
+
+    client, state, _ = env
+    monkeypatch.setattr(projects, "MAX_MEMORIES", 1)
+    p = make(client)
+    for note in ("one", "two"):
+        state.memory.store.add(note, "fact", scope=f"project:{p['id']}")
+    assert client.get(f"/api/projects/{p['id']}/export").status_code == 400
+    manifest = {"format": "spike-project", "version": 1, "project": {"name": "over budget"},
+                "memories": [{"kind": "fact", "text": text} for text in ("one", "two")]}
+    r = client.post("/api/projects/import", content=zip_of({"project.json": json.dumps(manifest).encode()}))
+    assert r.status_code == 400
+    assert len(client.get("/api/projects").json()) == 1
+
+
+def test_project_notes_require_a_memory_store_in_direct_import(env):
+    from spike.projects import ProjectError, import_project
+
+    _, state, _ = env
+    manifest = {"format": "spike-project", "version": 1, "project": {"name": "x"},
+                "memories": [{"kind": "fact", "text": "Keep this note"}]}
+    blob = zip_of({"project.json": json.dumps(manifest).encode()})
+    with pytest.raises(ProjectError, match="project notes need a memory store"):
+        import_project(state.store, state.project_files, blob, {"auto"})
+    assert state.store.list_projects() == []
+
+
+@pytest.mark.parametrize("linked_folder", ["project", "files"])
+def test_project_root_symlinks_are_rejected_before_access(env, tmp_path, linked_folder):
+    client, state, _ = env
+    p = make(client)
+    project = state.project_files.root / p["id"]
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("private", encoding="utf-8")
+    try:
+        if linked_folder == "project":
+            project.parent.mkdir(parents=True, exist_ok=True)
+            project.symlink_to(outside, target_is_directory=True)
+        else:
+            project.mkdir(parents=True)
+            (project / "files").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unavailable")
+    base = f"/api/projects/{p['id']}"
+    assert client.put(f"{base}/files/new.txt", content=b"no").status_code == 400
+    assert client.get(f"{base}/files/secret.txt").status_code == 400
+    assert client.delete(f"{base}/files/secret.txt").status_code == 400
+    assert client.get(f"{base}/files").status_code == 400
+    assert client.get(f"{base}/export").status_code == 400
+    assert sorted(x.name for x in outside.iterdir()) == ["secret.txt"]
+    assert (outside / "secret.txt").read_text(encoding="utf-8") == "private"

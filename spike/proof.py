@@ -117,6 +117,7 @@ def build_proof(conv: dict[str, Any], messages: list[dict[str, Any]], calls: lis
         "format": "spike-proof", "version": 1, "exported_utc": _iso(time.time()), "spike": __version__,
         "chat": {k: conv.get(k) for k in ("id", "title", "mode", "provider_id", "project_id")} |
                 {"created_utc": _iso(conv["created"]), "temporary": temporary, "messages": len(messages)},
+        "verification": {"status": "not_independently_verified"},
         "machine": {"platform": platform.platform(), "python": sys.version.split()[0], **hw},
         "providers": [{k: p.get(k) for k in PROVIDER_FIELDS if k in p} for p in providers if p["id"] in used],
         "settings": {k: settings.get(k) for k in SETTING_FIELDS if k in settings},

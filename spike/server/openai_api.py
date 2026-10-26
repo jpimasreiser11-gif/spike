@@ -335,12 +335,17 @@ def plan_run(state: AppState, req: Completion) -> AsyncIterator[Out]:
 
 
 # ---------------------------------------------------------------------- responses
-def _add_usage(total: dict[str, int], usage: dict[str, Any]) -> None:
-    for key, alias in (("prompt_tokens", "input_tokens"), ("completion_tokens", "output_tokens")):
-        value = usage.get(key, usage.get(alias))
-        if isinstance(value, int):
-            total[key] += value
+def _add_usage(total: dict[str, int] | None, usage: dict[str, Any]) -> dict[str, int] | None:
+    """Only report complete non-negative backend counts; missing usage is unknown, not zero."""
+    prompt = usage.get("prompt_tokens", usage.get("input_tokens"))
+    completion = usage.get("completion_tokens", usage.get("output_tokens"))
+    if any(type(v) is not int or v < 0 for v in (prompt, completion)):
+        return total
+    total = dict(total or {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
+    total["prompt_tokens"] += prompt
+    total["completion_tokens"] += completion
     total["total_tokens"] = total["prompt_tokens"] + total["completion_tokens"]
+    return total
 
 
 def _tool_call(call: ToolCall, index: int | None = None) -> dict[str, Any]:
@@ -357,7 +362,7 @@ def _finish(reason: str | None, calls: list[ToolCall]) -> str:
 
 async def complete(req: Completion, outs: AsyncIterator[Out]) -> JSONResponse:
     text, reasoning, calls, reason, spike = [], [], [], None, {}
-    usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    usage: dict[str, int] | None = None
     async for kind, value in outs:
         if kind == "text":
             text.append(value)
@@ -366,7 +371,7 @@ async def complete(req: Completion, outs: AsyncIterator[Out]) -> JSONResponse:
         elif kind == "tool_call":
             calls.append(value)
         elif kind == "usage":
-            _add_usage(usage, value)
+            usage = _add_usage(usage, value)
         elif kind == "finish":
             reason = value
         elif kind == "spike":
@@ -396,7 +401,7 @@ def stream(req: Completion, outs: AsyncIterator[Out]) -> StreamingResponse:
 
     async def events() -> AsyncIterator[bytes]:
         calls, reason, spike = [], None, {}
-        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        usage: dict[str, int] | None = None
         yield chunk({"role": "assistant", "content": ""})
         try:
             async for kind, value in outs:
@@ -408,7 +413,7 @@ def stream(req: Completion, outs: AsyncIterator[Out]) -> StreamingResponse:
                     yield chunk({"tool_calls": [_tool_call(value, len(calls))]})
                     calls.append(value)
                 elif kind == "usage":
-                    _add_usage(usage, value)
+                    usage = _add_usage(usage, value)
                 elif kind == "finish":
                     reason = value
                 elif kind == "spike":

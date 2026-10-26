@@ -173,9 +173,27 @@ await dlg.getByRole("button", { name: "Crear" }).click();
 await page.locator(".project-panel h2", { hasText: "Tesis" }).waitFor();
 await page.getByTestId("project-upload").setInputFiles({ name: "datos.csv", mimeType: "text/csv", buffer: Buffer.from("producto,ventas\nNorte,120\nSur,95\n") });
 await page.locator(".file-list a", { hasText: "datos.csv" }).waitFor();
+// Project notes travel in the existing ZIP, without needing another project UI or archive format.
+const projects = await (await ctx.request.get(`${base}/api/projects`)).json();
+const thesis = projects.find((p) => p.name === "Tesis");
+const note = await (await ctx.request.post(`${base}/api/memory`, {
+  data: { scope: `project:${thesis.id}`, kind: "decision", text: "Conservar las fuentes del proyecto." },
+})).json();
 await page.screenshot({ path: `${out}/06-project.png` });
 const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Exportar (.zip)" }).click()]);
 if (!download.suggestedFilename().endsWith(".spike-project.zip")) fail("export filename: " + download.suggestedFilename());
+const archive = fs.readFileSync(await download.path());
+const importedResponse = await ctx.request.post(`${base}/api/projects/import`, {
+  data: archive, headers: { "Content-Type": "application/octet-stream" },
+});
+if (!importedResponse.ok()) throw new Error("project import failed: " + await importedResponse.text());
+const importedProject = await importedResponse.json();
+const importedNotes = await (await ctx.request.get(`${base}/api/memory`, {
+  params: { scope: `project:${importedProject.id}` },
+})).json();
+if (!importedNotes.some((m) => m.kind === "decision" && m.text === note.text)) fail("project note lost in export/import");
+await ctx.request.delete(`${base}/api/projects/${importedProject.id}`);
+await ctx.request.delete(`${base}/api/memory/${note.id}`);
 await page.locator("#composer-input").fill("Resume las ventas por producto");
 await page.keyboard.press("Enter");
 await page.getByText("Respuesta del proyecto").waitFor({ timeout: 10000 });

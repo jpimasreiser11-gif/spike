@@ -10,11 +10,13 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from spike.memory.store import KINDS, MAX_TEXT, MemoryStore
 from spike.store.db import Store
 
 FORMAT, VERSION = "spike-project", 1
 MAX_FILE_BYTES = 50 * 1024**2
 MAX_ARCHIVE_BYTES = 500 * 1024**2  # uncompressed, guards against zip bombs
+MAX_MEMORIES = 1000
 MAX_ENTRIES = 5000
 
 
@@ -36,6 +38,8 @@ class ProjectFiles:
 
     def folder(self, pid: str) -> Path:
         path = self.root / pid / "files"
+        if self._linked(self.root, path):
+            raise ProjectError("file path leaves the project or uses a symbolic link")
         path.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -45,10 +49,18 @@ class ProjectFiles:
     def list(self, pid: str) -> list[dict[str, Any]]:
         base = self.folder(pid)
         return [{"path": p.relative_to(base).as_posix(), "size": p.stat().st_size}
-                for p in sorted(base.rglob("*")) if p.is_file()]
+                for p in sorted(base.rglob("*")) if p.is_file() and not self._linked(base, p)]
+
+    @staticmethod
+    def _linked(base: Path, path: Path) -> bool:
+        return any(p.is_symlink() for p in (path, *path.parents) if p != base and base in p.parents)
 
     def path(self, pid: str, relative: str) -> Path:
-        return self.folder(pid).joinpath(*clean_path(relative).parts)
+        base = self.folder(pid)
+        target = base.joinpath(*clean_path(relative).parts)
+        if self._linked(base, target) or not target.resolve().is_relative_to(base.resolve()):
+            raise ProjectError("file path leaves the project or uses a symbolic link")
+        return target
 
     def write(self, pid: str, relative: str, data: bytes) -> dict[str, Any]:
         if len(data) > MAX_FILE_BYTES:
@@ -59,7 +71,7 @@ class ProjectFiles:
         return {"path": clean_path(relative).as_posix(), "size": len(data)}
 
 
-def export_project(store: Store, files: ProjectFiles, pid: str) -> bytes:
+def export_project(store: Store, files: ProjectFiles, pid: str, memory: MemoryStore | None = None) -> bytes:
     project = store.get_project(pid)
     conversations = []
     for conv in sorted(store.list_conversations(project_id=pid, limit=100_000), key=lambda c: (c["created"], c["id"])):
@@ -69,12 +81,18 @@ def export_project(store: Store, files: ProjectFiles, pid: str) -> bytes:
     manifest = {"format": FORMAT, "version": VERSION,
                 "project": {k: project[k] for k in ("name", "instructions", "mode", "design")},
                 "conversations": conversations}
+    if memory is not None:
+        # Indexed files and chat summaries are rebuilt locally; notes never carry local sources or metadata.
+        notes = [m for m in memory.list(scope=f"project:{pid}", limit=-1)
+                 if not m.source.startswith(("file:", "conversation:"))]
+        if len(notes) > MAX_MEMORIES:
+            raise ProjectError("too many project notes to export")
+        manifest["memories"] = [{"kind": m.kind, "text": m.text} for m in sorted(notes, key=lambda m: (m.kind, m.text))]
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(_entry("project.json"), json.dumps(manifest, ensure_ascii=False, indent=1, sort_keys=True))
-        base = files.folder(pid)
         for item in files.list(pid):
-            z.writestr(_entry(f"files/{item['path']}"), (base / item["path"]).read_bytes())
+            z.writestr(_entry(f"files/{item['path']}"), files.path(pid, item["path"]).read_bytes())
     return buf.getvalue()
 
 
@@ -84,7 +102,8 @@ def _entry(name: str) -> zipfile.ZipInfo:
     return info
 
 
-def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[str]) -> dict[str, Any]:
+def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[str],
+                   memory: MemoryStore | None = None) -> dict[str, Any]:
     try:
         archive = zipfile.ZipFile(io.BytesIO(blob))
     except zipfile.BadZipFile as exc:
@@ -108,6 +127,16 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
             raise ProjectError("the archive has no valid project.json") from exc
         if not isinstance(manifest, dict) or manifest.get("format") != FORMAT or manifest.get("version") != VERSION:
             raise ProjectError("the archive is not a SPIKE project (format/version)")
+        notes = manifest.get("memories", [])
+        if not isinstance(notes, list) or len(notes) > MAX_MEMORIES:
+            raise ProjectError("invalid project notes or note budget exceeded")
+        for note in notes:
+            if (not isinstance(note, dict) or note.get("kind") not in KINDS
+                    or not isinstance(note.get("text"), str) or not note["text"].strip()
+                    or len(note["text"]) > MAX_TEXT):
+                raise ProjectError("invalid project note (kind/text)")
+        if notes and memory is None:
+            raise ProjectError("project notes need a memory store")
         meta = manifest.get("project") or {}
         if not isinstance(meta.get("name"), str) or not meta["name"].strip():
             raise ProjectError("the project has no name")
@@ -117,6 +146,9 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
                                        mode if mode in modes else "auto",
                                        design if re.fullmatch(r"[a-z0-9][a-z0-9-]{0,47}", design) else "")
         try:
+            if memory is not None:
+                for note in notes:
+                    memory.add(note["text"], note["kind"], scope=f"project:{project['id']}")
             for conv in manifest.get("conversations") or []:
                 c = store.create_conversation(title=str(conv.get("title") or "Imported chat"),
                                               mode=conv.get("mode") if conv.get("mode") in modes else "auto",
@@ -129,6 +161,8 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
             for path, info in payload:
                 files.write(project["id"], path.as_posix(), archive.read(info))
         except Exception:
+            if memory is not None:
+                memory.delete_scope(f"project:{project['id']}")
             store.delete_project(project["id"])
             files.remove(project["id"])
             raise
