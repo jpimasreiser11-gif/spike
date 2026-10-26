@@ -104,7 +104,7 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
-  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi; // something to act on or look at next to the result
+  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi; // something to act on or look at next to the result
 };
 
 /** Spike Data: a data file loaded as a table for a query. */
@@ -503,4 +503,13 @@ export type MemoryGraph = {
 export type GraphRelation = {
   id: string; source: string; target: string; from: string; to: string; label: string;
   status: "proposed" | "confirmed" | "rejected"; origin: string; scope: string; memory: string | null;
+};
+
+/** Private developer diagnostic, rendered locally and exportable as an isolated artifact. */
+export type DiagnosticUi = {
+  kind: "dev_diagnostic"; report: "dependencies" | "visual";
+  audits?: { tool: string; status: string; result?: unknown }[];
+  licenses?: { package: string; license: string; status: string }[];
+  issues?: { code: string; selector: string; [key: string]: unknown }[];
+  screenshot?: string; url?: string;
 };

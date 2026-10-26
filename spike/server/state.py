@@ -19,6 +19,7 @@ from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message, ProviderError
 from spike.design.library import DesignLibrary
+from spike.dev.diagnostics import diagnostic_tools
 from spike.evolution.router_learning import apply_overlay
 from spike.evolution.service import Evolution
 from spike.evolution.store import EvolutionStore
@@ -147,7 +148,8 @@ class AppState:
         self.tools = default_registry(workspace_dir(), self.sandbox)
         workspace = Workspace(workspace_dir())
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
-                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace)]:
+                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -295,7 +297,8 @@ class AppState:
             registry = default_registry(folder, self.sandbox)
             workspace = Workspace(folder)
             for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
-                         *analytics_tools(workspace, self.sandbox), *motion_tools(workspace)]:
+                         *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                         *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
                 registry.register(tool)
             registry.shared = self.connectors.tools
             self._project_tools[project_id] = registry

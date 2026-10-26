@@ -113,6 +113,10 @@ class DemoProvider(Provider):
             yield StreamEvent(kind="done")
             return
         tools = {t.name for t in request.tools or []}
+        if last.role == "user" and "dependency doctor" in last.content.lower() and "dependency_doctor" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="a5", name="dependency_doctor", arguments={}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "vídeo animado" in last.content.lower() and "render_video" in tools:  # Motion
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c12", name="write_file", arguments={
                 "path": "escena.html", "content": VIDEO_SCENE}))
@@ -192,7 +196,9 @@ class DemoProvider(Provider):
                 "question": "¿Para qué país es la factura?", "options": ["España", "Francia"]}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
-        if last.role == "tool" and last.name == "ask_user":
+        if last.role == "tool" and last.name == "dependency_doctor":
+            answer = "Diagnóstico listo en la tarjeta."
+        elif last.role == "tool" and last.name == "ask_user":
             answer = f"Entendido ({last.content}). Para España, el IVA general es del **21 %**."
         elif last.role == "tool" and last.name == "read_file":
             answer = TRUST_ANSWER
