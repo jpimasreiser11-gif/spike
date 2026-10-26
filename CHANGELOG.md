@@ -33,6 +33,11 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (DuckDB, Vega-Lite), Spike Finance (market data, backtests, paper trading; real orders off by default and
   confirmed one by one), Spike Motion (video from HTML/SVG scenes, offline and frame-exact).
 - `spike dev` coding agent in the terminal; OpenAI-compatible `/v1` endpoint; SPIKE as an MCP server.
+- Trustworthy answers: each answer's claims are labelled verified, hypothesis or unchecked by fixed rules (a
+  summary chip and, behind "ver comprobación", a badge per claim), and citations are checked against the run's
+  sources: a fabricated fragment or a changed number makes the claim unchecked. A low-confidence answer can offer a
+  second opinion from an external provider you configured; nothing is sent until you click, and file contents,
+  paid-call permission and monthly limits apply as for any provider.
 - Code isolation: where the computer has `bwrap` (Linux) or `sandbox-exec` (macOS), the code a model writes
   (`python`, `data_python`) runs with no network and writes only in its working folder and a private temp folder.
   Setting `sandbox`: `auto` (default), `off` or `required` (also isolates `spike dev`'s `run_command` and refuses

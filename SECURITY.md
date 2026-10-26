@@ -25,6 +25,10 @@ acknowledge reports within 7 days.
   file readable only by the current user (mode 0600, **not encrypted**) and the UI says which backend is active.
   Keys are never written to the SQLite database or returned by the API.
 - Paid providers cannot be called until the user enables `allow_paid` for that provider.
+- A low-confidence answer may offer a second opinion from an external provider you configured. Nothing is sent
+  until you click; the request (your question, the answer and its unchecked claims, never the conversation or
+  memory) goes through the same guard: paid-call permission, monthly limits, and file contents replaced by a notice
+  unless you allowed them for that provider.
 - Every provider call goes through one guard (`spike/providers/guard.py`). A remote provider gets the contents of
   your files only if you enable "send your files' contents" for it (off by default): file passages that memory
   recalled, results of `read_file`, of `recall` hits from files and of file connectors (filesystem, git, GitHub,
