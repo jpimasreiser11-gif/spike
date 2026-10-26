@@ -6,6 +6,7 @@ import ast
 import asyncio
 import contextlib
 import datetime as dt
+import functools
 import html
 import ipaddress
 import math
@@ -15,14 +16,16 @@ import re
 import socket
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 
-from spike.tools.base import Tool, ToolRegistry, ToolResult
+from spike.tools.base import Review, Tool, ToolRegistry, ToolResult
 from spike.tools.documents import document_tools
+from spike.tools.sandbox import Sandbox, SandboxRefused, default_sandbox, with_note
 
 # --------------------------------------------------------------------------- calculator
 _BIN = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
@@ -205,26 +208,38 @@ class WriteFile(Tool):
 class PythonRunner(Tool):
     name = "python"
     description = ("Run a short Python 3 script in a separate subprocess with a temporary working directory (20 s CPU limit, "
-                   "512 MB memory on Linux; network is not blocked) and return stdout/stderr. Use print() to show results.")
+                   "512 MB memory on Linux) and return stdout/stderr. Where the computer has a sandbox (bubblewrap on "
+                   "Linux, sandbox-exec on macOS) the script has no network and writes only in that directory; the last "
+                   "line of the result says whether it was isolated. Use print() to show results.")
     parameters = {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]}
     risk = "execute"
     default_policy = "ask"
 
-    def __init__(self, timeout_s: float = 30.0, memory_mb: int = 512):
+    def __init__(self, timeout_s: float = 30.0, memory_mb: int = 512, sandbox: Sandbox | None = None,
+                 readable: Sequence[Path] = ()):
         self.timeout_s = timeout_s
         self.memory_mb = memory_mb
+        self.sandbox = sandbox or default_sandbox()
+        self.readable = list(readable)  # folders the script may read (not write) when isolated: the workspace
 
-    def _limits(self) -> None:  # runs in the child before exec (POSIX only)
+    def _limits(self, new_session: bool = True) -> None:  # runs in the child before exec (POSIX only)
         import resource
 
         resource.setrlimit(resource.RLIMIT_CPU, (20, 20))
         mem = self.memory_mb * 1024 * 1024
         with contextlib.suppress(ValueError, OSError):  # macOS does not enforce RLIMIT_AS
             resource.setrlimit(resource.RLIMIT_AS, (mem, mem))
-        os.setsid()
+        if new_session:  # bubblewrap starts its own session, and a session leader cannot start another
+            os.setsid()
 
     def prepare(self, folder: Path, args: dict[str, Any]) -> None:
         """Put what the script needs in its temporary folder (data_python copies the user's files here)."""
+
+    def review(self, args: dict[str, Any]) -> Review | None:
+        return self.sandbox.review()  # `required` and no sandbox: refused before anyone is asked
+
+    def isolation(self, args: dict[str, Any]) -> dict[str, Any] | None:
+        return self.sandbox.isolation().to_dict()
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
         code = str(args.get("code", ""))
@@ -233,22 +248,29 @@ class PythonRunner(Tool):
             script = Path(tmp) / "main.py"
             script.write_text(code, encoding="utf-8")
             env = {"PATH": os.environ.get("PATH", ""), "PYTHONIOENCODING": "utf-8", "HOME": tmp}
-            proc = await asyncio.create_subprocess_exec(
-                sys.executable, "-I", str(script), cwd=tmp, env=env,
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                preexec_fn=self._limits if os.name == "posix" else None,
-            )
             try:
-                out, err = await asyncio.wait_for(proc.communicate(), timeout=self.timeout_s)
-            except TimeoutError:
-                proc.kill()
-                await proc.wait()
-                return ToolResult(ok=False, content=f"error: timed out after {self.timeout_s:.0f}s")
+                with self.sandbox.wrapped([sys.executable, "-I", str(script)], cwd=tmp, writable=[tmp],
+                                          readable=self.readable) as box:
+                    proc = await asyncio.create_subprocess_exec(
+                        *box.argv, cwd=tmp, env={**env, **box.env},
+                        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                        preexec_fn=functools.partial(self._limits, box.new_session) if os.name == "posix" else None,
+                    )
+                    try:
+                        out, err = await asyncio.wait_for(proc.communicate(), timeout=self.timeout_s)
+                    except TimeoutError:
+                        proc.kill()
+                        await proc.wait()
+                        return ToolResult(ok=False, content=with_note(f"error: timed out after {self.timeout_s:.0f}s",
+                                                                      box.isolation),
+                                          data={"isolation": box.isolation.to_dict()})
+            except SandboxRefused as exc:
+                return ToolResult(ok=False, content=f"error: {exc}", data={"isolation": exc.isolation.to_dict()})
         text = out.decode("utf-8", "replace")[-20_000:]
         errors = err.decode("utf-8", "replace")[-8_000:]
         content = text + (f"\n[stderr]\n{errors}" if errors else "")
-        return ToolResult(ok=proc.returncode == 0, content=content.strip() or "(no output)",
-                          data={"returncode": proc.returncode})
+        return ToolResult(ok=proc.returncode == 0, content=with_note(content.strip() or "(no output)", box.isolation),
+                          data={"returncode": proc.returncode, "isolation": box.isolation.to_dict()})
 
 
 # --------------------------------------------------------------------------- web fetch
@@ -315,9 +337,9 @@ class WebFetch(Tool):
         return ToolResult(ok=200 <= status < 300, content=f"[HTTP {status}] {url}\n\n{text[:30_000]}")
 
 
-def default_registry(workspace_root: Path) -> ToolRegistry:
+def default_registry(workspace_root: Path, sandbox: Sandbox | None = None) -> ToolRegistry:
     ws = Workspace(workspace_root)
     return ToolRegistry([
-        Calculator(), CurrentTime(), AskUser(), ReadFile(ws), ListDir(ws), WriteFile(ws), PythonRunner(), WebFetch(),
-        *document_tools(ws),
+        Calculator(), CurrentTime(), AskUser(), ReadFile(ws), ListDir(ws), WriteFile(ws),
+        PythonRunner(sandbox=sandbox, readable=[ws.root]), WebFetch(), *document_tools(ws),
     ])

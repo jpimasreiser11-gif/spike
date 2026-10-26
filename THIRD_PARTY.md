@@ -50,6 +50,8 @@ Files written by SPIKE contributors and shipped in this repository (`training/se
 | numpy | BSD-3-Clause (with bundled 0BSD, MIT, Zlib, CC0-1.0 parts) | training and export |
 | [FFmpeg](https://ffmpeg.org) | LGPL-2.1+ (GPL-2.0+ for builds with libx264) | encodes Spike Motion videos; SPIKE runs the user's own `ffmpeg` binary |
 | Chromium / Google Chrome (Playwright's download, or the installed browser) | BSD-3-Clause (Chromium); Chrome under Google's terms | plays Spike Motion scenes |
+| [bubblewrap](https://github.com/containers/bubblewrap) (`bwrap`) | LGPL-2.0+ | isolates the code SPIKE runs on Linux; SPIKE runs the user's own `bwrap` and writes only its command line |
+| `sandbox-exec` | part of macOS (Apple) | the same on macOS; SPIKE writes its own profile and runs the system's program |
 
 ## Skills shipped with SPIKE (`spike/skills/bundled/`, redistributed as verbatim copies with their licenses)
 

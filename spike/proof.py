@@ -23,7 +23,7 @@ from spike.runtime.hardware import detect
 
 PROVIDER_FIELDS = ("id", "kind", "name", "base_url", "model", "paid", "allow_paid", "local", "share_files", "limits")
 SETTING_FIELDS = ("custom_instructions", "specialist_instructions", "tool_policies", "tools_enabled", "use_planner",
-                  "parallel", "reasoning", "temperature", "max_tokens", "skill_mode", "memory", "local_runtime")
+                  "parallel", "reasoning", "temperature", "max_tokens", "skill_mode", "memory", "local_runtime", "sandbox")
 README = """SPIKE proof package
 ===================
 

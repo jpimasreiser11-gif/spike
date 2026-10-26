@@ -21,6 +21,7 @@ from spike.tools.builtin import (
     default_registry,
     safe_eval,
 )
+from spike.tools.sandbox import strip_note
 from tests.helpers import ScriptedProvider, call, text
 
 CATALOG = load_catalog()
@@ -47,7 +48,7 @@ def test_router_single_multi_direct():
 
 def _router_accuracy(split: str) -> tuple[float, float, int]:
     router = LexicalRouter(CATALOG)
-    rows = [json.loads(line) for line in Path("spike/evolution/router_labeled.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in Path("spike/evolution/router_labeled.jsonl").read_text(encoding="utf-8").splitlines()]
     rows = [r for r in rows if r["split"] == split]
     primary = exact = 0
     for r in rows:
@@ -120,7 +121,7 @@ async def test_workspace_blocks_traversal(tmp_path):
 
 async def test_python_runner_executes_and_times_out():
     out = await PythonRunner().run({"code": "print(sum(range(10)))"})
-    assert out.ok and out.content == "45"
+    assert out.ok and strip_note(out.content) == "45"
     slow = await PythonRunner(timeout_s=1).run({"code": "while True: pass"})
     assert slow.ok is False
 

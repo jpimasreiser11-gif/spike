@@ -112,6 +112,15 @@ const es = {
   allowDomain: "Permitir siempre",
   blockDomain: "Bloquear",
   askEveryTime: "Esto se confirma cada vez.",
+  isolation: {
+    yes: "aislado", no: "sin aislamiento", detail: "sin red; escribe solo en la carpeta de trabajo y en una temporal privada",
+    reasons: {
+      off: "el aislamiento está desactivado en Ajustes", windows: "Windows no tiene un aislamiento que SPIKE pueda usar",
+      unsupported_os: "este sistema no tiene un aislamiento conocido", no_bwrap: "bubblewrap (bwrap) no está instalado",
+      bwrap_failed: "bwrap no funciona en este ordenador", no_sandbox_exec: "no se encontró sandbox-exec",
+      sandbox_exec_failed: "sandbox-exec no funciona en este ordenador",
+    } as Record<string, string>,
+  },
   review: { open: "Abrirá {domain}.", type_submit: "Escribirá y enviará un formulario.", enter: "Pulsará Intro, lo que puede enviar un formulario.", click_submit: "Pulsará «{element}», lo que puede enviar un formulario.", click_unnamed: "Pulsará un elemento que no ha descrito, lo que puede enviar un formulario.", dialog: "Aceptará un diálogo de la página.", file_upload: "Enviará archivos de tu ordenador a la página.", drop: "Soltará archivos o datos en la página.", evaluate: "Ejecutará código en la página.", run_code_unsafe: "Ejecutará código en el navegador." } as Record<string, string>,
   verifying: "Verificando…",
   roles: { research: "Investigador", execute: "Ejecutor", verify: "Verificador" } as Record<string, string>,
@@ -248,6 +257,15 @@ const en: Dict = {
   allowDomain: "Always allow",
   blockDomain: "Block",
   askEveryTime: "This is confirmed every time.",
+  isolation: {
+    yes: "isolated", no: "not isolated", detail: "no network; writes only in the working folder and a private temp folder",
+    reasons: {
+      off: "isolation is off in Settings", windows: "Windows has no isolation SPIKE can use",
+      unsupported_os: "this system has no known isolation", no_bwrap: "bubblewrap (bwrap) is not installed",
+      bwrap_failed: "bwrap does not work on this computer", no_sandbox_exec: "sandbox-exec was not found",
+      sandbox_exec_failed: "sandbox-exec does not work on this computer",
+    } as Record<string, string>,
+  },
   review: { open: "It will open {domain}.", type_submit: "It will type and submit a form.", enter: "It will press Enter, which may submit a form.", click_submit: "It will click “{element}”, which may submit a form.", click_unnamed: "It will click an element it did not describe, which may submit a form.", dialog: "It will accept a dialog of the page.", file_upload: "It will send files from your computer to the page.", drop: "It will drop files or data into the page.", evaluate: "It will run code in the page.", run_code_unsafe: "It will run code in the browser." } as Record<string, string>,
   verifying: "Checking…",
   roles: { research: "Researcher", execute: "Executor", verify: "Checker" } as Record<string, string>,
@@ -268,5 +286,6 @@ const en: Dict = {
   ev: { route: "Picks specialists", plan: "Plan", subtask_start: "Starts", subtask_end: "Finishes", tool_call: "Uses", tool_result: "Result of", permission_request: "Asks permission for", permission_resolved: "Permission", verify_start: "Checks", verify: "Checker verdict", forge_report: "Forge report", delta: "Writes", reasoning: "Reasons", synthesis_start: "Merges the reports", memory: "Remembers", skill: "Applies the skill", design: "Follows the design", privacy: "Protects your files from", memory_saved: "Saves to memory", question: "Asks you", contract: "Checks the format", answered: "You answer", correction: "Suggests a rule", status: "Plans", usage: "Tokens", error: "Error", done: "Done", context_trimmed: "Trims the context" } as Record<string, string>,
 };
 
+export const dicts = { es, en };
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";
 export const t: Dict = lang === "es" ? es : en;

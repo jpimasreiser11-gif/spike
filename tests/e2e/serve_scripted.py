@@ -135,6 +135,11 @@ class DemoProvider(Provider):
                 "path": "informe.md", "content": "# Informe\n\nBase 120 €, IVA 25,20 €, total con IVA 145,20 €.\n"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "cálculo en python" in last.content.lower() and "python" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c14", name="python",
+                              arguments={"code": "print(6 * 7)"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "archivo" in last.content.lower() and request.tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c1", name="write_file",
                               arguments={"path": "notas.md", "content": "# Notas\n"}))
@@ -201,6 +206,8 @@ class DemoProvider(Provider):
         elif last.role == "tool" and last.name == "data_sql":
             answer = ("Ingresos por región: **norte 90 €** y **sur 70 €**, total 160 € (consulta: `SELECT region, "
                       "sum(unidades * precio) AS ingresos FROM ventas GROUP BY region`).")
+        elif last.role == "tool" and last.name == "python":
+            answer = "Resultado de python: " + last.content.splitlines()[0]
         elif last.role == "tool" and last.name == "paper_order":
             answer = "Comprados **0,01 BTC** en la cuenta simulada, con comisión y deslizamiento."
         elif last.role == "tool" and last.name == "propose_live_order":

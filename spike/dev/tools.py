@@ -13,8 +13,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from spike.tools.base import Tool, ToolResult
+from spike.tools.base import Review, Tool, ToolResult
 from spike.tools.builtin import Workspace
+from spike.tools.sandbox import Sandbox, SandboxRefused, default_sandbox, with_note
 
 SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".mypy_cache", ".pytest_cache",
              ".ruff_cache", "dist", "build", ".next", ".tox", "target"}
@@ -142,15 +143,24 @@ class FindFiles(Tool):
 class RunCommand(Tool):
     name = "run_command"
     description = ("Run a shell command in the workspace folder (tests, builds, git status…) and return its output and "
-                   "exit code. The user approves each command; files a command changes cannot be undone.")
+                   "exit code. The user approves each command; files a command changes cannot be undone. Where the "
+                   "computer has a sandbox (bubblewrap on Linux, sandbox-exec on macOS) the command has no network "
+                   "and writes only in the workspace; the last line of the result says whether it was isolated.")
     parameters = {"type": "object", "properties": {
         "command": {"type": "string"}, "timeout_s": {"type": "integer", "description": "default 120, at most 600"}},
         "required": ["command"]}
     risk = "execute"
     default_policy = "ask"
 
-    def __init__(self, workspace: Workspace):
+    def __init__(self, workspace: Workspace, sandbox: Sandbox | None = None):
         self.workspace = workspace
+        self.sandbox = sandbox or default_sandbox()
+
+    def review(self, args: dict[str, Any]) -> Review | None:
+        return self.sandbox.review()  # `required` and no sandbox: refused before anyone is asked
+
+    def isolation(self, args: dict[str, Any]) -> dict[str, Any] | None:
+        return self.sandbox.isolation().to_dict()
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
         command = str(args.get("command") or "").strip()
@@ -159,27 +169,36 @@ class RunCommand(Tool):
         timeout = max(1, min(int(args.get("timeout_s") or 120), 600))
         pipes = {"cwd": self.workspace.root, "stdout": asyncio.subprocess.PIPE, "stderr": asyncio.subprocess.STDOUT,
                  "stdin": asyncio.subprocess.DEVNULL}
-        if os.name == "nt":  # cmd.exe, quoted the way it expects (a list would escape inner quotes as \")
-            proc = await asyncio.create_subprocess_shell(command, **pipes)
-        else:
-            proc = await asyncio.create_subprocess_exec("/bin/sh", "-c", command, start_new_session=True, **pipes)
-        RUNNING.add(proc)
         try:
-            out, _ = await asyncio.wait_for(proc.communicate(), timeout)
-        except TimeoutError:
-            _kill(proc)
-            await proc.wait()
-            return ToolResult(ok=False, content=f"error: timed out after {timeout} s")
-        except BaseException:  # the request was stopped (Ctrl-C): the command stops with it
-            _kill(proc)
-            raise
-        finally:
-            RUNNING.discard(proc)
+            with self.sandbox.wrapped(["/bin/sh", "-c", command], cwd=self.workspace.root,
+                                      writable=[self.workspace.root]) as box:
+                if os.name == "nt":  # cmd.exe, quoted the way it expects (a list would escape inner quotes as \")
+                    proc = await asyncio.create_subprocess_shell(command, **pipes)
+                else:
+                    proc = await asyncio.create_subprocess_exec(
+                        *box.argv, start_new_session=box.new_session, **pipes,
+                        **({"env": {**os.environ, **box.env}} if box.isolation.isolated else {}))
+                RUNNING.add(proc)
+                try:
+                    out, _ = await asyncio.wait_for(proc.communicate(), timeout)
+                except TimeoutError:
+                    _kill(proc)
+                    await proc.wait()
+                    return ToolResult(ok=False, content=with_note(f"error: timed out after {timeout} s", box.isolation),
+                                      data={"isolation": box.isolation.to_dict()})
+                except BaseException:  # the request was stopped (Ctrl-C): the command stops with it
+                    _kill(proc)
+                    raise
+                finally:
+                    RUNNING.discard(proc)
+        except SandboxRefused as exc:
+            return ToolResult(ok=False, content=f"error: {exc}", data={"isolation": exc.isolation.to_dict()})
         text = out.decode("utf-8", errors="replace")
         if len(text) > MAX_OUTPUT:
             text = text[:MAX_OUTPUT // 3] + f"\n[… {len(text) - MAX_OUTPUT} chars cut …]\n" + text[-2 * MAX_OUTPUT // 3:]
-        return ToolResult(ok=proc.returncode == 0, content=f"exit code {proc.returncode}\n{text}".rstrip(),
-                          private=[text] if text else [])
+        return ToolResult(ok=proc.returncode == 0, content=with_note(f"exit code {proc.returncode}\n{text}".rstrip(),
+                                                                       box.isolation),
+                          private=[text] if text else [], data={"isolation": box.isolation.to_dict()})
 
 
 def _kill(proc: asyncio.subprocess.Process) -> None:
@@ -187,7 +206,10 @@ def _kill(proc: asyncio.subprocess.Process) -> None:
         return
     try:
         if os.name != "nt":
-            os.killpg(proc.pid, signal.SIGKILL)  # the whole process group: test runners start children
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)  # the whole process group: test runners start children
+            except ProcessLookupError:  # a sandbox that has not made its session yet: kill it (its child dies with it)
+                proc.kill()
             return
         try:  # the same on Windows: cmd.exe and everything it started
             tree = subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, timeout=10)
@@ -204,5 +226,5 @@ def stop_commands() -> None:
         _kill(proc)
 
 
-def dev_tools(workspace: Workspace) -> list[Tool]:
-    return [EditFile(workspace), SearchFiles(workspace), FindFiles(workspace), RunCommand(workspace)]
+def dev_tools(workspace: Workspace, sandbox: Sandbox | None = None) -> list[Tool]:
+    return [EditFile(workspace), SearchFiles(workspace), FindFiles(workspace), RunCommand(workspace, sandbox)]

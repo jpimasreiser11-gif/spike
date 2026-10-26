@@ -73,8 +73,8 @@ class DevSession:
         if accept_edits:
             policies.update({t: "allow" for t in EDIT_TOOLS})
         self.broker = PermissionBroker(policies, timeout_s=24 * 3600)  # someone is at the terminal: no timeout
-        tools = default_registry(self.root)
-        extra = dev_tools(Workspace(self.root))
+        tools = default_registry(self.root, state.sandbox)
+        extra = dev_tools(Workspace(self.root), state.sandbox)
         tools.shared = lambda: extra  # every specialist gets them, not only those that list them
         base = state.orchestrator(provider_id)
         self.orchestrator = Orchestrator(state.catalog, base.resolve, tools, self.broker, skills=state.skills)

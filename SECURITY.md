@@ -36,8 +36,15 @@ acknowledge reports within 7 days.
   Settings → Privacy), kept 400 days.
 - Tools: file tools are confined to the workspace directory; `write_file`, `python` and `web_fetch` ask for
   permission by default. `web_fetch` refuses private, loopback and link-local addresses and redirects.
-  The Python tool runs in a separate process with CPU, memory (Linux) and time limits but **without network
-  isolation**; treat "allow always" for it as granting code execution on your machine.
+  The Python tool runs in a separate process with CPU, memory (Linux) and time limits. Where the computer has
+  `bwrap` (Linux) or `/usr/bin/sandbox-exec` (macOS), `python`, `data_python` and `spike dev`'s `run_command` also
+  run inside it (setting `sandbox`, `auto` by default): no network and no writes outside the working folder and a
+  private temp folder (a script can read the workspace but not change it; a command can change the workspace).
+  Not covered: system calls are not filtered, environment variables are passed on, and a kernel bug is not
+  stopped. On Windows, or without the program, nothing is isolated: the card, the result and `spike dev` say
+  "not isolated" and why, and `sandbox: required` refuses to run code then. What is isolated on each OS is in
+  [ARCHITECTURE](docs/ARCHITECTURE.md#tools). Without isolation, treat "allow always" for these tools as granting
+  code execution on your machine.
 - Connectors (MCP servers): enabling a stdio connector runs its command on your computer (the app shows the exact
   command first; catalog entries pin a reviewed version). Their tools ask for permission by default. A server
   process receives only the variables it needs to start plus its own secrets, never SPIKE's token or provider
@@ -56,7 +63,7 @@ acknowledge reports within 7 days.
   Python in a subprocess with CPU and memory limits, in a temporary folder per task, and some checks import the
   module the model wrote; during the eval the file tools and `python` run without asking and `web_fetch` is
   refused.
-- `spike dev` works only inside the folder you start it on (paths outside are refused, symlinks resolved). Edits and commands ask first, showing the diff or the command; `--accept-edits` lets edits through, never commands. Edits can be undone with `/undo`; what a command does cannot, and a command runs with your user's rights, not in a sandbox, so read it before allowing it. `-p` and input that is not a terminal refuse every ask. Started on your home folder or a disk root it warns first.
+- `spike dev` works only inside the folder you start it on (paths outside are refused, symlinks resolved). Edits and commands ask first, showing the diff or the command; `--accept-edits` lets edits through, never commands. Edits can be undone with `/undo`; what a command does cannot, and a command runs with your user's rights unless the computer has a sandbox (the approval prompt says whether this one is isolated: no network, writes only in the folder), so read it before allowing it. `-p` and input that is not a terminal refuse every ask. Started on your home folder or a disk root it warns first.
 - Imported design systems are text: `DESIGN.md` and `tokens.css` up to 64 KB each (zips up to 4 MB, no paths outside the archive). Tokens may only hold CSS custom properties: `@import`, `url(`, `</style`, `expression(` and `javascript:` are refused, so a pasted token block cannot load anything or break out of a page's style. Their preview runs in the artifacts sandbox, and imported names are escaped.
 - Real exchange orders (Spike Finance) are off by default. Turning them on needs an exchange, a list of markets, a per-order and a 24-hour limit, and your confirmation that the API key cannot withdraw funds (on Binance SPIKE asks the exchange and refuses a key that can); the exchange's test network is the default. A model can only propose an order: the chat shows it and nothing is sent until you click Confirm and then "Yes, send it", after the settings and limits are checked again; a proposal expires after 10 minutes and a second click cannot send it twice. The tool that proposes is never offered to `/v1` or MCP callers. Exchange keys go to the key store like provider keys and are never returned by the API; keys and real-order settings can only be changed, and orders confirmed, from a browser on the computer SPIKE runs on (not from another machine or another site). Backtests and paper trading use public prices only.
 - Spike Motion plays a video scene in a headless Chromium (with its sandbox, except when SPIKE runs as root, where Chromium refuses it) that cannot reach the network: every request except the scene itself is refused, and the scene's Content Security Policy allows only inline code and `data:` images and fonts. Pop-ups are closed and dialogs dismissed; rendering stops after 10 minutes and videos are at most 60 s and 1920 px. `render_video` asks before writing the video, like `write_file`.

@@ -366,6 +366,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         return [{"name": t.name, "description": t.description, "risk": t.risk, "default_policy": t.default_policy,
                  "policy": broker.policy_for(t)} for t in st().tools.all()]
 
+    @app.get("/api/sandbox")
+    async def sandbox() -> dict:
+        """The `sandbox` setting and whether this computer has a sandbox for code-running tools (and why not)."""
+        return await asyncio.to_thread(st().sandbox.status, True)
+
     # ---------------------------------------------------------------- design systems (Spike Design)
     def design_or_404(ds_id: str):
         ds = st().designs.get(ds_id)

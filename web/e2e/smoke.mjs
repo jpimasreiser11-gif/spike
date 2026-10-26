@@ -131,6 +131,21 @@ await page.getByRole("tab", { name: "Especialistas" }).click();
 await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
 await page.getByRole("tab", { name: "Skills" }).click();
 await page.getByRole("dialog").locator('[data-skill="financial-ratio-analysis"]').waitFor();
+await page.getByRole("tab", { name: "Herramientas" }).click();
+const sandboxCard = page.getByRole("dialog").getByTestId("sandbox");
+await sandboxCard.getByText("Aislamiento del código").waitFor();
+const sandboxMode = sandboxCard.getByRole("combobox", { name: "Aislar python y run_command" });
+if ((await sandboxMode.inputValue()) !== "auto") fail("the sandbox setting should start on auto");
+await sandboxMode.selectOption("required");
+await page.waitForFunction(async () => (await (await fetch("/api/settings")).json()).sandbox === "required", null, { timeout: 5000 })
+  .catch(() => fail("the sandbox setting was not saved"));
+const sandboxStatus = await (await fetch(`${base}/api/sandbox`)).json();
+if (sandboxStatus.mode !== "required" || typeof sandboxStatus.available !== "boolean") fail("the sandbox status is wrong: " + JSON.stringify(sandboxStatus));
+if (!sandboxStatus.available) await sandboxCard.getByText("no ejecutará python ni run_command", { exact: false }).waitFor({ timeout: 5000 }).catch(() => fail("no warning for required without a sandbox"));
+await page.screenshot({ path: `${out}/05a-settings-sandbox.png` });
+await sandboxMode.selectOption("auto");
+await page.waitForFunction(async () => (await (await fetch("/api/settings")).json()).sandbox === "auto", null, { timeout: 5000 })
+  .catch(() => fail("the sandbox setting was not put back"));
 await page.getByRole("tab", { name: "Conectores" }).click();
 const fsCard = page.getByRole("dialog").locator('[data-connector="filesystem"]');
 await fsCard.getByRole("button", { name: "Activar" }).click();
@@ -557,6 +572,21 @@ await player.evaluate((v) => new Promise((ok) => (v.readyState >= 2 ? ok() : v.a
 await page.waitForTimeout(400); // the player's own loading spinner fades out
 await page.screenshot({ path: `${out}/07w-motion-video.png` });
 await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
+
+// Code isolation: the card of a python call says whether it will run isolated, and the call runs
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Haz un cálculo en python");
+await page.keyboard.press("Enter");
+const pyCard = page.locator(".permission", { hasText: "python" });
+await pyCard.waitFor({ timeout: 10000 });
+const isolation = pyCard.locator("[data-isolated]");
+await isolation.waitFor({ timeout: 5000 });
+const isolated = (await isolation.getAttribute("data-isolated")) === "true";
+const isolationLine = (await isolation.textContent()) ?? "";
+if (!(isolated ? isolationLine.startsWith("aislado (") : isolationLine.startsWith("sin aislamiento: "))) fail("the python card does not say whether it is isolated: " + isolationLine);
+await page.screenshot({ path: `${out}/07x-python-isolation.png` });
+await pyCard.getByRole("button", { name: "Permitir una vez" }).click();
+await page.getByText("Resultado de python: 42", { exact: false }).waitFor({ timeout: 15000 });
 
 // 7. dark mode + mobile
 const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });

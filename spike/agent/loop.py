@@ -167,10 +167,12 @@ async def call_tool(tool: Tool, call: ToolCall, broker: PermissionBroker, checkp
     elif policy == "ask":
         # Yield the request first: the consumer forwards it to the UI before we block on it.
         req = broker.open(tool, call.arguments, review)
+        isolation = tool.isolation(call.arguments)
         yield {"type": "permission_request", "id": req.id, "tool": tool.name, "risk": tool.risk,
                "arguments": call.arguments, "call_id": call.id, **tag,
                **({"reason": review.reason, "code": review.code, "once": review.once, "domain": review.domain}
-                  if review and review.policy == "ask" else {})}
+                  if review and review.policy == "ask" else {}),
+               **({"isolation": isolation} if isolation else {})}
         decision = await broker.wait(req)
         yield {"type": "permission_resolved", "id": req.id, "decision": decision, **tag}
         if decision == "deny":

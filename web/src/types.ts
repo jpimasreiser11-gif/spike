@@ -157,6 +157,11 @@ export type FinanceInfo = {
   live: LiveStatus; live_orders: LiveOrder[];
 };
 
+/** How a run of code is (not) isolated from the computer; `reason` is English, `code` names it to translate it. */
+export type Isolation = { isolated: boolean; backend: string; reason: string; code: string; line?: string };
+
+export type SandboxStatus = { mode: "auto" | "off" | "required"; available: boolean; backend: string; reason: string; code: string };
+
 export type PermissionState = {
   id: string;
   tool: string;
@@ -167,6 +172,7 @@ export type PermissionState = {
   code?: string; // the reason's name, to show it in the user's language
   once?: boolean; // decided for this call only: no "always"
   domain?: string; // the page's domain, which can be allowed or blocked for good
+  isolation?: Isolation; // tools that run code: whether this run will be isolated
 };
 
 /** A question a specialist asked the user (`ask_user`); the run waits for the answer. */
@@ -219,6 +225,7 @@ export type Settings = {
   default_provider: string;
   specialist_bindings: Record<string, { provider_id?: string; model?: string }>;
   tool_policies: Record<string, "allow" | "ask" | "deny">;
+  sandbox: "auto" | "off" | "required"; // isolate code-running tools (python, run_command) when the computer can | never | refuse without
   tools_enabled: boolean;
   use_planner: boolean;
   parallel: boolean;

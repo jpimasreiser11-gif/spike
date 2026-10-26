@@ -18,6 +18,7 @@ from spike.analytics.tools import DataChart, DataDescribe, DataPython, DataSql
 from spike.server.app import create_app
 from spike.server.state import AppState
 from spike.tools.builtin import Workspace
+from spike.tools.sandbox import strip_note
 from tests.helpers import ScriptedProvider, call, text
 
 duckdb = pytest.importorskip("duckdb", reason="the data extra (duckdb, pandas)")
@@ -218,14 +219,14 @@ async def test_data_python_runs_on_copies(ws):
             "open('data/ventas 2024.csv', 'w').write('borrado')")
     out = await tool.run({"code": code, "files": ["ventas 2024.csv"]})
     assert out.ok, out.content
-    assert out.content == "{'norte': 90.0, 'sur': 70.0}"
+    assert strip_note(out.content) == "{'norte': 90.0, 'sur': 70.0}"
     assert (ws.root / "ventas 2024.csv").read_text(encoding="utf-8") == SALES  # the original is untouched
     assert out.data["ui"] == {"kind": "code_run", "language": "python", "code": code, "output": out.content,
                               "files": ["ventas 2024.csv"], "returncode": 0}
     outside = await tool.run({"code": "print(1)", "files": ["../x.csv"]})
     assert not outside.ok and "outside the workspace" in outside.content
     plain = await tool.run({"code": "print(2 + 2)"})
-    assert plain.content == "4" and plain.private == []
+    assert strip_note(plain.content) == "4" and plain.private == []
 
 
 # ---------------------------------------------------------------- the app

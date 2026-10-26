@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from spike.orchestrator.planner import Subtask, extract_json
+from spike.tools.sandbox import strip_note, was_isolated
 
 MAX_ROUNDS = 2  # times work can be sent back
 RESULT_CHARS = 3000  # of each result shown to the verifier
@@ -38,6 +39,9 @@ MODULE_NAMES = {"__name__", "__file__", "__doc__", "__package__", "__spec__", "_
                 "__cached__", "__annotations__", "__class__", "__module__", "__qualname__"}
 DYNAMIC_NAMES = {"globals", "vars", "exec", "eval"}  # a file that uses them may define names we cannot see
 NOT_JUDGED = ("EOFError", "ModuleNotFoundError")  # waiting for a keyboard, a package that is not installed here
+# what the sandbox itself causes when a file reaches for the network or for a place the run cannot write
+NOT_JUDGED_ISOLATED = ("PermissionError", "Connection", "socket.gaierror", "urllib.error.URLError",
+                       "OSError: [Errno 30]", "OSError: [Errno 101]")
 # What the `python` tool runs for a saved Python file: the file is imported as a module (its __name__ is not
 # "__main__", so the block that starts the program, reads input() or serves does not run) in a temporary copy of the
 # saved files, with nothing to read from the keyboard.
@@ -288,13 +292,15 @@ def run_outcome(path: str, files: list[str], content: str, ok: bool, static: str
     package that is not installed here: none of these sends work back)."""
     if ok:
         return {"ok": True, "note": f"{static}, imports without an error"}
+    isolated = was_isolated(content)
+    content = strip_note(content)  # the line that says whether the run was isolated is not the program's output
     parts = content.rsplit("Traceback (most recent call last):", 1)
     if len(parts) == 1:
         why = re.sub(r"^error: ", "", content.strip().splitlines()[0] if content.strip() else "no output")
         return {"ok": None, "note": f"{static}; not imported: {why[:200]}"}
     lines = parts[1].strip("\n").splitlines()
     last = lines[-1].strip()
-    if last.startswith(NOT_JUDGED):
+    if last.startswith(NOT_JUDGED + (NOT_JUDGED_ISOLATED if isolated else ())):
         return {"ok": None, "note": f"{static}; not imported to the end: {last[:200]}"}
     where = ""
     for i, line in enumerate(lines):  # the innermost frame in the saved files (not runpy's or the stdlib's)

@@ -95,6 +95,9 @@ def prompter(out: Out, root: Path, read: Callable[[str], str]) -> tuple[Callable
             style = ("green" if line.startswith("+") and not line.startswith("+++") else
                      "red" if line.startswith("-") and not line.startswith("---") else "dim" if line.startswith("(") else "")
             out("  " + line, style=style)
+        isolation = ev.get("isolation")
+        if isolation:  # tools that run code: whether this run is isolated from the computer
+            out("  sandbox: " + isolation["line"], style="green" if isolation["isolated"] else "yellow")
         choices = "[y] yes  [n] no" if ev.get("once") else "[y] yes  [a] always this session  [n] no"
         while True:
             reply = read(f"Allow? {choices} › ").strip().lower()
@@ -281,8 +284,8 @@ def main(session: DevSession, loop: asyncio.AbstractEventLoop, prompt: str | Non
     provider, model = session.backend()
     edits = "edits without asking" if session.broker.policies.get("edit_file") == "allow" else "edits ask first"
     out(f"SPIKE dev · {session.root}", style="bold")
-    out(f"{session.specialist} on {provider}{f' ({model})' if model else ''} · {edits} · commands ask first · /help",
-        style="dim")
+    out(f"{session.specialist} on {provider}{f' ({model})' if model else ''} · {edits} · commands ask first · "
+        f"sandbox: {session.state.sandbox.isolation().line()} · /help", style="dim")
     if session.root in (Path.home(), Path(session.root.anchor)):
         out("warning: this is your whole home folder or disk; SPIKE can change anything in it with your OK",
             style="yellow")

@@ -12,6 +12,7 @@ from spike.analytics.charts import MARKS, build_chart
 from spike.analytics.engine import FORMATS, DataError, Result, describe, files_arg, ident, run_query
 from spike.tools.base import Tool, ToolResult
 from spike.tools.builtin import PythonRunner, Workspace
+from spike.tools.sandbox import Sandbox
 
 MAX_ROWS = 200  # rows a table keeps for the chat; the model reads the first 50
 CHART_ROWS = 5000
@@ -125,8 +126,8 @@ class DataPython(PythonRunner):
         "files": {**FILES, "description": "workspace files to copy into ./data/ (keeping their names)"}},
         "required": ["code"]}
 
-    def __init__(self, workspace: Workspace):
-        super().__init__(memory_mb=1024)
+    def __init__(self, workspace: Workspace, sandbox: Sandbox | None = None):
+        super().__init__(memory_mb=1024, sandbox=sandbox)
         self.workspace = workspace
 
     def prepare(self, folder: Path, args: dict[str, Any]) -> None:
@@ -152,5 +153,5 @@ class DataPython(PythonRunner):
                           data={**result.data, "ui": ui})
 
 
-def analytics_tools(workspace: Workspace) -> list[Tool]:
-    return [DataDescribe(workspace), DataSql(workspace), DataChart(workspace), DataPython(workspace)]
+def analytics_tools(workspace: Workspace, sandbox: Sandbox | None = None) -> list[Tool]:
+    return [DataDescribe(workspace), DataSql(workspace), DataChart(workspace), DataPython(workspace, sandbox)]

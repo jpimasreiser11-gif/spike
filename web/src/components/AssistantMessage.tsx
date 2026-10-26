@@ -1,6 +1,7 @@
 import { useContext, useState } from "react";
 import { ApiError, api } from "../api";
 import { t } from "../i18n";
+import { isolationText } from "../isolation";
 import { teamSteps } from "../run";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState, VideoUi } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
@@ -183,6 +184,7 @@ function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided:
         <span className={`risk risk-${p.risk}`}>{p.risk}</span>
       </div>
       {p.reason && <p className="permission-reason">{reviewText(p)}{p.once && ` ${t.askEveryTime}`}</p>}
+      {p.isolation && <p className={`permission-reason ${p.isolation.isolated ? "ok-text" : "warn-text"}`} data-isolated={p.isolation.isolated}>{isolationText(p.isolation)}</p>}
       <pre className="permission-args">{JSON.stringify(p.arguments, null, 2)}</pre>
       <div className="permission-actions">
         <button className="btn primary" disabled={p.status === "sending"} onClick={() => decide("allow_once")}>{t.allowOnce}</button>

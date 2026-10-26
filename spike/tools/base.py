@@ -58,6 +58,10 @@ class Tool(ABC):
         """A per-call decision that overrides the tool's policy (the browser's domains and form submissions)."""
         return None
 
+    def isolation(self, args: dict[str, Any]) -> dict[str, Any] | None:
+        """How this call would be isolated from the computer (tools that run code), for the permission card."""
+        return None
+
 
 class ToolRegistry:
     """Built-in tools, plus `shared` ones (connector tools) that every specialist gets while they are running."""

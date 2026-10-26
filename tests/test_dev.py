@@ -17,6 +17,7 @@ from spike.dev.tools import MAX_OUTPUT, RUNNING, EditFile, FindFiles, RunCommand
 from spike.server.state import AppState
 from spike.store.checkpoints import CheckpointError
 from spike.tools.builtin import Workspace
+from spike.tools.sandbox import strip_note
 from tests.helpers import ScriptedProvider, call, text
 
 # ---------------------------------------------------------------- tools
@@ -61,9 +62,9 @@ async def test_edit_file_replaces_one_exact_match(ws):
 async def test_run_command_reports_exit_code_output_and_limits(ws):
     tool = RunCommand(ws)
     ok = await tool.run({"command": f"{'cd' if os.name == 'nt' else 'pwd'} && echo hola"})
-    assert ok.ok and ok.content.splitlines() == ["exit code 0", str(ws.root), "hola"]
+    assert ok.ok and strip_note(ok.content).splitlines() == ["exit code 0", str(ws.root), "hola"]
     failed = await tool.run({"command": "echo boom>&2&& exit 3"})
-    assert not failed.ok and failed.content == "exit code 3\nboom"
+    assert not failed.ok and strip_note(failed.content) == "exit code 3\nboom"
     started = time.perf_counter()
     slow = await tool.run({"command": later(30, "slow"), "timeout_s": 1})
     assert not slow.ok and "timed out after 1 s" in slow.content and time.perf_counter() - started < 10

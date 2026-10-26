@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, streamPost } from "../api";
 import { lang } from "../i18n";
-import type { Limits, Preset, ProviderInfo, Settings, Specialist, ToolInfo } from "../types";
+import { reasonText } from "../isolation";
+import type { Limits, Preset, ProviderInfo, SandboxStatus, Settings, Specialist, ToolInfo } from "../types";
 import { Connectors } from "./Connectors";
 import { DesignSystems } from "./Design";
 import { Evolution } from "./Evolution";
@@ -30,6 +31,10 @@ const L = lang === "es"
       tune: "Optimizar mi equipo", tuneHint: "Prueba varias configuraciones del modelo local en este ordenador (hilos y caché) y guarda la más rápida. Tarda unos minutos; el motor local se detiene mientras tanto.",
       tuneQuick: "Prueba rápida (menos precisa)", tuning: "Midiendo…", threads: "hilos", gen: "generación", prompt: "lectura", failedCfg: "no arranca",
       tuneSaved: "Guardado", ctxEstimated: "contexto estimado por memoria, no medido", lastTune: "Última optimización", noModelTune: "Primero elige un modelo local.",
+      sandbox: "Aislamiento del código", sandboxMode: "Aislar python y run_command",
+      sandboxHint: "Con aislamiento, el código que ejecuta SPIKE no tiene red y solo escribe en su carpeta de trabajo y en una temporal privada. Usa bubblewrap (Linux) o sandbox-exec (macOS) si tu ordenador lo tiene; en Windows no hay aislamiento. Con aislamiento no funcionan los comandos que necesitan red (npm install, git pull).",
+      sandboxAuto: "Automático: aislar si se puede", sandboxOff: "Desactivado: nunca aislar", sandboxRequired: "Obligatorio: no ejecutar código sin aislamiento",
+      sandboxOn: "disponible", sandboxNone: "no disponible", sandboxBlocked: "Con «Obligatorio» y sin aislamiento disponible, SPIKE no ejecutará python ni run_command.",
     }
   : {
       title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", skills: "Skills", design: "Design", finance: "Finance", connectors: "Connectors", memory: "Memory", evolution: "Evolution", privacy: "Privacy", engine: "Local engine",
@@ -48,6 +53,10 @@ const L = lang === "es"
       tune: "Optimize for my computer", tuneHint: "Tries a few settings of the local model on this computer (threads and cache) and keeps the fastest. Takes a few minutes; the local engine stops meanwhile.",
       tuneQuick: "Quick run (less precise)", tuning: "Measuring…", threads: "threads", gen: "generation", prompt: "prompt", failedCfg: "does not start",
       tuneSaved: "Saved", ctxEstimated: "context estimated from memory, not measured", lastTune: "Last optimization", noModelTune: "Choose a local model first.",
+      sandbox: "Code isolation", sandboxMode: "Isolate python and run_command",
+      sandboxHint: "When isolated, the code SPIKE runs has no network and writes only in its working folder and a private temp folder. It uses bubblewrap (Linux) or sandbox-exec (macOS) if your computer has it; Windows has no isolation. Commands that need the network (npm install, git pull) do not work when isolated.",
+      sandboxAuto: "Automatic: isolate when possible", sandboxOff: "Off: never isolate", sandboxRequired: "Required: do not run code without isolation",
+      sandboxOn: "available", sandboxNone: "not available", sandboxBlocked: "With “Required” and no isolation available, SPIKE will not run python or run_command.",
     };
 
 type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "design" | "finance" | "connectors" | "memory" | "evolution" | "privacy" | "engine";
@@ -305,6 +314,7 @@ function Tools({ settings, save }: { settings: Settings; save: (p: Partial<Setti
   useEffect(() => { api.get<ToolInfo[]>("/api/tools").then(setTools); }, [settings.tool_policies]);
   return (
     <div className="form">
+      <Sandbox settings={settings} save={save} />
       {tools.map((tool) => (
         <div key={tool.name} className="card row-card">
           <div><code>{tool.name}</code> <span className={`risk risk-${tool.risk}`}>{tool.risk}</span><p className="small muted">{tool.description}</p></div>
@@ -313,6 +323,28 @@ function Tools({ settings, save }: { settings: Settings; save: (p: Partial<Setti
           </select>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** The isolation of code-running tools: the setting, and whether this computer can do it (and why not). */
+function Sandbox({ settings, save }: { settings: Settings; save: (p: Partial<Settings>) => void }) {
+  const [status, setStatus] = useState<SandboxStatus | null>(null);
+  useEffect(() => { api.get<SandboxStatus>("/api/sandbox").then(setStatus).catch(() => setStatus(null)); }, [settings.sandbox]);
+  return (
+    <div className="card" data-testid="sandbox">
+      <div className="card-head">
+        <b>{L.sandbox}</b>
+        {status && <span className={`badge ${status.available ? "ok" : "warn"}`}>{status.available ? `${L.sandboxOn} · ${status.backend}` : L.sandboxNone}</span>}
+      </div>
+      <p className="small muted">{L.sandboxHint}</p>
+      {status && !status.available && <p className="small warn-text">{reasonText(status)}</p>}
+      <label className="field"><span>{L.sandboxMode}</span>
+        <select value={settings.sandbox} onChange={(e) => save({ sandbox: e.target.value as Settings["sandbox"] })} aria-label={L.sandboxMode}>
+          <option value="auto">{L.sandboxAuto}</option><option value="off">{L.sandboxOff}</option><option value="required">{L.sandboxRequired}</option>
+        </select>
+      </label>
+      {settings.sandbox === "required" && status && !status.available && <p className="small bad">{L.sandboxBlocked}</p>}
     </div>
   );
 }

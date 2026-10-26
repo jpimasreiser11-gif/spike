@@ -47,6 +47,8 @@ from spike.store.db import Store
 from spike.store.secrets import SecretStore
 from spike.tools.base import PermissionBroker, ToolRegistry
 from spike.tools.builtin import Workspace, default_registry
+from spike.tools.sandbox import MODES as SANDBOX_MODES
+from spike.tools.sandbox import Sandbox
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "custom_instructions": "",
@@ -54,6 +56,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "default_provider": "spike-local",
     "specialist_bindings": {},  # specialist id -> {"provider_id": ..., "model": ...}
     "tool_policies": {},
+    "sandbox": "auto",  # code-running tools (python, run_command): auto = isolate when the computer can | off | required
     "tools_enabled": True,
     "use_planner": True,
     "parallel": False,
@@ -118,10 +121,12 @@ class AppState:
         self._background: set[asyncio.Task] = set()
         self._tuning = asyncio.Lock()
         self.finance = Finance(self.home, self.secrets, lambda: self.settings()["finance"], market_factory)
-        self.tools = default_registry(workspace_dir())
+        mode = self.settings()["sandbox"]
+        self.sandbox = Sandbox(mode if mode in SANDBOX_MODES else "auto")
+        self.tools = default_registry(workspace_dir(), self.sandbox)
         workspace = Workspace(workspace_dir())
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
-                     *analytics_tools(workspace), *motion_tools(workspace)]:
+                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -146,6 +151,8 @@ class AppState:
             raise ValueError(f"unknown settings: {sorted(unknown)}")
         if "browser" in patch:
             patch = {**patch, "browser": browser.clean(patch["browser"])}
+        if "sandbox" in patch and patch["sandbox"] not in SANDBOX_MODES:
+            raise ValueError(f"sandbox must be one of {', '.join(SANDBOX_MODES)}")
         if "finance" in patch:
             now, given = self.settings()["finance"], patch["finance"]
             if not isinstance(given, dict):
@@ -157,6 +164,8 @@ class AppState:
             self.store.set_setting(key, value)
         if "tool_policies" in patch:
             self.broker.policies = dict(patch["tool_policies"])
+        if "sandbox" in patch:
+            self.sandbox.mode = patch["sandbox"]
         if "custom_specialists" in patch:
             self.catalog = self._load_catalog()
         return self.settings()
@@ -252,10 +261,10 @@ class AppState:
             return self.tools
         if project_id not in self._project_tools:
             folder = self.project_files.folder(project_id)
-            registry = default_registry(folder)
+            registry = default_registry(folder, self.sandbox)
             workspace = Workspace(folder)
             for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
-                         *analytics_tools(workspace), *motion_tools(workspace)]:
+                         *analytics_tools(workspace, self.sandbox), *motion_tools(workspace)]:
                 registry.register(tool)
             registry.shared = self.connectors.tools
             self._project_tools[project_id] = registry
