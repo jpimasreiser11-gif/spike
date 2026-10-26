@@ -238,7 +238,7 @@
   },
   {
    "id": "A15",
-   "owner": "codex",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Investigación: notebook, Paper Rebuilder y mapa de contradicciones",
@@ -254,8 +254,8 @@
   },
   {
    "id": "A16",
-   "owner": "codex",
-   "status": "todo",
+   "owner": "claude",
+   "status": "doing",
    "phase": "app",
    "title": "Geo, grabador del navegador y explorador de arquitectura",
    "depends": [],
@@ -272,8 +272,8 @@
   },
   {
    "id": "A18",
-   "owner": "codex",
-   "status": "todo",
+   "owner": "claude",
+   "status": "doing",
    "phase": "app",
    "title": "3D con Blender y juegos con Godot",
    "depends": [],
@@ -531,11 +531,11 @@
    "title": "App de escritorio: lanzador y asistente de modelos",
    "depends": [],
    "paths": [
-    "spike/desktop/",
+    "spike/launcher/",
     "packaging/",
     "web/src/"
    ],
-   "spec": "spike/desktop/: start the server on a free loopback port, wait for health, open a native window with pywebview if installed (optional extra `desktop`, BSD-3) or the default browser otherwise; single instance; quitting stops the server and llama-server. First-run wizard in the web UI: checks disk and RAM, downloads the base model and the chosen specialists' adapters from Hugging Face with SHA-256 checks, resumable, one button 'Descargar todo'. Reuse the download/verify code the installers already use. PyInstaller spec (packaging/spike.spec) bundling the pinned llama.cpp b11709 prebuilt binaries per OS (MIT). Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "spec": "spike/launcher/ (spike/desktop/ is already the desktop-actions package of A19; do not touch it): start the server on a free loopback port, wait for health, open a native window with pywebview if installed (optional extra `desktop`, BSD-3) or the default browser otherwise; single instance; quitting stops the server and llama-server. First-run wizard in the web UI: checks disk and RAM, downloads the base model and the chosen specialists' adapters from Hugging Face with SHA-256 checks, resumable, one button 'Descargar todo'. Reuse the download/verify code the installers already use. PyInstaller spec (packaging/spike.spec) bundling the pinned llama.cpp b11709 prebuilt binaries per OS (MIT). Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
    "accept": [
     "launcher test with a fake server",
     "download resume + bad hash tests with a local HTTP fixture"

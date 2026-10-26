@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 6 | 1 | 0 | 0 | 7 | 0 | 14 |
-| Codex | 12 | 0 | 0 | 0 | 6 | 0 | 18 |
+| Claude | 7 | 3 | 0 | 0 | 7 | 0 | 17 |
+| Codex | 9 | 0 | 0 | 0 | 6 | 0 | 15 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **25** | **2** | **0** | **0** | **14** | **0** | **41** |
+| **Total** | **23** | **4** | **0** | **0** | **14** | **0** | **41** |
 
 ## Fase: equipo
 
@@ -34,9 +34,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A12 | Codex | pendiente | De un Excel a una app (Data-to-Software) | A3 |
 | A13 | Codex | pendiente | Imagen y voz | - |
 | A14 | Codex | pendiente | Audio y subtítulos | A13 |
-| A15 | Codex | pendiente | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
-| A16 | Codex | pendiente | Geo, grabador del navegador y explorador de arquitectura | - |
-| A18 | Codex | pendiente | 3D con Blender y juegos con Godot | - |
+| A15 | Claude | pendiente | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
+| A16 | Claude | en curso | Geo, grabador del navegador y explorador de arquitectura | - |
+| A18 | Claude | en curso | 3D con Blender y juegos con Godot | - |
 | A4 | Claude | hecha | Aislamiento del sistema para python y run_command | - |
 | A6 | Claude | hecha | Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas | - |
 | A7 | Claude | hecha | Memoria: carpetas elegidas, glosario, progreso del tutor y grafo | - |
