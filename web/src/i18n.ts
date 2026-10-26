@@ -270,3 +270,32 @@ const en: Dict = {
 
 export const lang: "es" | "en" = (navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en";
 export const t: Dict = lang === "es" ? es : en;
+
+
+const projectErrors: Record<string, { es: string; en: string }> = {
+  "file path leaves the project or uses a symbolic link": {
+    es: "La ruta sale del proyecto o usa un enlace simbólico.",
+    en: "The path leaves the project or uses a symbolic link.",
+  },
+  "too many project notes to export": {
+    es: "Hay demasiadas notas de proyecto para exportar.",
+    en: "Too many project notes to export.",
+  },
+  "invalid project notes or note budget exceeded": {
+    es: "Las notas de proyecto no son válidas o superan el límite.",
+    en: "Project notes are invalid or exceed the limit.",
+  },
+  "invalid project note (kind/text)": {
+    es: "Nota de proyecto no válida (tipo o texto).",
+    en: "Invalid project note (kind or text).",
+  },
+  "project notes need a memory store": {
+    es: "Las notas de proyecto necesitan un almacén de memoria.",
+    en: "Project notes require a memory store.",
+  },
+};
+
+/** Translate the project archive/path errors introduced by the Studio port; preserve other server diagnostics. */
+export function projectError(message: string, language: "es" | "en" = lang): string {
+  return projectErrors[message]?.[language] ?? message;
+}

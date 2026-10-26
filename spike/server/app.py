@@ -883,7 +883,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def import_project_zip(request: Request) -> dict:
         blob = await read_body(request, MAX_ARCHIVE_BYTES)
         try:
-            project = import_project(st().store, st().project_files, blob, {"auto", *st().catalog.specialists})
+            project = import_project(st().store, st().project_files, blob, {"auto", *st().catalog.specialists},
+                                     st().memory.store)
         except ProjectError as exc:
             raise HTTPException(400, str(exc)) from exc
         for f in st().project_files.list(project["id"]):
@@ -911,7 +912,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.get("/api/projects/{pid}/files")
     async def project_files(pid: str) -> list[dict]:
         project_or_404(pid)
-        return st().project_files.list(pid)
+        try:
+            return st().project_files.list(pid)
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
 
     @app.put("/api/projects/{pid}/files/{path:path}")
     async def put_project_file(pid: str, path: str, request: Request) -> dict:
@@ -967,7 +971,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def export_project_zip(pid: str) -> Response:
         project = project_or_404(pid)
         name = re.sub(r"[^A-Za-z0-9._-]+", "-", project["name"]).strip("-") or "project"
-        return Response(export_project(st().store, st().project_files, pid), media_type="application/zip",
+        try:
+            blob = export_project(st().store, st().project_files, pid, st().memory.store)
+        except ProjectError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return Response(blob, media_type="application/zip",
                         headers={"Content-Disposition": f'attachment; filename="{name}.spike-project.zip"'})
 
     # ---------------------------------------------------------------- conversations

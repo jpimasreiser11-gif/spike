@@ -1,8 +1,9 @@
+import { projectError } from "./i18n";
 import type { ChatEvent } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
-    super(message);
+    super(projectError(message));
   }
 }
 
