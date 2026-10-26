@@ -12,6 +12,13 @@ software checks, not a new model-quality measurement. Medicine remains rejected 
 demonstrated gain. See [review and handoff](audits/2026-10-25-project-handoff.md) and
 [exact changes for Claude](CODEX-HANDOFF.md). Historical measurements below retain their original scope.
 
+Follow-up closed on 2026-10-26: direct evaluation resumes and the forgetting coordinator also
+validate input/artifact identity; completed prediction groups survive interruptions, and empty or
+unloaded-adapter acceptance runs are refused. **887 Python tests passed, 14 skipped**, including a
+new evaluation/resume test with a real llama-server and tiny LoRA. An isolated copy of medicine's
+files and the training-environment dry-run are ready; no new medicine verdict was measured.
+See [second handoff](audits/2026-10-25-resume-hardening.md).
+
 ## Verified (with evidence)
 
 | Area | Evidence | How to reproduce |

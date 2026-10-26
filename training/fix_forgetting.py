@@ -40,7 +40,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
-import hashlib
 import json
 import os
 import re
@@ -60,6 +59,7 @@ sys.path.insert(0, str(ROOT))
 
 from ramguard import exit_on_signals  # noqa: E402
 from spike_train.evaluation import free_port  # noqa: E402
+from spike_train.provenance import sha256  # noqa: E402
 
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig, find_binary  # noqa: E402
 
@@ -112,10 +112,6 @@ def shown(path: Path) -> str:
         return Path(path).resolve().relative_to(ROOT.resolve()).as_posix()  # the same record on every OS
     except ValueError:
         return str(path)
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 class Log:
@@ -207,9 +203,9 @@ def read_state(job: Job) -> dict:
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except ValueError:
-        raise SystemExit(f"{shown(path)} is not valid JSON: repair it, or delete it to start from the sweep again") from None
+        raise SystemExit(f"{shown(path)} is not valid JSON: preserve it and restore the intact record of this experiment") from None
     if not isinstance(state, dict) or not isinstance(state.get("steps"), dict):
-        raise SystemExit(f"{shown(path)} is not a fix_forgetting.py record: repair it, or delete it")
+        raise SystemExit(f"{shown(path)} is not a fix_forgetting.py record: preserve it and restore the intact record")
     return state
 
 
@@ -220,8 +216,75 @@ def save_state(job: Job, state: dict) -> None:
     os.replace(tmp, path)  # a reader (or a kill) never sees half a record
 
 
+def artifact_hashes(job: Job, step: str) -> dict[str, str | None]:
+    """Files a completed step relies on, relative to runs/ or data/ for archive-aware checks.
+
+    Sweep export folders contain derived symlinks back to adapter/: hash the original
+    weights, not those links (their targets move when the first round is archived).
+    """
+    paths: list[Path] = []
+    if step in ("sweep1", "sweep2", "train"):
+        paths = [job.runs / "run.json", *(job.runs / "adapter").rglob("*")]
+        if step != "train":
+            paths.extend((job.runs / "sweep").rglob("*"))
+    elif step == "self_replay":
+        paths = [job.replay, job.replay.with_suffix(".summary.json")]
+    elif step == "prepare":
+        paths = [job.data / name for name in ("train.jsonl", "valid.jsonl", "manifest.json", "mlx_lora.yaml")]
+    out = {}
+    for path in paths:
+        if path.is_dir() or path.is_symlink() or path.name.endswith(".tmp"):
+            continue
+        scope, base = ("data", job.data) if path.is_relative_to(job.data) else ("runs", job.runs)
+        out[f"{scope}/{path.relative_to(base).as_posix()}"] = sha256(path) if path.is_file() else None
+    return out
+
+
+def verify_state(job: Job, state: dict) -> bool:
+    """Validate before any skip, archive, training, or acceptance report; never bless legacy results."""
+    files = {"model": job.model, "recipe": job.recipe,
+             "converter": Path(job.llama_cpp) / "convert_lora_to_gguf.py"}
+    for relative in ("training/datasets.yaml", "evals/suites.yaml", "spike/specialists/catalog.yaml",
+                     "training/self_replay.py", "training/prepare.py", "training/sweep_checkpoints.py",
+                     "training/scripts/train_supervised.sh", "evals/run_eval.py"):
+        if (source := ROOT / relative).is_file():
+            files[relative] = source
+    identity = {"format": "spike-fix-inputs-v1", "files": {key: sha256(path) for key, path in files.items()}}
+
+    def refuse(reason):
+        raise SystemExit(f"fix_forgetting provenance: {reason}. Existing evidence was preserved; "
+                         "restore the original experiment inputs or use a separately documented experiment")
+
+    if state.get("specialist") != job.spec:
+        refuse("specialist does not match")
+    new = "inputs" not in state
+    if new:
+        if state["steps"] or "archive_round" in state:
+            refuse("completed steps have no input receipt")
+        state["inputs"] = identity
+    elif state["inputs"] != identity:
+        refuse("model, recipe, converter or workflow inputs changed")
+    for step, record in state["steps"].items():
+        if not isinstance(record, dict) or not isinstance(record.get("artifacts"), dict):
+            refuse(f"{step} has no artifact receipt")
+        for relative, checksum in record["artifacts"].items():
+            key = Path(relative)
+            if not key.parts or key.is_absolute() or ".." in key.parts or key.parts[0] not in ("runs", "data"):
+                refuse(f"invalid artifact path for {step}")
+            path = (job.runs if key.parts[0] == "runs" else job.data).joinpath(*key.parts[1:])
+            if step == "sweep1" and "archive_round" in state and key.parts[0] == "runs":
+                archived = (job.runs / f"round{state['archive_round']}").joinpath(*key.parts[1:])
+                # During a partial archive some files have moved and others have not.
+                if archived.exists() or "archive" in state["steps"]:
+                    path = archived
+            current = sha256(path) if path.is_file() else None
+            if current != checksum:
+                refuse(f"{step} artifact changed or disappeared: {relative}")
+    return new
+
+
 def mark(job: Job, state: dict, step: str, **info) -> dict:
-    state["steps"][step] = {"utc": now(), **info}
+    state["steps"][step] = {"utc": now(), **info, "artifacts": artifact_hashes(job, step)}
     save_state(job, state)
     return state["steps"][step]
 
@@ -539,11 +602,15 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("llama-server not found: install llama.cpp (e.g. `brew install llama.cpp`) or set SPIKE_LLAMA_SERVER; "
                          "the replay is generated with it")
     if args.dry_run:
+        verify_state(job, state)
         print("\n".join(plan_lines(job, state)))
         return 0
     with exclusive(job):
-        log = Log(job.runs / "fix_forgetting.log")
         state = read_state(job)  # again, now that no other instance can change it
+        new = verify_state(job, state)
+        if new:
+            save_state(job, state)  # bind the workflow before a command can produce reusable outputs
+        log = Log(job.runs / "fix_forgetting.log")
         log(f"fix_forgetting {job.spec}: started; finished before: {', '.join(state['steps']) or 'nothing'}")
         try:
             code = execute(job, state, log)

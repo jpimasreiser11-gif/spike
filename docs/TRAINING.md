@@ -79,8 +79,24 @@ config. Never report smoke-run numbers as results.
   Preserve the original experiment; a deliberate new experiment needs its own record and must respect
   the separation of selection and acceptance data. Hashing is streamed, including the base GGUF.
   This checks local input identity, not scientific correctness or a signed provenance chain; remote
-  dataset/model repository revisions, runtime dependencies and the outer `fix_forgetting.json` step
-  cache still need separate review. Direct `run_eval.py --resume` does not use this sweep receipt.
+  dataset/model repository revisions and runtime dependencies still need separate review.
+- Direct `run_eval.py --resume` has its own `inputs.json`: it pins local model/adapter bytes,
+  generation settings, dataset/suite definitions, the **actual selected questions and answers**,
+  specialist instructions and the server build. Existing adapters must match; additional adapters
+  can be evaluated without regenerating complete groups. A fresh `--out` cannot overwrite results.
+  Each completed group is committed atomically, so a failure while adding another group retains
+  the previous predictions. A legacy run without a receipt is preserved but cannot be resumed.
+  `--server-url` remains available for fresh runs; resuming it is refused because an independently
+  managed server's model name/build does not establish the identity of its weights. Acceptance
+  requires a loaded adapter; a local server must report the adapters requested on the command line.
+- `fix_forgetting.py` now pins its model, recipe, converter and workflow inputs before its first
+  command. Every completed step records artifact hashes; they are checked before skipping work or
+  reporting an accepted result, including after the first round has moved into its archive. Prepared
+  data and replay files cannot silently change before training resumes. `--dry-run` validates existing
+  receipts without writing them. Legacy step records need the intact original experiment, not a
+  manufactured receipt. Existing replay files supplied at the start retain their original generation
+  provenance; hashing them does not prove which teacher produced them. `--rescore` is a separate
+  explicit operation, not covered by the resume contract. These local receipts are not signatures.
 - The eval compares the base model **with the same system prompt** against base + adapter, same items,
   greedy decoding, thinking off, explicit adapter scales (ADR 0004); `pairwise.py` generates greedily too
   (`--temperature` changes it and is recorded in its summary).

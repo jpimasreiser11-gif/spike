@@ -104,9 +104,9 @@ datasets ni pesos.
 
 ## Pendientes detectados que no debe ocultar la corrección
 
-1. `run_eval.py --resume` fuera del barrido y el registro de pasos de
-   `fix_forgetting.py` requieren ampliar la comprobación de identidad. Este parche
-   protege el barrido; no convierte cualquier caché del proyecto en evidencia certificada.
+1. La comprobación de identidad de `run_eval.py --resume` y del registro de pasos de
+   `fix_forgetting.py` se amplió en el [segundo lote](2026-10-25-resume-hardening.md).
+   Los recibos locales no convierten cualquier caché en evidencia certificada.
 2. Un ID de repositorio de Hugging Face no fija por sí solo una revisión remota.
    Conviene fijar también las revisiones de modelos/datasets y las dependencias de
    cada evaluación para reproducibilidad estricta.

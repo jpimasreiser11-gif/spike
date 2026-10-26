@@ -70,14 +70,20 @@ Las pruebas de MLX se ejecutaron con el entorno original, sin instalar paquetes 
 
 ## Continuación del plan de Claude
 
+**Actualización de esta entrega:** el segundo lote también protege `fix_forgetting.py` y
+la reanudación directa de `run_eval.py`; consulta
+[la ampliación de la revisión](audits/2026-10-25-resume-hardening.md). La copia aislada ya
+contiene los datos y checkpoints de medicina verificados, con rutas de MLX reubicadas.
+El dry-run pasa usando el entorno de entrenamiento existente. No se ha iniciado el barrido.
+
 1. Revisar e integrar esta rama antes del barrido. No mezclar los módulos duplicados de
    Downloads con los de main. Conservar esa copia, sus vídeos y todos los checkpoints.
-2. Preparar un checkout del código integrado que pueda acceder a los datos/checkpoints
-   originales. Ejecutar primero `training/fix_forgetting.py medicine --dry-run` con los
-   argumentos `--llama-cpp` y `--model` del Mac; no iniciar desde esta copia sin los datos.
-3. Revisar cualquier caché previa: esta corrección no inventa procedencia retrospectiva.
-   Los registros externos de `fix_forgetting.py` y `run_eval.py --resume` requieren una
-   revisión adicional, detallada en el informe.
+2. Usar la copia aislada preparada o un checkout equivalente del código integrado. El
+   informe de la ampliación contiene el comando exacto y el entorno necesarios; revisar
+   otra vez el dry-run si cambian archivos o parámetros antes de arrancar.
+3. Revisar cualquier caché previa: estas correcciones no inventan procedencia retrospectiva.
+   Conservar resultados antiguos sin recibos; no generarles una identidad nueva ni borrar
+   evidencias para eludir una negativa de reanudación.
 4. Liberar el runtime de la app antes de iniciar el barrido pesado. Comparar checkpoints
    3200, 6400, 12800 y final 25469 a escala 0,5; ejecutar aceptación solo para el elegido.
 5. Si ninguno pasa, seguir la receta ya acordada: replay del modelo base como única
