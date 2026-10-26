@@ -7,10 +7,10 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Claude | 7 | 2 | 0 | 0 | 5 | 0 | 14 |
-| Codex | 18 | 0 | 0 | 0 | 0 | 0 | 18 |
+| Codex | 12 | 0 | 0 | 0 | 6 | 0 | 18 |
 | Mac | 5 | 1 | 0 | 0 | 0 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **33** | **3** | **0** | **0** | **5** | **0** | **41** |
+| **Total** | **27** | **3** | **0** | **0** | **11** | **0** | **41** |
 
 ## Fase: equipo
 
@@ -23,12 +23,12 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
-| S1 | Codex | pendiente | Rescatar el trabajo de Studio | - |
-| A1 | Codex | pendiente | Paquete de skills y validadores | - |
-| A2 | Codex | pendiente | Ecosistema abierto: bench --share, esquemas, compatibilidad | - |
-| A3 | Codex | pendiente | Analytics: contratos, SQL Guardian, rescate, linaje y previsiones | - |
-| A5 | Codex | pendiente | Dependency Doctor y Visual Critic | - |
-| A8 | Codex | pendiente | Lab: comparar modelos y probar proveedores | - |
+| S1 | Codex | hecha | Rescatar el trabajo de Studio | - |
+| A1 | Codex | hecha | Paquete de skills y validadores | - |
+| A2 | Codex | hecha | Ecosistema abierto: bench --share, esquemas, compatibilidad | - |
+| A3 | Codex | hecha | Analytics: contratos, SQL Guardian, rescate, linaje y previsiones | - |
+| A5 | Codex | hecha | Dependency Doctor y Visual Critic | - |
+| A8 | Codex | hecha | Lab: comparar modelos y probar proveedores | - |
 | A9 | Codex | pendiente | Ramas de proyecto, comentarios, conocimiento por especialista y cola de trabajos | - |
 | A11 | Codex | pendiente | Marketplace de skills y hasta 30 skills | A1 |
 | A12 | Codex | pendiente | De un Excel a una app (Data-to-Software) | A3 |

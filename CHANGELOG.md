@@ -46,7 +46,20 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   before. SPIKE ships no sandbox of its own.
 - Team work: Claude leads and Codex builds through the repository (`AGENTS.md`, `docs/team/`): a task board
   with a CI check and a detached Codex worker (`scripts/team/codex_worker.py`) that works on `codex/<id>`
-  branches and never pushes `main`. Tested with a fake Codex; not yet run against the real Codex CLI.
+  branches and never pushes `main`. Running with the real Codex CLI on the owner's Mac since 2026-10-26.
+- Projects: notes travel in the project ZIP (validated, rolled back if an import fails); symbolic links are
+  refused by the project file API and left out of the ZIP. The OpenAI-compatible API answers `usage: null`
+  instead of invented zeros, and the proof manifest says it is not independent verification. (S1, Codex)
+- Nine more original bundled skills, and offline `spike skills validate` / `spike connectors validate`
+  that CI runs on the bundled set. (A1, Codex)
+- `spike bench --share` writes an anonymous allowlisted result; v1 JSON schemas for packs, projects, proof
+  manifests and shared benchmarks; `COMPATIBILITY.md` generated from CI and measured rows. (A2, Codex)
+- Analytics: CSV rescue, data contracts, SQL Guardian (read-only, LIMIT, EXPLAIN), lineage in the proof
+  package and five baseline forecasts chosen by backtest error. (A3, Codex)
+- Dev: Dependency Doctor (uses audit tools only if installed) and Visual Critic (contrast, alt, names,
+  overflow, small targets), each run on request and with permission. (A5, Codex)
+- Lab: compare prompts or cases across specialists and providers, and probe a provider's capabilities with
+  an estimate first and the paid-call guard. (A8, Codex)
 
 ### Learning from use (Evolution)
 - Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the

@@ -37,7 +37,7 @@
   {
    "id": "S1",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Rescatar el trabajo de Studio",
    "depends": [],
@@ -56,7 +56,7 @@
   {
    "id": "A1",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Paquete de skills y validadores",
    "depends": [],
@@ -76,7 +76,7 @@
   {
    "id": "A2",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Ecosistema abierto: bench --share, esquemas, compatibilidad",
    "depends": [],
@@ -97,7 +97,7 @@
   {
    "id": "A3",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Analytics: contratos, SQL Guardian, rescate, linaje y previsiones",
    "depends": [],
@@ -114,7 +114,7 @@
   {
    "id": "A5",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Dependency Doctor y Visual Critic",
    "depends": [],
@@ -130,7 +130,7 @@
   {
    "id": "A8",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Lab: comparar modelos y probar proveedores",
    "depends": [],
