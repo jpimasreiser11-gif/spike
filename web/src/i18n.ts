@@ -1,4 +1,15 @@
 const es = {
+  bundledSkillDescriptions: {
+    "decision-simulator": "Compara decisiones empresariales con escenarios, supuestos y análisis de sensibilidad.",
+    "test-inventor": "Inventa casos límite y pruebas de propiedades a partir del contrato del código.",
+    "migration-architect": "Diseña migraciones por fases con validación, compatibilidad y reversión.",
+    "performance-profiler": "Investiga cuellos de botella de Python con cProfile y mediciones reproducibles.",
+    "localization": "Traduce textos con el glosario del proyecto y conserva claves y marcadores.",
+    "experiment-designer": "Diseña experimentos con hipótesis, controles y análisis definido de antemano.",
+    "synthetic-data": "Genera datos sintéticos reproducibles para pruebas con Faker instalado o la biblioteca estándar.",
+    "vector-designer": "Crea iconos e ilustraciones SVG originales para el panel de artefactos.",
+    "system-diagnostic": "Interpreta el diagnóstico de spike doctor sin iniciar modelos ni cambiar el equipo.",
+  } as Record<string, string>,
   newChat: "Nuevo chat",
   recents: "Recientes",
   settings: "Ajustes",
@@ -188,6 +199,17 @@ const es = {
 type Dict = typeof es;
 
 const en: Dict = {
+  bundledSkillDescriptions: {
+    "decision-simulator": "Compare business decisions with scenarios, assumptions and sensitivity analysis.",
+    "test-inventor": "Invent edge cases and property tests from the software contract.",
+    "migration-architect": "Design phased migrations with validation, compatibility and rollback.",
+    "performance-profiler": "Investigate Python bottlenecks with cProfile and reproducible measurements.",
+    "localization": "Translate strings using the project glossary while preserving keys and placeholders.",
+    "experiment-designer": "Design experiments with hypotheses, controls and a prespecified analysis.",
+    "synthetic-data": "Generate reproducible synthetic test fixtures with installed Faker or the standard library.",
+    "vector-designer": "Create original SVG icons and illustrations for the artifacts panel.",
+    "system-diagnostic": "Interpret spike doctor diagnostics without starting models or changing the machine.",
+  } as Record<string, string>,
   newChat: "New chat",
   recents: "Recents",
   settings: "Settings",

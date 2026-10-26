@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
 import type { Settings, SkillInfo } from "../types";
+import { SkillDescription } from "./SkillDescription";
 import { IconTrash, IconUpload } from "./Icons";
 
 const K = lang === "es"
@@ -71,7 +72,7 @@ export function Skills({ settings, save }: { settings: Settings; save: (p: Parti
             <div className="spacer" />
             {s.source === "user" && <button className="icon-btn" aria-label={`${K.remove}: ${s.name}`} onClick={() => api.del(`/api/skills/${s.name}`).then(load)}><IconTrash size={14} /></button>}
           </div>
-          <p className="small">{s.description}</p>
+          <SkillDescription skill={s} />
           <p className="small muted">{s.specialists.length ? s.specialists.join(", ") : K.any}{s.keywords.length > 0 && ` · ${s.keywords.slice(0, 8).join(", ")}`}</p>
         </div>
       ))}

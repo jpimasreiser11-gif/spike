@@ -616,10 +616,34 @@ def cmd_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate(args: argparse.Namespace) -> int:
+    from spike.connectors.validation import CATALOG, validate_connectors
+    from spike.skills.validation import validate_skills
+
+    issues = (validate_skills([Path(p) for p in args.paths]) if args.command == "skills" else
+              validate_connectors(Path(args.paths) if args.paths else CATALOG))
+    if issues:
+        heading = "Validación fallida" if args.lang == "es" else "Validation failed"
+        print(f"{heading} ({len(issues)})", file=sys.stderr)
+        for issue in issues:
+            print(issue.message(args.lang), file=sys.stderr)
+        return 1
+    print("Validación correcta" if args.lang == "es" else "Validation passed")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="spike", description="SPIKE local AI system")
     p.add_argument("--version", action="version", version=f"spike {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
+
+    for kind in ("skills", "connectors"):
+        validator = sub.add_parser(kind, help=f"validate {kind} / validar {kind}")
+        actions = validator.add_subparsers(dest="action", required=True)
+        validate = actions.add_parser("validate", help="offline checks / comprobaciones sin red")
+        validate.add_argument("paths", nargs="*" if kind == "skills" else "?", default=[])
+        validate.add_argument("--lang", choices=("es", "en"), default="en", help="language / idioma")
+        validate.set_defaults(func=cmd_validate)
 
     s = sub.add_parser("serve", help="run the SPIKE app")
     s.add_argument("--host", default="127.0.0.1")

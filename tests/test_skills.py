@@ -20,7 +20,8 @@ from tests.helpers import ScriptedProvider, call, text
 
 BUNDLED_NAMES = {"test-driven-development", "systematic-debugging", "writing-plans", "verification-before-completion",
                  "frontend-design", "mcp-builder", "webapp-testing", "medical-evidence-summary",
-                 "financial-ratio-analysis", "campaign-brief", "web-design-guidelines", "motion-scene"}
+                 "financial-ratio-analysis", "campaign-brief", "web-design-guidelines", "motion-scene",
+                 "decision-simulator", "test-inventor", "migration-architect", "performance-profiler", "localization", "experiment-designer", "synthetic-data", "vector-designer", "system-diagnostic"}
 
 
 def write_skill(root: Path, name: str, description: str = "Use when testing.", body: str = "Do the thing.",
