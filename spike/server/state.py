@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import socket
+import time
 from collections.abc import AsyncIterator
 from dataclasses import asdict
 from pathlib import Path
@@ -16,7 +17,7 @@ from spike.analytics.tools import analytics_tools
 from spike.connectors import browser
 from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
-from spike.core.types import ChatRequest, Message
+from spike.core.types import ChatRequest, Message, ProviderError
 from spike.design.library import DesignLibrary
 from spike.evolution.router_learning import apply_overlay
 from spike.evolution.service import Evolution
@@ -34,7 +35,7 @@ from spike.motion.tools import motion_tools
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
-from spike.providers.guard import GuardedProvider, month_start
+from spike.providers.guard import CURRENT_CHAT, GuardedProvider, call_cost, month_start, usage_tokens
 from spike.providers.llamacpp import LlamaCppProvider
 from spike.providers.registry import PRESETS_BY_ID, create_provider
 from spike.runtime.hardware import detect, recommend
@@ -50,6 +51,8 @@ from spike.tools.base import PermissionBroker, ToolRegistry
 from spike.tools.builtin import Workspace, default_registry
 from spike.tools.sandbox import MODES as SANDBOX_MODES
 from spike.tools.sandbox import Sandbox
+from spike.trust import escalate
+from spike.trust import settings as trust_settings
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "custom_instructions": "",
@@ -69,6 +72,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # Neural Memory: recall in chats; vectors from a local embedding model when installed ("off" = words only);
     # chat summaries only when the summarising model is local, so memory never spends money
     "memory": {"enabled": True, "embeddings": "auto", "auto_summary": True, "learn": True},
+    # trustworthy answers: claim labels on, an external second opinion offered (never sent without a click) when an
+    # answer has this many unchecked claims, and the optional model pass that may lower labels
+    "trust": dict(trust_settings.DEFAULTS),
     "disabled_skills": [],
     # Evolution: learn from corrections, route corrections and failures on this computer; a learned router is used
     # only after it passes its gate, and every version can be rolled back
@@ -121,6 +127,7 @@ class AppState:
         self._providers: dict[str, Provider] = {}
         self.installed_adapters: dict[str, set[str]] = {}
         self.optimizing = False  # Evolution level 2 runs one optimisation at a time
+        self.asking: set[str] = set()  # answers whose second opinion is being asked for (in memory: it cannot get stuck)
         self.runtime: LlamaServer | None = None
         self.broker = PermissionBroker(self.settings()["tool_policies"])
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
@@ -164,6 +171,10 @@ class AppState:
             patch = {**patch, "browser": browser.clean(patch["browser"])}
         if "sandbox" in patch and patch["sandbox"] not in SANDBOX_MODES:
             raise ValueError(f"sandbox must be one of {', '.join(SANDBOX_MODES)}")
+        if "trust" in patch:
+            if not isinstance(patch["trust"], dict):
+                raise ValueError("'trust' must be an object")
+            patch = {**patch, "trust": trust_settings.clean({**self.trust_settings(), **patch["trust"]})}
         if "finance" in patch:
             now, given = self.settings()["finance"], patch["finance"]
             if not isinstance(given, dict):
@@ -424,6 +435,111 @@ class AppState:
             raise ValueError(f"unknown action '{action}'")
         self.store.update_message_meta(answer["id"], answer["meta"])
         return learn
+
+    # ------------------------------------------------------------------ trust
+    def trust_settings(self) -> dict[str, Any]:
+        return {**trust_settings.DEFAULTS, **(self.settings()["trust"] or {})}
+
+    def escalation_offer(self, trust: dict[str, Any], used: set[str], question: str, answer: str
+                         ) -> dict[str, Any] | None:
+        """The second opinion offered for a low-confidence answer: why, and for each external provider (one with a
+        key that the run did not already use) what would be sent, what it would cost at the prices the user entered
+        and whether the paid-call guard or a monthly limit would stop it. None when the answer is fine, the offer is
+        off or no external provider is configured. Nothing is sent."""
+        cfg = self.trust_settings()
+        low = escalate.low_confidence((trust.get("counts") or {}).get("unchecked", 0),
+                                      bool(trust.get("verifier_failed")), cfg["escalate_unchecked"])
+        if not cfg["escalate"] or low is None:
+            return None
+        private = bool(trust.get("private"))
+        messages = escalate.build_messages(question, answer, escalate.unchecked_claims(trust), private)
+        max_tokens = self.settings()["max_tokens"] or 2048
+        offers = []
+        for raw in self.external_providers():
+            if raw["id"] in used:
+                continue
+            provider = self.provider(raw["id"])
+            offers.append({
+                "provider_id": raw["id"], "name": raw["name"], "model": raw.get("model", ""),
+                "paid": bool(raw.get("paid")), "blocked": provider.blocked(),
+                "files": "none" if not private else "sent" if provider.receives_files else "withheld",
+                **escalate.estimate(messages, dict(raw.get("limits") or {}), max_tokens, raw["name"],
+                                    provider.receives_files)})
+        offers.sort(key=lambda o: (o["blocked"] is not None, o["cost"] is None))
+        return {**low, "offers": offers, "status": "offered"} if offers else None
+
+    def external_providers(self) -> list[dict[str, Any]]:
+        """The providers a second opinion can go to: not local, with an API key."""
+        return [c for c in self.provider_configs() if not c.get("local") and self.secrets.has(f"provider:{c['id']}")]
+
+    async def escalate(self, user_message_id: str, provider_id: str) -> dict[str, Any]:
+        """The user clicked "ask <provider>": send the question, the local answer and its unchecked claims to that
+        provider through its guard (paid-call permission, monthly limits, files withheld unless allowed) and keep its
+        answer with the message. LookupError: no such answer; ValueError: not offered or not an external provider;
+        RuntimeError: already asked or being asked; PermissionError: the guard blocks it; ProviderError: it failed."""
+        store = next((x for x in (self.store, self.temp) if x.get_message(user_message_id)), None)
+        message = store.get_message(user_message_id) if store else None
+        if store is None or message is None or message["role"] != "user":
+            raise LookupError("message not found")
+        thread = store.messages(message["conversation_id"])
+        answer = next((m for m in thread[next(i for i, m in enumerate(thread) if m["id"] == user_message_id) + 1:]
+                       if m["role"] == "assistant"), None)
+        trust = ((answer or {}).get("meta") or {}).get("trust") or {}
+        offer = trust.get("escalation")
+        if answer is None or not offer or not offer.get("offers"):
+            raise ValueError("this answer was not offered a second opinion")
+        if offer["status"] == "answered":
+            raise RuntimeError("a second opinion was already asked for this answer")
+        if answer["id"] in self.asking:
+            raise RuntimeError("a second opinion is being asked for this answer")
+        raw = next((c for c in self.external_providers() if c["id"] == provider_id), None)
+        if raw is None:
+            raise ValueError(f"'{provider_id}' is not an external provider with an API key")
+        provider = self.provider(provider_id)
+        if (reason := provider.blocked()) is not None:
+            raise PermissionError(reason)
+        settings = self.settings()
+        max_tokens = settings["max_tokens"] or 2048
+        private = bool(trust.get("private"))
+        request = ChatRequest(
+            messages=escalate.build_messages(message["content"], answer["content"], escalate.unchecked_claims(trust),
+                                             private),
+            model=raw.get("model") or None, temperature=settings["temperature"], max_tokens=max_tokens)
+        CURRENT_CHAT.set(message["conversation_id"])  # the call log notes which chat the call was for
+        parts: list[str] = []
+        usage: tuple[int, int] | None = None
+        withheld, error = 0, None
+        self.asking.add(answer["id"])
+        try:
+            async for ev in provider.stream(request):
+                if ev.kind == "text":
+                    parts.append(ev.text)
+                elif ev.kind == "usage" and ev.usage:
+                    usage = usage_tokens(ev.usage) or usage
+                elif ev.kind == "notice" and (ev.notice or {}).get("type") == "privacy":
+                    withheld = int(ev.notice["withheld"])
+                elif ev.kind == "error":
+                    error = ev.text
+        except Exception as exc:  # the chat must be able to ask again
+            error = f"{exc.__class__.__name__}: {exc}"
+        finally:
+            self.asking.discard(answer["id"])
+        if error is not None or not parts:
+            offer["error"] = error or "the provider returned no answer"
+            store.update_message_meta(answer["id"], answer["meta"])
+            raise ProviderError(offer["error"])
+        estimated = usage is None
+        tokens_in = usage[0] if usage else sum(estimate_tokens(m.content) for m in request.messages)
+        tokens_out = usage[1] if usage else estimate_tokens("".join(parts))
+        offer.pop("error", None)
+        offer["status"] = "answered"
+        offer["answer"] = {"provider_id": provider_id, "name": raw["name"], "model": raw.get("model", ""),
+                           "text": "".join(parts), "tokens_in": tokens_in, "tokens_out": tokens_out,
+                           "estimated": estimated, "cost": call_cost(dict(raw.get("limits") or {}), tokens_in,
+                                                                     tokens_out),
+                           "files_withheld": withheld, "time": time.time()}
+        store.update_message_meta(answer["id"], answer["meta"])
+        return offer
 
     # ------------------------------------------------------------------ evolution
     def evolution_settings(self) -> dict[str, Any]:

@@ -25,7 +25,7 @@ from spike import __version__, creator
 from spike.analytics.report import ReportError, build_docx, build_pdf, clean_blocks
 from spike.connectors.apps import AppError
 from spike.contracts import schema_error
-from spike.core.types import Message
+from spike.core.types import Message, ProviderError
 from spike.design.library import MAX_ZIP as MAX_DESIGN_BYTES
 from spike.design.library import DesignError, preview_html
 from spike.finance.backtest import STRATEGIES
@@ -165,6 +165,10 @@ class LearnIn(BaseModel):
 
 class RouteIn(BaseModel):
     specialist: str  # the specialist the user retries this question with
+
+
+class EscalateIn(BaseModel):
+    provider_id: str  # the external provider the user clicked "ask <provider>" for
 
 
 class EvolutionItemPatch(BaseModel):
@@ -1077,6 +1081,23 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
+    @app.post("/api/messages/{mid}/escalate")
+    async def escalate(mid: str, body: EscalateIn) -> dict:
+        """The user clicked "ask <provider>" on a low-confidence answer: the one place a second opinion is sent. The
+        message is the question; the provider's guard still applies (paid calls, monthly limits, files withheld)."""
+        try:
+            return await st().escalate(mid, body.provider_id)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        except PermissionError as exc:
+            raise HTTPException(403, str(exc)) from exc
+        except ProviderError as exc:  # before RuntimeError: it is one
+            raise HTTPException(502, str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(409, str(exc)) from exc
+
     @app.post("/api/messages/{mid}/route")
     async def route_correction(mid: str, body: RouteIn) -> dict:
         """The user retries this question with another specialist: a route correction the router learns from."""
@@ -1439,11 +1460,14 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         "user_message_id": user_message["id"], **({"temporary": True} if temporary else {})})
             meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
             final_text, error, cancelled = "", None, True
+            held: dict[str, Any] | None = None  # the trust event, sent just before "done"
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
             options = state.options(mode, project)
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
             options.json_schema = body.response_schema
             options.forge = blueprint
+            trust = state.trust_settings()  # claim labels are for the app's chats; /v1, MCP and the CLI do not get them
+            options.trust, options.trust_model_pass = trust["enabled"], trust["enabled"] and trust["model_pass"]
             options.skills = list(body.skills or [])
             if body.design_system is not None:  # the chat's choice replaces the project's
                 options.design = state.designs.get(body.design_system)
@@ -1488,6 +1512,15 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         yield _sse(memory_event)
                 async for ev in orchestrator.run(history, body.message, options):
                     kind = ev["type"]
+                    if kind == "trust":
+                        held = ev  # waits for the final answer: a low-confidence one may offer a second opinion
+                        continue
+                    if kind == "done" and held is not None:
+                        used = {s["provider_id"] for s in (meta["route"] or {}).get("specialists") or []}
+                        if offer := state.escalation_offer(held, used, body.message, ev["text"]):
+                            held["escalation"] = offer
+                        meta["trust"] = {k: v for k, v in held.items() if k != "type"}  # not in "events": it is large
+                        yield _sse(held)
                     if kind == "route":
                         meta["route"] = ev
                     elif kind == "plan":
