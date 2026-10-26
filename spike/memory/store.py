@@ -81,6 +81,7 @@ class Hit:
     text: str  # the chunk that matched
     score: float
     by: list[str]  # "words" and/or "meaning"
+    chunk: int = 0  # the matching chunk's id, which an answer's citation of it can be traced to
 
 
 def chunk_text(text: str, size: int = CHUNK_CHARS) -> list[str]:
@@ -352,7 +353,8 @@ class MemoryStore:
                 continue
             taken[r["id"]] = taken.get(r["id"], 0) + 1
             score = sum(1 / (RRF_K + x) for x in ranks[chunk_id].values())
-            hits.append(Hit(memory=_row(r), text=r["ctext"], score=round(score, 5), by=sorted(ranks[chunk_id])))
+            hits.append(Hit(memory=_row(r), text=r["ctext"], score=round(score, 5), by=sorted(ranks[chunk_id]),
+                            chunk=chunk_id))
             if len(hits) >= k:
                 break
         return hits

@@ -56,8 +56,10 @@ async def run_agent(
     reasoning: bool | None = None,
     tag: dict[str, Any] | None = None,
     checkpoints: Checkpointer | None = None,
+    full_results: bool = False,
 ) -> AsyncIterator[Event]:
-    """Stream UI events. `tag` is merged into every event (e.g. {"subtask": "t1"})."""
+    """Stream UI events. `tag` is merged into every event (e.g. {"subtask": "t1"}). `full_results`: a tool result cut
+    in its event (4000 characters) also carries the whole text as `full`, for the caller to take out (trust checks)."""
     tag = tag or {}
     by_name = {t.name: t for t in tools}
     history = list(messages)
@@ -141,6 +143,7 @@ async def run_agent(
                     yield ev
                 result_text, ok, file, private, checkpoint, ui = outcome
             yield {"type": "tool_result", "id": call.id, "name": call.name, "ok": ok, "content": result_text[:4000],
+                   **({"full": result_text} if full_results and len(result_text) > 4000 else {}),
                    **({"file": file} if file else {}), **({"checkpoint": checkpoint} if checkpoint and ok else {}),
                    **({"ui": ui} if ui else {}), **tag}
             tool_msg = Message(role="tool", content=result_text, tool_call_id=call.id, name=call.name, private=private)

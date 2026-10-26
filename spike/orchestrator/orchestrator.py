@@ -44,6 +44,8 @@ from spike.providers.base import Provider
 from spike.skills.engine import LoadSkill, SkillLibrary, catalog_prompt, skill_prompt
 from spike.specialists.catalog import Catalog, Specialist
 from spike.tools.base import PermissionBroker, Tool, ToolRegistry
+from spike.trust.claims import Report, analyse, apply_downgrades, downgrade_prompt, parse_downgrades
+from spike.trust.evidence import Evidence
 
 if TYPE_CHECKING:
     from spike.forge.blueprint import Blueprint
@@ -93,6 +95,13 @@ class OrchestratorOptions:
     skills: list[str] = field(default_factory=list)  # chosen for this run (a Creator template) instead of searched
     learned_instructions: dict[str, list[str]] = field(default_factory=dict)  # Evolution level 2, per specialist
     learned_skills: dict[str, dict[str, str]] = field(default_factory=dict)  # skill -> "always" | "off", per specialist
+    trust: bool = False  # label the answer's claims (verified | hypothesis | unchecked) and inspect its citations
+    trust_model_pass: bool = False  # a model call that may lower those labels, never raise one
+
+    @property
+    def labels_claims(self) -> bool:
+        """Trust labels apply to prose answers; an answer that must be JSON for a schema has no claims to label."""
+        return self.trust and self.json_schema is None
 
 
 SYNTHESIS_INSTRUCTIONS = (
@@ -260,19 +269,24 @@ class Orchestrator:
         yield self._route_event(decision, specs)
 
         final = AgentRun()
+        evidence = Evidence(user_text, opts.memory) if opts.labels_claims else None
         if opts.json_schema is not None and opts.forge is None:
-            async for ev in self._run_contract(specs[0], history, user_text, opts, final):
-                yield ev
+            run_events = self._run_contract(specs[0], history, user_text, opts, final)
         elif plan is None:
-            spec = specs[0]
-            async for ev in self._run_single(spec, history, user_text, opts, final):
-                yield ev
+            run_events = self._run_single(specs[0], history, user_text, opts, final)
         else:
             yield {"type": "plan", "method": plan.method, "note": plan.note,
                    "subtasks": [{"id": t.id, "specialist": t.specialist, "instruction": t.instruction,
                                  "depends_on": t.depends_on, "role": t.role, "deliverables": t.deliverables}
                                 for t in plan.subtasks]}
-            async for ev in self._run_plan(plan, history, user_text, opts, final):
+            run_events = self._run_plan(plan, history, user_text, opts, final)
+        async for ev in run_events:
+            if evidence is not None:
+                evidence.see(ev)
+            yield ev
+
+        if evidence is not None and final.text.strip() and not final.error:
+            async for ev in self._trust(evidence, final, opts):
                 yield ev
 
         yield {
@@ -299,8 +313,48 @@ class Orchestrator:
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
             tag={"specialist": spec.id}, checkpoints=opts.checkpoints, max_steps=opts.max_steps,
+            full_results=opts.labels_claims,
         ):
             yield ev
+
+    # ------------------------------------------------------------------ trust
+    async def _trust(self, evidence: Evidence, final: AgentRun, opts: OrchestratorOptions) -> AsyncIterator[Event]:
+        """Label the answer's claims against the run's evidence (spike/trust/claims.py) and, if the user turned it
+        on, let one model call lower labels it finds too generous; then the `trust` event."""
+        report = analyse(final.text, evidence)
+        if not report.claims:
+            return
+        if opts.trust_model_pass:
+            async for ev in self._trust_model_pass(report, final):
+                yield ev
+        yield {"type": "trust", **report.public(), "verifier_failed": evidence.verifier_failed,
+               "private": final.private}
+
+    async def _trust_model_pass(self, report: Report, final: AgentRun) -> AsyncIterator[Event]:
+        """Ask the core model which labels are too generous. Its answer can only lower a label (verified ->
+        hypothesis -> unchecked); an unusable or failed answer changes nothing."""
+        lowerable = [c for c in report.claims if c.label != "unchecked"]
+        if not lowerable:
+            return
+        core = self.resolve(self.catalog.core)
+        schema = {"type": "object", "properties": {"downgrade": {"type": "array", "items": {
+            "type": "object", "properties": {"id": {"type": "string"}, "label": {"enum": ["hypothesis", "unchecked"]}},
+            "required": ["id", "label"], "additionalProperties": False}}}, "required": ["downgrade"],
+            "additionalProperties": False}
+        request = ChatRequest(
+            messages=[Message(role="user", content=downgrade_prompt(lowerable),
+                              private=[c.text for c in lowerable] if final.private else [])],
+            model=core.model, adapter=core.adapter, temperature=0.0, max_tokens=600, json_schema=schema,
+            reasoning=False)
+        try:
+            text, events = await core.provider.complete(request)
+        except Exception as exc:
+            report.model_pass = {"ran": False, "error": str(exc)[:200]}
+            return
+        for e in events:
+            if e.kind == "usage" and e.usage:
+                yield {"type": "usage", "usage": e.usage, "specialist": "core", "role": "trust"}
+        report.model_pass = {"ran": True, "lowered": apply_downgrades(report, parse_downgrades(text, lowerable))}
 
     # ------------------------------------------------------------------ answer contract
     async def _run_contract(self, spec: Specialist, history: list[Message], user_text: str,
@@ -410,6 +464,7 @@ class Orchestrator:
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
             max_tokens=opts.max_tokens, context_budget=backend.context_budget, reasoning=opts.reasoning,
             tag={"subtask": sid, "specialist": spec.id}, checkpoints=opts.checkpoints, max_steps=opts.max_steps,
+            full_results=opts.labels_claims,
         ):
             yield ev
         results[task.id] = run.text if not run.error else f"(failed: {run.error})\n{run.text}"
