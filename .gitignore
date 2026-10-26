@@ -16,3 +16,4 @@ evals/results/*/predictions.jsonl
 *.gguf
 *.safetensors
 .claude/worktrees/
+*.tsbuildinfo
