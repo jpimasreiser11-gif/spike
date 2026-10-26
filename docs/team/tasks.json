@@ -337,7 +337,7 @@
   {
    "id": "A10",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Evolution: estrategia de herramientas, regresión de prompts y adaptador personal",
    "depends": [],

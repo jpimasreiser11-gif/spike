@@ -49,6 +49,14 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   branches and never pushes `main`. Tested with a fake Codex; not yet run against the real Codex CLI.
 
 ### Learning from use (Evolution)
+- Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the
+  counts only break ties between skills the router scores equal (at least 5 uses each, kept only while skill
+  routing and the regression checks still pass); a table in Settings › Evolución, resettable, with rollback.
+- Prompt regression: `spike evolve candidate`, `check --prompts` and `activate` compare a candidate prompt with the
+  one in use on your eval questions and block it if it scores more than 2 points lower.
+- Personal adapter (off by default, Apple silicon only, never trained on real weights yet): a LoRA built only from
+  the corrections you approve and the chats you mark, every example listed and excludable, installed only if
+  general knowledge drops by at most 1.5 points.
 - Corrections become memory rules and proposed eval questions; route corrections teach the router only if its
   protected test split does not drop; failure library; regression checks; versions with rollback for router,
   adapters and prompts.
