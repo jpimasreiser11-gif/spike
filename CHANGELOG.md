@@ -29,6 +29,12 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (DuckDB, Vega-Lite), Spike Finance (market data, backtests, paper trading; real orders off by default and
   confirmed one by one), Spike Motion (video from HTML/SVG scenes, offline and frame-exact).
 - `spike dev` coding agent in the terminal; OpenAI-compatible `/v1` endpoint; SPIKE as an MCP server.
+- Code isolation: where the computer has `bwrap` (Linux) or `sandbox-exec` (macOS), the code a model writes
+  (`python`, `data_python`) runs with no network and writes only in its working folder and a private temp folder.
+  Setting `sandbox`: `auto` (default), `off` or `required` (also isolates `spike dev`'s `run_command` and refuses
+  to run code without a sandbox). Under `auto` a command you approve runs outside the sandbox with your rights, so
+  `npm install` and `git pull` keep working, and its card says so. Windows and computers without the program run as
+  before. SPIKE ships no sandbox of its own.
 - Team work: Claude leads and Codex builds through the repository (`AGENTS.md`, `docs/team/`): a task board
   with a CI check and a detached Codex worker (`scripts/team/codex_worker.py`) that works on `codex/<id>`
   branches and never pushes `main`. Tested with a fake Codex; not yet run against the real Codex CLI.

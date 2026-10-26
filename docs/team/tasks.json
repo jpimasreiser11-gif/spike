@@ -289,7 +289,7 @@
   {
    "id": "A4",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Aislamiento del sistema para python y run_command",
    "depends": [],
