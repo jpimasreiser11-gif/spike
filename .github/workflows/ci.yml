@@ -39,6 +39,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y ffmpeg && python -m playwright install --with-deps chromium
       - run: ruff check .
+      - name: Team task board is valid and BOARD.md is current
+        if: runner.os == 'Linux' && matrix.python == '3.13'
+        run: |
+          if [ -f docs/team/tasks.json ]; then python scripts/team/board.py check && python scripts/team/board.py render --check; fi
       - run: pytest -q
         env:
           SPIKE_NO_KEYRING: "1"
