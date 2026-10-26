@@ -3,9 +3,11 @@ shapes later chats, so a page the model read must not be able to plant one silen
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from spike.memory.service import MemoryService, scopes_for
+from spike.memory.tutor import TutorError
 from spike.tools.base import Tool, ToolResult
 
 SAVABLE = ("fact", "decision", "preference")
@@ -62,5 +64,63 @@ class Recall(Tool):
         return ToolResult(ok=True, content="\n".join(lines), private=files)
 
 
+class StudyTopics(Tool):
+    name = "study_topics"
+    description = ("List the learner's study topics with their mastery (0 to 5) and when each is due for review "
+                   "(spaced repetition), most overdue first.")
+    parameters = {"type": "object", "properties": {"due_only": {"type": "boolean"}}}
+    risk = "read"
+    default_policy = "allow"
+
+    def __init__(self, memory: MemoryService, project_id: str | None):
+        self.memory = memory
+        self.project_id = project_id
+
+    async def run(self, args: dict[str, Any]) -> ToolResult:
+        now = time.time()
+        topics = self.memory.tutor.list(scopes_for(self.project_id), due_only=bool(args.get("due_only")), limit=40)
+        if not topics:
+            return ToolResult(ok=True, content="nothing is due" if args.get("due_only") else "no topics yet")
+        lines = []
+        for t in topics:
+            days = max(1, round((t.next_review - now) / 86400))
+            lines.append(f"- {t.name}: mastery {t.mastery}/5, "
+                         + ("due now" if t.due(now) else f"next review in {days} day{'s' if days != 1 else ''}"))
+        return ToolResult(ok=True, content="\n".join(lines))
+
+
+class StudyReview(Tool):
+    name = "study_review"
+    description = ("Record how a review of one topic went and schedule the next one: grade 0 (blank) to 5 (perfect "
+                   "recall); below 3 counts as forgotten. A topic that is not listed yet is added. Use it after "
+                   "quizzing the learner.")
+    parameters = {"type": "object", "properties": {
+        "topic": {"type": "string", "description": "the topic's name, as in the study list"},
+        "grade": {"type": "integer", "minimum": 0, "maximum": 5}}, "required": ["topic", "grade"]}
+    risk = "write"
+    default_policy = "ask"  # it changes the learner's schedule, like a note changes memory
+
+    def __init__(self, memory: MemoryService, project_id: str | None):
+        self.memory = memory
+        self.project_id = project_id
+
+    async def run(self, args: dict[str, Any]) -> ToolResult:
+        tutor, scopes = self.memory.tutor, scopes_for(self.project_id)
+        name, grade = str(args.get("topic", "")).strip(), args.get("grade")
+        if isinstance(grade, bool) or not isinstance(grade, int) or not 0 <= grade <= 5:
+            return ToolResult(ok=False, content="error: 'grade' must be a whole number from 0 to 5")
+        try:
+            topic = tutor.find(name, scopes) or tutor.add(name, scopes[0])
+            done = tutor.review(topic.id, grade)
+        except TutorError as exc:
+            return ToolResult(ok=False, content=f"error: {exc}")
+        if done is None:
+            return ToolResult(ok=False, content="error: the topic is gone")
+        days = done.interval_days
+        return ToolResult(ok=True, content=f"{done.name}: mastery {done.mastery}/5, next review in {days} "
+                                           f"day{'s' if days != 1 else ''}", data={"topic": done.id})
+
+
 def memory_tools(memory: MemoryService, project_id: str | None) -> list[Tool]:
-    return [Remember(memory, project_id), Recall(memory, project_id)]
+    return [Remember(memory, project_id), Recall(memory, project_id), StudyTopics(memory, project_id),
+            StudyReview(memory, project_id)]

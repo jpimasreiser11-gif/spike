@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import socket
 from collections.abc import AsyncIterator
 from dataclasses import asdict
@@ -87,6 +88,16 @@ SUMMARY_PROMPT = (
     "bullet points, in the conversation's language, with no greetings or small talk. If nothing is worth "
     "remembering, reply exactly NONE."
 )
+RELATIONS_PROMPT = (
+    "You help build a knowledge graph. Below is one note and the entities found in it. Propose at most 6 relations "
+    "that the note itself states between two of those entities. Reply only with JSON: "
+    '{"relations": [{"from": "<entity>", "label": "<short verb phrase, in the note\'s language>", "to": "<entity>"}]}. '
+    'Use the entity names exactly as listed. If the note states no relation, reply {"relations": []}.'
+)
+RELATIONS_SCHEMA = {"type": "object", "properties": {"relations": {"type": "array", "maxItems": 6, "items": {
+    "type": "object", "properties": {"from": {"type": "string"}, "label": {"type": "string"},
+                                     "to": {"type": "string"}}, "required": ["from", "label", "to"]}}},
+    "required": ["relations"]}
 log = logging.getLogger(__name__)
 
 
@@ -114,7 +125,7 @@ class AppState:
         self.broker = PermissionBroker(self.settings()["tool_policies"])
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
         self.broker.on_domain = lambda domain, rule: self.connectors.set_domain(domain, rule)
-        self.memory = MemoryService(MemoryStore(self.home / "memory.db"), self._embedder)
+        self.memory = MemoryService(MemoryStore(self.home / "memory.db"), self._embedder, lambda: [self.home])
         self.embed_server: LlamaServer | None = None
         self.embed_error: str | None = None
         self._summarized: dict[str, int] = {}
@@ -222,7 +233,12 @@ class AppState:
         self.checkpoints.prune()  # the project's chats are gone: so are the copies kept to undo their steps
         self._project_tools.pop(project_id, None)
         self.project_files.remove(project_id)
-        self.memory.store.delete_scope(f"project:{project_id}")
+        scope = f"project:{project_id}"
+        self.memory.folders.forget_scope(scope)
+        self.memory.glossary.delete_scope(scope)
+        self.memory.tutor.delete_scope(scope)
+        self.memory.graph.delete_scope(scope)
+        self.memory.store.delete_scope(scope)
 
     def invalidate_provider(self, pid: str) -> None:
         self._providers.pop(pid, None)
@@ -587,6 +603,40 @@ class AppState:
                                          {"messages": len(messages), "title": conv["title"]})
         await self.memory.index()
         return True
+
+    async def propose_relations(self, memory_id: str, override_provider: str | None = None) -> list[dict[str, Any]]:
+        """Ask the local model which of the entities in one note are related, and store the answers as proposals the
+        user confirms or rejects. Only a local model is asked, so a note never leaves the computer for this."""
+        memory = self.memory.store.get(memory_id)
+        if memory is None:
+            raise LookupError("memory not found")
+        names = self.memory.graph.note_entities(memory_id)[:24]
+        if len(names) < 2:
+            return []
+        pid, model = self.binding(self.catalog.specialists["core"], override_provider)
+        provider = self.provider(pid)
+        if not provider.config.local:
+            raise PermissionError("relations are proposed only by a local model: nothing from your notes is sent "
+                                  "to an external provider for this")
+        request = ChatRequest(
+            messages=[Message(role="system", content=RELATIONS_PROMPT),
+                      Message(role="user", content=f"NOTE:\n{memory.text[:3000]}\n\nENTITIES:\n"
+                                                   + "\n".join(f"- {n}" for n in names))],
+            model=model, max_tokens=400, temperature=0.1, reasoning=False,
+            json_schema=RELATIONS_SCHEMA if provider.capabilities.json_schema else None)
+        text = ""
+        async for ev in provider.stream(request):
+            if ev.kind == "text":
+                text += ev.text
+            elif ev.kind == "error":
+                raise RuntimeError("the local model did not answer")
+        match = re.search(r"\{.*\}", text, re.S)
+        try:
+            items = json.loads(match.group(0))["relations"] if match else []
+            triples = [(str(i["from"]), str(i["label"]), str(i["to"])) for i in items if isinstance(i, dict)][:6]
+        except (ValueError, KeyError, TypeError):
+            triples = []
+        return self.memory.graph.propose(memory_id, triples)
 
     async def close(self) -> None:
         for task in list(self._background):

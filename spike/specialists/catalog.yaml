@@ -374,7 +374,7 @@ specialists:
     adapter: spike-education
     adapter_status: planned
     sensitive: false
-    tools: [ask_user, calculator, read_file, list_dir, web_fetch, create_pptx, create_pdf]
+    tools: [ask_user, calculator, read_file, list_dir, web_fetch, create_pptx, create_pdf, study_topics, study_review]
     keywords:
       explain like: 3
       teach me: 4

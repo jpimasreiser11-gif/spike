@@ -14,6 +14,8 @@ import sqlite3
 import threading
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -136,6 +138,19 @@ class MemoryStore:
         with self._lock:
             self._db.close()
 
+    @contextmanager
+    def read(self) -> Iterator[sqlite3.Connection]:
+        """The connection under the store's lock, for the modules that keep their own tables in this file."""
+        with self._lock:
+            yield self._db
+
+    @contextmanager
+    def write(self) -> Iterator[sqlite3.Connection]:
+        """One transaction under the store's lock; cached vectors are dropped afterwards."""
+        with self._lock, self._db:
+            yield self._db
+            self._version += 1
+
     # ---------------------------------------------------------------- writes
     def add(self, text: str, kind: str, scope: str = GLOBAL, source: str = "",
             meta: dict[str, Any] | None = None) -> Memory:
@@ -195,6 +210,10 @@ class MemoryStore:
                 with self._db:
                     self._db.execute("INSERT INTO chunks_fts(chunks_fts) VALUES ('optimize')")
         return n
+
+    def delete_where(self, where: str, args: tuple = (), optimize: bool = True) -> int:
+        """Delete the memories matching a WHERE clause on `memories` (their chunks, index entries and vectors go too)."""
+        return self._delete_where(where, args, optimize)
 
     def delete(self, memory_id: str) -> bool:
         return self._delete_where("id = ?", (memory_id,), True) > 0

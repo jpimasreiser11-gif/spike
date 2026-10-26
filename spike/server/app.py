@@ -42,6 +42,7 @@ from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
+from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.state import AppState
@@ -296,6 +297,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     page that points its own domain at 127.0.0.1 (DNS rebinding) or calls from another site cannot use SPIKE."""
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        if app.state.spike.memory_settings()["enabled"]:  # folders the user chose: only what changed is read again
+            app.state.spike.background(app.state.spike.memory.folders.run_all())
         yield
         await app.state.spike.close()  # MCP servers, the embedding server and background tasks end with SPIKE
 
@@ -1277,7 +1280,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.delete("/api/memory")
     async def clear_memory(scope: str) -> dict:
         store = st().memory.store
-        return {"deleted": store.clear() if scope == "all" else store.delete_scope(check_scope(scope))}
+        wanted = None if scope == "all" else check_scope(scope)
+        st().memory.folders.forget_scope(wanted)  # or they would come back at the next start
+        st().memory.graph.delete_scope(wanted)  # relations the user confirmed are part of what was remembered
+        return {"deleted": store.clear() if wanted is None else store.delete_scope(wanted)}
 
     @app.get("/api/memory-status")
     async def memory_status() -> dict:
@@ -1305,6 +1311,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, f"invalid memory file: {exc}") from exc
         st().background(st().memory.index())
         return {"imported": added}
+
+    app.include_router(create_memory_router(st, check_scope, this_computer))
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")
@@ -1471,7 +1479,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         record(ev)
                         yield _sse(ev)
                 if state.memory_settings()["enabled"] and not temporary:
-                    options.memory = await state.memory.recall(body.message, project["id"] if project else None)
+                    options.memory = await state.memory.recall(body.message, project["id"] if project else None,
+                                                               context=[m.content for m in history[-6:]])
                     options.memory.saved = saved
                     if (memory_event := options.memory.event()) is not None:
                         meta["memory"] = memory_event

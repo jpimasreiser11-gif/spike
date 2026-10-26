@@ -160,6 +160,12 @@ Build and test tools (vite, @vitejs/plugin-react, typescript, vitest, jsdom, pla
 at development time and are not part of the bundle. Their license texts are in `web/node_modules/*/LICENSE`
 after `npm ci`; a release build must include the license texts of the bundled packages above.
 
+## Published methods implemented from their descriptions (no code copied)
+
+- **SM-2 spaced repetition** (P. A. Wozniak, 1990; SuperMemo): the review schedule of the tutor progress
+  (`spike/memory/tutor.py`) follows the published rule: ease factor, 1 day, 6 days, then interval times ease. The code is
+  SPIKE's own, written from the description; the rule is documented in the module.
+
 ## External API providers
 
 SPIKE can call OpenAI, Anthropic, DeepSeek, Google Gemini, OpenRouter, Groq, Mistral, Together and any

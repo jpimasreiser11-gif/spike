@@ -153,6 +153,27 @@ message (BM25 and cosine rankings fused by reciprocal rank) and the orchestrator
 system prompt within a sixth of its context budget. Project files are indexed on upload; every few messages a
 local model summarises the chat into a `summary` memory; `remember` and `recall` tools let Core save and search.
 
+**Neural Memory extensions.** All four live in the same SQLite file, are local, and are served by
+`spike/server/memory_api.py`; the UI is Settings > Memory (sub-sections Folders, Glossary, Tutor, Graph).
+*Indexed folders* (`memory/folders.py`): nothing is indexed until the user adds an absolute path (only from the
+computer SPIKE runs on). Rules are include/exclude globs with defaults (text, Markdown, code, PDF and DOCX through
+the existing extractors), a largest file and a most files per folder; hidden folders, `node_modules`, `.git`, virtual
+environments and binaries are always skipped, symlinks are not followed and every file is checked to resolve inside
+the folder just before it is read. A background job scans, then reads only files whose mtime or size changed (also at
+start-up and on demand), and its progress is in `GET /api/memory-folders`. Each file is one `document` memory whose
+source is `file:<path>`, so recalled passages cite it; forgetting a folder deletes its memories, FTS rows and vectors
+and runs the same FTS optimize as any delete, so the bytes leave the database file. *Glossary* (`glossary.py`): term
+to preferred translation or definition with a language, global or per project (the project wins); terms found in the
+conversation reach the prompt as rules, CSV import and export (cells that start like a formula are escaped).
+*Tutor progress* (`tutor.py`): topics with mastery 0 to 5 and an SM-2 schedule (the rule is in the module's
+docstring); the Education specialist sees the topics that are due in its prompt and can use `study_topics` and
+`study_review` (the second asks first, like `remember`). *Knowledge graph* (`extract_entities.py`, `graph.py`,
+`graph_svg.py`): capitalised names, e-mails, dates, numbers with a unit and links are found by patterns, no model;
+notes that share entities are linked, and a hub entity that is in too many notes links none of them. Relations a
+local model proposes (`POST /api/memory-graph/propose`, never a remote provider) stay out of the picture until the
+user confirms them. The graph is drawn as SVG on the server with a fixed-step layout (the same graph draws the same)
+and opens in the artifacts panel; no JavaScript library is involved.
+
 **Learning from the user (Evolution level 1).** `spike/memory/learn.py` reads only the user's own message, with
 fixed patterns (Spanish, English, Catalan) and no model: a sentence starting "recuerda que…", "a partir de
 ahora…", "remember that…" is saved before the run (rule, preference or fact) and named in that run's prompt; a

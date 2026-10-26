@@ -20,6 +20,7 @@ from spike.core.context import fit_messages
 from spike.core.types import ChatRequest, Message, ToolCall
 from spike.design.library import DesignSystem, design_prompt
 from spike.memory.service import Recall, memory_section
+from spike.memory.tutor import tutor_section
 from spike.orchestrator.planner import Plan, Subtask, make_plan, topological_levels
 from spike.orchestrator.router import LexicalRouter, RouteDecision
 from spike.orchestrator.verify import (
@@ -137,6 +138,8 @@ class Orchestrator:
             section, files = memory_section(opts.memory, max(200, min(1500, context_budget // 6)))
             if section:
                 parts.append(section)
+            if spec.id == "education" and opts.memory.due:  # only the tutor sees the study schedule
+                parts.append(tutor_section(opts.memory.due, time.time()))
         if opts.specialist_instructions.get(spec.id, "").strip():
             parts.append(f"# Instructions for {spec.name}\n" + opts.specialist_instructions[spec.id].strip())
         if opts.learned_instructions.get(spec.id):
