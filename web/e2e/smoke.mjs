@@ -54,7 +54,7 @@ if (await lab.locator("tbody tr").count() !== 5) fail("Lab must list all five ca
 await page.screenshot({ path: `${out}/00-lab.png` });
 await lab.getByRole("button", { name: "Volver al chat" }).click();
 await page.getByRole("button", { name: "Lab", exact: true }).click();
-await lab.getByRole("button", { name: /Estimar comparación/ }).last().click();
+await lab.getByRole("button", { name: /· Estimar comparación/ }).first().click(); // a saved run: wait for the history to load
 await lab.locator("tbody tr").nth(1).waitFor();
 await lab.getByRole("button", { name: "Volver al chat" }).click();
 
@@ -889,6 +889,61 @@ await page.locator("#composer-input").fill("Hola, ¿quién eres?");
 await page.keyboard.press("Enter");
 await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 2, null, { timeout: 15000 });
 if (await page.locator(".msg.assistant").last().locator("[data-minds]").count()) fail("a message sent without the toggle must not run minds");
+// 6e. desktop actions (A19): off until the user turns them on; each action waits for an approval card; Stop is always there
+const desktopCalls = async () => (await (await fetch(`${base}/__e2e/desktop`)).json()).calls;
+const anthropic = await page.request.post(`${base}/api/providers`, { data: {
+  preset: "anthropic", api_key: "sk-e2e-not-a-real-key", model: "claude-sonnet-5-5", allow_paid: true, share_files: true } });
+if (!anthropic.ok()) fail("could not add the provider with computer use: " + (await anthropic.text()));
+await page.reload();
+await page.getByText("¿En qué te ayudo hoy?").waitFor();
+if (await page.getByTestId("desktop-open").count()) fail("the desktop button must not show while the setting is off");
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Escritorio" }).click();
+const desktopSetting = page.getByLabel("Control del escritorio (solo con un proveedor con computer use)");
+await desktopSetting.waitFor();
+if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
+if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
+if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
+await desktopSetting.click();
+await page.locator('[data-testid="desktop-enabled"]:checked').waitFor({ timeout: 5000 });
+await page.getByTestId("desktop-provider").selectOption("anthropic");
+await page.waitForFunction(() => document.querySelector('[data-testid="desktop-start"]')?.disabled === false, null, { timeout: 5000 });
+await page.getByTestId("desktop-driver").getByText("scripted").waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07z-desktop-settings.png` });
+await page.getByTestId("desktop-start").click();
+const task = page.getByTestId("desktop-task");
+await task.getByTestId("desktop-estimate").getByText("Hasta 21 peticiones a Anthropic", { exact: false }).waitFor({ timeout: 10000 });
+await task.getByTestId("desktop-goal").fill("Pulsa el botón de la calculadora");
+await task.getByTestId("desktop-begin").click();
+const deskCard = task.getByTestId("desktop-card");
+await deskCard.waitFor({ timeout: 10000 });
+if ((await desktopCalls()).length) fail("an action ran before the user approved it");
+await task.getByTestId("desktop-stop").waitFor();
+if (!(await deskCard.getByTestId("desktop-action").textContent())?.includes("Clic en (300, 200)")) fail("the card does not say what it will do");
+if (await deskCard.getByTestId("desktop-sensitive").count()) fail("a plain click must not be marked sensitive");
+const cropUrl = ((await deskCard.getByTestId("desktop-crop").evaluate((el) => el.style.backgroundImage)).match(/\/api\/desktop\/shots\/[\w/]+/) ?? [])[0];
+const cropShot = cropUrl ? await page.request.get(base + cropUrl) : null;
+if (!cropShot?.ok() || cropShot.headers()["content-type"] !== "image/png" || cropShot.headers()["cache-control"] !== "no-store") fail("the card's screenshot is not served privately: " + cropUrl);
+await page.screenshot({ path: `${out}/07z-desktop-card.png` });
+await deskCard.getByTestId("desktop-approve").click();
+await task.getByTestId("desktop-done").getByText("Tarea de escritorio: 1 paso, terminó.").waitFor({ timeout: 10000 });
+if (JSON.stringify(await desktopCalls()) !== JSON.stringify([["click", 300, 200, "left", 1, []]])) fail("the approved click did not reach the screen: " + JSON.stringify(await desktopCalls()));
+await task.getByRole("button", { name: "Abrir el chat" }).click();
+await page.getByTestId("desktop-record").getByText("Clic en (300, 200) — aprobada", { exact: false }).waitFor({ timeout: 10000 });
+await page.screenshot({ path: `${out}/07z-desktop-record.png` });
+// a task the model marks as sensitive offers no "approve the next"; Stop ends it and nothing is done
+await page.getByTestId("desktop-open").click();
+await page.getByTestId("desktop-estimate").getByText("Hasta 21 peticiones", { exact: false }).waitFor({ timeout: 10000 });
+await page.getByTestId("desktop-goal").fill("Pulsa Enviar en el correo");
+await page.getByTestId("desktop-begin").click();
+const sensitiveCard = page.getByTestId("desktop-card");
+await sensitiveCard.getByTestId("desktop-sensitive").getByText("envío o publicación").waitFor({ timeout: 10000 });
+if (await sensitiveCard.getByTestId("desktop-approve-next").count()) fail("a sensitive action must not offer to approve the next ones");
+await page.getByTestId("desktop-stop").click();
+await page.getByTestId("desktop-done").getByText("detenida por ti", { exact: false }).waitFor({ timeout: 10000 });
+if ((await desktopCalls()).length !== 1) fail("stopping must leave the screen untouched: " + JSON.stringify(await desktopCalls()));
+await page.getByTestId("desktop-done").getByRole("button", { name: "Cerrar" }).click();
 
 // 7. dark mode + mobile
 const dark =await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });

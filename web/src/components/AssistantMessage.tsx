@@ -7,6 +7,7 @@ import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, 
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { DataView, ReportActions, isData } from "./DataViews";
 import { DiagnosticCard } from "./DevDiagnostics";
+import { DesktopRecordView } from "./Desktop";
 import { LiveOrderCard } from "./Finance";
 import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
@@ -447,6 +448,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
           <span className="muted">{run.status === "planning" ? t.planning : run.status === "verifying" ? t.verifying : run.status === "synthesizing" ? t.synthesizing : t.thinking}</span>
         </div>
       ) : null}
+
+      {run.desktop && <DesktopRecordView record={run.desktop} />}
 
       {run.trust && !live && <TrustBar trust={run.trust} messageId={messageId} replay={replay} />}
 

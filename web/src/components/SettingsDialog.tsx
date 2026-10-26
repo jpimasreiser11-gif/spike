@@ -5,6 +5,7 @@ import { reasonText } from "../isolation";
 import type { Limits, Preset, ProviderInfo, SandboxStatus, Settings, Specialist, ToolInfo } from "../types";
 import { Connectors } from "./Connectors";
 import { DesignSystems } from "./Design";
+import { Desktop } from "./Desktop";
 import { Evolution } from "./Evolution";
 import { Finance } from "./Finance";
 import { Memory } from "./Memory";
@@ -15,7 +16,7 @@ import { SpecMark } from "./SpecMark";
 
 const L = lang === "es"
   ? {
-      title: "Ajustes", general: "General", providers: "Proveedores", specialists: "Especialistas", tools: "Herramientas", skills: "Skills", design: "Diseño", finance: "Finanzas", connectors: "Conectores", memory: "Memoria", evolution: "Evolución", privacy: "Privacidad", engine: "Motor local",
+      title: "Ajustes", general: "General", providers: "Proveedores", specialists: "Especialistas", tools: "Herramientas", skills: "Skills", design: "Diseño", finance: "Finanzas", connectors: "Conectores", memory: "Memoria", evolution: "Evolución", privacy: "Privacidad", desktop: "Escritorio", engine: "Motor local",
       instructions: "Instrucciones personalizadas", instructionsHint: "Se aplican a todos los especialistas y proveedores. SPIKE las añade a su propio prompt de sistema, así que funcionan igual con modelos locales y externos.",
       planner: "Planificador con IA para tareas de varias disciplinas", parallel: "Ejecutar subtareas en paralelo (recomendado solo con APIs externas)", toolsOn: "Permitir herramientas",
       temperature: "Temperatura (vacío = la del modelo)", maxTokens: "Máximo de tokens por respuesta", reasoning: "Modo razonamiento", rDefault: "Por defecto del modelo", rOn: "Activado", rOff: "Desactivado",
@@ -37,7 +38,7 @@ const L = lang === "es"
       sandboxOn: "disponible", sandboxNone: "no disponible", sandboxBlocked: "Con «Obligatorio» y sin aislamiento disponible, SPIKE no ejecutará python ni run_command.",
     }
   : {
-      title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", skills: "Skills", design: "Design", finance: "Finance", connectors: "Connectors", memory: "Memory", evolution: "Evolution", privacy: "Privacy", engine: "Local engine",
+      title: "Settings", general: "General", providers: "Providers", specialists: "Specialists", tools: "Tools", skills: "Skills", design: "Design", finance: "Finance", connectors: "Connectors", memory: "Memory", evolution: "Evolution", privacy: "Privacy", desktop: "Desktop", engine: "Local engine",
       instructions: "Custom instructions", instructionsHint: "Applied to every specialist and provider. SPIKE adds them to its own system prompt, so they work the same with local and external models.",
       planner: "AI planner for multi-domain tasks", parallel: "Run subtasks in parallel (recommended only with external APIs)", toolsOn: "Allow tools",
       temperature: "Temperature (empty = model default)", maxTokens: "Max tokens per answer", reasoning: "Reasoning mode", rDefault: "Model default", rOn: "On", rOff: "Off",
@@ -59,10 +60,11 @@ const L = lang === "es"
       sandboxOn: "available", sandboxNone: "not available", sandboxBlocked: "With “Required” and no isolation available, SPIKE will not run python or run_command.",
     };
 
-type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "design" | "finance" | "connectors" | "memory" | "evolution" | "privacy" | "engine";
+type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "design" | "finance" | "connectors" | "memory" | "evolution" | "privacy" | "desktop" | "engine";
 
-export function SettingsDialog({ onClose, specialists, providers, reloadProviders }: {
+export function SettingsDialog({ onClose, specialists, providers, reloadProviders, onDesktop }: {
   onClose: () => void;
+  onDesktop: () => void; // close the settings and open the desktop task window
   specialists: Specialist[];
   providers: ProviderInfo[];
   reloadProviders: () => void;
@@ -95,7 +97,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
         </div>
         <div className="modal-body">
           <nav className="tabs" role="tablist">
-            {(["general", "providers", "specialists", "tools", "skills", "design", "finance", "connectors", "memory", "evolution", "privacy", "engine"] as Tab[]).map((k) => (
+            {(["general", "providers", "specialists", "tools", "skills", "design", "finance", "connectors", "memory", "evolution", "privacy", "desktop", "engine"] as Tab[]).map((k) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{L[k]}</button>
             ))}
           </nav>
@@ -122,6 +124,8 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
               <Evolution settings={settings} save={save} />
             ) : tab === "privacy" ? (
               <Privacy />
+            ) : tab === "desktop" ? (
+              <Desktop settings={settings} save={save} onStart={onDesktop} />
             ) : (
               <Engine settings={settings} save={save} reload={() => api.get<Settings>("/api/settings").then(setSettings)} />
             )}

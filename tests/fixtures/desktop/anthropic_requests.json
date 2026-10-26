@@ -1,0 +1,17 @@
+{
+  "_about": "The computer-use parts of a Messages API request, as the provider's computer-use documentation shows them (tools entries before and after the move to the toolset, tool_result with a screenshot). Written from the documentation, not recorded.",
+
+  "toolset_entry_all_members": {"type": "computer_toolset_20260801"},
+
+  "toolset_entry_zoom_off": {"type": "computer_toolset_20260801", "configs": {"zoom": {"enabled": false}}},
+
+  "legacy_entry_20251124": {"type": "computer_20251124", "name": "computer", "display_width_px": 1024,
+                            "display_height_px": 768},
+
+  "toolset_result_text": {"type": "tool_result", "tool_use_id": "toolu_01HqCF3nJ4Vzr8sTkPZ2wxYA",
+                          "toolset_name": "computer", "content": [{"type": "text", "text": "OK"}]},
+
+  "toolset_result_failed": {"type": "tool_result", "tool_use_id": "toolu_01Xf5W1sD8Q9aBcJ7kLmN2pQ",
+                            "toolset_name": "computer", "is_error": true,
+                            "content": [{"type": "text", "text": "Not executed: an earlier computer action in this turn failed."}]}
+}

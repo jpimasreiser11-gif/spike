@@ -65,6 +65,12 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   paid-call guard and monthly limits cover every call.
 - Parallel Prototypes (opt-in in Forge): two approaches built on two git branches and compared by the same
   tests; your branch is not touched and nothing is merged until you approve.
+- Desktop actions (off by default; Settings › Escritorio): an API provider with a computer-use tool can look
+  at your screen and use the mouse and keyboard for a task you describe; local models never do. Every action
+  is a card you approve; "approve the next N" covers at most 5 and never purchases, sends, deletions or
+  password fields; Stop, a step cap and a cost estimate come first. Screenshots go only to the provider you
+  chose, through the paid-call, limit and privacy guard, and are not saved unless you ask. Tested with fake
+  drivers and a scripted provider; not yet run on a real screen or against the live API.
 
 ### Learning from use (Evolution)
 - Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the

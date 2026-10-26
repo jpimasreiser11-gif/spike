@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from typing import Any
+
+import httpx
 
 from spike.core.types import (
     Capabilities,
@@ -46,6 +48,8 @@ def to_anthropic(messages: list[Message]) -> tuple[str, list[dict[str, Any]]]:
 
 
 class AnthropicProvider(Provider):
+    computer_use_adapter = "anthropic"
+
     def default_capabilities(self) -> Capabilities:
         return Capabilities(streaming=True, native_tools=True, json_schema=False, reasoning=True, vision=True)
 
@@ -140,6 +144,25 @@ class AnthropicProvider(Provider):
         if usage:
             yield StreamEvent(kind="usage", usage=usage)
         yield StreamEvent(kind="done", finish_reason="tool_calls" if stop_reason == "tool_use" else stop_reason)
+
+    async def send_raw(self, payload: dict[str, Any], *, beta: Sequence[str] = ()) -> dict[str, Any]:
+        """One non-streaming Messages request (a computer-use step); `beta` goes in the anthropic-beta header."""
+        if self.config.paid and not self.config.allow_paid:
+            raise PaidCallBlocked(f"{self.config.name} may bill your account. Enable 'Allow paid requests' for this "
+                                  "provider in Settings → Providers to use it.")
+        headers = self.headers()
+        if beta:
+            known = [b for b in headers.get("anthropic-beta", "").split(",") if b.strip()]
+            headers["anthropic-beta"] = ",".join([*known, *(b for b in beta if b not in known)])
+        try:
+            response = await self.client.post(self.config.base_url.rstrip("/") + "/messages", headers=headers,
+                                              json=payload)
+            await raise_for_status(response, self.config.name)
+            return response.json()
+        except httpx.HTTPError as exc:
+            raise ProviderError(f"{self.config.name}: connection failed: {exc.__class__.__name__}: {exc}") from exc
+        except ValueError as exc:
+            raise ProviderError(f"{self.config.name}: the answer was not JSON") from exc
 
     async def list_models(self) -> list[str]:
         response = await self.client.get(self.config.base_url.rstrip("/") + "/models", headers=self.headers())

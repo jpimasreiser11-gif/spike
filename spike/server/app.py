@@ -45,6 +45,7 @@ from spike.providers.guard import CURRENT_CHAT
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
+from spike.server.desktop_api import create_desktop_router
 from spike.server.evolution_api import create_evolution_router
 from spike.server.lab_api import create_lab_router
 from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
@@ -764,6 +765,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def put_settings(patch: dict[str, Any], request: Request) -> dict:
         if isinstance(patch.get("finance"), dict) and "live" in patch["finance"]:
             this_computer(request, "real-order settings")
+        if "desktop" in patch:
+            this_computer(request, "desktop action settings")
         try:
             return st().update_settings(patch)
         except ValueError as exc:
@@ -1075,7 +1078,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         if selected is not None and selected - PROOF_SECTIONS:
             raise HTTPException(400, "Unknown proof section / Sección de prueba desconocida")
         data = build_proof(conv, store.messages(cid), state.store.calls_for(cid), state.store.list_checkpoints(cid),
-                           state.provider_configs(), state.settings(), temporary=store is state.temp, include=selected)
+                           state.provider_configs(), state.settings(), temporary=store is state.temp, include=selected,
+                           files=state.desktop.kept_files(cid))
         ascii_title = unicodedata.normalize("NFKD", conv["title"]).encode("ascii", "ignore").decode()
         name = re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")[:40] or "chat"  # headers are ASCII
         return Response(data, media_type="application/zip", headers={
@@ -1107,6 +1111,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     async def delete_conversation(cid: str) -> dict:
         st().store_for(cid).delete_conversation(cid)
         st().checkpoints.delete_conversation(cid)
+        st().desktop.forget(cid)  # screenshots kept for its proof package
         return {"ok": True}
 
     @app.post("/api/checkpoints/{cp_id}/undo")
@@ -1396,6 +1401,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         return {"imported": added}
 
     app.include_router(create_memory_router(st, check_scope, this_computer))
+    app.include_router(create_desktop_router(st, this_computer))
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")

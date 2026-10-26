@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -31,6 +31,8 @@ class ProviderConfig:
 
 
 class Provider(ABC):
+    computer_use_adapter: str | None = None  # the desktop adapter (spike/desktop/adapters.py) this provider's API has
+
     def __init__(self, config: ProviderConfig, client: httpx.AsyncClient | None = None):
         self.config = config
         self._client = client
@@ -69,6 +71,11 @@ class Provider(ABC):
             elif event.kind == "error":
                 raise ProviderError(event.text)
         return "".join(parts), events
+
+    async def send_raw(self, payload: dict[str, Any], *, beta: Sequence[str] = ()) -> dict[str, Any]:
+        """One non-streaming request in the provider's own API with a ready-made payload (a desktop step), and its
+        parsed answer. Only providers with a `computer_use_adapter` have it."""
+        raise ProviderError(f"{self.config.name}: this provider has no computer-use request")
 
     async def aclose(self) -> None:
         if self._client is not None:

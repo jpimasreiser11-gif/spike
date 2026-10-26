@@ -19,6 +19,8 @@ from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message, ProviderError
 from spike.design.library import DesignLibrary
+from spike.desktop import settings as desktop_settings
+from spike.desktop.service import DesktopService
 from spike.dev.diagnostics import diagnostic_tools
 from spike.evolution.router_learning import apply_overlay
 from spike.evolution.service import Evolution
@@ -79,6 +81,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # answer has this many unchecked claims, and the optional model pass that may lower labels
     "trust": dict(trust_settings.DEFAULTS),
     "disabled_skills": [],
+    # desktop actions (A19): off until the user turns them on; only an API provider with a computer-use tool does them,
+    # and every action waits for the user's approval
+    "desktop": dict(desktop_settings.DEFAULTS),
     # Evolution: learn from corrections, route corrections and failures on this computer; a learned router is used
     # only after it passes its gate, and every version can be rolled back
     # training_data: opt-in (level 3); auto_strategy: tie-breaks from past use refresh themselves, behind the check
@@ -161,6 +166,7 @@ class AppState:
         self.skills = SkillLibrary([(BUNDLED, "bundled"), (self.home / "skills", "user")])
         self.skills.prefer = self._prefer_skills
         self.designs = DesignLibrary(self.home / "design-systems")
+        self.desktop = DesktopService(lambda: self.settings()["desktop"], self.provider, self.provider_configs, self.home)
         if not self.store.list_providers():
             self._seed_providers()
 
@@ -183,6 +189,11 @@ class AppState:
             if not isinstance(patch["trust"], dict):
                 raise ValueError("'trust' must be an object")
             patch = {**patch, "trust": trust_settings.clean({**self.trust_settings(), **patch["trust"]})}
+        if "desktop" in patch:
+            if not isinstance(patch["desktop"], dict):
+                raise ValueError("'desktop' must be an object")
+            patch = {**patch, "desktop": desktop_settings.clean({**desktop_settings.DEFAULTS,
+                                                                 **self.settings()["desktop"], **patch["desktop"]})}
         if "finance" in patch:
             now, given = self.settings()["finance"], patch["finance"]
             if not isinstance(given, dict):
@@ -196,6 +207,8 @@ class AppState:
             self.broker.policies = dict(patch["tool_policies"])
         if "sandbox" in patch:
             self.sandbox.mode = patch["sandbox"]
+        if "desktop" in patch and not patch["desktop"]["enabled"] and self.desktop.task is not None:
+            self.desktop.task.stop()  # turning the setting off ends a running task at once
         if "custom_specialists" in patch:
             self.catalog = self._load_catalog()
         return self.settings()

@@ -214,6 +214,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.forge?.report) run.forge = { report: meta.forge.report };
   if (meta.trust) run.trust = meta.trust;
   if (meta.minds) run.minds = mindsFromStored(meta.minds);
+  if (meta.desktop) run.desktop = meta.desktop;
   if (meta.questions?.length) {
     run.questions = meta.questions.map((q: any) => ({ ...q, options: q.options ?? [], status: q.answer == null ? "unanswered" : "answered" }));
   }

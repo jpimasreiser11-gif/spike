@@ -258,6 +258,86 @@ tools, and passthrough for `<provider>/<model>`.
 orchestrator, `spike_<id>` one specialist. One JSON-RPC handler serves stdio (`spike mcp`) and `POST /mcp`; runs
 use the headless broker and no memory, like `/v1`.
 
+## Desktop actions (A19)
+
+`spike/desktop/` lets an API provider with a computer-use tool look at the user's screen and move the mouse and
+keyboard, one approved action at a time. Off by default (`settings.desktop.enabled`); no local model ever takes part:
+the orchestrator and the specialists are not involved at all, a task is its own loop started from the app's Desktop
+button (`POST /api/desktop/run`), and its chat is stored like any other (title `Desktop: …`, the record in the
+assistant message's `meta.desktop`).
+
+```
+ Desktop button / Settings → Escritorio (web/src/components/Desktop.tsx, desktop.ts)
+        │  GET /api/desktop · POST /estimate · POST /run (SSE) · POST /actions/{id} · POST /stop · GET /shots/{task}/{n}
+        ▼
+ spike/server/desktop_api.py ── every route but the status page is this_computer-guarded (loopback + same origin)
+        ▼
+ DesktopService (service.py): can a task start? (off → provider → driver → busy), estimate, one task at a time
+        ▼
+ DesktopTask (session.py): the loop ── DesktopBroker (cards waiting for approve / batch / deny / stop)
+   │            │
+   │            └─ AnthropicAdapter (adapters.py): tool form, request payload, parse the reply, tool_result blocks
+   ▼
+ GuardedProvider.send_raw ─► provider.send_raw ─► POST /v1/messages        Driver (driver.py, backends.py)
+   (paid guard, limits, privacy, call log)                                   X11Driver | MacDriver | WindowsDriver
+```
+
+- **Driver** (`driver.py`, `backends.py`): `Driver` is the small interface (`screenshot`, `click`, `move`, `drag`, `scroll`,
+  `type_text`, `key`, `cursor_position`, `secure_field_focused`, `supports`). Implementations use only programs the OS
+  has: `xdotool` plus ImageMagick `import` or `scrot` on X11, `screencapture` + `sips` + `osascript` (+ `cliclick` if
+  installed) on macOS, PowerShell with System.Windows.Forms and user32 on Windows. Every command line and script is
+  built by a pure function and run through an injectable `Runner`, so the tests use fake programs. `detect()` returns
+  a driver or an `Availability` with a code (`wayland`, `no_display`, `no_xdotool`, `no_capture`,
+  `display_unreachable`, `no_powershell`, `no_macos_tools`, `unsupported_os`), what to install and notes; the app
+  translates the code. Screenshots are shrunk to the model's limits (long edge 1568, 1.15 megapixels) and `Shot.to_screen`
+  maps the model's coordinates back to screen points (Retina included).
+- **Adapter** (`adapters.py`): `ADAPTERS = {"anthropic": AnthropicAdapter}`. A provider opts in with the class attribute
+  `computer_use_adapter` (only `AnthropicProvider` has it; `GuardedProvider` forwards it); every other provider
+  has `None` and is refused (`Refused("unsupported")`). The adapter picks the tool form from the model name
+  (`computer_toolset_20260801`, no beta header, for the 5.5 models and unknown newer ones; `computer_20251124` and
+  `computer_20250124` with their beta headers for older ones; the setting `tool` overrides a wrong guess), builds
+  the request (`tool_choice` with `disable_parallel_tool_use`, 8192 output tokens, the toolset with `zoom`, `hold_key`
+  and the mouse-down/up members disabled because the drivers cannot do them), parses `tool_use` blocks into
+  `Call`s and builds the `tool_result` blocks (a screenshot after each action; "Not executed: an earlier computer
+  action in this turn failed." for calls after a failure). The history is append-only: nothing is pruned, because
+  editing earlier turns would invalidate the model's thinking blocks, so the estimate counts every screenshot in
+  every request.
+- **Loop** (`session.py`): `DesktopTask.run()` takes a first screenshot, sends the goal and the screenshot, and for each
+  call of the reply: parses it (`actions.parse_action`, strict, with limits on text, scroll and repeat), classifies it
+  (`actions.classify`), and either runs it passive (`screenshot`, `cursor_position`, `wait`: no card, but each counts as a
+  step), or opens a card and waits for the broker. Approve performs it, waits 0.8 s, takes a new screenshot and sends it
+  back; deny tells the model not to repeat it; stop or a 5-minute silence ends the task. `max_steps` (setting, at most
+  `HARD_MAX_STEPS = 50`) ends it with `step_limit` without another model call. Every wait is raced against the stop
+  event (`until_stopped`), the setting and the provider are checked before each model call, and the broker answers every
+  card of a task with "stop" when it ends, so nothing is left waiting.
+- **Approval** (`DesktopBroker`): one card per action, answered with `approve`, `approve_batch` (n from 2 to
+  `MAX_BATCH = 5`, enforced in the broker and again in the loop; only for a non-sensitive card, on a sensitive one
+  it is a plain approve), `deny` or `stop`. A card that asks resets the batch. Nothing is remembered: there is no
+  "always allow". Sensitivity (`actions.classify`) combines the model's `[SENSITIVE: kind]` tag (the system prompt asks
+  for it before purchases, sends, deletions and passwords), English and Spanish word lists on the model's own words,
+  the key (Enter, Delete, closing a program), a typed line break and the driver's secure-field check
+  (`AXSecureTextField` on macOS, UI Automation `IsPassword` on Windows, unknown on X11); a recognised password is
+  masked in the card, the events and the record.
+- **Privacy and cost**: tasks go through `GuardedProvider.send_raw`, which applies the paid-call block, the monthly
+  limits and the call log like any call, and refuses when the provider may not receive files
+  (`screens_blocked()`: a screenshot is treated as file content). `POST /api/desktop/estimate` returns the most a task
+  can send and cost (every request carries all earlier screenshots; no caching assumed; priced only if the user entered
+  prices) and the app shows it before the task starts.
+- **Record**: `DesktopTask.record()` (goal, provider, model, each action with the user's decision, result and sensitivity
+  kind, totals, final text) is stored in the assistant message's `meta.desktop` and is what `build_proof` writes into
+  the proof package (`desktop_lines` in the transcript, `chat.json`). It never has an image; screenshots are written
+  only when the user ticked "keep screenshots", under `$SPIKE_HOME/desktop/<chat>/<task>/`, and go into the package's
+  `desktop/` folder (removed with the chat).
+- **Tests**: `tests/helpers_desktop.py` has `FakeDriver`, a fake runner and a scripted fake provider;
+  `tests/test_desktop.py` (actions, classification, argv and script builders, detection and degradation messages,
+  adapter shapes against `tests/fixtures/desktop/*.json`), `tests/test_desktop_session.py` (nothing runs when off, local
+  refused, every action waits for approval, batch cap, sensitive always asks, stop mid-task, guard refuses unpaid
+  providers, screenshots not sent when privacy forbids, step cap, estimate) and `tests/test_desktop_api.py` (routes,
+  this-computer guard, settings validation, proof package); `web/src/desktop.test.ts` and the browser smoke test
+  (`web/e2e/smoke.mjs`, section 6e, against `tests/e2e/serve_scripted.py` with a fake screen and a scripted provider)
+  cover the setting and an approval card. The fixtures were written from the provider's documentation, not recorded
+  from the live API, and the macOS and Windows drivers have only been run against fake programs.
+
 ## Trustworthy answers
 
 `spike/trust/` looks at an answer after it is written. No model decides that something is verified: the labels come
@@ -425,7 +505,7 @@ adapter through llama-server with explicit scales. See [TRAINING.md](TRAINING.md
 ## Repository layout
 
 ```
-spike/          Python package (server, orchestrator, agent, providers, tools, runtime, store, CLI, bench)
+spike/          Python package (server, orchestrator, agent, providers, tools, desktop, runtime, store, CLI, bench)
 web/            React + Vite + TypeScript app (built into the Python wheel)
 training/       data preparation, distillation, mlx-lm training, adapter export, configs, seeds
 evals/          evaluation suites, runner, pairwise judge (the router set is spike/evolution/router_labeled.jsonl)

@@ -75,6 +75,42 @@ acknowledge reports within 7 days.
 - Real exchange orders (Spike Finance) are off by default. Turning them on needs an exchange, a list of markets, a per-order and a 24-hour limit, and your confirmation that the API key cannot withdraw funds (on Binance SPIKE asks the exchange and refuses a key that can); the exchange's test network is the default. A model can only propose an order: the chat shows it and nothing is sent until you click Confirm and then "Yes, send it", after the settings and limits are checked again; a proposal expires after 10 minutes and a second click cannot send it twice. The tool that proposes is never offered to `/v1` or MCP callers. Exchange keys go to the key store like provider keys and are never returned by the API; keys and real-order settings can only be changed, and orders confirmed, from a browser on the computer SPIKE runs on (not from another machine or another site). Backtests and paper trading use public prices only.
 - Spike Motion plays a video scene in a headless Chromium (with its sandbox, except when SPIKE runs as root, where Chromium refuses it) that cannot reach the network: every request except the scene itself is refused, and the scene's Content Security Policy allows only inline code and `data:` images and fonts. Pop-ups are closed and dialogs dismissed; rendering stops after 10 minutes and videos are at most 60 s and 1920 px. `render_video` asks before writing the video, like `write_file`.
 - Spike Data runs the model's SQL in an in-memory DuckDB that is locked after your files are loaded: it cannot read or write other files, attach databases, install or load extensions, see Python objects or change its own settings, and a query stops after 30 s. Only files inside the workspace (or the project folder) load; links that point outside it are refused, and SQLite files open read-only. `data_python` asks first, like `python`, and works on copies of the files. Charts are built by SPIKE from the query's rows; the app draws them without generating code and refuses any request a chart tries to make. Reports are built locally; nothing is uploaded.
+- Desktop actions (look at the screen, move the mouse, type) are **off by default** ("Control del escritorio (solo
+  con un proveedor con computer use)", Settings → Escritorio) and SPIKE's local models never do them: a task needs
+  an API provider you configured whose API has a computer-use tool (today only Anthropic's Messages API is mapped);
+  a local or loopback provider, one without a key and an OpenAI-compatible one are refused with the reason. While
+  the setting is off nothing is captured or clicked, and `/v1`, MCP and the CLI have no way to start, answer or watch
+  a task: those routes work only from a browser on the computer SPIKE runs on, from this site (like real orders).
+  What protects you: every action that changes anything waits as a card showing the part of the screen it will act
+  on and the action, and runs only after you approve it; "approve the next N" covers at most 5 actions (never more,
+  whatever a client asks for) and ends at the first card that asks; purchases, sends, deletions, Enter, closing a
+  program and typing into a password field always ask again, inside a batch too; the Stop button, turning the
+  setting off or closing the page ends the task at once, and a card nobody answers for 5 minutes ends it; a task
+  has a step cap (setting, 20 by default, never more than 50); the estimate of requests, tokens and cost is shown
+  before anything starts. Screenshots are sent only to the provider you chose, through the same guard as every
+  call: paid-call permission, monthly limits, and the provider must be allowed to receive your files' contents
+  (`share_files`), because the screen can show anything; otherwise the task does not start. They are kept in
+  memory on this computer for the cards (the last 12), served with `Cache-Control: no-store` to this computer only,
+  never written to disk unless you tick "keep screenshots" for that task (then only into that chat's proof
+  package, deleted with the chat); neither the call log (provider, model, tokens, as for every call) nor the saved
+  record (each action, what you decided, whether it worked) holds an image.
+  The record does hold what you would see on a card: the goal, the text the model typed (not a password's), and
+  the model's own comments, so it can contain what was on your screen. Not protected, and you should know:
+  (1) What appears on the screen (a web page, a mail, a document) can try to give the model orders. The model is
+  told to treat it as data, and every action still waits for you, so your approval is the protection: read each
+  card. (2) "Sensitive" is a best effort: SPIKE reads the model's own `[SENSITIVE: ...]` label, the English and
+  Spanish words in what the model says, the key pressed and, where the system can say so, whether the focused
+  field is a password field (macOS and Windows try; Linux/X11 cannot tell). A model that says nothing about a
+  click on "Pay" can get past the word check, so an action not marked sensitive may still be one; a password
+  is hidden on the card only when it was recognised. (3) An approved click or key press cannot be undone by
+  SPIKE, and once approved in a batch the next actions of that batch run without a card. (4) Anything you
+  approve runs with your user's rights and your open sessions (logged-in sites, mail, files): SPIKE does not
+  sandbox it. (5) Wayland is not supported, and the macOS and Windows drivers were written from the programs'
+  documentation and tested only against fake programs, not on real machines; the Anthropic request and response
+  shapes come from its documentation and fixture JSON written from it (not recorded from the live API), so
+  check the first task on your own computer with a harmless goal. The drivers use only programs the system
+  already has (xdotool and ImageMagick `import` or scrot on X11; screencapture, osascript, sips and optionally
+  cliclick on macOS; PowerShell on Windows); no library is added.
 - MCP Apps: a connector's view (HTML its server wrote) runs in an iframe with `sandbox="allow-scripts"` and no `allow-same-origin`, so it has an opaque origin: it cannot read SPIKE's storage or cookies, call SPIKE's API (its CSP blocks it too) or touch the app's window. Its CSP only allows the public https/wss origins the server declared (shown above the view); localhost, IP addresses, `.local` names and plain http are dropped. It gets no camera, microphone, location or clipboard. SPIKE serves only views that a tool of that connector declared. A view can call only tools of its own connector that allow it, under each tool's permission (an "ask" tool waits for your click in the card); opening a link asks first; a chat message from a view is put in the text box for you to send; context a view gives goes to the model once, marked as data. Every call is written to `$SPIKE_HOME/connectors/apps-audit.jsonl`. A view can still show misleading content, so it always appears inside a SPIKE frame naming its connector.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths

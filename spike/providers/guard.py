@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import datetime as dt
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextvars import ContextVar
 from dataclasses import replace
 from typing import Any, Protocol
@@ -16,6 +16,7 @@ from spike.core.types import (
     ChatRequest,
     Message,
     PaidCallBlocked,
+    ProviderError,
     SpendLimitReached,
     StreamEvent,
 )
@@ -96,6 +97,10 @@ class GuardedProvider(Provider):
         self.inner.config = value
 
     @property
+    def computer_use_adapter(self) -> str | None:  # type: ignore[override]
+        return self.inner.computer_use_adapter
+
+    @property
     def capabilities(self) -> Capabilities:
         return self.inner.capabilities
 
@@ -166,6 +171,38 @@ class GuardedProvider(Provider):
                 f"spending limit ({used['cost']:.2f} of {float(cost_cap):.2f} used this month). Use fewer calls, or "
                 "raise or remove the limit in Settings → Providers."))
         return None
+
+    def screens_blocked(self) -> str | None:
+        """Why this provider may not be sent screenshots of the user's screen now: the checks of every call (paid
+        requests allowed, monthly limits) and the privacy setting. Screenshots are the user's private content: a remote
+        provider gets them only where it may also receive the user's files."""
+        if (reason := self.blocked()) is not None:
+            return reason
+        if not self.receives_files:
+            return (f"{self.config.name} is not allowed to receive your files, so SPIKE will not send it screenshots "
+                    "of your screen. Allow it in Settings → Providers (Send your files' contents to this provider) "
+                    "to use it for desktop actions.")
+        return None
+
+    async def send_raw(self, payload: dict[str, Any], *, beta: Sequence[str] = ()) -> dict[str, Any]:
+        """A desktop step: the guard's checks first (spending, paid requests, screenshots allowed), then the request,
+        then the call log with the tokens the provider reports."""
+        cfg = self.config
+        row: dict[str, Any] = {"provider_id": cfg.id, "provider": cfg.name, "model": payload.get("model") or cfg.model,
+                               "local": cfg.local, "conversation_id": CURRENT_CHAT.get()}
+        if (reason := self.screens_blocked()) is not None:
+            self.log.log_call(**row, status="blocked", detail=reason)
+            raise ProviderError(reason)
+        try:
+            answer = await self.inner.send_raw(payload, beta=beta)
+        except Exception as exc:
+            self.log.log_call(**row, status="error", detail=str(exc)[:500], tokens_in=0, tokens_out=0, estimated=False)
+            raise
+        usage = usage_tokens(answer.get("usage") or {}) if isinstance(answer, dict) else None
+        self.log.log_call(**row, status="ok", detail="desktop step", tokens_in=(usage or (0, 0))[0],
+                          tokens_out=(usage or (0, 0))[1], estimated=usage is None,
+                          cost=None if cfg.local or usage is None else call_cost(self.limits(), *usage))
+        return answer
 
     async def stream(self, request: ChatRequest) -> AsyncIterator[StreamEvent]:
         cfg = self.config

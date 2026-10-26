@@ -3,9 +3,10 @@ import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
+import { D as DESKTOP, DesktopTask } from "./components/Desktop";
 import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
-import { IconBack, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
+import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
 import { Lab } from "./components/Lab";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
@@ -103,6 +104,8 @@ export default function App() {
   const [forgeOpen, setForgeOpen] = useState(false);
   const [labOpen, setLabOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(false);
+  const [desktopOn, setDesktopOn] = useState(false); // desktop actions are turned on in Settings
   const [engine, setEngine] = useState<{ running: boolean } | null>(null);
   const [fatal, setFatal] = useState("");
   const [theme, toggleTheme] = useTheme();
@@ -130,6 +133,7 @@ export default function App() {
   const loadProjects = useCallback(() => api.get<Project[]>("/api/projects").then(setProjects), []);
   const loadProviders = useCallback(() => api.get<ProviderInfo[]>("/api/providers").then(setProviders), []);
   const loadDesigns = useCallback(() => api.get<DesignSystemInfo[]>("/api/design-systems").then(setDesigns), []);
+  const loadDesktop = useCallback(() => api.get<{ settings: { enabled: boolean } }>("/api/desktop").then((d) => setDesktopOn(d.settings.enabled)).catch(() => {}), []);
 
   useEffect(() => {
     Promise.all([
@@ -137,9 +141,10 @@ export default function App() {
       loadProviders(),
       loadProjects(),
       loadDesigns(),
+      loadDesktop(),
       api.get<{ running: boolean }>("/api/runtime").then(setEngine),
     ]).catch((e) => setFatal(String(e.message || e)));
-  }, [loadProjects, loadProviders, loadDesigns]);
+  }, [loadProjects, loadProviders, loadDesigns, loadDesktop]);
 
   useEffect(() => {
     loadConversations().catch((e) => setFatal(String(e.message || e)));
@@ -340,6 +345,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
+          {desktopOn && <button className="side-btn" data-testid="desktop-open" onClick={() => setDesktopOpen(true)}><IconDesktop size={16} /> {DESKTOP.open}</button>}
           <button className="side-btn" onClick={() => setSettingsOpen(true)}><IconSettings size={16} /> {t.settings}</button>
           <div className="engine-status" title={t.localEngine}>
             <span className={`status-dot ${engine?.running ? "on" : ""}`} /> {t.localEngine}: {engine?.running ? t.running : t.stopped2}
@@ -432,8 +438,14 @@ export default function App() {
       )}
 
       {settingsOpen && (
-        <SettingsDialog onClose={() => { setSettingsOpen(false); loadProviders(); loadDesigns(); api.get<{ running: boolean }>("/api/runtime").then(setEngine); }}
+        <SettingsDialog onClose={() => { setSettingsOpen(false); loadProviders(); loadDesigns(); loadDesktop(); api.get<{ running: boolean }>("/api/runtime").then(setEngine); }}
+          onDesktop={() => { setSettingsOpen(false); loadProviders(); loadDesktop(); setDesktopOpen(true); }}
           specialists={specialists} providers={providers} reloadProviders={loadProviders} />
+      )}
+
+      {desktopOpen && (
+        <DesktopTask onClose={() => { setDesktopOpen(false); loadProviders(); }} onFinished={loadConversations}
+          onChat={(id) => { setDesktopOpen(false); openConversation(id); }} />
       )}
     </div>
     </ArtifactContext.Provider>

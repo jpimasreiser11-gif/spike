@@ -18,9 +18,11 @@ import uvicorn  # noqa: E402
 from spike.connectors.manager import Connection, McpTool  # noqa: E402
 from spike.connectors.mcp import APP_MIME, CallResult  # noqa: E402
 from spike.core.types import Capabilities, StreamEvent, ToolCall  # noqa: E402
+from spike.desktop.driver import Availability  # noqa: E402
 from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
 from spike.server.state import AppState  # noqa: E402
+from tests.helpers_desktop import FakeDriver, instant  # noqa: E402
 
 # An artifact that probes its sandbox: it reports whether it could read storage, reach the parent page or call
 # SPIKE's API. The browser test expects all three blocked.
@@ -90,9 +92,31 @@ def checker_answer(request) -> str:
                                                            for i in range(1, n + 1)]} if n else {})})
 
 
+def computer_use_answer(payload: dict) -> dict:
+    """The provider's computer-use API, scripted (the real shapes are pinned by tests/test_desktop.py): one click, then
+    an answer. A goal that mentions "Enviar" gets the model's own [SENSITIVE] label on the click."""
+    messages = payload["messages"]
+    goal = next(b["text"] for b in messages[0]["content"] if b["type"] == "text")
+    if any(m["role"] == "user" and isinstance(m["content"], list) and any(b.get("type") == "tool_result" for b in m["content"])
+           for m in messages):
+        content = [{"type": "text", "text": "Hecho: he pulsado el botón."}]
+        return {"id": "msg_e2e_2", "type": "message", "role": "assistant", "content": content, "stop_reason": "end_turn",
+                "usage": {"input_tokens": 1500, "output_tokens": 20}}
+    words = "[SENSITIVE: send] Voy a pulsar Enviar." if "enviar" in goal.lower() else "Voy a pulsar el botón de la calculadora."
+    content = [{"type": "text", "text": words}, {"type": "tool_use", "id": "toolu_e2e", "name": "left_click",
+                                                 "toolset_name": "computer", "input": {"coordinate": [300, 200]}}]
+    return {"id": "msg_e2e_1", "type": "message", "role": "assistant", "content": content, "stop_reason": "tool_use",
+            "usage": {"input_tokens": 1200, "output_tokens": 40}}
+
+
 class DemoProvider(Provider):
+    computer_use_adapter = "anthropic"  # so the desktop actions can be tried with a provider added in Settings
+
     def default_capabilities(self):
         return Capabilities(native_tools=True, adapters=False)
+
+    async def send_raw(self, payload, *, beta=()):
+        return computer_use_answer(payload)
 
     async def list_models(self):
         return ["scripted-test-model"]
@@ -399,8 +423,18 @@ def main() -> None:
         "resourceUri": "ui://precios/vista", "visibility": ["app"]}}}, "mcp__prices__refresh_price", "ask")
     state.connectors.connections["prices"] = Connection(client=client, status="running", tools=[get_price],
                                                         by_remote={"get_price": get_price, "refresh_price": refresh})
+    driver = FakeDriver(screen=(800, 600))  # a screen that records what is done on it instead of doing it
+    driver.backend = "scripted"
+    state.desktop.driver, state.desktop.availability = driver, Availability(True, "scripted")
+    state.desktop.task_options = {"sleep": instant, "settle_s": 0.0}
     app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
     app.state.tuner = scripted_tuner
+
+    async def desktop_calls() -> dict:  # tests only: what the fake screen was asked to do
+        return {"calls": [list(call) for call in driver.calls], "captures": driver.captures}
+
+    app.add_api_route("/__e2e/desktop", desktop_calls, methods=["GET"], include_in_schema=False)
+    app.router.routes.insert(0, app.router.routes.pop())  # before the web app's catch-all
     uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
 
 

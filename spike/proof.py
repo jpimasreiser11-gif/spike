@@ -24,16 +24,19 @@ from spike import __version__
 
 PROVIDER_FIELDS = ("id", "kind", "name", "base_url", "model", "paid", "allow_paid", "local", "share_files", "limits")
 SETTING_FIELDS = ("custom_instructions", "specialist_instructions", "tool_policies", "tools_enabled", "use_planner",
-                  "parallel", "reasoning", "temperature", "max_tokens", "skill_mode", "memory", "local_runtime", "sandbox")
+                  "parallel", "reasoning", "temperature", "max_tokens", "skill_mode", "memory", "local_runtime", "sandbox",
+                  "desktop")
 README = """SPIKE proof package
 ===================
 
 chat.md           the chat, readable: each answer with its specialists, tools, files, questions and costs
-chat.json         every message with everything SPIKE recorded for it (meta.events is the run step by step)
+chat.json         every message with everything SPIKE recorded for it (meta.events is the run step by step; a desktop
+                  task is meta.desktop: each action, what you decided for it and whether it worked, never an image)
 calls.json        the model calls made for this chat (provider, model, tokens, cost, status); no message text
 file-changes.json files that tools changed: path, SHA-256 before and after, whether the step was undone
 manifest.json     SPIKE version, machine, providers (no keys, no headers) and settings in use at export
 environment.json versions, platform and numeric thread settings (no arbitrary environment variables)
+desktop/          screenshots of a desktop task, only if you asked to keep them when you started it
 SHA256SUMS        a checksum of every other file
 
 Only sections listed in manifest.included are shared. Omitted sections are not evidence.
@@ -54,6 +57,19 @@ def _iso(ts: float | None) -> str:
 def _short(value: Any, limit: int = 600) -> str:
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
     return text if len(text) <= limit else text[:limit] + f" […] ({len(text)} characters)"
+
+
+def desktop_lines(task: dict[str, Any]) -> list[str]:
+    """A desktop task as lines of the transcript: what was asked, each action with the user's decision, how it ended."""
+    lines = [f"- Desktop task with {task.get('provider')} ({task.get('model')}): {task.get('steps', 0)} of at most "
+             f"{task.get('max_steps')} steps, ended: {task.get('reason')}; screenshots {task.get('screenshots', 'not kept')}"]
+    keys = ("x", "y", "from_x", "from_y", "key", "text", "chars", "direction", "amount")
+    for a in task.get("actions") or []:
+        detail = ", ".join(f"{k} {a[k]}" for k in keys if k in a)
+        lines.append(f"  - step {a.get('step')}: {a.get('action')} {_short(detail, 160)} · {a.get('decision')} · "
+                     f"{'ok' if a.get('ok') else 'failed'}" + (f" · sensitive: {a['sensitive']}" if a.get("sensitive") else "")
+                     + (f" · {_short(a['result'], 160)}" if a.get("result") else ""))
+    return lines
 
 
 def transcript(conv: dict[str, Any], messages: list[dict[str, Any]], calls: list[dict[str, Any]],
@@ -87,6 +103,8 @@ def transcript(conv: dict[str, Any], messages: list[dict[str, Any]], calls: list
                                   for f in (change or {}).get("files", []))
                 lines.append(f"  - {'ok' if ev.get('ok') else 'failed'}: {_short(ev.get('content'), 300)}"
                              + (f" · files: {files}" if files else "") + (" · undone" if ev.get("undone") else ""))
+        if meta.get("desktop"):
+            lines += desktop_lines(meta["desktop"])
         for q in meta.get("questions") or []:
             lines.append(f"- Asked you: {q['question']} → {q.get('answer') or 'no answer'}")
         if meta.get("elapsed_s") is not None:
@@ -125,7 +143,8 @@ def environment_capsule() -> dict[str, Any]:
 
 def build_proof(conv: dict[str, Any], messages: list[dict[str, Any]], calls: list[dict[str, Any]],
                 checkpoints: list[dict[str, Any]], providers: list[dict[str, Any]], settings: dict[str, Any],
-                temporary: bool = False, *, include: set[str] | None = None) -> bytes:
+                temporary: bool = False, *, include: set[str] | None = None,
+                files: dict[str, bytes] | None = None) -> bytes:
     selected = PROOF_SECTIONS if include is None else frozenset(include)
     if selected - PROOF_SECTIONS:
         raise ValueError("Unknown proof section / Sección de prueba desconocida")
@@ -149,7 +168,7 @@ def build_proof(conv: dict[str, Any], messages: list[dict[str, Any]], calls: lis
                          ("settings", "settings")):
         if section not in selected:
             manifest.pop(key, None)
-    files = {
+    parts = {
         "README.txt": README,
         "manifest.json": json.dumps(manifest, indent=2, ensure_ascii=False),
         "chat.json": json.dumps({"conversation": conv, "messages": messages}, indent=2, ensure_ascii=False),
@@ -161,14 +180,16 @@ def build_proof(conv: dict[str, Any], messages: list[dict[str, Any]], calls: lis
                            ("files", ("file-changes.json",))):
         if section not in selected:
             for name in names:
-                files.pop(name)
+                parts.pop(name)
     if "chat" in selected:
         # The readable transcript must respect the selection too.
-        files["chat.md"] = transcript(conv, messages, calls if "calls" in selected else [],
+        parts["chat.md"] = transcript(conv, messages, calls if "calls" in selected else [],
                                       changes if "files" in selected else [])
     if "environment" in selected:
-        files["environment.json"] = json.dumps(environment_capsule(), indent=2, ensure_ascii=False)
-    blobs = {name: text.encode("utf-8") for name, text in files.items()}
+        parts["environment.json"] = json.dumps(environment_capsule(), indent=2, ensure_ascii=False)
+    blobs = {name: text.encode("utf-8") for name, text in parts.items()}
+    if "chat" in selected:  # a kept desktop task's screenshots are part of the chat
+        blobs |= dict(files or {})
     sums = "".join(f"{_sha(data)}  {name}\n" for name, data in blobs.items())
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:

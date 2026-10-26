@@ -1,0 +1,128 @@
+{
+  "_about": "Messages API answers with the computer-use tool, written from the provider's computer-use documentation (the toolset page and its migration section). Not recorded from the live API: SPIKE has never called it in tests. The ids are the documentation's own examples.",
+
+  "toolset_click": {
+    "id": "msg_01toolsetclick", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "text", "text": "I will click the search box."},
+      {"type": "tool_use", "id": "toolu_01WkoTUvSHDzTBu2xnGk8Ep8", "name": "left_click", "toolset_name": "computer",
+       "input": {"coordinate": [512, 742]}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 5200, "output_tokens": 90}
+  },
+
+  "toolset_batch": {
+    "id": "msg_01toolsetbatch", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "tool_use", "id": "toolu_01HqCF3nJ4Vzr8sTkPZ2wxYA", "name": "left_click", "toolset_name": "computer",
+       "input": {"coordinate": [640, 60]}},
+      {"type": "tool_use", "id": "toolu_01Ppr3sZ3TnE9m6VUu4RyH2K", "name": "type", "toolset_name": "computer",
+       "input": {"text": "pictures of cats"}},
+      {"type": "tool_use", "id": "toolu_01Xf5W1sD8Q9aBcJ7kLmN2pQ", "name": "screenshot", "toolset_name": "computer",
+       "input": {}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 5300, "output_tokens": 120}
+  },
+
+  "toolset_thinking_and_text": {
+    "id": "msg_01toolsetthinking", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+    "content": [
+      {"type": "thinking", "thinking": "", "signature": "EqQBCkYIBBgCKkDexample"},
+      {"type": "text", "text": "Opening the menu."},
+      {"type": "tool_use", "id": "toolu_01Qg8m3XqC5aRy7tD2eS4jUg", "name": "left_click", "toolset_name": "computer",
+       "input": {"coordinate": [500, 300], "text": "shift"}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 5400, "output_tokens": 160}
+  },
+
+  "toolset_scroll": {
+    "id": "msg_01toolsetscroll", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "tool_use", "id": "toolu_01Yc5h8UmZ2xNv4qA7bP9fRd", "name": "scroll", "toolset_name": "computer",
+       "input": {"coordinate": [500, 400], "scroll_direction": "down", "scroll_amount": 3}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 5500, "output_tokens": 70}
+  },
+
+  "toolset_zoom": {
+    "id": "msg_01toolsetzoom", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "tool_use", "id": "toolu_01Kf7k2WpB4zQx6sC9dR3hTf", "name": "zoom", "toolset_name": "computer",
+       "input": {"region": [100, 200, 400, 350]}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 5500, "output_tokens": 60}
+  },
+
+  "toolset_sensitive_send": {
+    "id": "msg_01toolsetsend", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "text", "text": "[SENSITIVE: send] The message is written. I will click the Send button."},
+      {"type": "tool_use", "id": "toolu_01Send", "name": "left_click", "toolset_name": "computer",
+       "input": {"coordinate": [900, 640]}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 6000, "output_tokens": 80}
+  },
+
+  "toolset_spanish_words": {
+    "id": "msg_01toolsetes", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "text", "text": "Voy a pulsar el botón Eliminar para borrar el archivo."},
+      {"type": "tool_use", "id": "toolu_01Borrar", "name": "left_click", "toolset_name": "computer",
+       "input": {"coordinate": [300, 220]}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 6100, "output_tokens": 70}
+  },
+
+  "toolset_type_password": {
+    "id": "msg_01toolsetpw", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "text", "text": "I will type the password into the field."},
+      {"type": "tool_use", "id": "toolu_01Pw", "name": "type", "toolset_name": "computer",
+       "input": {"text": "hunter2-secret"}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 6200, "output_tokens": 60}
+  },
+
+  "toolset_enter": {
+    "id": "msg_01toolsetenter", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [
+      {"type": "tool_use", "id": "toolu_01Enter", "name": "key", "toolset_name": "computer",
+       "input": {"text": "Return"}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 6200, "output_tokens": 40}
+  },
+
+  "toolset_done": {
+    "id": "msg_01toolsetdone", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [{"type": "text", "text": "Done: the calculator shows 42."}],
+    "stop_reason": "end_turn", "usage": {"input_tokens": 7000, "output_tokens": 30}
+  },
+
+  "toolset_refusal": {
+    "id": "msg_01toolsetrefusal", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+    "content": [{"type": "text", "text": "I cannot help with that."}],
+    "stop_reason": "refusal", "stop_details": {"type": "refusal", "category": null, "explanation": "declined"},
+    "usage": {"input_tokens": 5000, "output_tokens": 10}
+  },
+
+  "legacy_click": {
+    "id": "msg_01legacyclick", "type": "message", "role": "assistant", "model": "claude-opus-4-8",
+    "content": [
+      {"type": "text", "text": "Clicking the button."},
+      {"type": "tool_use", "id": "toolu_01A9r5kQm2LxWc7vT3nZ4bJs", "name": "computer",
+       "input": {"action": "left_click", "coordinate": [500, 300]}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 1900, "output_tokens": 55}
+  },
+
+  "legacy_type": {
+    "id": "msg_01legacytype", "type": "message", "role": "assistant", "model": "claude-opus-4-8",
+    "content": [
+      {"type": "tool_use", "id": "toolu_01LegacyType", "name": "computer",
+       "input": {"action": "type", "text": "hello"}}
+    ],
+    "stop_reason": "tool_use", "usage": {"input_tokens": 2400, "output_tokens": 35}
+  },
+
+  "error": {"type": "error", "error": {"type": "invalid_request_error", "message": "'claude-sonnet-5-5' does not support tool types: computer_20251124."}}
+}

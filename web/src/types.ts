@@ -1,3 +1,5 @@
+import type { DesktopRecord } from "./desktop";
+
 export type Specialist = {
   id: string;
   name: string;
@@ -252,6 +254,7 @@ export type RunState = {
   forge?: { report?: ForgeReport };
   trust?: TrustState;
   minds?: MindsState; // Parallel Minds: the N answers of this message and which one was chosen
+  desktop?: DesktopRecord; // a desktop task: every action, what the user decided for it, how it ended (never images)
 };
 
 /** Parallel Minds: what a request sends (N minds, or one per pick) and what the estimate says before it runs. */
@@ -335,6 +338,7 @@ export type Settings = {
   evolution?: { enabled: boolean; auto_router: boolean; training_data?: boolean; auto_strategy?: boolean; personal_adapter?: boolean };
   trust: { enabled: boolean; escalate: boolean; escalate_unchecked: number; model_pass: boolean };
   finance?: { exchange: string; live: LiveSettings };
+  desktop?: { enabled: boolean; provider_id: string; max_steps: number; tool: string }; // desktop actions (A19): off by default
 };
 
 export type Checks = { include?: string[]; exclude?: string[] };
