@@ -293,7 +293,7 @@ specialists:
     adapter: spike-data
     adapter_status: planned
     sensitive: false
-    tools: [ask_user, data_describe, data_sql, data_chart, data_python, read_file, list_dir, calculator, create_xlsx,
+    tools: [ask_user, data_describe, data_sql, data_chart, data_forecast, data_python, read_file, list_dir, calculator, create_xlsx,
             create_docx, create_pdf]
     keywords:
       sql: 4

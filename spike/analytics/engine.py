@@ -7,7 +7,10 @@ CSV/TSV, Parquet and JSON load through DuckDB; Excel (.xlsx) and SQLite through 
 
 from __future__ import annotations
 
+import contextlib
+import copy
 import datetime as dt
+import hashlib
 import math
 import re
 import sqlite3
@@ -137,6 +140,9 @@ class Result:
     truncated: bool
     tables: list[Table] = field(default_factory=list)
 
+    lineage: list[dict[str, Any]] = field(default_factory=list)
+    guardian: dict[str, Any] = field(default_factory=dict)
+
     def text(self, limit: int = 50) -> str:
         if not self.columns:
             return "(the statement ran and returned no rows)"
@@ -160,9 +166,18 @@ def files_arg(value: Any) -> list[str]:
 class Session:
     """One in-memory DuckDB with the given files loaded as tables and then locked. Use it from one thread."""
 
-    def __init__(self, workspace: Workspace, files: list[str], timeout_s: float | None = None):
+    def __init__(self, workspace: Workspace, files: list[str], timeout_s: float | None = None, *,
+                 contracts: dict[str, str] | None = None, locale: str = "es"):
         self.workspace, self.files, self.timeout_s = workspace, files, timeout_s or TIMEOUT_S
         self.tables: list[Table] = []
+        if contracts is not None and (not isinstance(contracts, dict) or any(
+                not isinstance(k, str) or k not in files or not isinstance(v, str) for k, v in contracts.items())):
+            raise DataError("contracts must map loaded filenames to workspace contract paths")
+        if locale not in ("es", "en"):
+            raise DataError("locale must be es or en")
+        self.contracts, self.locale = contracts or {}, locale
+        self.lineage: list[dict[str, Any]] = []
+        self._loaded = False
         self._tmp = tempfile.TemporaryDirectory(prefix="spike-data-")
         self.db = duckdb()
         self.con = self.db.connect(":memory:", config={"memory_limit": MEMORY, "threads": THREADS,
@@ -194,11 +209,17 @@ class Session:
         taken: set[str] = set()
         for given, path, fmt in paths:
             try:
+                start = len(self.tables)
                 getattr(self, f"_load_{fmt}")(given, path, taken)
+                self.record("load", file=Path(given).as_posix(), sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+                            tables=[t.to_dict() for t in self.tables[start:]])
+                if given in self.contracts:
+                    self._validate_contract(given, self.tables[start:])
             except self.db.Error as exc:
                 raise DataError(f"could not read '{given}': {first_lines(exc)}") from exc
         for statement in LOCK:
             self.con.execute(statement).fetchall()
+        self._loaded = True
 
     def _table(self, name: str, given: str, sheet: str | None = None) -> None:
         cols = [(r[0], r[1]) for r in self.con.execute(f"DESCRIBE {ident(name, self.reserved)}").fetchall()]
@@ -209,26 +230,47 @@ class Session:
 
     def _load_csv(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
-        sql = f"CREATE TABLE {ident(name)} AS SELECT * FROM read_csv(?, auto_detect=true{{}})"
-        self.con.execute(sql.format(""), [str(path)]).fetchall()
-        delimiter = self.con.execute("SELECT Delimiter FROM sniff_csv(?)", [str(path)]).fetchall()[0][0]
-        if delimiter == ";":  # Spanish and other European exports: decimal commas, when that types more numbers
-            numbers = self._numeric_columns(name)
-            alt = f"{name}__comma"
-            try:
-                self.con.execute(sql.replace(ident(name), alt).format(", decimal_separator=','"), [str(path)]).fetchall()
-            except self.db.Error:
-                pass
+        from spike.analytics.rescue import rescue_csv
+
+        rescued = rescue_csv(path, locale=self.locale)
+        self.record("rescue", file=Path(given).as_posix(), report=rescued.report)
+        types = []
+        for i in range(len(rescued.columns)):
+            values = [row[i] for row in rescued.rows if row[i] is not None]
+            if values and all(type(v) is int and -(2**63) <= v < 2**63 for v in values):
+                types.append("BIGINT")
+            elif values and all(type(v) in (int, float) for v in values):
+                types.append("DOUBLE")
+            elif values and all(type(v) is dt.date for v in values):
+                types.append("DATE")
             else:
-                if self._numeric_columns(alt) > numbers:
-                    self.con.execute(f"DROP TABLE {ident(name)}").fetchall()
-                    self.con.execute(f"ALTER TABLE {alt} RENAME TO {ident(name)}").fetchall()
-                else:
-                    self.con.execute(f"DROP TABLE {alt}").fetchall()
+                types.append("VARCHAR")
+        definitions = ", ".join(f"{ident(col, self.reserved)} {ty}" for col, ty in
+                                zip(rescued.columns, types, strict=True))
+        self.con.execute(f"CREATE TABLE {ident(name, self.reserved)} ({definitions})").fetchall()
+        if rescued.rows:
+            placeholders = ", ".join("?" for _ in rescued.columns)
+            self.con.executemany(f"INSERT INTO {ident(name, self.reserved)} VALUES ({placeholders})", rescued.rows)
         self._table(name, given)
 
-    def _numeric_columns(self, name: str) -> int:
-        return sum(kind_of(r[1]) == "quantitative" for r in self.con.execute(f"DESCRIBE {ident(name)}").fetchall())
+    def record(self, operation: str, **details: Any) -> None:
+        """Append an ordered, JSON-safe step. Results snapshot the history, never a mutable session reference."""
+        self.lineage.append({"step": len(self.lineage) + 1, "operation": operation, **details})
+
+    def _validate_contract(self, given: str, tables: list[Table]) -> None:
+        from spike.analytics.contracts import Contract, ContractViolation
+
+        path = self.workspace.resolve(self.contracts[given])
+        contract = Contract.load(path)
+        violations = []
+        for table in tables:
+            rows = self.con.execute(f"SELECT * FROM {ident(table.name, self.reserved)}").fetchall()
+            violations.extend({"table": table.name, **v} for v in contract.validate(
+                [n for n, _ in table.columns], rows))
+        self.record("contract", file=Path(given).as_posix(), contract=path.relative_to(self.workspace.root).as_posix(),
+                    sha256=hashlib.sha256(path.read_bytes()).hexdigest(), violations=violations)
+        if violations:
+            raise ContractViolation(violations)
 
     def _load_parquet(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
@@ -294,26 +336,64 @@ class Session:
             src.close()
 
     # ---------------------------------------------------------------- queries
-    def query(self, sql: str, limit: int) -> Result:
+    def query(self, sql: str, limit: int, *, approved: bool = False) -> Result:
+        """Run one guarded statement; only a trusted caller can explicitly approve ephemeral table writes."""
+        from spike.analytics.guardian import bounded, statement
+
+        if not self._loaded:
+            raise DataError("data must be successfully loaded before querying")
         if not sql.strip():
             raise DataError("the SQL is empty")
+        bounded(sql, limit)  # validate limits even for an approved write
         timer = threading.Timer(self.timeout_s, self.con.interrupt)
         timer.start()
         try:
-            self.con.execute(sql)
-            if self.con.description is None:
-                return Result([], [], [], False, self.tables)
-            columns = [d[0] for d in self.con.description]
-            types = [str(d[1]) for d in self.con.description]
-            rows = self.con.fetchmany(limit + 1)
+            kind = statement(self.con, sql, approved=approved)
+            self.con.execute("BEGIN TRANSACTION" if approved is True else "BEGIN TRANSACTION READ ONLY").fetchall()
+            self.con.execute(bounded(sql, limit) if kind == "SELECT" else sql)
+            columns = [d[0] for d in self.con.description or []]
+            types = [str(d[1]) for d in self.con.description or []]
+            rows = self.con.fetchall()
+            self.con.execute("COMMIT").fetchall()
         except self.db.InterruptException as exc:
+            self._rollback()
             raise DataError(f"the query ran longer than {self.timeout_s:.0f} s and was stopped; filter or "
                             "aggregate first") from exc
         except self.db.Error as exc:
+            self._rollback()
             raise DataError(f"SQL error: {first_lines(exc)}") from exc
         finally:
             timer.cancel()
-        return Result(columns, types, [[cell(v) for v in r] for r in rows[:limit]], len(rows) > limit, self.tables)
+        self.record("query", sql=sql, limit=limit, approved=approved is True, rows=min(limit, len(rows)),
+                    truncated=len(rows) > limit)
+        return Result(columns, types, [[cell(v) for v in r] for r in rows[:limit]], len(rows) > limit,
+                      self.tables, copy.deepcopy(self.lineage))
+
+    def _rollback(self) -> None:
+        with contextlib.suppress(self.db.Error):
+            self.con.execute("ROLLBACK").fetchall()
+
+    def explain(self, sql: str, limit: int) -> dict[str, Any]:
+        """Plan a bounded SELECT without executing it, with a deterministic bilingual explanation."""
+        from spike.analytics.guardian import bounded, explain, statement
+
+        if not self._loaded:
+            raise DataError("data must be successfully loaded before explaining")
+        try:
+            statement(self.con, sql)
+            preview_sql = bounded(sql, limit)
+            plan = explain(self.con, preview_sql)
+        except self.db.Error as exc:
+            raise DataError(f"SQL error: {first_lines(exc)}") from exc
+        self.record("explain", sql=preview_sql, **plan)
+        return {"sql": preview_sql, **plan}
+
+    def preview(self, sql: str, limit: int) -> dict[str, Any]:
+        """Explain first, then execute the bounded query in a read-only transaction."""
+        plan = self.explain(sql, limit)
+        result = self.query(sql, limit)
+        result.guardian = plan
+        return {"result": result, **result.guardian}
 
     def summary(self, table: Table) -> Result:
         """DuckDB's SUMMARIZE of one table: per column min, max, distinct values, mean, quartiles and nulls."""
@@ -329,17 +409,22 @@ def first_lines(exc: Exception, limit: int = 600) -> str:
     return text[:limit]
 
 
-def run_query(workspace: Workspace, files: list[str], sql: str, limit: int) -> Result:
-    session = Session(workspace, files)
+def run_query(workspace: Workspace, files: list[str], sql: str, limit: int, *,
+              contracts: dict[str, str] | None = None, locale: str = "es", explain_only: bool = False) -> Result:
+    session = Session(workspace, files, contracts=contracts, locale=locale)
     try:
         session.load()
-        return session.query(sql, limit)
+        if explain_only:
+            plan = session.explain(sql, limit)
+            return Result([], [], [], False, session.tables, copy.deepcopy(session.lineage), plan)
+        return session.preview(sql, limit)["result"]
     finally:
         session.close()
 
 
-def describe(workspace: Workspace, files: list[str], sample: int = 5) -> list[tuple[Table, Result, Result]]:
-    session = Session(workspace, files)
+def describe(workspace: Workspace, files: list[str], sample: int = 5, *,
+             contracts: dict[str, str] | None = None, locale: str = "es") -> list[tuple[Table, Result, Result]]:
+    session = Session(workspace, files, contracts=contracts, locale=locale)
     try:
         session.load()
         return [(t, session.summary(t), session.query(f"SELECT * FROM {ident(t.name, session.reserved)}", sample))

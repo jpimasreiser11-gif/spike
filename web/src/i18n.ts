@@ -1,4 +1,13 @@
 const es = {
+  analytics: {
+    evidence: "Evidencias del análisis", guardian: "Vista previa SQL de solo lectura", lineage: "Linaje",
+    backtest: "Validación temporal (MAE)", method: "Método", mae: "Error absoluto medio", folds: "Ventanas",
+    selected: "Método elegido", before: "Antes", after: "Después", rows: "filas", columns: "columnas",
+    baseline: "Previsiones base; no garantizan resultados futuros. SES y Holt usan α = β = 0,5. La serie debe tener intervalos iguales.",
+    methods: { naive: "Ingenuo", seasonal_naive: "Ingenuo estacional", drift: "Deriva", ses: "Suavizado exponencial simple", holt: "Holt" } as Record<string, string>,
+    steps: { rescue: "Rescate", load: "Carga", contract: "Contrato", explain: "Plan SQL", query: "Consulta", forecast: "Previsión", chart: "Gráfico",
+      encoding: "Codificación", delimiter: "Separador", header: "Cabecera", decimal_comma: "Coma decimal", dates: "Fechas", duplicates: "Duplicados", empty_columns: "Columnas vacías" } as Record<string, string>,
+  },
   newChat: "Nuevo chat",
   recents: "Recientes",
   settings: "Ajustes",
@@ -188,6 +197,15 @@ const es = {
 type Dict = typeof es;
 
 const en: Dict = {
+  analytics: {
+    evidence: "Analysis evidence", guardian: "Read-only SQL preview", lineage: "Lineage",
+    backtest: "Rolling-origin backtest (MAE)", method: "Method", mae: "Mean absolute error", folds: "Folds",
+    selected: "Selected method", before: "Before", after: "After", rows: "rows", columns: "columns",
+    baseline: "Baseline forecasts do not guarantee future results. SES and Holt use α = β = 0.5. Observations must be equally spaced.",
+    methods: { naive: "Naive", seasonal_naive: "Seasonal naive", drift: "Drift", ses: "Simple exponential smoothing", holt: "Holt" } as Record<string, string>,
+    steps: { rescue: "Rescue", load: "Load", contract: "Contract", explain: "SQL plan", query: "Query", forecast: "Forecast", chart: "Chart",
+      encoding: "Encoding", delimiter: "Delimiter", header: "Header", decimal_comma: "Decimal comma", dates: "Dates", duplicates: "Duplicates", empty_columns: "Empty columns" } as Record<string, string>,
+  },
   newChat: "New chat",
   recents: "Recents",
   settings: "Settings",

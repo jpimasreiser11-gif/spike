@@ -109,7 +109,13 @@ export type ToolState = {
 
 /** Spike Data: a data file loaded as a table for a query. */
 export type DataTableInfo = { name: string; file: string; rows: number; sheet: string | null; columns: { name: string; type: string }[] };
-type DataResult = { title: string; sql: string; tables: DataTableInfo[]; columns: string[]; types: string[]; rows: unknown[][]; truncated: boolean };
+export type AnalyticsEvidenceData = {
+  lineage?: { step: number; operation: string; report?: { before: { rows: number; columns: number }; after: { rows: number; columns: number }; steps: { code: string; count?: number }[]; sha256: string }; [key: string]: unknown }[];
+  guardian?: { sql?: string; explanation?: { es?: string; en?: string } };
+  backtest?: { method: string; mae: number; folds: number }[];
+  forecast?: { method: string };
+};
+type DataResult = AnalyticsEvidenceData & { title: string; sql: string; tables: DataTableInfo[]; columns: string[]; types: string[]; rows: unknown[][]; truncated: boolean };
 export type DataTableUi = { kind: "data_table" } & DataResult;
 export type ChartUi = { kind: "chart"; spec: Record<string, unknown> } & DataResult;
 export type CodeRunUi = { kind: "code_run"; language: string; code: string; output: string; files: string[]; returncode: number | null };
