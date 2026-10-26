@@ -29,6 +29,9 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   (DuckDB, Vega-Lite), Spike Finance (market data, backtests, paper trading; real orders off by default and
   confirmed one by one), Spike Motion (video from HTML/SVG scenes, offline and frame-exact).
 - `spike dev` coding agent in the terminal; OpenAI-compatible `/v1` endpoint; SPIKE as an MCP server.
+- Team work: Claude leads and Codex builds through the repository (`AGENTS.md`, `docs/team/`): a task board
+  with a CI check and a detached Codex worker (`scripts/team/codex_worker.py`) that works on `codex/<id>`
+  branches and never pushes `main`. Tested with a fake Codex; not yet run against the real Codex CLI.
 
 ### Learning from use (Evolution)
 - Corrections become memory rules and proposed eval questions; route corrections teach the router only if its

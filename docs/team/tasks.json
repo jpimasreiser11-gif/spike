@@ -4,7 +4,7 @@
   {
    "id": "A0",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "equipo",
    "title": "Tablero del equipo y trabajador de Codex",
    "depends": [],
@@ -28,7 +28,7 @@
     "A0"
    ],
    "paths": [],
-   "spec": "On joan's Mac: create the worktree ~/Downloads/Spike-codex from origin/main (never touch ~/Downloads/Spike), run `python3 scripts/team/codex_worker.py setup --repo ~/Downloads/Spike-codex`, check that `codex` is installed and logged in (`codex login status`), then launch detached: `nohup caffeinate -i python3 scripts/team/codex_worker.py run --repo ~/Downloads/Spike-codex > ~/.spike-team/run.out 2>&1 &`. Report to Claude what ran and the first task taken. It must not stop or slow the training run (RAM guard in the worker).",
+   "spec": "On joan's Mac: create the worktree ~/Downloads/Spike-codex from origin/main (never touch ~/Downloads/Spike), run `python3 scripts/team/codex_worker.py setup --repo ~/Downloads/Spike-codex`, check that the Codex CLI is installed and already logged in with joan's account (find it on PATH or inside the Codex app; never log in or change its settings yourself), then launch detached: `nohup caffeinate -i python3 scripts/team/codex_worker.py run --repo ~/Downloads/Spike-codex > ~/.spike-team/run.out 2>&1 &`. Report to Claude what ran and the first task taken. It must not stop or slow the training run (RAM guard in the worker).",
    "accept": [
     "the worker log shows the first task taken",
     "training run untouched"
