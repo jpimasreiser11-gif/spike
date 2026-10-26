@@ -23,6 +23,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Chat, projects, files, artifacts panel (isolated frame), Word/Excel/PowerPoint/PDF output, Markdown with
   sanitizing, undo of file changes, step-by-step replay, temporary chats.
 - Neural Memory (facts, decisions, rules, summaries, documents; local and editable).
+  It can index folders you choose (nothing until you add one; links out of the folder ignored; only changed files
+  read again; answers cite the file; "Forget folder" removes its text, word index and vectors), keep a glossary per
+  project and global (CSV import/export), track the Education tutor's topics on an SM-2 review schedule, and draw a
+  knowledge graph of the entities your notes share (relations proposed by the local model only once you confirm).
 - Skills (`SKILL.md`, MIT/Apache only) and MCP connectors from a reviewed catalog, with MCP Apps views.
 - Privacy and spend: no file contents to remote providers unless allowed, monthly limits, call log.
 - Forge (planner, executor, mandatory verifier), Creator templates, Spike Design (design systems), Spike Data

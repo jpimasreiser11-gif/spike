@@ -321,7 +321,7 @@
   {
    "id": "A7",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Memoria: carpetas elegidas, glosario, progreso del tutor y grafo",
    "depends": [],

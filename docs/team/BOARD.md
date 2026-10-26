@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 10 | 2 | 0 | 0 | 2 | 0 | 14 |
+| Claude | 10 | 1 | 0 | 0 | 3 | 0 | 14 |
 | Codex | 18 | 0 | 0 | 0 | 0 | 0 | 18 |
 | Mac | 5 | 1 | 0 | 0 | 0 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **36** | **3** | **0** | **0** | **2** | **0** | **41** |
+| **Total** | **36** | **2** | **0** | **0** | **3** | **0** | **41** |
 
 ## Fase: equipo
 
@@ -39,7 +39,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A18 | Codex | pendiente | 3D con Blender y juegos con Godot | - |
 | A4 | Claude | hecha | Aislamiento del sistema para python y run_command | - |
 | A6 | Claude | en curso | Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas | - |
-| A7 | Claude | en curso | Memoria: carpetas elegidas, glosario, progreso del tutor y grafo | - |
+| A7 | Claude | hecha | Memoria: carpetas elegidas, glosario, progreso del tutor y grafo | - |
 | A10 | Claude | pendiente | Evolution: estrategia de herramientas, regresión de prompts y adaptador personal | - |
 | A17 | Claude | pendiente | Parallel Minds y prototipos en paralelo | - |
 | A19 | Claude | pendiente | Escritorio con un proveedor con computer use | - |
