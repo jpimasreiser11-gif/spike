@@ -28,7 +28,9 @@ answers. It prints the install command when accepted. Every number comes from th
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -75,6 +77,66 @@ def shown(path: Path) -> str:
         return Path(path).resolve().relative_to(ROOT.resolve()).as_posix()  # the same record on every OS
     except ValueError:
         return str(path)
+
+
+def file_hash(path: Path) -> str:
+    """Hash in bounded chunks: the base GGUF must not be loaded into RAM."""
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def save_inputs(sweep: Path, record: dict) -> None:
+    sweep.mkdir(parents=True, exist_ok=True)
+    path = sweep / "inputs.json"
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def pin_inputs(sweep: Path, candidates: list[Candidate], files: dict[str, Path], base: str | None) -> dict:
+    """Bind cached work to its inputs before exporting or reusing predictions.
+
+    New candidates may be added to an interrupted selection. Existing candidates and
+    shared inputs cannot change in place: doing so would mix experiments (or give a
+    different adapter another look at the acceptance set). Old results without this
+    receipt are retained but cannot be attributed to today's files retroactively.
+    """
+    shared = {"files": {key: file_hash(path) for key, path in files.items()}, "export_base": base}
+    current = {c.stem: {"checkpoint_sha256": file_hash(c.checkpoint), "scale": str(c.scale)} for c in candidates}
+    path = sweep / "inputs.json"
+    record = {"format": "spike-sweep-inputs-v1", "shared": shared, "candidates": {}, "exports": {}}
+
+    def refuse(reason: str) -> None:
+        raise SystemExit(f"sweep provenance: {reason}. Existing evidence was not changed. Keep this sweep with its "
+                         "original inputs; use a separately documented experiment for changed inputs, never "
+                         "retroactively approve them with these results.")
+
+    if path.is_file():
+        try:
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            refuse(f"cannot read {shown(path)}")
+        if (not isinstance(saved, dict) or saved.get("format") != record["format"]
+                or not isinstance(saved.get("candidates"), dict) or not isinstance(saved.get("exports"), dict)):
+            refuse(f"invalid {shown(path)}")
+        if saved.get("shared") != shared:
+            refuse("model, recipe, run, configuration or evaluation inputs changed")
+        for stem, identity in current.items():
+            if stem in saved["candidates"] and saved["candidates"][stem] != identity:
+                refuse(f"checkpoint or scale changed for {stem}")
+        # Check all existing exports before any subprocess can overwrite a file.
+        for stem, checksum in saved["exports"].items():
+            if Path(stem).name != stem:
+                refuse("invalid export name")
+            gguf = sweep / "gguf" / f"{stem}.gguf"
+            if gguf.is_file() and file_hash(gguf) != checksum:
+                refuse(f"exported GGUF changed for {stem}")
+        record = saved
+    elif sweep.exists() and any(p.is_file() and p.name != "inputs.json.tmp" for p in sweep.rglob("*")):
+        refuse("cached work has no input receipt; its provenance cannot be established")
+    record["candidates"].update(current)
+    save_inputs(sweep, record)
+    return record
 
 
 def parse_candidate(text: str) -> tuple[Fraction, Fraction]:
@@ -191,10 +253,10 @@ def write_scaled_adapter(candidate: Candidate, adapter_dir: Path, dest: Path) ->
 
 
 def export_candidate(candidate: Candidate, sweep: Path, adapter_dir: Path, args: argparse.Namespace,
-                     base: str | None) -> Path:
+                     base: str | None, *, reuse: bool = True) -> Path:
     """GGUF of one candidate (skipped when it and its export.json are already there)."""
     work, gguf = sweep / candidate.folder, sweep / "gguf" / f"{candidate.stem}.gguf"
-    if gguf.is_file() and (work / "export.json").is_file():
+    if reuse and gguf.is_file() and (work / "export.json").is_file():
         print(f"{candidate.stem}: already exported")
         return gguf
     write_scaled_adapter(candidate, adapter_dir, work / "mlx")
@@ -334,7 +396,32 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"{args.llama_cpp} has no convert_lora_to_gguf.py: pass the llama.cpp checkout")
     args.llama_cpp = str(Path(args.llama_cpp).expanduser())
 
-    ggufs = [export_candidate(c, sweep, adapter_dir, args, args.base or cfg.get("base_model")) for c in candidates]
+    base = args.base or cfg.get("base_model")
+    inputs = {"model": model, "recipe": recipe, "run": runs / "run.json",
+              "adapter_config": adapter_dir / "adapter_config.json", "suites": ROOT / "evals" / "suites.yaml",
+              "converter": Path(args.llama_cpp) / "convert_lora_to_gguf.py"}
+    for relative in (f"training/data/{spec}/mlx_lora.yaml", "training/datasets.yaml",
+                     "spike/specialists/catalog.yaml", "evals/run_eval.py",
+                     "training/export_adapter.py", "training/spike_train/evaluation.py",
+                     "training/spike_train/metrics.py"):
+        if (source := ROOT / relative).is_file():
+            inputs[relative] = source
+    if base and Path(base).expanduser().is_dir():
+        for source in Path(base).expanduser().glob("*.json"):
+            inputs[f"base_config/{source.name}"] = source
+    provenance = pin_inputs(sweep, candidates, inputs, base)
+    ggufs = []
+    for candidate in candidates:
+        gguf = export_candidate(candidate, sweep, adapter_dir, args, base,
+                                reuse=candidate.stem in provenance["exports"])
+        checksum = file_hash(gguf)
+        old = provenance["exports"].get(candidate.stem)
+        if old is not None and old != checksum:
+            raise SystemExit(f"sweep provenance: regenerated GGUF changed for {candidate.stem}; "
+                             "old predictions were not reused")
+        provenance["exports"][candidate.stem] = checksum
+        save_inputs(sweep, provenance)
+        ggufs.append(gguf)
     select_suites = rule_suites(rule)
     summary, _ = evaluate(sweep / "select", ggufs, select_suites, model, extra)
     rows = judge(candidates, summary, rule, sweep)

@@ -14,11 +14,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import platform
 import random
 import subprocess
 import sys
 import time
+from dataclasses import asdict
 from pathlib import Path
 
 import yaml
@@ -39,6 +41,7 @@ from spike_train.evaluation import (  # noqa: E402
     score,
     summarize,
 )
+from spike_train.provenance import atomic_json, sha256, value_hash  # noqa: E402
 from spike_train.sources import filtered, url_rows  # noqa: E402
 
 
@@ -65,6 +68,58 @@ def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list
     return sorted(items[:n], key=lambda it: it.id)
 
 
+def pin_inputs(args: argparse.Namespace, out: Path, tasks: list[tuple]) -> dict:
+    """Reuse answers only for identical questions, instructions, weights and settings.
+
+    Extra adapters may be added by sweep_checkpoints.py; earlier variants stay in the report.
+    A URL/model name cannot prove which weights an independently managed server is using.
+    """
+    path = out / "inputs.json"
+    if args.resume and args.server_url:
+        raise SystemExit("eval provenance: external server weights cannot be verified; use a fresh output directory")
+    if not args.resume and any((out / name).exists() for name in ("inputs.json", "predictions.jsonl", "summary.json")):
+        raise SystemExit("evaluation output already exists: use --resume with the same inputs, or a new directory")
+    files = {"datasets": ROOT / "training/datasets.yaml", "suites": ROOT / "evals/suites.yaml"}
+    if args.model:
+        files["model"] = Path(args.model).expanduser()
+    if args.acceptance:
+        files["acceptance"] = Path(args.acceptance).expanduser()
+    for relative in ("evals/run_eval.py", "training/spike_train/evaluation.py", "training/spike_train/metrics.py"):
+        if (source := ROOT / relative).is_file():
+            files[relative] = source
+    shared = {"files": {key: sha256(p) for key, p in files.items()},
+              "settings": {key: getattr(args, key) for key in ("suites", "seed", "limit", "max_tokens", "parallel",
+                                                             "ctx_per_slot", "ngl", "threads", "kv_cache_type")},
+              "items": value_hash([(suite, system, [asdict(it) for it in items]) for suite, system, items in tasks])}
+    adapters = {Path(p).stem: sha256(Path(p).expanduser()) for p in args.adapter}
+    if len(adapters) != len(args.adapter):
+        raise SystemExit("eval provenance: adapter file names must be unique")
+    record = {"format": "spike-eval-inputs-v1", "shared": shared, "adapters": adapters}
+    if args.resume:
+        try:
+            previous = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raise SystemExit("eval provenance: missing or unreadable input receipt; existing results were preserved") from None
+        if (not isinstance(previous, dict) or previous.get("format") != record["format"]
+                or previous.get("shared") != shared or not isinstance(previous.get("adapters"), dict)
+                or any(adapters.get(k) != v for k, v in previous["adapters"].items())):
+            raise SystemExit("eval provenance: inputs changed; existing results were preserved")
+        record = {**previous, "adapters": adapters}
+    out.mkdir(parents=True, exist_ok=True)
+    atomic_json(path, record)
+    return record
+
+
+def save_predictions(out: Path, rows: list[dict]) -> None:
+    """Commit complete groups atomically; a failed new group must not erase older answers."""
+    path = out / "predictions.jsonl"
+    temporary = path.with_name(path.name + ".tmp")
+    with temporary.open("w", encoding="utf-8") as stream:
+        for row in rows:
+            stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+    os.replace(temporary, path)
+
+
 async def run(args: argparse.Namespace) -> int:
     from spike.runtime.llamacpp_server import LlamaServer, ServerConfig
     from spike.specialists.catalog import load_catalog
@@ -74,11 +129,16 @@ async def run(args: argparse.Namespace) -> int:
     catalog = load_catalog()
     run_id = time.strftime("%Y%m%d-%H%M%S")
     out = Path(args.resume or args.out or ROOT / "evals" / "results" / run_id)
+    tasks = [(suite_name, catalog.get(suites[suite_name]["specialist"]).system_prompt,
+              load_items(task, registry, args.seed, args.limit))
+             for suite_name in args.suites.split(",") for task in suites[suite_name]["tasks"]]
+    receipt = pin_inputs(args, out, tasks)
     saved: list[dict] = []
     if args.resume:  # an interrupted run: keep its complete (task, variant) groups, generate the rest
-        saved = [json.loads(line) for line in (out / "predictions.jsonl").open(encoding="utf-8")]
+        if (out / "predictions.jsonl").is_file():
+            with (out / "predictions.jsonl").open(encoding="utf-8") as stream:
+                saved = [json.loads(line) for line in stream]
         run_id = out.name
-    out.mkdir(parents=True, exist_ok=True)
 
     server = None
     base_url = args.server_url
@@ -88,53 +148,61 @@ async def run(args: argparse.Namespace) -> int:
                            gpu_layers=args.ngl, threads=args.threads, kv_cache_type=args.kv_cache_type)
         server = LlamaServer(cfg)
         print("starting:", " ".join(cfg.command(Path("llama-server"))), file=sys.stderr)
-        await server.start()
+        try:
+            await server.start()
+        except BaseException:
+            await server.stop()
+            raise
         base_url = server.base_url
     client = Client(base_url, concurrency=args.parallel)
     try:
         adapters = await client.adapters()
+        if args.acceptance and not adapters:
+            raise SystemExit("acceptance requires at least one loaded adapter to evaluate")
+        if server and set(adapters) != set(receipt["adapters"]):
+            raise SystemExit("eval provenance: server adapters do not match the requested files")
+        props = (await client.http.get(f"{base_url}/props")).json().get("build_info")
+        if "server_build" in receipt and receipt["server_build"] != props:
+            raise SystemExit("eval provenance: server build changed; existing results were preserved")
+        receipt["server_build"] = props
+        atomic_json(out / "inputs.json", receipt)
         variants = {"base": client.lora(None)} | {stem: client.lora(stem) for stem in adapters}
         meta = {"run_id": run_id, "model": args.model, "adapters": adapters, "server_url": base_url,
                 "parallel": args.parallel, "kv_cache_type": args.kv_cache_type, "max_tokens": args.max_tokens, "seed": args.seed, "limit": args.limit, "suites": args.suites, "decoding": "greedy",
                 "thinking": False, "host": platform.platform(), "machine": platform.machine(),
-                "props": (await client.http.get(f"{base_url}/props")).json().get("build_info")}
+                "props": props}
         if args.resume:
             meta["resumed"] = {"date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "saved_rows": len(saved)}
         predictions: list[dict] = []
-        pred_file = (out / "predictions.jsonl").open("w", encoding="utf-8")
-        for suite_name in args.suites.split(","):
-            suite = suites[suite_name]
-            system = catalog.get(suite["specialist"]).system_prompt
-            for task in suite["tasks"]:
-                items = load_items(task, registry, args.seed, args.limit)
-                for variant, lora in variants.items():  # one variant at a time: a batch never mixes adapters
-                    t0 = time.perf_counter()
-                    reused = reusable_rows(saved, suite_name, task["name"], variant, [it.id for it in items])
-                    if reused is not None:
-                        for r in reused:
-                            pred_file.write(json.dumps(r, ensure_ascii=False) + "\n")
-                        predictions.extend(reused)
-                        print(f"{suite_name}/{task['name']} [{variant}] n={len(reused)} reused from the interrupted run",
-                              file=sys.stderr)
-                        continue
+        durable = list(saved)
+        for suite_name, system, items in tasks:
+            task_name = items[0].task
+            for variant, lora in variants.items():  # one variant at a time: a batch never mixes adapters
+                t0 = time.perf_counter()
+                reused = reusable_rows(saved, suite_name, task_name, variant, [it.id for it in items])
+                if reused is not None:
+                    predictions.extend(reused)
+                    print(f"{suite_name}/{task_name} [{variant}] n={len(reused)} reused from the interrupted run",
+                          file=sys.stderr)
+                    continue
 
-                    async def answer(item: Item, lora=lora, variant=variant, system=system, suite_name=suite_name) -> dict:
-                        res = await client.chat(system, item.prompt, lora, args.max_tokens, seed=args.seed)
-                        parsed, correct = score(item, res["content"])
-                        return {"suite": suite_name, "task": item.task, "item": item.id, "variant": variant,
-                                "gold": item.gold, "parsed": parsed, "correct": correct, **res,
-                                "response": res["content"]}
+                async def answer(item: Item, lora=lora, variant=variant, system=system, suite_name=suite_name) -> dict:
+                    res = await client.chat(system, item.prompt, lora, args.max_tokens, seed=args.seed)
+                    parsed, correct = score(item, res["content"])
+                    return {"suite": suite_name, "task": item.task, "item": item.id, "variant": variant,
+                            "gold": item.gold, "parsed": parsed, "correct": correct, **res,
+                            "response": res["content"]}
 
-                    rows = await asyncio.gather(*(answer(it) for it in items))
-                    for r in rows:
-                        r.pop("content", None)
-                        pred_file.write(json.dumps(r, ensure_ascii=False) + "\n")
-                    pred_file.flush()
-                    predictions.extend(rows)
-                    acc = sum(r["correct"] for r in rows) / max(1, len(rows))
-                    print(f"{suite_name}/{task['name']} [{variant}] n={len(rows)} acc={acc:.3f} "
-                          f"({time.perf_counter() - t0:.0f}s)", file=sys.stderr)
-        pred_file.close()
+                rows = await asyncio.gather(*(answer(it) for it in items))
+                for r in rows:
+                    r.pop("content", None)
+                durable = [r for r in durable if (r["suite"], r["task"], r["variant"]) !=
+                           (suite_name, task_name, variant)] + rows
+                save_predictions(out, durable)
+                predictions.extend(rows)
+                acc = sum(r["correct"] for r in rows) / max(1, len(rows))
+                print(f"{suite_name}/{task_name} [{variant}] n={len(rows)} acc={acc:.3f} "
+                      f"({time.perf_counter() - t0:.0f}s)", file=sys.stderr)
         return write_summary(out, meta, predictions, list(variants), args.acceptance)
     finally:
         await client.aclose()

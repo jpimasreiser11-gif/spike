@@ -461,6 +461,56 @@ def test_a_finished_sweep_run_again_does_nothing_and_gives_the_same_summary(worl
     assert {**out, "final": {**out["final"], "reused": False}} == json.loads(first)
 
 
+@pytest.mark.parametrize("changed", ["checkpoint", "adapter_config", "model", "recipe", "suites", "run", "gguf"])
+def test_cached_sweep_refuses_changed_inputs_before_reusing_a_verdict(world, changed):
+    assert world.go() == 0
+    previous = (world.sweep / "summary.json").read_bytes()
+    target = {
+        "checkpoint": world.adapter / "0000200_adapters.safetensors",
+        "adapter_config": world.adapter / "adapter_config.json",
+        "model": world.model,
+        "recipe": world.root / "training/configs/medicine.yaml",
+        "suites": world.root / "evals/suites.yaml",
+        "run": world.runs / "run.json",
+        "gguf": world.sweep / "gguf/spike-medicine-it200-s1.gguf",
+    }[changed]
+    # Even a change that keeps the same file name must invalidate reuse. Whitespace
+    # keeps the JSON/YAML inputs valid, so refusal cannot come from a parse error.
+    target.write_bytes(target.read_bytes() + b"\n ")
+    world.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        world.go()
+    assert world.fake.calls == []
+    assert (world.sweep / "summary.json").read_bytes() == previous
+
+
+def test_legacy_cached_sweep_without_provenance_is_preserved_and_refused(world):
+    assert world.go() == 0
+    (world.sweep / "inputs.json").unlink(missing_ok=True)
+    previous = (world.sweep / "summary.json").read_bytes()
+    world.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        world.go()
+    assert not world.fake.calls
+    assert (world.sweep / "summary.json").read_bytes() == previous
+
+
+def test_cached_sweep_pins_the_fallback_iteration_configuration(world):
+    record = json.loads((world.runs / "run.json").read_text())
+    record.pop("counts")
+    (world.runs / "run.json").write_text(json.dumps(record))
+    data = world.root / "training/data/medicine"
+    data.mkdir(parents=True)
+    config = data / "mlx_lora.yaml"
+    config.write_text(f"iters: {TOTAL}\n")
+    assert world.go() == 0
+    config.write_text(f"iters: {TOTAL}\n# Changed configuration\n")
+    world.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        world.go()
+    assert not world.fake.calls
+
+
 def test_an_interrupted_sweep_does_only_what_is_missing(world):
     assert world.go() == 0
     world.fake.calls.clear()
@@ -473,6 +523,11 @@ def test_an_interrupted_sweep_does_only_what_is_missing(world):
 
 
 def test_an_interrupted_select_evaluation_is_finished_with_resume(world):
+    world.fake.exit["run_eval.py"] = 1
+    with pytest.raises(SystemExit, match="run_eval.py exited with 1"):
+        world.go("--no-final")  # establishes inputs and exports before the interruption
+    world.fake.exit.clear()
+    world.fake.calls.clear()
     select = world.sweep / "select"
     select.mkdir(parents=True)
     (select / "predictions.jsonl").write_text("{}\n")                   # run_eval.py was killed: rows, no summary

@@ -5,6 +5,20 @@ Rule: nothing is listed as done without the evidence next to it. Measured ≠ co
 
 _Last update: 2026-10-18, `main` of the private GitHub repository `spike`._
 
+Review on 2026-10-25: a separate follow-up branch checked this main and fixed checkpoint-sweep cache
+provenance. On macOS: 856 Python tests passed (14 skipped), 49 training/MLX tests passed separately
+(overlap with the main suite), 27 web tests, production build and browser smoke passed. These are
+software checks, not a new model-quality measurement. Medicine remains rejected and Forge has no
+demonstrated gain. See [review and handoff](audits/2026-10-25-project-handoff.md) and
+[exact changes for Claude](CODEX-HANDOFF.md). Historical measurements below retain their original scope.
+
+Follow-up closed on 2026-10-26: direct evaluation resumes and the forgetting coordinator also
+validate input/artifact identity; completed prediction groups survive interruptions, and empty or
+unloaded-adapter acceptance runs are refused. **887 Python tests passed, 14 skipped**, including a
+new evaluation/resume test with a real llama-server and tiny LoRA. An isolated copy of medicine's
+files and the training-environment dry-run are ready; no new medicine verdict was measured.
+See [second handoff](audits/2026-10-25-resume-hardening.md).
+
 ## Verified (with evidence)
 
 | Area | Evidence | How to reproduce |

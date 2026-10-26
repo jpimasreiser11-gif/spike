@@ -31,7 +31,7 @@ TIME = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ ")
 SWEEP, REPLAY, PREPARE, TRAIN = "sweep_checkpoints.py", "self_replay.py", "prepare.py", "train_supervised.sh"
 FULL = [SWEEP, REPLAY, PREPARE, TRAIN, SWEEP]   # the commands of a run that goes through every step
 STEPS = ["sweep1", "archive", "self_replay", "prepare", "train", "sweep2"]
-SAVES = 7  # records written by a full run: sweep1, the archive round, archive, self_replay, prepare, train, sweep2
+SAVES = 8  # initial input receipt, sweep1, the archive round, archive, self_replay, prepare, train, sweep2
 
 
 def flag(cmd: list[str], name: str) -> str | None:
@@ -237,7 +237,8 @@ def test_a_sweep_that_fails_stops_with_an_error_and_moves_nothing(world):
         world.go()
     assert world.fake.scripts() == [SWEEP] and world.rounds() == [] and world.servers == []
     assert world.round_of(world.runs / "adapter") == "1"
-    assert not (world.runs / "fix_forgetting.json").exists()               # an error is not a finished step
+    assert world.state()["steps"] == {}                                   # an error is not a finished step
+    assert "inputs" in world.state()                                      # input identity survives the failure
     assert "STOPPED: sweep1: sweep_checkpoints.py exited with 1" in world.log()
     assert "run the same command again" in world.log()
     world.fake.verdict["1"] = 0
@@ -602,7 +603,7 @@ def test_interrupted_just_before_each_record_is_written_it_still_finishes_once(w
     finish_after_interruption(world)
 
 
-def test_a_complete_run_writes_the_record_seven_times(world, monkeypatch):
+def test_a_complete_run_writes_the_record_eight_times(world, monkeypatch):
     real, count = fix.save_state, []
 
     def counting(job, state):
@@ -705,6 +706,53 @@ def test_a_damaged_record_is_refused(world):
     with pytest.raises(SystemExit, match="is not a fix_forgetting.py record"):
         world.go()
     assert world.fake.calls == []
+
+
+@pytest.mark.parametrize("changed", ["model", "recipe", "converter", "weights", "run", "summary", "legacy"])
+def test_completed_first_sweep_cannot_bypass_input_and_artifact_checks(world, changed):
+    world.fake.verdict["1"] = 0
+    assert world.go() == 0
+    path = {"model": world.model, "recipe": world.recipe,
+            "converter": world.llama / "convert_lora_to_gguf.py",
+            "weights": world.runs / "adapter/adapters.safetensors", "run": world.runs / "run.json",
+            "summary": world.runs / "sweep/summary.json", "legacy": world.runs / "fix_forgetting.json"}[changed]
+    if changed == "legacy":
+        state = world.state()
+        state.pop("inputs", None)
+        path.write_text(json.dumps(state))
+    else:
+        path.write_bytes(path.read_bytes() + b"\n ")
+    before = (world.runs / "fix_forgetting.json").read_bytes()
+    world.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        world.go()
+    assert not world.fake.calls
+    assert (world.runs / "fix_forgetting.json").read_bytes() == before
+
+
+@pytest.mark.parametrize("changed", ["round1/adapter/adapters.safetensors", "round1/sweep/summary.json",
+                                    "adapter/adapters.safetensors", "sweep/summary.json"])
+def test_completed_second_round_checks_both_rounds(world, changed):
+    assert world.go() == 0
+    path = world.runs / changed
+    path.write_bytes(path.read_bytes() + b"\n ")
+    world.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        world.go()
+    assert not world.fake.calls
+
+
+@pytest.mark.parametrize("changed", ["train.jsonl", "valid.jsonl", "manifest.json", "self_replay.jsonl"])
+def test_interrupted_training_refuses_modified_prepared_data(world, changed):
+    world.fake.fail[TRAIN] = [75]
+    with pytest.raises(SystemExit, match="train_supervised.sh exited"):
+        world.go()
+    path = world.data / changed
+    path.write_bytes(path.read_bytes() + b"\n ")
+    world.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        world.go()
+    assert not world.fake.calls
 
 
 def test_a_second_instance_is_refused_while_the_first_holds_the_lock(world):
