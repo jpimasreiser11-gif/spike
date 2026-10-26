@@ -577,3 +577,34 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .graph-nodes ul { margin: 4px 0 0; padding-left: 18px; max-height: 16em; overflow: auto; display: grid; gap: 3px; }
 .graph-nodes li.focus > .link-btn { font-weight: 700; }
 .graph-found { gap: 6px; }
+
+/* Parallel Minds: the toggle and cost under the composer, and the minds under an answer */
+.minds-toggle { white-space: nowrap; }
+.minds-toggle.on { background: var(--accent-soft); border-color: var(--green-shade); color: var(--green-dark); }
+.minds-box { display: grid; gap: 8px; padding: 0 12px 10px; }
+.minds-box .row { align-items: center; gap: 10px; }
+.minds-box select { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 9px; padding: 4px 8px; font-size: 13px; color: var(--text); max-width: 100%; }
+.minds-estimate { display: block; overflow-wrap: anywhere; }
+.minds { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 8px 4px; display: grid; gap: 4px; margin-top: 8px; }
+.minds-head { display: flex; align-items: center; gap: 8px; padding: 0 12px; flex-wrap: wrap; }
+.minds > p { margin: 0; padding: 0 12px; }
+.minds-list { list-style: none; margin: 0; padding: 0; }
+.mind .trace-head.static { cursor: default; }
+.mind .trace-head.static:hover { background: none; }
+.mind.chosen { background: var(--accent-soft); border-radius: 8px; }
+.mind .trace-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Parallel Prototypes (Forge) */
+.proto-h { margin: 0; font-size: 17px; }
+.proto-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .proto-cols { grid-template-columns: minmax(0, 1fr); } }
+.proto-draft { gap: 8px; }
+.proto-approach.leader { border-color: var(--green-shade); }
+.proto-list { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 2px; list-style: none; }
+.proto-list li { overflow-wrap: anywhere; }
+.proto-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.proto-table th, .proto-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.proto-table thead th { font-weight: 600; }
+.proto-table th.leader, .proto-table td.leader { background: var(--accent-soft); }
+.proto .card { min-width: 0; overflow-wrap: anywhere; }
+.proto code { overflow-wrap: anywhere; }

@@ -26,6 +26,7 @@ from spike.evolution.store import EvolutionStore
 from spike.finance import live as live_trading
 from spike.finance.market import EXCHANGES, ccxt_exchange
 from spike.finance.tools import Finance, finance_tools
+from spike.forge import prototypes
 from spike.forge.blueprint import Blueprint, make_blueprint
 from spike.memory.extract import extract_text
 from spike.memory.learn import correction_rule, explicit_memories
@@ -33,6 +34,7 @@ from spike.memory.service import Embedder, MemoryService, scopes_for
 from spike.memory.store import MemoryStore
 from spike.memory.tools import memory_tools
 from spike.motion.tools import motion_tools
+from spike.orchestrator.minds import Mind
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
@@ -249,6 +251,7 @@ class AppState:
     def forget_project(self, project_id: str) -> None:
         self.checkpoints.prune()  # the project's chats are gone: so are the copies kept to undo their steps
         self._project_tools.pop(project_id, None)
+        prototypes.forget(self.prototypes_home, self.project_files.folder(project_id))
         self.project_files.remove(project_id)
         scope = f"project:{project_id}"
         self.memory.folders.forget_scope(scope)
@@ -293,19 +296,22 @@ class AppState:
         if not project_id:
             return self.tools
         if project_id not in self._project_tools:
-            folder = self.project_files.folder(project_id)
-            registry = default_registry(folder, self.sandbox)
-            workspace = Workspace(folder)
-            for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
-                         *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
-                         *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
-                registry.register(tool)
-            registry.shared = self.connectors.tools
-            self._project_tools[project_id] = registry
+            self._project_tools[project_id] = self.tools_in(self.project_files.folder(project_id), project_id)
         return self._project_tools[project_id]
 
+    def tools_in(self, folder: Path, project_id: str | None = None) -> ToolRegistry:
+        """The tools of a run whose file tools work in `folder`: a project's folder, or a checkout of one branch."""
+        registry = default_registry(folder, self.sandbox)
+        workspace = Workspace(folder)
+        for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
+                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
+            registry.register(tool)
+        registry.shared = self.connectors.tools
+        return registry
+
     def orchestrator(self, override_provider: str | None = None, broker: PermissionBroker | None = None,
-                     project_id: str | None = None) -> Orchestrator:
+                     project_id: str | None = None, tools: ToolRegistry | None = None) -> Orchestrator:
         settings = self.settings()
         local_ctx = settings["local_runtime"].get("context") or recommend(detect()).context
 
@@ -320,7 +326,8 @@ class AppState:
             budget = max(2048, max_ctx - (settings["max_tokens"] or 2048) - 512)
             return Backend(provider=provider, model=model, adapter=adapter, context_budget=budget)
 
-        return Orchestrator(self.catalog, resolve, self.tools_for(project_id), broker or self.broker, skills=self.skills)
+        return Orchestrator(self.catalog, resolve, tools or self.tools_for(project_id), broker or self.broker,
+                            skills=self.skills)
 
     async def blueprint(self, task: str, provider_id: str | None = None, project_id: str | None = None) -> Blueprint:
         """A Forge blueprint drafted by the core model of this run, for the user to review."""
@@ -548,6 +555,71 @@ class AppState:
                            "files_withheld": withheld, "time": time.time()}
         store.update_message_meta(answer["id"], answer["meta"])
         return offer
+
+    # ------------------------------------------------------------------ Parallel Prototypes
+    @property
+    def prototypes_home(self) -> Path:
+        return self.home / "prototypes"
+
+    def prototype_root(self, project_id: str | None) -> Path:
+        """The folder the prototypes are built from: the project's folder, or the workspace."""
+        return self.project_files.folder(project_id) if project_id else workspace_dir()
+
+    async def prototype_blueprints(self, task: str, provider_id: str | None = None, project_id: str | None = None
+                                   ) -> list[Blueprint]:
+        """Two blueprints for one task, one per approach (prototypes.APPROACH_HINTS), drafted by the core model of
+        this run one after the other, for the user to review. Nothing runs."""
+        orchestrator = self.orchestrator(provider_id, project_id=project_id)
+        core = orchestrator.resolve(self.catalog.core)
+        candidates = [c for c in orchestrator.router.route(task).specialists if c != "core"]
+        return [await make_blueprint(core.provider, self.catalog, task, candidates, model=core.model,
+                                     approach=prototypes.APPROACH_HINTS[label]) for label in prototypes.LABELS]
+
+    # ------------------------------------------------------------------ Parallel Minds
+    def minds_estimate(self, message: str, minds: list[Mind], mode: str = "auto", provider_id: str | None = None,
+                       history_tokens: int = 0, project_id: str | None = None) -> dict[str, Any]:
+        """What the minds would cost, before anything runs: ×N time and tokens, per provider the calls they make, their
+        tokens (output at its maximum) and the cost at the prices the user entered, and the first reason the guard
+        would stop the batch (paid calls not allowed, or a monthly limit the batch would cross). Nothing is sent or
+        logged. A mind that runs a multi-step plan makes more calls than one: it is counted as one call per
+        specialist of the lexical router's route and three of the core model (plan, checker, merge), and flagged."""
+        settings = self.settings()
+        router = self.orchestrator(provider_id, project_id=project_id).router
+        max_tokens = settings["max_tokens"] or 2048
+        base_in = history_tokens + estimate_tokens(message)
+        per: dict[str, dict[str, int]] = {}
+        multi = False
+        for mind in minds:
+            wanted = mind.mode or mode
+            if wanted != "auto":
+                specs = [self.catalog.get(wanted)]
+            else:
+                decision = router.route(message)
+                specs = [self.catalog.get(s) for s in decision.specialists]
+                if decision.mode == "multi" and settings["use_planner"]:
+                    multi, specs = True, [self.catalog.core, *specs, self.catalog.core, self.catalog.core]
+            for spec in specs:
+                row = per.setdefault(self.binding(spec, mind.provider_id or provider_id)[0],
+                                     {"calls": 0, "tokens_in": 0, "tokens_out": 0})
+                row["calls"] += 1
+                row["tokens_in"] += base_in + estimate_tokens(spec.system_prompt)
+                row["tokens_out"] += max_tokens
+        providers, unpriced = [], []
+        for pid, row in per.items():
+            raw = self.provider_config(pid) or {}
+            guarded = self.provider(pid)
+            local = bool(raw.get("local"))
+            cost = None if local else call_cost(dict(raw.get("limits") or {}), row["tokens_in"], row["tokens_out"])
+            if cost is None and not local:
+                unpriced.append(raw.get("name", pid))
+            providers.append({"provider_id": pid, "name": raw.get("name", pid), "local": local,
+                              "paid": bool(raw.get("paid")), **row,
+                              "cost": None if cost is None else round(cost, 6),
+                              "blocked": guarded.blocked_for(row["calls"], row["tokens_in"], row["tokens_out"])})
+        priced = [p["cost"] for p in providers if p["cost"] is not None]
+        return {"n": len(minds), "multiplier": len(minds), "multi_step": multi, "providers": providers,
+                "cost": round(sum(priced), 6) if priced else None, "unpriced": unpriced,
+                "blocked": next((p["blocked"] for p in providers if p["blocked"]), None)}
 
     # ------------------------------------------------------------------ evolution
     def evolution_settings(self) -> dict[str, Any]:

@@ -1,5 +1,5 @@
 import { projectError } from "./i18n";
-import type { ChatEvent } from "./types";
+import type { ChatEvent, MindsSpec } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -70,6 +70,7 @@ export async function streamChat(
     replace_from?: string | null; // a user message: it and everything after it are replaced (edit, retry)
     temporary?: boolean; // a new chat kept in memory only, without SPIKE's memory
     response_schema?: object; // answer contract: the answer is JSON following this JSON Schema
+    parallel_minds?: MindsSpec; // Parallel Minds: N independent answers, the best by the claim labels (off when absent)
   },
   onEvent: (ev: ChatEvent) => void,
   signal: AbortSignal,

@@ -97,6 +97,7 @@ class OrchestratorOptions:
     learned_skills: dict[str, dict[str, str]] = field(default_factory=dict)  # skill -> "always" | "off", per specialist
     trust: bool = False  # label the answer's claims (verified | hypothesis | unchecked) and inspect its citations
     trust_model_pass: bool = False  # a model call that may lower those labels, never raise one
+    read_only: bool = False  # only tools that read or compute (Parallel Minds run N copies of the same turn)
 
     @property
     def labels_claims(self) -> bool:
@@ -115,6 +116,8 @@ FORGE_SYNTHESIS = (
     "without pasting whole files. Say plainly which acceptance criteria the checker could not confirm."
 )
 FILE_TOOLS = {".docx": "create_docx", ".xlsx": "create_xlsx", ".pptx": "create_pptx", ".pdf": "create_pdf"}
+READ_ONLY_RISKS = ("safe", "read")  # what a read-only run may use, plus the tools named below
+READ_ONLY_TOOLS = ("web_fetch",)  # a page is only read (and asks the user first, like anywhere else)
 
 
 class Orchestrator:
@@ -168,6 +171,9 @@ class Orchestrator:
         if not opts.tools_enabled:
             return []
         tools = self.tools.subset(spec.tools) + self.tools.shared_tools()
+        if opts.read_only:  # nothing that writes, runs code or acts through a connector; nobody to ask either
+            tools = [t for t in tools if (t.risk in READ_ONLY_RISKS or t.name in READ_ONLY_TOOLS)
+                     and t.name != "ask_user"]
         if self.broker.interactive:
             return tools
         # nobody to ask, and nobody to confirm a real order

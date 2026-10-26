@@ -139,6 +139,34 @@ class GuardedProvider(Provider):
                                          "remove it in Settings → Providers."))
         return None
 
+    def blocked_for(self, calls: int, tokens_in: int, tokens_out: int) -> str | None:
+        """`blocked`, asked before a batch of `calls` calls that will use `tokens_in` + `tokens_out` tokens in all:
+        besides the paid-call permission and a limit already reached, a monthly limit the batch would cross. Nothing
+        is logged. The check before each call (`stream`) still applies to every call of the batch."""
+        if (reason := self.blocked()) is not None:
+            return reason
+        cfg = self.config
+        if cfg.local or calls < 1:
+            return None
+        limits = self.limits()
+        token_cap, cost_cap = limits.get("monthly_tokens"), limits.get("monthly_cost")
+        if not token_cap and cost_cap is None:
+            return None
+        used = self.log.usage_since(cfg.id, month_start())
+        tokens = int(used["tokens_in"] + used["tokens_out"])
+        if token_cap and tokens + tokens_in + tokens_out > int(token_cap):
+            return str(SpendLimitReached(
+                f"{cfg.name}: {calls} calls of up to {(tokens_in + tokens_out) // calls:,} tokens would cross the "
+                f"monthly limit ({tokens:,} of {int(token_cap):,} tokens used this month). Use fewer calls, or raise "
+                "or remove the limit in Settings → Providers."))
+        cost = call_cost(limits, tokens_in, tokens_out)
+        if cost_cap is not None and cost is not None and used["cost"] + cost > float(cost_cap):
+            return str(SpendLimitReached(
+                f"{cfg.name}: {calls} calls (up to {cost:.2f} at the prices you entered) would cross the monthly "
+                f"spending limit ({used['cost']:.2f} of {float(cost_cap):.2f} used this month). Use fewer calls, or "
+                "raise or remove the limit in Settings → Providers."))
+        return None
+
     async def stream(self, request: ChatRequest) -> AsyncIterator[StreamEvent]:
         cfg = self.config
         row: dict[str, Any] = {"provider_id": cfg.id, "provider": cfg.name, "model": request.model or cfg.model,

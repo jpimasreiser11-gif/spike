@@ -706,6 +706,14 @@ await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Forge", exact: true }).click();
 await page.getByLabel("Tarea").fill("Calcula el IVA de 120 € y escribe un informe");
 await page.screenshot({ path: `${out}/07g-forge.png` });
+// Parallel Prototypes is opt-in: the "two approaches" box starts unticked and only changes the button when ticked
+// (building two git branches is covered by tests/test_prototypes.py against real git repositories)
+const protoToggle = page.locator("[data-proto-toggle]");
+if (await protoToggle.isChecked()) fail("Parallel Prototypes must be off by default");
+await protoToggle.check();
+await page.getByRole("button", { name: "Preparar los dos planes" }).waitFor({ timeout: 5000 });
+await page.getByText("×2 tiempo y tokens", { exact: false }).waitFor({ timeout: 5000 });
+await protoToggle.uncheck();
 await page.getByRole("button", { name: "Preparar el plan" }).click();
 const step2 = page.locator('[data-step="t2"]');
 await step2.getByLabel("Archivos que guarda (separados por comas)").waitFor({ timeout: 10000 });
@@ -828,8 +836,62 @@ await storedBox.locator("[data-trust-summary]").getByText("1 verificada · 3 sin
 await storedBox.locator("[data-second-opinion]").waitFor({ timeout: 5000 }); // the second opinion is kept with the answer
 if (await storedBox.locator("[data-offer]").count()) fail("an answered offer must not offer to ask again");
 
+// Parallel Minds: off by default and per message; the toggle shows "×3 tiempo y tokens" and the cost estimate before
+// anything runs; three answers come back, the one with the best claim labels is the answer and the others stay collapsed
+// with their labels (the scripted provider answers by temperature: 0.7 only restates the question, the others invent)
+const MINDS_QUESTION = "Dime algo del modelo Zorvak: el modelo Zorvak tiene 12 capas.";
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+if (await page.locator("[data-minds-box]").count()) fail("Parallel Minds must be off by default");
+const mindsToggle = page.locator("[data-minds-toggle]");
+if ((await mindsToggle.getAttribute("aria-pressed")) !== "false") fail("the Parallel Minds toggle should start off");
+await page.locator("#composer-input").fill(MINDS_QUESTION);
+await mindsToggle.click();
+const mindsBox = page.locator("[data-minds-box]");
+await mindsBox.waitFor({ timeout: 5000 });
+if (((await mindsBox.locator("[data-minds-multiplier]").textContent()) ?? "").trim() !== "×3 tiempo y tokens") fail("the multiplier is not shown before sending");
+await mindsBox.locator("[data-minds-estimate]").getByText("modelo local", { exact: false }).waitFor({ timeout: 5000 }); // local: no API cost
+await page.screenshot({ path: `${out}/07z-minds-composer.png` });
+await mindsBox.getByLabel("Mentes").selectOption("4");
+await mindsBox.locator("[data-minds-multiplier]").getByText("×4 tiempo y tokens").waitFor({ timeout: 5000 });
+await mindsBox.getByLabel("Mentes").selectOption("3");
+await page.getByLabel("Proveedor", { exact: true }).selectOption("deepseek"); // an API provider without prices: no cost can be estimated
+await mindsBox.locator("[data-minds-estimate]").getByText("Sin precio configurado para DeepSeek", { exact: false }).waitFor({ timeout: 5000 });
+if (!((await mindsBox.locator("[data-minds-estimate]").textContent()) ?? "").includes("3 llamadas")) fail("the estimate should count 3 calls");
+await page.getByLabel("Proveedor", { exact: true }).selectOption("");
+await mindsBox.locator("[data-minds-estimate]").getByText("modelo local", { exact: false }).waitFor({ timeout: 5000 });
+const callsBeforeMinds = (await (await fetch(`${base}/api/calls?remote=true`)).json()).length;
+await page.locator("#composer-input").press("Enter"); // the provider select had the focus
+const mindsAnswer = page.locator(".msg.assistant").last();
+await mindsAnswer.locator("[data-minds]").waitFor({ timeout: 15000 });
+await mindsAnswer.locator("[data-mind-chosen]").waitFor({ timeout: 15000 });
+await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length >= 1 && !document.querySelector(".typing"), null, { timeout: 15000 });
+if (((await mindsAnswer.locator(".markdown").first().textContent()) ?? "").trim() !== "El modelo Zorvak tiene 12 capas.") fail("the answer should be the mind with the best labels");
+if ((await mindsToggle.getAttribute("aria-pressed")) !== "false") fail("Parallel Minds should turn off after the message is sent");
+if (!((await mindsAnswer.locator("[data-minds-multiplier]").textContent()) ?? "").includes("×3 tiempo y tokens")) fail("the answer does not say it took 3 minds");
+const chosenMind = mindsAnswer.locator("[data-mind-chosen]").locator("xpath=ancestor::li[@data-mind]");
+if ((await chosenMind.getAttribute("data-mind")) !== "2") fail("mind 2 should be chosen, got " + (await chosenMind.getAttribute("data-mind")));
+const mindLabels = await mindsAnswer.locator("[data-mind]").evaluateAll((els) => els.map((e) => (e.querySelector("[data-mind-labels]")?.textContent ?? "").trim()));
+if (mindLabels.join("|") !== "1 verificada · 2 sin comprobar|1 verificada|2 sin comprobar") fail("labels of the minds: " + mindLabels.join("|"));
+if (!((await mindsAnswer.locator("[data-minds-why]").textContent()) ?? "").includes("Se eligió la mente 2")) fail("the answer does not say why mind 2 was chosen");
+if (await mindsAnswer.locator('[data-mind="3"] .trace-body').count()) fail("the minds that were not chosen should be collapsed");
+await mindsAnswer.locator('[data-mind="3"] .trace-head').click();
+await mindsAnswer.locator('[data-mind="3"] .trace-body').getByText("Fue entrenado en 2019 con 40 GPUs", { exact: false }).waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07z-minds-answer.png` });
+if ((await (await fetch(`${base}/api/calls?remote=true`)).json()).length !== callsBeforeMinds) fail("local minds should not log remote calls");
+await page.reload(); // the minds are kept with the answer
+await page.locator(".conv-title", { hasText: "Dime algo del modelo Zorvak" }).first().click();
+const storedMinds = page.locator(".msg.assistant").last().locator("[data-minds]");
+await storedMinds.waitFor({ timeout: 10000 });
+await storedMinds.locator('[data-mind="2"] [data-mind-chosen]').waitFor({ timeout: 5000 });
+await storedMinds.locator('[data-mind="1"] [data-mind-labels]').getByText("1 verificada · 2 sin comprobar").waitFor({ timeout: 5000 });
+// an ordinary message right after it makes one answer and shows no minds
+await page.locator("#composer-input").fill("Hola, ¿quién eres?");
+await page.keyboard.press("Enter");
+await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 2, null, { timeout: 15000 });
+if (await page.locator(".msg.assistant").last().locator("[data-minds]").count()) fail("a message sent without the toggle must not run minds");
+
 // 7. dark mode + mobile
-const dark = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
+const dark =await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "en-US", colorScheme: "dark" });
 const dp = await dark.newPage();
 await dp.goto(base);
 await dp.getByText("How can I help you today?").waitFor();
@@ -845,6 +907,13 @@ await enTrust.getByRole("button", { name: "show checks" }).click();
 await enTrust.locator('[data-claim-label="unchecked"] .claim-badge').first().getByText("unchecked").waitFor({ timeout: 5000 });
 await enTrust.getByText("Second opinion from DeepSeek", { exact: false }).waitFor({ timeout: 5000 });
 await dp.screenshot({ path: `${out}/08c-trust-dark-en.png` });
+await dp.locator(".conv-title", { hasText: "Dime algo del modelo Zorvak" }).first().click(); // the stored Parallel Minds answer, in English
+const enMinds = dp.locator("[data-minds]"); // the answer after it (the ordinary message) shows no minds
+await enMinds.getByText("Parallel minds", { exact: true }).waitFor({ timeout: 5000 });
+await enMinds.locator("[data-minds-multiplier]").getByText("×3 time and tokens").waitFor({ timeout: 5000 });
+await enMinds.locator("[data-minds-why]").getByText("Mind 2 was chosen by its labels", { exact: false }).waitFor({ timeout: 5000 });
+await enMinds.locator('[data-mind="1"] [data-mind-labels]').getByText("1 verified · 2 unchecked").waitFor({ timeout: 5000 });
+await dp.screenshot({ path: `${out}/08d-minds-dark-en.png` });
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-ES", isMobile: true, hasTouch: true });
 const mp = await mobile.newPage();
 await mp.goto(base);

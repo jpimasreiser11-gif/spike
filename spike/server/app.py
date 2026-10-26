@@ -25,6 +25,7 @@ from spike import __version__, creator
 from spike.analytics.report import ReportError, build_docx, build_pdf, clean_blocks
 from spike.connectors.apps import AppError
 from spike.contracts import schema_error
+from spike.core.context import estimate_tokens
 from spike.core.types import Message, ProviderError
 from spike.design.library import MAX_ZIP as MAX_DESIGN_BYTES
 from spike.design.library import DesignError, preview_html
@@ -32,7 +33,10 @@ from spike.finance.backtest import STRATEGIES
 from spike.finance.live import LiveError
 from spike.finance.market import EXCHANGES
 from spike.finance.paper import PaperError
+from spike.forge import prototypes
 from spike.forge.blueprint import from_user as blueprint_from_user
+from spike.forge.prototypes import PrototypeError
+from spike.orchestrator.minds import Mind, plan_minds, run_minds
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
@@ -79,6 +83,26 @@ class ProviderIn(BaseModel):
     capabilities: dict[str, Any] | None = None
 
 
+class MindPick(BaseModel):
+    mode: str | None = None  # a specialist for this mind; none = the chat's
+    provider_id: str | None = None  # a provider for this mind; none = the chat's
+
+
+class MindsIn(BaseModel):
+    """Parallel Minds: `n` minds (2 to 4) that differ by temperature, or one per entry of `picks`."""
+
+    n: int | None = Field(default=None, ge=2, le=4)
+    picks: list[MindPick] | None = Field(default=None, min_length=2, max_length=4)
+
+
+class MindsEstimateIn(MindsIn):
+    message: str = Field(default="", max_length=200_000)
+    mode: str = "auto"
+    provider_id: str | None = None
+    project_id: str | None = None
+    conversation_id: str | None = None
+
+
 class ChatIn(BaseModel):
     message: str = Field(min_length=1, max_length=200_000)
     conversation_id: str | None = None
@@ -92,6 +116,7 @@ class ChatIn(BaseModel):
     design_system: str | None = None  # a design system id; "none" for none; absent = the project's (Spike Design)
     view_context: list[dict[str, str]] | None = Field(default=None, max_length=4)  # MCP Apps: what views reported
     skills: list[str] | None = Field(default=None, max_length=3)  # skills chosen for this run (Creator templates)
+    parallel_minds: MindsIn | None = None  # N independent answers, the best by the trust labels (off unless sent)
 
 
 class CreatorIn(BaseModel):
@@ -104,6 +129,21 @@ class BlueprintIn(BaseModel):
     task: str = Field(min_length=1, max_length=20_000)
     provider_id: str | None = None
     project_id: str | None = None
+
+
+class PrototypesIn(BaseModel):
+    """Parallel Prototypes: the task, the two blueprints the user approved, and the tests both are checked with."""
+
+    task: str = Field(min_length=1, max_length=20_000)
+    blueprints: list[dict[str, Any]] = Field(min_length=2, max_length=2)
+    tests: dict[str, Any] | None = None  # {"files": {path: text}, "checks": [...]}, see spike/forge/prototypes.py
+    provider_id: str | None = None
+    project_id: str | None = None
+
+
+class PrototypeMergeIn(BaseModel):
+    choice: Literal["a", "b"]
+    approve: bool = False  # the user's explicit yes: without it nothing is merged
 
 
 class MemoryIn(BaseModel):
@@ -1424,6 +1464,172 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         await state.ensure_adapters(body.provider_id)
         return (await state.blueprint(body.task, body.provider_id, body.project_id)).to_dict()
 
+    # ---------------------------------------------------------------- parallel prototypes
+    building: set[str] = set()  # the runs whose stream is open: a `building` record that is not here was interrupted
+
+    def saved_run(run_id: str) -> prototypes.PrototypeRun:
+        try:
+            run = prototypes.load(st().prototypes_home, run_id)
+        except PrototypeError as exc:
+            raise HTTPException(exc.status, str(exc)) from exc
+        if run.status == "building" and run.id not in building:
+            run.status = "interrupted"
+        return run
+
+    def known(provider_id: str | None, project_id: str | None) -> None:
+        if provider_id and not st().provider_config(provider_id):
+            raise HTTPException(400, f"unknown provider '{provider_id}'")
+        if project_id and not st().store.get_project(project_id):
+            raise HTTPException(400, f"unknown project '{project_id}'")
+
+    @app.get("/api/forge/prototypes")
+    async def prototype_runs(project_id: str | None = None) -> dict:
+        """The saved prototype runs of the project's folder (or the workspace), newest first: those `built` wait for
+        the user's pick. `git` says whether this computer has git, which the feature needs."""
+        state = st()
+        known(None, project_id)
+        runs = prototypes.list_runs(state.prototypes_home, state.prototype_root(project_id))
+        return {"git": prototypes.git_binary() is not None,
+                "runs": [{**r, "status": "interrupted"} if r["status"] == "building" and r["id"] not in building else r
+                         for r in runs]}
+
+    @app.post("/api/forge/prototypes/blueprints")
+    async def prototype_blueprints(body: BlueprintIn) -> dict:
+        """Draft two blueprints, one per approach, for the user to review and approve; nothing runs yet."""
+        state = st()
+        known(body.provider_id, body.project_id)
+        await state.ensure_adapters(body.provider_id)
+        drafted = await state.prototype_blueprints(body.task, body.provider_id, body.project_id)
+        return {"approaches": [{"label": label, "blueprint": b.to_dict()}
+                               for label, b in zip(prototypes.LABELS, drafted, strict=True)]}
+
+    @app.post("/api/forge/prototypes")
+    async def prototype_start(body: PrototypesIn) -> StreamingResponse:
+        """Build the two approved blueprints on two git branches and compare them by running the same tests on both.
+        Streams events tagged `proto: a|b`, then `proto_compare`; merging is a separate request the user makes."""
+        state = st()
+        known(body.provider_id, body.project_id)
+        if not state.settings()["tools_enabled"]:
+            raise HTTPException(400, "Parallel Prototypes saves files, which needs tools: turn them on in Settings")
+        try:
+            blueprints = [blueprint_from_user(b, state.catalog) for b in body.blueprints]
+            tests = prototypes.default_tests(prototypes.clean_tests(body.tests))
+        except ValueError as exc:
+            raise HTTPException(400, f"prototypes: {exc}") from exc
+        if not all(b.deliverables for b in blueprints):
+            raise HTTPException(400, "each approach must save at least one file (a step with 'deliverables')")
+        for pid in {state.binding(state.catalog.get(s), body.provider_id)[0]
+                    for b in blueprints for s in [*(t.specialist for t in b.steps), "core"]}:
+            if reason := state.provider(pid).blocked():  # the guard stops every call anyway; say so before the folders
+                raise HTTPException(403, reason)
+        await state.ensure_adapters(body.provider_id)
+        await state.connectors.ensure_started()
+        try:
+            run = await asyncio.to_thread(prototypes.start, state.prototype_root(body.project_id),
+                                          state.prototypes_home, body.task, blueprints, tests)
+        except PrototypeError as exc:
+            raise HTTPException(exc.status, str(exc)) from exc
+        project = state.store.get_project(body.project_id) if body.project_id else None
+
+        def orchestrator_for(approach: prototypes.Approach):
+            tools = state.tools_in(approach.path, body.project_id)  # its file tools and code run in its own checkout
+            options = state.options(project["mode"] if project else "auto", project)
+            options.forge = approach.blueprint
+            return state.orchestrator(body.provider_id, project_id=body.project_id, tools=tools), options, tools
+
+        async def stream() -> AsyncIterator[bytes]:
+            building.add(run.id)
+            try:
+                async for ev in prototypes.run_all(run, orchestrator_for, state.broker,
+                                                   concurrent=state.settings()["parallel"]):
+                    yield _sse(ev)
+            except Exception as exc:  # the run stays on disk as interrupted: the user can discard it
+                log.exception("prototype run failed")
+                yield _sse({"type": "error", "message": f"{exc.__class__.__name__}: {exc}"})
+            finally:
+                building.discard(run.id)
+
+        return StreamingResponse(stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.get("/api/forge/prototypes/{run_id}")
+    async def prototype_run(run_id: str) -> dict:
+        return saved_run(run_id).public()
+
+    @app.post("/api/forge/prototypes/{run_id}/merge")
+    async def prototype_merge(run_id: str, body: PrototypeMergeIn) -> dict:
+        """Merge the approach the user chose into the branch the folder was on. Needs `approve: true`; a conflict, a
+        folder that moved to another branch or has uncommitted changes to tracked files stops it, changing nothing."""
+        run = saved_run(run_id)
+        try:
+            merged = await asyncio.to_thread(prototypes.merge, run, body.choice, body.approve)
+        except PrototypeError as exc:
+            raise HTTPException(exc.status, str(exc)) from exc
+        return {"merged": merged, "run": run.public()}
+
+    @app.post("/api/forge/prototypes/{run_id}/discard")
+    async def prototype_discard(run_id: str) -> dict:
+        """Drop a run: the checkouts and the two branches SPIKE made. The user's own branches are never touched."""
+        run = saved_run(run_id)
+        if run.id in building:
+            raise HTTPException(409, "this run is still building")
+        try:
+            await asyncio.to_thread(prototypes.discard, run)
+        except PrototypeError as exc:
+            raise HTTPException(exc.status, str(exc)) from exc
+        return {"run": run.public()}
+
+    # ---------------------------------------------------------------- parallel minds
+    def minds_for(spec: MindsIn | None, incompatible: bool = False) -> list[Mind] | None:
+        """The minds a request asks for (400 when it asks for something that does not fit them); None when it does
+        not ask: Parallel Minds is never on by itself."""
+        if spec is None:
+            return None
+        if incompatible:
+            raise HTTPException(400, "Parallel Minds needs a prose answer: it cannot be combined with a Forge "
+                                     "blueprint or an answer contract (JSON)")
+        try:
+            minds = plan_minds(spec.n, [p.model_dump() for p in spec.picks] if spec.picks is not None else None)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        state = st()
+        for m in minds:
+            if m.mode and m.mode not in state.catalog.specialists:
+                raise HTTPException(400, f"unknown mode '{m.mode}'")
+            if m.provider_id and not state.provider_config(m.provider_id):
+                raise HTTPException(400, f"unknown provider '{m.provider_id}'")
+        return minds
+
+    def estimate_minds(minds: list[Mind], message: str, mode: str, provider_id: str | None, project_id: str | None,
+                       history_tokens: int) -> dict:
+        try:
+            return st().minds_estimate(message, minds, mode, provider_id, history_tokens, project_id)
+        except KeyError as exc:
+            raise HTTPException(400, str(exc.args[0] if exc.args else exc)) from exc
+
+    def guard_minds(minds: list[Mind] | None, message: str, mode: str, provider_id: str | None,
+                    project_id: str | None, history_tokens: int) -> None:
+        """Refuse, before anything is stored or sent, a batch of minds the provider guard would stop: paid calls not
+        allowed, or a monthly limit that N calls would cross."""
+        if minds is not None and (reason := estimate_minds(minds, message, mode, provider_id, project_id,
+                                                           history_tokens)["blocked"]):
+            raise HTTPException(403, reason)
+
+    @app.post("/api/minds/estimate")
+    async def minds_estimate(body: MindsEstimateIn) -> dict:
+        """What Parallel Minds would cost for this message, shown before the user sends it. Calls no model."""
+        state = st()
+        minds = minds_for(body)
+        if body.mode != "auto" and body.mode not in state.catalog.specialists:
+            raise HTTPException(400, f"unknown mode '{body.mode}'")
+        if body.provider_id and not state.provider_config(body.provider_id):
+            raise HTTPException(400, f"unknown provider '{body.provider_id}'")
+        conv = body.conversation_id and state.store_for(body.conversation_id).get_conversation(body.conversation_id)
+        history = state.store_for(body.conversation_id).messages(body.conversation_id) if conv else []
+        return estimate_minds(minds or [], body.message, body.mode, body.provider_id,
+                              body.project_id or (conv or {}).get("project_id"),
+                              sum(estimate_tokens(m["content"]) for m in history))
+
     # ---------------------------------------------------------------- chat
     @app.post("/api/chat")
     async def chat(body: ChatIn) -> StreamingResponse:
@@ -1456,13 +1662,18 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 raise HTTPException(400, f"blueprint: {exc}") from exc
             if blueprint.deliverables and not state.settings()["tools_enabled"]:
                 raise HTTPException(400, "this blueprint saves files, which needs tools: turn them on in Settings")
+        minds = minds_for(body.parallel_minds, blueprint is not None or body.response_schema is not None)
         mode = body.mode
         if conv is None:
             project = state.store.get_project(body.project_id) if body.project_id else None
             if project and mode == "auto":
                 mode = project["mode"]
+            guard_minds(minds, body.message, mode, body.provider_id, body.project_id, 0)
             conv = store.create_conversation(title=_title_from(body.message), mode=mode,
                                                    provider_id=body.provider_id, project_id=body.project_id)
+        else:
+            guard_minds(minds, body.message, mode, body.provider_id, conv.get("project_id"),
+                        sum(estimate_tokens(m["content"]) for m in store.messages(conv["id"])))
         project = state.store.get_project(conv["project_id"]) if conv.get("project_id") else None
         if body.replace_from:
             target = next((m for m in store.messages(conv["id"]) if m["id"] == body.replace_from), None)
@@ -1478,13 +1689,19 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                    for m in store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
         user_message = store.add_message(conv["id"], "user", body.message)
         await state.ensure_adapters(body.provider_id)
+        for pid in dict.fromkeys(m.provider_id for m in minds or [] if m.provider_id):
+            await state.ensure_adapters(pid)
         await state.connectors.ensure_started()
 
         async def stream() -> AsyncIterator[bytes]:
             CURRENT_CHAT.set(conv["id"])  # the call log notes which chat each model call was for
             yield _sse({"type": "conversation", "id": conv["id"], "title": conv["title"],
                         "user_message_id": user_message["id"], **({"temporary": True} if temporary else {})})
-            meta: dict[str, Any] = {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
+            def fresh() -> dict[str, Any]:
+                return {"route": None, "plan": None, "subtasks": {}, "tools": [], "usage": []}
+            meta: dict[str, Any] = fresh()
+            minds_meta: dict[int, dict[str, Any]] = {}  # Parallel Minds: what each mind's run adds, as `meta` has it
+            mind_results: dict[int, dict[str, Any]] = {}
             final_text, error, cancelled = "", None, True
             held: dict[str, Any] | None = None  # the trust event, sent just before "done"
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
@@ -1511,10 +1728,68 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                 events = meta.setdefault("events", [])
                 last = events[-1] if events else None
                 if (ev["type"] in ("delta", "reasoning") and last and last["type"] == ev["type"]
-                        and last.get("subtask") == ev.get("subtask")):
+                        and last.get("subtask") == ev.get("subtask") and last.get("mind") == ev.get("mind")):
                     last["text"] += ev["text"]
                 elif len(events) < MAX_RUN_EVENTS:
                     events.append({**ev, "t": round(time.perf_counter() - started, 3)})
+            def absorb(m: dict[str, Any], ev: dict[str, Any]) -> None:
+                """What an event adds to the record `m` of an answer (the caller handles `done`)."""
+                kind = ev["type"]
+                if kind == "route":
+                    m["route"] = ev
+                elif kind == "plan":
+                    m["plan"] = ev
+                elif kind == "subtask_start":
+                    m["subtasks"].setdefault(ev["subtask"], {"specialist": ev.get("specialist"), "text": "",
+                                                             "role": ev.get("role"), "round": ev.get("round"),
+                                                             "task": ev.get("task")})
+                elif kind == "verify":
+                    m.setdefault("verify", []).append({k: v for k, v in ev.items() if k not in ("type", "mind")})
+                elif kind == "forge_report":
+                    m.setdefault("forge", {})["report"] = {k: v for k, v in ev.items() if k != "type"}
+                elif kind == "delta" and "subtask" in ev:
+                    m["subtasks"].setdefault(ev["subtask"], {"specialist": ev.get("specialist"), "text": ""})
+                    m["subtasks"][ev["subtask"]]["text"] += ev["text"]
+                elif kind in ("tool_call", "tool_result"):
+                    m["tools"].append(ev)
+                elif kind == "skill":
+                    m.setdefault("skills", []).extend(n for n in ev["names"] if n not in m.get("skills", []))
+                elif kind == "usage":
+                    m["usage"].append(ev.get("usage"))
+                elif kind == "contract":
+                    m["contract"] = {k: ev[k] for k in ("valid", "attempts", "errors")}
+                elif kind == "question":
+                    m.setdefault("questions", []).append({k: ev[k] for k in ("id", "question", "options") if k in ev})
+                elif kind == "answered":
+                    for q in m.get("questions", []):
+                        if q["id"] == ev["id"]:
+                            q["answer"] = ev["answer"]
+                elif kind == "privacy":
+                    seen = m.setdefault("privacy", {})
+                    seen[ev["provider"]] = max(seen.get(ev["provider"], 0), ev["withheld"])
+
+            def mind_events(ev: dict[str, Any]) -> None:
+                """An event of one mind goes to that mind's record; a question or a privacy notice belongs to the
+                whole answer, and every mind's tokens count for it."""
+                if ev["type"] in ("question", "answered", "privacy"):
+                    absorb(meta, ev)
+                else:
+                    absorb(minds_meta.setdefault(ev["mind"], fresh()), ev)
+                if ev["type"] == "usage":
+                    meta["usage"].append(ev.get("usage"))
+                elif ev["type"] == "mind_result":
+                    mind_results[ev["mind"]] = {k: v for k, v in ev.items() if k not in ("type", "mind")}
+
+            def pick_meta(ev: dict[str, Any]) -> None:
+                """The pick: the minds with their results kept in `meta.minds`, and the chosen mind's run (route,
+                plan, steps, tools) becomes the answer's own, as for an ordinary run."""
+                info = meta["minds"]
+                info.update(chosen=ev["chosen"], ranking=ev["ranking"], why=ev["why"])
+                info["minds"] = [{**d, **mind_results.get(d["index"], {})} for d in info["minds"]]
+                for k, v in (minds_meta.get(ev["chosen"]) or {}).items():
+                    if k != "usage" and v:
+                        meta[k] = v
+
             try:
                 if "design" in meta:  # the answer's design system, shown as a chip
                     design_event = {"type": "design", **meta["design"]}
@@ -1539,51 +1814,42 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                         meta["memory"] = memory_event
                         record(memory_event)
                         yield _sse(memory_event)
-                async for ev in orchestrator.run(history, body.message, options):
+                if minds is None:
+                    events = orchestrator.run(history, body.message, options)
+                else:  # Parallel Minds: N complete runs, the best answer last
+                    by_provider: dict[str | None, Any] = {None: orchestrator}
+
+                    def orchestrator_for(mind: Mind):
+                        if mind.provider_id not in by_provider:
+                            by_provider[mind.provider_id] = state.orchestrator(
+                                mind.provider_id, project_id=project["id"] if project else None)
+                        return by_provider[mind.provider_id]
+                    events = run_minds(minds, orchestrator_for, history, body.message, options,
+                                       concurrent=options.parallel)
+                async for ev in events:
                     kind = ev["type"]
+                    if ev.get("mind") is not None:  # an event of one mind: its own record, then the pick joins them
+                        mind_events(ev)
+                        record(ev)
+                        yield _sse(ev)
+                        continue
                     if kind == "trust":
                         held = ev  # waits for the final answer: a low-confidence one may offer a second opinion
                         continue
                     if kind == "done" and held is not None:
-                        used = {s["provider_id"] for s in (meta["route"] or {}).get("specialists") or []}
+                        used = {s["provider_id"] for r in [meta["route"], *(m["route"] for m in minds_meta.values())]
+                                for s in (r or {}).get("specialists") or []}
                         if offer := state.escalation_offer(held, used, body.message, ev["text"]):
                             held["escalation"] = offer
                         meta["trust"] = {k: v for k, v in held.items() if k != "type"}  # not in "events": it is large
                         yield _sse(held)
-                    if kind == "route":
-                        meta["route"] = ev
-                    elif kind == "plan":
-                        meta["plan"] = ev
-                    elif kind == "subtask_start":
-                        meta["subtasks"].setdefault(ev["subtask"], {"specialist": ev.get("specialist"), "text": "",
-                                                                    "role": ev.get("role"), "round": ev.get("round"),
-                                                                    "task": ev.get("task")})
-                    elif kind == "verify":
-                        meta.setdefault("verify", []).append({k: v for k, v in ev.items() if k != "type"})
-                    elif kind == "forge_report":
-                        meta.setdefault("forge", {})["report"] = {k: v for k, v in ev.items() if k != "type"}
-                    elif kind == "delta" and "subtask" in ev:
-                        meta["subtasks"].setdefault(ev["subtask"], {"specialist": ev.get("specialist"), "text": ""})
-                        meta["subtasks"][ev["subtask"]]["text"] += ev["text"]
-                    elif kind in ("tool_call", "tool_result"):
-                        meta["tools"].append(ev)
-                    elif kind == "skill":
-                        meta.setdefault("skills", []).extend(n for n in ev["names"] if n not in meta.get("skills", []))
-                    elif kind == "usage":
-                        meta["usage"].append(ev.get("usage"))
-                    elif kind == "contract":
-                        meta["contract"] = {k: ev[k] for k in ("valid", "attempts", "errors")}
-                    elif kind == "question":
-                        meta.setdefault("questions", []).append(
-                            {k: ev[k] for k in ("id", "question", "options") if k in ev})
-                    elif kind == "answered":
-                        for q in meta.get("questions", []):
-                            if q["id"] == ev["id"]:
-                                q["answer"] = ev["answer"]
-                    elif kind == "privacy":
-                        seen = meta.setdefault("privacy", {})
-                        seen[ev["provider"]] = max(seen.get(ev["provider"], 0), ev["withheld"])
-                    elif kind == "done":
+                    if kind == "minds_start":
+                        meta["minds"] = {"n": ev["n"], "minds": ev["minds"], "chosen": None}
+                    elif kind == "minds_pick":
+                        pick_meta(ev)
+                    else:
+                        absorb(meta, ev)
+                    if kind == "done":
                         final_text, error = ev["text"], ev.get("error")
                         meta["elapsed_s"] = ev.get("elapsed_s")
                         if ev.get("private"):

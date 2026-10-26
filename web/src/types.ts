@@ -251,6 +251,49 @@ export type RunState = {
   verify?: VerifyState[];
   forge?: { report?: ForgeReport };
   trust?: TrustState;
+  minds?: MindsState; // Parallel Minds: the N answers of this message and which one was chosen
+};
+
+/** Parallel Minds: what a request sends (N minds, or one per pick) and what the estimate says before it runs. */
+export type MindsSpec = { n?: number; picks?: { mode?: string; provider_id?: string }[] };
+export type MindsEstimate = {
+  n: number; multiplier: number; multi_step: boolean; cost: number | null; unpriced: string[]; blocked: string | null;
+  providers: { provider_id: string; name: string; local: boolean; paid: boolean; calls: number; tokens_in: number;
+    tokens_out: number; cost: number | null; blocked: string | null }[];
+};
+
+/** One mind: its own run (a complete orchestrator run, shown like an answer) and what the choice used of it. */
+export type MindState = {
+  index: number; mode?: string; provider_id?: string; temperature?: number;
+  run: RunState; ok?: boolean; counts?: Record<TrustLabel, number>; verifier_failed?: boolean; elapsed?: number;
+  specialists?: string[]; route?: { id: string; name: string; provider: string; model: string }[];
+};
+
+/** `why` the chosen mind won: `labels` (the claim labels or the checker told them apart), `order` (equal labels: the
+ * lower number), `only` (the only one that answered) or `none` (nobody answered). */
+export type MindsState = { n: number; minds: MindState[]; chosen?: number | null; ranking?: number[]; why?: "none" | "only" | "labels" | "order" };
+
+/** Parallel Prototypes (Forge): two approaches built on two git branches and compared by the same tests. */
+export type ProtoLabel = "a" | "b";
+export type ProtoCheck = { name: string; kind: string; ok: boolean; note: string };
+export type ProtoResult = {
+  label: ProtoLabel; branch: string; goal: string; start: string; blueprint: Blueprint; status?: "built" | "failed";
+  error?: string | null; commit?: string;
+  tests?: { ran: boolean; reason: string; passed: number; total: number; failed: string[] };
+  checks?: { passed: number; total: number; items: ProtoCheck[] };
+  files?: { count: number; paths: string[]; insertions: number; deletions: number };
+  seconds?: { build: number; tests: number; total: number };
+};
+export type ProtoRow = {
+  label: ProtoLabel; built: boolean; tests_passed: number; tests_total: number; tests_ran: boolean; checks_passed: number;
+  checks_total: number; files_changed: number; insertions: number; deletions: number; seconds: number;
+};
+export type ProtoComparison = { rows: ProtoRow[]; leader: ProtoLabel | null; basis: "tests" | "checks" | null };
+export type ProtoRun = {
+  id: string; task: string; status: "building" | "built" | "merged" | "discarded" | "interrupted";
+  base: { branch: string; commit: string }; dirty: number; tests: { files: string[]; checks: unknown[] };
+  approaches: ProtoResult[]; comparison: ProtoComparison | Record<string, never>;
+  merged: { choice: ProtoLabel; branch: string; into: string; from: string; commit: string; kept_branch: string } | null;
 };
 
 /** What the user's message taught SPIKE: notes saved at once ("recuerda que…"), or a rule proposed from a correction. */

@@ -77,7 +77,7 @@ def blueprint_schema(specialist_ids: list[str], max_steps: int) -> dict[str, Any
     }
 
 
-def blueprint_prompt(catalog: Catalog, candidates: list[str], max_steps: int) -> str:
+def blueprint_prompt(catalog: Catalog, candidates: list[str], max_steps: int, approach: str = "") -> str:
     roster = "\n".join(f"- {s.id}: {s.name} — {s.description}" for s in catalog.specialists.values())
     hint = ", ".join(candidates) if candidates else "none"
     return (
@@ -95,7 +95,8 @@ def blueprint_prompt(catalog: Catalog, candidates: list[str], max_steps: int) ->
         "formats, files.\n"
         "Write the texts in the user's language.\n\n"
         f"Specialists:\n{roster}\n\nA keyword pre-router suggested: {hint}. Override it when it is wrong.\n"
-        'Reply with JSON only: {"goal": "...", "requirements": ["..."], "steps": [{"id": "t1", "specialist": "...", '
+        + (f"{approach}\n" if approach else "")
+        + 'Reply with JSON only: {"goal": "...", "requirements": ["..."], "steps": [{"id": "t1", "specialist": "...", '
         '"role": "execute", "instruction": "...", "depends_on": [], "deliverables": ["..."]}], "criteria": ["..."]}'
     )
 
@@ -199,9 +200,11 @@ def fallback_blueprint(task: str, candidates: list[str], note: str) -> Blueprint
 
 
 async def make_blueprint(provider: Provider, catalog: Catalog, task: str, candidates: list[str], *,
-                         model: str | None = None, max_steps: int = MAX_STEPS) -> Blueprint:
+                         model: str | None = None, max_steps: int = MAX_STEPS, approach: str = "") -> Blueprint:
+    """The blueprint the core model drafts for a task; `approach` steers it toward one way of doing it (Parallel
+    Prototypes asks for two)."""
     request = ChatRequest(
-        messages=[Message(role="system", content=blueprint_prompt(catalog, candidates, max_steps)),
+        messages=[Message(role="system", content=blueprint_prompt(catalog, candidates, max_steps, approach)),
                   Message(role="user", content=task)],
         model=model, temperature=0.0, max_tokens=1500,
         json_schema=blueprint_schema(list(catalog.specialists), max_steps), reasoning=False,

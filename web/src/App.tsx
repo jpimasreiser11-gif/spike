@@ -15,7 +15,7 @@ import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
-import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
+import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, MindsSpec, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
 type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
 
@@ -206,7 +206,7 @@ export default function App() {
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
   const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object,
-                    specialist?: string, forge?: Blueprint, extra?: CreatorExtra) => {
+                    specialist?: string, forge?: Blueprint, extra?: CreatorExtra, minds?: MindsSpec) => {
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -222,7 +222,7 @@ export default function App() {
     try {
       await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
-                         ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}),
+                         ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}), ...(minds ? { parallel_minds: minds } : {}),
                          ...(extra?.design_system || design ? { design_system: extra?.design_system || design } : {}),
                          ...(extra?.skills.length ? { skills: extra.skills } : {}),
                          ...(views.length ? { view_context: views } : {}) }, (ev) => {
@@ -294,7 +294,8 @@ export default function App() {
   const empty = items.length === 0;
   const lastUser = items.map((it) => it.kind).lastIndexOf("user");
   const composer = (
-    <Composer onSend={(text, schema) => send(text, undefined, providerId, activeId, schema)} onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode}
+    <Composer onSend={(text, schema, minds) => send(text, undefined, providerId, activeId, schema, undefined, undefined, undefined, minds)}
+      onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode} projectId={project?.id} conversationId={activeId}
       providerId={providerId} setProviderId={setProviderId} specialists={specialists.filter((s) => s.id !== "core")}
       providers={providers} followUp={!empty} autoFocus designs={designs} design={design} setDesign={setDesign}
       projectDesign={designs.find((d) => d.id === project?.design)?.name} />

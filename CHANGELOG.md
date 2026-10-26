@@ -60,6 +60,11 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   overflow, small targets), each run on request and with permission. (A5, Codex)
 - Lab: compare prompts or cases across specialists and providers, and probe a provider's capabilities with
   an estimate first and the paid-call guard. (A8, Codex)
+- Parallel Minds (opt-in per message): 2 to 4 independent read-only answers, the one with the best trust
+  labels shown and the others collapsed; the composer shows "×N time and tokens" and the cost first, and the
+  paid-call guard and monthly limits cover every call.
+- Parallel Prototypes (opt-in in Forge): two approaches built on two git branches and compared by the same
+  tests; your branch is not touched and nothing is merged until you approve.
 
 ### Learning from use (Evolution)
 - Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the

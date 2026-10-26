@@ -8,6 +8,11 @@ import { IconClose } from "./Icons";
 const QUIET = new Set(["usage", "status", "permission_resolved"]); // applied, but not steps of their own
 
 function describe(ev: ChatEvent): string {
+  const mind = typeof ev.mind === "number" ? `[${t.minds.mind} ${ev.mind + 1}] ` : ""; // Parallel Minds: whose step it is
+  return mind + describeEvent(ev);
+}
+
+function describeEvent(ev: ChatEvent): string {
   const label = t.ev[ev.type] ?? ev.type;
   switch (ev.type) {
     case "route": return `${label}: ${(ev.specialists ?? []).map((s: { name: string }) => s.name).join(", ")}`;
@@ -24,6 +29,8 @@ function describe(ev: ChatEvent): string {
     case "question": return `${label}: ${String(ev.question).slice(0, 70)}`;
     case "answered": return `${label}: ${String(ev.answer ?? "—").slice(0, 70)}`;
     case "error": return `${label}: ${ev.message}`;
+    case "minds_start": return `${label}: ${ev.n}`;
+    case "minds_pick": return `${label}: ${t.minds.mind} ${(ev.chosen ?? 0) + 1}`;
     default: return label;
   }
 }

@@ -1,4 +1,4 @@
-import type { ChatEvent, ForgeReport, RunState, StoredMessage, TrustState, VerifyState } from "./types";
+import type { ChatEvent, ForgeReport, MindState, MindsState, RunState, StoredMessage, TrustState, VerifyState } from "./types";
 
 export const emptyRun = (): RunState => ({
   status: "idle",
@@ -10,9 +10,48 @@ export const emptyRun = (): RunState => ({
   reasoning: "",
 });
 
+// What a mind's run asks of the whole answer, not of that mind: a permission or a question is answered once.
+const SHARED = new Set(["permission_request", "permission_resolved", "question", "answered", "privacy", "context_trimmed"]);
+
+/** An event of one mind (Parallel Minds) goes to that mind's own run, so its text and steps never mix with another's. */
+function applyMindEvent(state: RunState, ev: ChatEvent): RunState {
+  const { mind, ...rest } = ev;
+  if (SHARED.has(ev.type)) return applyEvent(state, rest as ChatEvent);
+  const minds = state.minds;
+  if (!minds) return state;
+  const update = (fn: (m: MindState) => MindState): RunState => ({
+    ...state,
+    minds: { ...minds, minds: minds.minds.map((m) => (m.index === mind ? fn(m) : m)) },
+  });
+  switch (ev.type) {
+    case "mind_start":
+      return update((m) => ({ ...m, run: { ...m.run, status: "running" } }));
+    case "mind_result":
+      return update((m) => ({
+        ...m, ok: ev.ok, counts: ev.counts, verifier_failed: ev.verifier_failed, elapsed: ev.elapsed_s, specialists: ev.specialists, route: ev.route,
+        run: { ...m.run, text: ev.text || m.run.text, error: ev.error ?? m.run.error, status: ev.ok ? "done" : "error", trust: ev.trust ?? m.run.trust },
+      }));
+    default:
+      return update((m) => ({ ...m, run: applyEvent(m.run, rest as ChatEvent) }));
+  }
+}
+
 /** Pure reducer turning orchestrator events into a renderable run. Unit-tested in run.test.ts. */
 export function applyEvent(state: RunState, ev: ChatEvent): RunState {
+  if (ev.mind !== undefined) return applyMindEvent(state, ev);
   switch (ev.type) {
+    case "minds_start":
+      return { ...state, status: "running", minds: { n: ev.n, minds: ev.minds.map((m: MindState) => ({ ...m, run: { ...emptyRun(), status: "idle" } })) } };
+    case "minds_pick": {
+      const minds = state.minds;
+      if (!minds) return state;
+      const picked: MindsState = { ...minds, chosen: ev.chosen, ranking: ev.ranking, why: ev.why };
+      const chosen = minds.minds.find((m) => m.index === ev.chosen);
+      if (!chosen) return { ...state, minds: picked };
+      const r = chosen.run; // the chosen mind's run becomes the answer's own, as the server stores it
+      return { ...state, minds: picked, text: r.text, reasoning: r.reasoning, route: r.route, plan: r.plan, subtasks: r.subtasks, order: r.order,
+        tools: r.tools, verify: r.verify, forge: r.forge, skills: r.skills ?? state.skills, contract: r.contract ?? state.contract };
+    }
     case "status":
       return { ...state, status: ev.message === "planning" ? "planning" : state.status };
     case "route":
@@ -140,6 +179,18 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
   }
 }
 
+/** The minds of a stored answer: each with its text and labels; a mind with no result was cut off by a stop. */
+function mindsFromStored(m: Record<string, any>): MindsState {
+  return {
+    n: m.n, chosen: m.chosen ?? null, ranking: m.ranking, why: m.why,
+    minds: (m.minds ?? []).map((d: any): MindState => ({
+      index: d.index, mode: d.mode, provider_id: d.provider_id, temperature: d.temperature, ok: d.ok, counts: d.counts,
+      verifier_failed: d.verifier_failed, elapsed: d.elapsed_s, specialists: d.specialists, route: d.route,
+      run: { ...emptyRun(), status: d.ok === undefined ? "stopped" : d.ok ? "done" : "error", text: d.text ?? "", error: d.error ?? undefined, trust: d.trust },
+    })),
+  };
+}
+
 /** Rebuild a finished run from a stored assistant message (meta saved by the server). */
 export function runFromStored(m: StoredMessage): RunState {
   const meta = m.meta || {};
@@ -162,6 +213,7 @@ export function runFromStored(m: StoredMessage): RunState {
   if (meta.verify?.length) run.verify = meta.verify;
   if (meta.forge?.report) run.forge = { report: meta.forge.report };
   if (meta.trust) run.trust = meta.trust;
+  if (meta.minds) run.minds = mindsFromStored(meta.minds);
   if (meta.questions?.length) {
     run.questions = meta.questions.map((q: any) => ({ ...q, options: q.options ?? [], status: q.answer == null ? "unanswered" : "answered" }));
   }
@@ -198,7 +250,7 @@ export function runAt(events: ChatEvent[], n: number): RunState {
 /** Append an event to a run's recording, merging consecutive text pieces as the server does. */
 export function recordEvent(events: ChatEvent[] = [], ev: ChatEvent, t: number): ChatEvent[] {
   const last = events[events.length - 1];
-  if ((ev.type === "delta" || ev.type === "reasoning") && last?.type === ev.type && last.subtask === ev.subtask) {
+  if ((ev.type === "delta" || ev.type === "reasoning") && last?.type === ev.type && last.subtask === ev.subtask && last.mind === ev.mind) {
     return [...events.slice(0, -1), { ...last, text: last.text + ev.text }];
   }
   return [...events, { ...ev, t }];

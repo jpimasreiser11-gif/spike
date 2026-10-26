@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 7 | 2 | 0 | 0 | 5 | 0 | 14 |
+| Claude | 7 | 1 | 0 | 0 | 6 | 0 | 14 |
 | Codex | 12 | 0 | 0 | 0 | 6 | 0 | 18 |
 | Mac | 5 | 1 | 0 | 0 | 0 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **27** | **3** | **0** | **0** | **11** | **0** | **41** |
+| **Total** | **27** | **2** | **0** | **0** | **12** | **0** | **41** |
 
 ## Fase: equipo
 
@@ -41,7 +41,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A6 | Claude | hecha | Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas | - |
 | A7 | Claude | hecha | Memoria: carpetas elegidas, glosario, progreso del tutor y grafo | - |
 | A10 | Claude | hecha | Evolution: estrategia de herramientas, regresión de prompts y adaptador personal | - |
-| A17 | Claude | en curso | Parallel Minds y prototipos en paralelo | - |
+| A17 | Claude | hecha | Parallel Minds y prototipos en paralelo | - |
 | A19 | Claude | en curso | Escritorio con un proveedor con computer use | - |
 
 ## Fase: modelos

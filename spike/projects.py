@@ -47,9 +47,10 @@ class ProjectFiles:
         shutil.rmtree(self.root / pid, ignore_errors=True)
 
     def list(self, pid: str) -> list[dict[str, Any]]:
-        base = self.folder(pid)
+        base = self.folder(pid)  # a repository's own files (Parallel Prototypes makes one) are not the user's files
         return [{"path": p.relative_to(base).as_posix(), "size": p.stat().st_size}
-                for p in sorted(base.rglob("*")) if p.is_file() and not self._linked(base, p)]
+                for p in sorted(base.rglob("*"))
+                if p.is_file() and ".git" not in p.relative_to(base).parts and not self._linked(base, p)]
 
     @staticmethod
     def _linked(base: Path, path: Path) -> bool:

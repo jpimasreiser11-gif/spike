@@ -12,6 +12,7 @@ import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
 import { Markdown } from "./Markdown";
+import { MindsPanel } from "./Minds";
 import { SpecMark } from "./SpecMark";
 import { TrustBar } from "./Trust";
 
@@ -163,7 +164,7 @@ function reviewText(p: PermissionState) {
   return template.replace("{domain}", p.domain ?? "").replace("{element}", element);
 }
 
-function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean }) {
+export function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean }) {
   const decide = async (decision: "allow_once" | "allow_always" | "allow_domain" | "block_domain" | "deny") => {
     onDecided(p.id, "sending");
     try {
@@ -448,6 +449,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       ) : null}
 
       {run.trust && !live && <TrustBar trust={run.trust} messageId={messageId} replay={replay} />}
+
+      {run.minds && <MindsPanel minds={run.minds} live={live} />}
 
       {run.forge?.report && <ForgeReportCard report={run.forge.report} projectId={projectId} replay={replay} />}
 

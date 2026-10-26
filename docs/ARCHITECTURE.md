@@ -321,6 +321,102 @@ that a source is true or that the answer understood it.
   numbers and names; numbers in different formats ("1 200" with a plain space, spelled-out numbers, dates in other
   orders) may fail support; only the first 60 claims are labelled; and a source can be wrong.
 
+## Parallel Minds and Parallel Prototypes (both opt-in, off by default)
+
+Two ways to spend more time and tokens on one task for a better result. Neither runs unless the person asks for it on
+that message or that task; the settings have no switch that turns either on for everything.
+
+### Parallel Minds (`spike/orchestrator/minds.py`)
+
+One message, N independent answers (N = 2 to 4), and the best of them chosen by SPIKE's own trust labels.
+
+- **Where it can be asked.** Only the app's chat endpoint takes `parallel_minds` (`{n}`, or `{picks: [{mode,
+  provider_id}, ...]}` for one mind per specialist/provider the user picked). `/v1`, MCP and the CLI have no such
+  parameter, so they never run it. In the app it is the "Varias mentes" / "Parallel minds" button of the composer: it
+  turns itself off after the message is sent, and it is refused (400) together with a Forge blueprint or the JSON
+  format, which need one answer.
+- **What a mind is.** A complete run of the orchestrator (route, plan, specialists, checker), so time and tokens are
+  N times one run. With no picks the minds differ by temperature (`TEMPERATURES`: 0.3/0.9 for 2, 0.3/0.7/1.0 for 3,
+  0.2/0.5/0.8/1.0 for 4). No seed is sent: providers do not all support one, so the answers differ by sampling and the
+  temperature, and two runs of the same message are not expected to repeat. Several minds run at once when the
+  `parallel` setting is on and one after the other otherwise.
+- **Read-only.** N copies of a turn must not write N times, run code or place an order, so a mind runs with
+  `OrchestratorOptions.read_only`: only tools of risk `safe` or `read` plus `web_fetch`; no `ask_user` (nobody is asked
+  a question N times); trust labels are forced on for each mind (the pick needs them, whatever the `trust` setting says)
+  and a Forge plan, a checkpoint or an answer contract is not carried into a mind.
+- **The pick is deterministic and model-free** (`pick`): an answer beats another by (1) answering at all, (2) a checker
+  that did not fail, (3) verified minus unchecked claims, (4) fewer unchecked claims, (5) more verified claims, and last
+  (6) the lower mind number; hypotheses count neither way. The same labels give the same pick every time. The model
+  pass of the trust labels is not run on the minds (it would be N more calls). The chosen mind's route, trace, trust
+  event and text become the message's; the others are kept in `meta.minds` with their text, labels, specialists and
+  elapsed time, shown collapsed under the answer ("Mente 1 · 1 verificada · 2 sin comprobar") and open on click.
+- **Cost is shown before it is paid.** `POST /api/minds/estimate` returns "×N tiempo y tokens", per provider the calls
+  (a mind that routes to several specialists counts one call per specialist plus plan, checker and merge, and is
+  flagged `multi_step`), their tokens (input from the message and history, output at the maximum) and, for an API
+  provider with prices in Settings, the cost at those prices (`null` plus the name in `unpriced` when it has none; a
+  local model has no API cost). The composer shows it as the person changes N, the provider or the picks. It is an
+  upper-bound estimate, not a measurement.
+- **The guards apply to every one of the N calls.** Every mind's provider is a `GuardedProvider`, so each call checks
+  the paid-call permission and the monthly limits, is logged in `calls`, and counts toward the month. Before the first
+  mind starts, the chat endpoint asks `GuardedProvider.blocked_for(calls, tokens_in, tokens_out)` for the whole batch
+  and answers 403 with the guard's text, storing nothing, when the batch would be refused (paid calls not enabled) or
+  would cross a monthly token or cost limit; the check before each call still stands, so a limit crossed while the
+  batch runs stops the remaining minds, and the pick uses the ones that answered.
+- **Events** (SSE): `minds_start`, per mind `mind_start` and `mind_result`, then `minds_pick`; every event of a mind
+  carries `mind: i`, the chosen mind's `trust` and the final `done` are the message's own. Stored and replayed with the
+  message (`meta.minds`).
+- **Tests.** `tests/test_minds.py`: planning and temperatures, the pick (N answers and the choice follow the labels, ties
+  go to the lower number, a failed checker or an empty answer loses), read-only tools, the guard counting N calls and
+  refusing before starting, the estimate, off by default (no `minds` events and no `meta.minds` unless asked; `/v1` has
+  no parameter), storage and replay. `web/e2e/smoke.mjs` drives the toggle, the multiplier and the result in a browser
+  against a scripted provider that answers by temperature. **Not measured:** whether the labels pick the better answer
+  as a person would, how often N answers beat one, and the real time and token cost with real weights; the scripted
+  tests only show that the pick follows the labels.
+
+### Parallel Prototypes (`spike/forge/prototypes.py`)
+
+For a build task, Forge drafts two different plans, builds each on its own git branch, runs the same tests on both and
+shows a table of what happened. The person picks; nothing is merged without their approval.
+
+- **Where it can be asked.** The "Dos enfoques en paralelo" / "Two approaches in parallel" box on the Forge task form
+  (unticked by default). `make_blueprint(approach=...)` drafts plan A (simplest that meets every requirement) and plan
+  B (another structure, favouring robustness); the person reviews and edits both, adds the shared tests and approves.
+  Endpoints: `POST /api/forge/prototypes/blueprints`, `POST /api/forge/prototypes` (streams events tagged `proto: a|b`
+  and a final `proto_compare`), `GET /api/forge/prototypes[/{id}]`, `POST .../{id}/merge`, `POST .../{id}/discard`.
+  It needs tools on (it saves files) and `git` installed (the screen says so when it is not); it is not offered for
+  the CLI, `/v1` or MCP.
+- **Branches and checkouts.** The project's folder (or the workspace) is the base. A folder that is not a repository
+  gets `git init` and one snapshot commit of what is in it (refused above 5000 files or 200 MB); a folder inside some
+  other repository, or a repository on a detached HEAD, is refused. Each approach is a `git worktree` in `<SPIKE home>/prototypes/<id>/{a,b}` on a new
+  branch `spike/proto-<id>-a|b` from the base commit, so the person's branch, index and working files are not touched
+  while it builds (the checkouts are outside the folder). Each approach builds with its plan: the orchestrator runs
+  with the Forge blueprint and its tools pointed at its own checkout, so file tools and code stay inside it. The
+  files each branch ends with are committed on that branch. `.git` is hidden from the project's file list.
+- **Same tests on both.** The shared tests are committed on each branch before the build and run through the `python`
+  tool, so each run asks the person's permission and uses the computer's sandbox like any other code run. Kinds:
+  `unittest` (a test file of Python's `unittest`, run by discovery in a temporary copy of the checkout; the count of
+  tests that passed is parsed from its output), `python` (a snippet that must finish without an error), `contains` and
+  `words_max` (words in, or a word limit of, a saved file) and the deliverable checks Forge already has (the files each
+  step had to save exist and parse). A test suite that cannot be loaded counts as nothing passed, not as a pass.
+- **The table comes from real results**: tests passed / run, checks passed, files and lines changed (`git diff
+  --numstat` from the commit that holds the shared tests), and the time of the build and of the checks from the clock. No model writes any cell.
+  The checker's verdict on the blueprint's own criteria is shown apart, for reading. "SPIKE suggests" an approach only
+  when it has strictly more tests passed, or equal tests and strictly more checks; otherwise it says there is no
+  difference. A run interrupted by closing the app is shown as `interrupted` and can be discarded.
+- **Merge needs approval.** `POST .../{id}/merge` with `approve: true` runs `git merge --no-ff` of the chosen branch into
+  the branch the folder was on; without it, 403. It is refused (409) when the folder moved to another branch or has
+  uncommitted changes to tracked files, the run is not `built`, or the branch is gone; a conflict aborts the merge and
+  leaves the branch as it was. The chosen branch is deleted after merging and the other is kept (the response names it
+  and the person can remove it with `git branch -D`); "discard" removes the checkouts and both branches. Only branches
+  named `spike/proto-<id>-a|b` are ever deleted; the person's own branches are never touched.
+- **Tests.** `tests/test_prototypes.py` uses real git in temporary repositories and a fake executor that writes the
+  approaches' files (no model, no network): both branches exist and hold their own files, the comparison comes from real
+  `unittest` runs of the shared tests, the user's branch and working tree are unchanged until approval, merge without
+  approval is 403, a conflict is undone, a non-repository folder is initialised, and only `spike/proto-*` branches are
+  deleted. The browser smoke test checks that the box is off by default and what ticking it changes. **Not measured:**
+  whether two plans give better code than one, what a real build of each costs, and how often a model-written approach
+  passes the person's tests; nothing here says either approach is better than a single run.
+
 ## Training and evaluation (offline, on the developer Mac)
 
 `training/` builds data, trains mlx-lm LoRA adapters and exports them to GGUF; `evals/` measures base vs.

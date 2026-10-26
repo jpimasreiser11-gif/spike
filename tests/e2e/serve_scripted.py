@@ -68,6 +68,15 @@ TRUST_ANSWER = ("Según contrato.md, «el cliente Norte paga a 60 días».\n\n"
                 "El contrato se firmó en 2019 con un depósito de 5.000 €.")
 
 
+# Parallel Minds: the question restates one fact, so the answer that only restates it has nothing unchecked; the other
+# two invent figures nothing backs. Keyed by the temperature of the mind (0.3 / 0.7 / 1.0 when there are three).
+MINDS_ANSWERS = {
+    0.3: "El modelo Zorvak tiene 12 capas. Fue entrenado en 2019 con 40 GPUs. Cuesta 300 euros al mes.",
+    0.7: "El modelo Zorvak tiene 12 capas.",
+    1.0: "Fue entrenado en 2019 con 40 GPUs. Su latencia media es de 35 ms.",
+}
+
+
 def checker_answer(request) -> str:
     """The checker: a Forge task's writer is sent back once, then everything passes."""
     criteria = request.json_schema["properties"].get("criteria")
@@ -111,6 +120,14 @@ class DemoProvider(Provider):
             ]}
             yield StreamEvent(kind="text", text=json.dumps(plan))
             yield StreamEvent(kind="done")
+            return
+        if last.role == "user" and "zorvak" in last.content.lower():  # Parallel Minds: the answer depends on the temperature
+            asked = request.temperature if request.temperature is not None else 0.7
+            answer = MINDS_ANSWERS[min(MINDS_ANSWERS, key=lambda temperature: abs(temperature - asked))]
+            for i in range(0, len(answer), 12):
+                yield StreamEvent(kind="text", text=answer[i:i + 12])
+                await asyncio.sleep(0.01)
+            yield StreamEvent(kind="done", finish_reason="stop")
             return
         tools = {t.name for t in request.tools or []}
         if last.role == "user" and "dependency doctor" in last.content.lower() and "dependency_doctor" in tools:
