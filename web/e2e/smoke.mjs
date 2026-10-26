@@ -452,6 +452,19 @@ await page.getByText("Activar el adaptador personal").click();
 await page.getByTestId("evo-personal").waitFor({ state: "detached" });
 await page.keyboard.press("Escape");
 
+// A5: explicit approval, then the full local diagnostic opens as an isolated artifact.
+// The scripted workspace has no supported audit manifests: no registry requests or installed auditors run.
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
+await page.locator("#composer-input").fill("Ejecuta Dependency Doctor");
+await page.keyboard.press("Enter");
+const diagnosticPermission = page.locator(".permission", { hasText: "dependency_doctor" });
+await diagnosticPermission.getByRole("button", { name: "Permitir una vez" }).click();
+await page.getByRole("button", { name: "Ver informe de diagnóstico" }).click();
+await page.frameLocator(".artifact-frame").getByRole("heading", { name: "Dependency Doctor" }).waitFor();
+await page.frameLocator(".artifact-frame").getByText("Sin manifiesto compatible").first().waitFor();
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();

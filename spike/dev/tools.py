@@ -226,5 +226,8 @@ def stop_commands() -> None:
         _kill(proc)
 
 
-def dev_tools(workspace: Workspace, sandbox: Sandbox | None = None) -> list[Tool]:
-    return [EditFile(workspace), SearchFiles(workspace), FindFiles(workspace), RunCommand(workspace, sandbox)]
+def dev_tools(workspace: Workspace, sandbox: Sandbox | None = None, connectors=None) -> list[Tool]:
+    from spike.dev.diagnostics import DependencyDoctor, VisualCritic
+
+    return [EditFile(workspace), SearchFiles(workspace), FindFiles(workspace), RunCommand(workspace, sandbox),
+            DependencyDoctor(workspace, sandbox), VisualCritic(workspace, connectors)]

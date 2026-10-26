@@ -6,6 +6,7 @@ import { teamSteps } from "../run";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState, VideoUi } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { DataView, ReportActions, isData } from "./DataViews";
+import { DiagnosticCard } from "./DevDiagnostics";
 import { LiveOrderCard } from "./Finance";
 import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
@@ -417,6 +418,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       {run.tools.map((tool, i) => tool.ui?.kind === "live_order"
         ? <LiveOrderCard key={tool.ui.order.id} initial={tool.ui.order} readOnly={replay} />
         : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} />
+          : tool.ui?.kind === "dev_diagnostic" ? <DiagnosticCard key={`${tool.id}-${i}`} ui={tool.ui} />
           : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} />
             : tool.ui?.kind === "video" && !replay ? <VideoCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} /> : null)}
 
