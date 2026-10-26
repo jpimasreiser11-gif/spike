@@ -305,7 +305,7 @@
   {
    "id": "A6",
    "owner": "claude",
-   "status": "todo",
+   "status": "doing",
    "phase": "app",
    "title": "Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas",
    "depends": [],
