@@ -772,7 +772,7 @@ def test_verification_plan_and_runner(tmp_path, monkeypatch):
                                                  ("npm run build", ["npm", "run", "build"], "web")]
     monkeypatch.setenv("SPIKE_TEAM_VERIFY", "make check -j2")
     assert cw.verify_plan(tmp_path, web_changed=True) == [("make check -j2", ["make", "check", "-j2"], ".")]
-    code, out = cw.run_capture([sys.executable, "-c", "import sys; print('out'); print('err', file=sys.stderr); sys.exit(4)"], tmp_path, 30)
+    code, out = cw.run_capture([sys.executable, "-c", "import sys; print('out', flush=True); print('err', file=sys.stderr); sys.exit(4)"], tmp_path, 30)
     assert code == 4 and out.split() == ["out", "err"]
     assert cw.run_capture([str(tmp_path / "no-such-tool")], tmp_path, 30)[0] == 127
     code, out = cw.run_capture([sys.executable, "-c", "import time; time.sleep(30)"], tmp_path, 0.5)
