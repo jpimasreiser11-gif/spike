@@ -1013,15 +1013,19 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         return conv
 
     @app.get("/api/conversations/{cid}/proof")
-    async def proof_package(cid: str) -> Response:
+    async def proof_package(cid: str, include: str | None = None) -> Response:
         """The chat with every recorded step, its model calls and file checksums, as a verifiable zip."""
         state = st()
         store = state.store_for(cid)
         conv = store.get_conversation(cid)
         if not conv:
             raise HTTPException(404, "conversation not found")
+        selected = None if include is None else set(filter(None, include.split(",")))
+        from spike.proof import PROOF_SECTIONS
+        if selected is not None and selected - PROOF_SECTIONS:
+            raise HTTPException(400, "Unknown proof section / Sección de prueba desconocida")
         data = build_proof(conv, store.messages(cid), state.store.calls_for(cid), state.store.list_checkpoints(cid),
-                           state.provider_configs(), state.settings(), temporary=store is state.temp)
+                           state.provider_configs(), state.settings(), temporary=store is state.temp, include=selected)
         ascii_title = unicodedata.normalize("NFKD", conv["title"]).encode("ascii", "ignore").decode()
         name = re.sub(r"[^a-z0-9]+", "-", ascii_title.lower()).strip("-")[:40] or "chat"  # headers are ASCII
         return Response(data, media_type="application/zip", headers={

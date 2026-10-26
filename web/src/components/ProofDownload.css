@@ -1,0 +1,10 @@
+.proof-download { position: relative; }
+.proof-download summary { list-style: none; cursor: pointer; }
+.proof-download summary::-webkit-details-marker { display: none; }
+.proof-download fieldset {
+  position: absolute; right: 0; top: 100%; z-index: 20;
+  width: min(340px, 85vw); padding: 16px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--bg); box-shadow: 0 8px 28px #0003;
+}
+.proof-download p { margin: 8px 0; }
+.proof-download label { margin: 8px 0; }

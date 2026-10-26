@@ -39,6 +39,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y ffmpeg && python -m playwright install --with-deps chromium
       - run: ruff check .
+      - run: python scripts/compat_matrix.py --check
       - name: Team task board is valid and BOARD.md is current
         if: runner.os == 'Linux' && matrix.python == '3.13'
         run: |

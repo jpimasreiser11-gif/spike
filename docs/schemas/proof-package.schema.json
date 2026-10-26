@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spike.local/schemas/v1/proof-package.schema.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "spike-proof"
+    },
+    "version": {
+      "const": 1
+    },
+    "exported_utc": {
+      "type": "string"
+    },
+    "spike": {
+      "type": "string"
+    },
+    "included": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "chat",
+          "calls",
+          "files",
+          "providers",
+          "settings",
+          "environment"
+        ]
+      }
+    },
+    "chat": {
+      "type": "object"
+    },
+    "machine": {
+      "type": "object"
+    },
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "settings": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "exported_utc",
+    "spike",
+    "included"
+  ],
+  "additionalProperties": false
+}

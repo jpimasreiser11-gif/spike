@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spike.local/schemas/v1/bench-share.schema.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "spike-bench-share"
+    },
+    "version": {
+      "const": 1
+    },
+    "hardware": {
+      "type": "object",
+      "properties": {
+        "cpu_class": {
+          "type": "string"
+        },
+        "cores": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ram_gb": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "cpu_class",
+        "cores",
+        "ram_gb"
+      ],
+      "additionalProperties": false
+    },
+    "os": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "spike_version": {
+      "type": "string"
+    },
+    "llama_cpp_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model": {
+      "type": "string"
+    },
+    "context": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "variant": {
+            "enum": [
+              "base",
+              "adapted"
+            ]
+          },
+          "tok_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "ttft_s": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "prompt_tokens",
+          "variant",
+          "tok_s",
+          "ttft_s"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "hardware",
+    "os",
+    "spike_version",
+    "llama_cpp_version",
+    "model",
+    "context",
+    "results"
+  ],
+  "additionalProperties": false
+}

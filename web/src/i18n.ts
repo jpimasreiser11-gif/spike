@@ -84,6 +84,11 @@ const es = {
   contractBad: "No cumple el esquema",
   attempts: "intentos",
   proof: "Descargar paquete de prueba",
+  proofChoose: "Elegir evidencia",
+  proofSelectionHint: "Se comparten secciones completas. El chat puede contener texto privado, eventos y rutas. Revisa el paquete antes de publicarlo.",
+  proofChat: "Chat y eventos", proofCalls: "Llamadas a modelos", proofFiles: "Cambios de archivos",
+  proofProviders: "Proveedores", proofSettings: "Ajustes e instrucciones", proofEnvironment: "Entorno sin secretos",
+
   proofHint: "Paquete de prueba: el chat con cada paso, las llamadas a modelos y las huellas de los archivos, verificable con SHA256SUMS",
   questionFor: "SPIKE necesita que le digas algo para seguir",
   answer: "Responder",
@@ -273,6 +278,11 @@ const en: Dict = {
   contractBad: "Does not follow the schema",
   attempts: "attempts",
   proof: "Download proof package",
+  proofChoose: "Choose evidence",
+  proofSelectionHint: "Complete sections are shared. Chat may contain private text, events and paths. Review the package before posting it.",
+  proofChat: "Chat and events", proofCalls: "Model calls", proofFiles: "File changes",
+  proofProviders: "Providers", proofSettings: "Settings and instructions", proofEnvironment: "Environment without secrets",
+
   proofHint: "Proof package: the chat with every step, its model calls and file checksums, verifiable with SHA256SUMS",
   questionFor: "SPIKE needs something from you to go on",
   answer: "Answer",

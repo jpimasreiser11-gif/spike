@@ -5,9 +5,10 @@ import { AssistantMessage } from "./components/AssistantMessage";
 import { Composer } from "./components/Composer";
 import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
-import { IconBack, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer, IconDownload } from "./components/Icons";
+import { IconBack, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
+import { ProofDownload } from "./components/ProofDownload";
 import { Replay } from "./components/Replay";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
@@ -354,9 +355,7 @@ export default function App() {
               onClick={() => setTemporary(!temporary)} title={t.temporaryHint}><IconTimer size={15} /> {t.temporaryChat}</button>
           )}
           {activeId && !empty && !busy && (
-            <a className="icon-btn" href={`/api/conversations/${activeId}/proof`} download title={t.proofHint} aria-label={t.proof}>
-              <IconDownload />
-            </a>
+            <ProofDownload key={activeId} conversationId={activeId} />
           )}
           <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle theme">{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
         </header>

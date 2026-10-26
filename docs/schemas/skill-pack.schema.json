@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spike.local/schemas/v1/skill-pack.schema.json",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "spike-pack"
+    },
+    "version": {
+      "const": 1
+    },
+    "specialists": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": true
+      }
+    },
+    "connectors": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "specialists",
+    "connectors",
+    "skills"
+  ],
+  "additionalProperties": false
+}

@@ -162,11 +162,42 @@ async def run_benchmark(args: Any) -> dict[str, Any]:
                     })
     finally:
         await server.stop()
-    if getattr(args, "out", None):
+    if getattr(args, "out", None) and not getattr(args, "share", False):
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-        Path(args.out).write_text(json.dumps(report, indent=2))
+        Path(args.out).write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
 
 
 def as_dict(obj: Any) -> Any:
     return asdict(obj)
+
+
+def share_report(report: dict[str, Any]) -> dict[str, Any]:
+    """Project measured results onto a public allowlist, never copying paths or arbitrary build metadata.
+
+    Unknown CPU/model labels stay unknown: filenames and vendor-supplied strings can contain identifiers.
+    OS releases retain only their numeric prefix, excluding custom kernel suffixes and network names.
+    """
+    import re
+
+    hw = report['hardware']
+    cpu = re.search(r'\b(Apple M[1-9][0-9]?(?: Max| Pro| Ultra)?|Intel(?:\(R\))? (?:Xeon|Core)|AMD (?:Ryzen|EPYC))\b',
+                    hw.get('cpu_model', ''))
+    model = re.fullmatch(r'(Qwen[0-9.]+-[0-9.]+[BM](?:-Q[0-9]_K_[SML]|-Q[0-9]_0|-F16)?)\.gguf',
+                         str(report['model']['path']).replace('\\', '/').rsplit('/', 1)[-1], re.IGNORECASE)
+    release = re.match(r'[0-9]+(?:\.[0-9]+)*', platform.release())
+    build = report.get('llama_cpp_build')
+    commit = build.get('commit') if isinstance(build, dict) else build
+    commit = commit if isinstance(commit, str) and re.fullmatch(r'(?:b[0-9]+-)?[0-9a-f]{7,40}', commit) else None
+    return {
+        'format': 'spike-bench-share', 'version': 1,
+        'hardware': {'cpu_class': cpu.group(0) if cpu else 'unknown',
+                     'cores': hw['physical_cores'], 'ram_gb': round(hw['total_ram_gb'])},
+        'os': {'name': platform.system(), 'version': release.group(0) if release else 'unknown'},
+        'spike_version': __version__, 'llama_cpp_version': commit,
+        'model': model.group(1) if model else 'unknown',
+        'context': report['settings']['server_context'],
+        'results': [{'prompt_tokens': r['prompt_tokens'], 'variant': 'base' if r.get('variant') == 'base' else 'adapted',
+                     'tok_s': r['gen_tok_s']['median'], 'ttft_s': r['ttft_s']['median']}
+                    for r in report['results']],
+    }
