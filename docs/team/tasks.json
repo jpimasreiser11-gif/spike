@@ -1,0 +1,683 @@
+{
+ "version": 1,
+ "tasks": [
+  {
+   "id": "A0",
+   "owner": "claude",
+   "status": "doing",
+   "phase": "equipo",
+   "title": "Tablero del equipo y trabajador de Codex",
+   "depends": [],
+   "paths": [
+    "scripts/team/",
+    "tests/test_team.py"
+   ],
+   "spec": "scripts/team/board.py (check, render, next, show) and scripts/team/codex_worker.py (loop on the Mac that runs `codex exec` on Codex's tasks, one branch per task, never pushes to main), tests in tests/test_team.py, CI check.",
+   "accept": [
+    "board.py check/render --check pass in CI",
+    "codex_worker.py --once tested end to end with a fake codex"
+   ]
+  },
+  {
+   "id": "M0",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "equipo",
+   "title": "Arrancar a Codex en el Mac",
+   "depends": [
+    "A0"
+   ],
+   "paths": [],
+   "spec": "On joan's Mac: create the worktree ~/Downloads/Spike-codex from origin/main (never touch ~/Downloads/Spike), run `python3 scripts/team/codex_worker.py setup --repo ~/Downloads/Spike-codex`, check that `codex` is installed and logged in (`codex login status`), then launch detached: `nohup caffeinate -i python3 scripts/team/codex_worker.py run --repo ~/Downloads/Spike-codex > ~/.spike-team/run.out 2>&1 &`. Report to Claude what ran and the first task taken. It must not stop or slow the training run (RAM guard in the worker).",
+   "accept": [
+    "the worker log shows the first task taken",
+    "training run untouched"
+   ]
+  },
+  {
+   "id": "S1",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Rescatar el trabajo de Studio",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/",
+    "docs/"
+   ],
+   "spec": "Your own earlier work (\"Studio\": projects, skills, MCP, OpenAI-compatible API, docs/STUDIO.md) sits uncommitted in joan's folder /Users/jpima/Downloads/Spike. Only READ it there (never write, reset, checkout or clean that folder). main already has projects (spike/projects.py), skills (spike/skills/), MCP client and catalog (spike/connectors/), /v1 API (spike/server/openai_api.py). Compare feature by feature, then port onto this branch only what main lacks or does better, adapted to main's code and tests (no second implementation of the same thing). Put the comparison table (feature | Studio | main | ported?) in your report. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "comparison table in the report covers every item of Studio's docs/STUDIO.md",
+    "each ported feature has tests; full suite and ruff pass",
+    "nothing written in /Users/jpima/Downloads/Spike"
+   ]
+  },
+  {
+   "id": "A1",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Paquete de skills y validadores",
+   "depends": [],
+   "paths": [
+    "spike/skills/",
+    "spike/connectors/",
+    "spike/cli.py",
+    ".github/workflows/ci.yml"
+   ],
+   "spec": "Nine bundled skills (Agent Skills SKILL.md, original text, license Apache-2.0) in spike/skills/bundled/<name>/: decision-simulator (Business), test-inventor (Code), migration-architect (Code), performance-profiler (Code, cProfile), localization (Writing; uses the project glossary when present), experiment-designer (Science), synthetic-data (Data; Faker only if installed, else stdlib), vector-designer (Design/Writing; SVG to the artifacts panel), system-diagnostic (Core; uses `spike doctor`). Read 2 existing bundled skills and tests/test_skills.py first. Then `spike skills validate [PATH...]` (spec format as the loader checks it, allowed licenses MIT/Apache-2.0/BSD/ISC/CC0/CC-BY, declared tools exist, no secret-looking strings, body size) and `spike connectors validate [FILE]` for spike/connectors/catalog.yaml entries (required fields, license, transport, pinned version, secrets only as env names); exit 1 on problems; CI step runs both on the bundled set. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "each new skill is picked by the router for 2 Spanish + 2 English prompts and not for an unrelated one",
+    "a test per validation failure kind",
+    "CI runs both validators"
+   ]
+  },
+  {
+   "id": "A2",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Ecosistema abierto: bench --share, esquemas, compatibilidad",
+   "depends": [],
+   "paths": [
+    "spike/bench.py",
+    "spike/proof.py",
+    "docs/schemas/",
+    "scripts/compat_matrix.py",
+    ".github/"
+   ],
+   "spec": "`spike bench --share`: anonymous JSON (CPU model class, cores, RAM GB rounded, OS + version, SPIKE/llama.cpp versions, model, context, tok/s, TTFT; never hostname, username, paths, IPs) printed and saved, plus .github/ISSUE_TEMPLATE/benchmark.yml and failure.yml. docs/schemas/*.schema.json (v1, `$id` versioned) for specialist pack, skill pack, project export, proof package manifest and bench share; tests validate real outputs with jsonschema (already a dependency). docs/COMPATIBILITY.md generated by scripts/compat_matrix.py from .github/workflows/*.yml and the evidence rows of docs/STATUS.md (only measured rows; `--check` mode in CI). Environment capsule (versions, platform, env without secrets) and selective sharing (choose what goes in) in the proof package. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "bench share test proves no hostname/user/path leaks",
+    "every schema validates a real generated file",
+    "COMPATIBILITY.md --check in CI"
+   ]
+  },
+  {
+   "id": "A3",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Analytics: contratos, SQL Guardian, rescate, linaje y previsiones",
+   "depends": [],
+   "paths": [
+    "spike/analytics/"
+   ],
+   "spec": "Inside spike/analytics (read it first): data contracts (schema + rules in JSON/YAML, validated on load, violations report); SQL Guardian (read-only DuckDB connection by default, EXPLAIN preview, LIMIT on previews, deterministic plain explanation of the plan; writes only after explicit approval); Data Rescue as the first step on load (encoding, delimiter, header row, decimal comma, es/en dates, duplicate rows, empty columns) with a before/after report; lineage: each step recorded and included in the proof package; baseline forecasts (naive, seasonal naive, drift, simple exponential smoothing, Holt) with rolling-origin backtest choosing by MAE, shown with the backtest table. Pure Python + DuckDB (no statsforecast). Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "forecast methods tested against hand-computed values",
+    "SQL Guardian refuses writes without approval",
+    "rescue fixes a messy CSV fixture and reports each fix"
+   ]
+  },
+  {
+   "id": "A5",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Dependency Doctor y Visual Critic",
+   "depends": [],
+   "paths": [
+    "spike/dev/"
+   ],
+   "spec": "Spike Dev tools (follow spike/dev/tools.py permission pattern). Dependency Doctor: runs pip-audit / npm audit only if installed and only when the user runs it (detect with shutil.which, degrade with a clear message), merges with the existing license check, report in the artifacts panel. Visual Critic (deterministic, no model): with the Playwright browser already used by Spike View, screenshot a page and run in-page checks written by you (no axe-core): WCAG 2.1 contrast from computed styles, images without alt, controls without labels, elements overflowing the viewport, tap targets under 24 px; report with the screenshot and selectors. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "fake pip-audit binary test",
+    "visual critic finds each planted issue in a fixture page"
+   ]
+  },
+  {
+   "id": "A8",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Lab: comparar modelos y probar proveedores",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "A Lab view: run the same prompt or an eval subset across specialists and providers side by side (latency, tokens, score, cost estimated from the provider's price settings), save and export runs. Provider probe: on the user's click only, checks a configured provider's real capabilities (tool calls, JSON mode, vision, streaming, context) with tiny requests, showing the estimated cost first; the paid-call guard applies. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "probe test against a fake OpenAI-compatible server",
+    "no call without the click",
+    "browser smoke covers Lab"
+   ]
+  },
+  {
+   "id": "A9",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Ramas de proyecto, comentarios, conocimiento por especialista y cola de trabajos",
+   "depends": [],
+   "paths": [
+    "spike/projects.py",
+    "spike/memory/",
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "Project branches (fork a project: files + instructions + chats snapshot; compare; merge files back with a diff the user approves); artifact comments (threads anchored to an artifact version and line, stored locally, given to the model when the user asks); knowledge per specialist (own memory scope and documents per specialist); job queue for heavy jobs (render, eval, indexing, training) with a limit on concurrent jobs and a RAM floor, Jobs panel with cancel. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "fork/merge round trip test",
+    "queue never runs more than the limit",
+    "browser smoke covers the new panels"
+   ]
+  },
+  {
+   "id": "A11",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Marketplace de skills y hasta 30 skills",
+   "depends": [
+    "A1"
+   ],
+   "paths": [
+    "spike/skills/"
+   ],
+   "spec": "Minimal marketplace: an index JSON (local file or a git URL the user adds; no default remote) listing skill packs with license and sha256; install verifies the hash and runs skills validate. Creator templates (landing page, report, deck, dashboard, data app) as skills. Bring bundled skills to at least 30, each with a routing test. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "hash mismatch refused",
+    "≥30 bundled skills pass validate"
+   ]
+  },
+  {
+   "id": "A12",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "De un Excel a una app (Data-to-Software)",
+   "depends": [
+    "A3"
+   ],
+   "paths": [
+    "spike/creator.py",
+    "web/src/"
+   ],
+   "spec": "Creator template: an Excel/CSV file becomes a small local app to query and edit it (generated into the project workspace, served through SPIKE's sandboxed artifact panel, edits written back only after approval). Sample xlsx fixture, end-to-end test. This is the core of the v0.2 demo. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "end-to-end test: xlsx → app → edit → approved write"
+   ]
+  },
+  {
+   "id": "A13",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Imagen y voz",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "Image input in the composer for providers that declare vision (paste/drag, resized, sent as content parts); local models refuse with a clear message unless a vision model is configured. Voice dictation through whisper.cpp if installed (detect binary, model path setting); optional text-to-speech through Piper if installed, showing the voice's license. Fake binaries in tests. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "fake whisper and piper tests",
+    "vision content parts test against a fake provider"
+   ]
+  },
+  {
+   "id": "A14",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Audio y subtítulos",
+   "depends": [
+    "A13"
+   ],
+   "paths": [
+    "spike/"
+   ],
+   "spec": "Transcribe audio/video with whisper.cpp to SRT/VTT, subtitle editing (shift, split, merge), burn-in with ffmpeg if installed. Fake binaries and a tiny wav fixture. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "SRT/VTT round trip tests",
+    "missing binaries degrade with a message"
+   ]
+  },
+  {
+   "id": "A15",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Investigación: notebook, Paper Rebuilder y mapa de contradicciones",
+   "depends": [],
+   "paths": [
+    "spike/"
+   ],
+   "spec": "Export a chat's code cells and outputs as .ipynb (nbformat v4 JSON written by you); Paper Rebuilder: from a PDF (pypdf, already a dependency) extract methods, equations and tables into a Forge plan to reproduce it, never claiming it reproduced until the plan ran; Contradiction Map: claims across documents, pairs flagged by the model, each with both source quotes, as a table. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "ipynb opens with json and has valid nbformat fields",
+    "contradiction pairs carry exact quotes"
+   ]
+  },
+  {
+   "id": "A16",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "Geo, grabador del navegador y explorador de arquitectura",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "Geo: GeoJSON or CSV lat/lon to an SVG map (no tile servers by default), distance/area, simple choropleth. Browser Recorder on Spike View: record actions into a replayable script, replay asks before each submitting action. Architecture Explorer: module/dependency graph of a project (Python and JS imports) in the artifacts panel, cycles highlighted. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "haversine/area tests",
+    "recorder replay asks before submit",
+    "cycle detection test"
+   ]
+  },
+  {
+   "id": "A18",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "app",
+   "title": "3D con Blender y juegos con Godot",
+   "depends": [],
+   "paths": [
+    "spike/"
+   ],
+   "spec": "Generate Blender Python scripts and run `blender --background --python` if installed, with a rendered preview; scaffold Godot 4 projects (GDScript) and run a headless check if `godot` is installed. Ask before running. Fake binaries in tests. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "fake blender/godot tests",
+    "permission asked before running"
+   ]
+  },
+  {
+   "id": "A4",
+   "owner": "claude",
+   "status": "doing",
+   "phase": "app",
+   "title": "Aislamiento del sistema para python y run_command",
+   "depends": [],
+   "paths": [
+    "spike/tools/"
+   ],
+   "spec": "OS sandbox for code tools: macOS sandbox-exec profile (no network, writes only in the workspace), Linux bwrap if installed, otherwise the current behaviour labelled as not isolated; setting in Settings.",
+   "accept": [
+    "escape attempts blocked in tests where the sandbox exists",
+    "clear label when it does not"
+   ]
+  },
+  {
+   "id": "A6",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "app",
+   "title": "Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas",
+   "depends": [],
+   "paths": [
+    "spike/orchestrator/"
+   ],
+   "spec": "Per-claim labels backed by tool results, citations or tests; citation inspector (the quoted fragment must exist in the source, plus a support score); hybrid escalation to a configured API provider only on the user's click, with the cost estimate first.",
+   "accept": [
+    "fabricated citation caught",
+    "no paid call without the click"
+   ]
+  },
+  {
+   "id": "A7",
+   "owner": "claude",
+   "status": "doing",
+   "phase": "app",
+   "title": "Memoria: carpetas elegidas, glosario, progreso del tutor y grafo",
+   "depends": [],
+   "paths": [
+    "spike/memory/"
+   ],
+   "spec": "Opt-in folder indexing (chosen folders only, globs, size limits, re-index on change, forget a folder), glossary per project, tutor progress with spaced review, knowledge graph over Neural Memory.",
+   "accept": [
+    "nothing outside chosen folders is read",
+    "forget removes every trace"
+   ]
+  },
+  {
+   "id": "A10",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "app",
+   "title": "Evolution: estrategia de herramientas, regresión de prompts y adaptador personal",
+   "depends": [],
+   "paths": [
+    "spike/evolution/"
+   ],
+   "spec": "Tool strategy statistics as a gated tie-breaker, prompt variants checked by `spike evolve check`, optional local personal adapter with the same acceptance criteria (off by default).",
+   "accept": [
+    "evolve check blocks a regressing prompt"
+   ]
+  },
+  {
+   "id": "A17",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "app",
+   "title": "Parallel Minds y prototipos en paralelo",
+   "depends": [],
+   "paths": [
+    "spike/orchestrator/",
+    "spike/forge/"
+   ],
+   "spec": "Opt-in N independent answers plus a verifier pick (shows the time/cost multiplier); two git branches built by Forge with different approaches and compared by tests.",
+   "accept": [
+    "off by default",
+    "comparison by tests, not by the model's word"
+   ]
+  },
+  {
+   "id": "A19",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "app",
+   "title": "Escritorio con un proveedor con computer use",
+   "depends": [],
+   "paths": [
+    "spike/"
+   ],
+   "spec": "Only with an API provider that supports computer use, each action confirmed, screenshots kept local, off by default; never with the local model.",
+   "accept": [
+    "every action needs a confirmation"
+   ]
+  },
+  {
+   "id": "M1",
+   "owner": "mac",
+   "status": "doing",
+   "phase": "modelos",
+   "title": "Medicina: arreglar el olvido (fix_forgetting)",
+   "depends": [],
+   "paths": [],
+   "spec": "Running on the Mac since 2026-10-26 09:05 UTC from ~/Downloads/Spike-main: checkpoint sweep, then one retrain with self-generated replay if none passes. Acceptance criteria unchanged.",
+   "accept": [
+    "summary.json with the verdict",
+    "general drop ≤ 1.5 points to accept"
+   ]
+  },
+  {
+   "id": "M2",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Decidir medicina con los números y elegir la receta",
+   "depends": [
+    "M1"
+   ],
+   "paths": [],
+   "spec": "Read the sweep/acceptance records; accepted → recipe for the others; rejected → next fix from MEJORAR-ESPECIALISTAS.md (verified distillation from open teachers, DPO after SFT), one change at a time.",
+   "accept": [
+    "decision written in docs/STATUS.md with the measured numbers"
+   ]
+  },
+  {
+   "id": "M3",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Entrenar finanzas con la receta que pase",
+   "depends": [
+    "M2"
+   ],
+   "paths": [],
+   "spec": "Same gate, one run at a time, RAM guard.",
+   "accept": [
+    "acceptance record"
+   ]
+  },
+  {
+   "id": "M4",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Entrenar marketing",
+   "depends": [
+    "M3"
+   ],
+   "paths": [],
+   "spec": "Same gate.",
+   "accept": [
+    "acceptance record"
+   ]
+  },
+  {
+   "id": "M5",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Recetas de datos: derecho, ciencia, matemáticas, código y datos",
+   "depends": [],
+   "paths": [
+    "training/",
+    "evals/"
+   ],
+   "spec": "For Law, Science, Math, Code and Data: candidate sources in training/datasets.yaml with license, provenance and role, format converters, eval suites with *-select splits in evals/suites.yaml, decontamination like medicine and finance (read training/prepare.py and tests/test_finance_data.py). Rules: commercial use must be allowed; never data generated by Claude, GPT, Gemini or Llama models; mark every license `unverified` in your report because your sandbox has no network: Claude verifies each one before any training. No downloads, no training.",
+   "accept": [
+    "converter tests on inline rows",
+    "every source has license + provenance + role",
+    "select suites distinct from acceptance"
+   ]
+  },
+  {
+   "id": "M6",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Recetas de datos: educación, escritura, negocio, seguridad y core",
+   "depends": [
+    "M5"
+   ],
+   "paths": [
+    "training/",
+    "evals/"
+   ],
+   "spec": "Same as M5 for Education, Writing, Business, Security and Core.",
+   "accept": [
+    "same as M5"
+   ]
+  },
+  {
+   "id": "M7",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Verificar licencias y conteos de las recetas nuevas",
+   "depends": [
+    "M5",
+    "M6"
+   ],
+   "paths": [],
+   "spec": "Check each new source's license on its card and LICENSE file (through the Mac, which has network), real row counts after filters; drop anything unclear.",
+   "accept": [
+    "audit table in docs/TRAINING.md"
+   ]
+  },
+  {
+   "id": "M8",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Entrenar los 10 especialistas restantes, de uno en uno",
+   "depends": [
+    "M4",
+    "M7"
+   ],
+   "paths": [],
+   "spec": "Core, Code, Law, Science, Data, Math, Education, Writing, Business, Security with the accepted recipe; each passes its gate or stays as an instruction profile.",
+   "accept": [
+    "one acceptance record per specialist"
+   ]
+  },
+  {
+   "id": "M9",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Router con los 13 especialistas",
+   "depends": [
+    "M8"
+   ],
+   "paths": [],
+   "spec": "Held-out test must not drop below 0.92.",
+   "accept": [
+    "router eval record"
+   ]
+  },
+  {
+   "id": "I1",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "instalador",
+   "title": "App de escritorio: lanzador y asistente de modelos",
+   "depends": [],
+   "paths": [
+    "spike/desktop/",
+    "packaging/",
+    "web/src/"
+   ],
+   "spec": "spike/desktop/: start the server on a free loopback port, wait for health, open a native window with pywebview if installed (optional extra `desktop`, BSD-3) or the default browser otherwise; single instance; quitting stops the server and llama-server. First-run wizard in the web UI: checks disk and RAM, downloads the base model and the chosen specialists' adapters from Hugging Face with SHA-256 checks, resumable, one button 'Descargar todo'. Reuse the download/verify code the installers already use. PyInstaller spec (packaging/spike.spec) bundling the pinned llama.cpp b11709 prebuilt binaries per OS (MIT). Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "launcher test with a fake server",
+    "download resume + bad hash tests with a local HTTP fixture"
+   ]
+  },
+  {
+   "id": "I2",
+   "owner": "codex",
+   "status": "todo",
+   "phase": "instalador",
+   "title": "Instaladores de un clic y publicación",
+   "depends": [
+    "I1"
+   ],
+   "paths": [
+    ".github/workflows/",
+    "packaging/"
+   ],
+   "spec": ".github/workflows/release.yml on tags v* and workflow_dispatch: macOS .dmg (SPIKE.app, ad-hoc signed), Windows .exe (Inno Setup), Linux AppImage; SHA256SUMS; draft GitHub Release; each artifact launched on its runner and /api/health checked with a tiny fixture model. No paid signing (document the OS warnings and how to open).",
+   "accept": [
+    "actionlint clean",
+    "workflow_dispatch run green on all three"
+   ]
+  },
+  {
+   "id": "I3",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "instalador",
+   "title": "Probar los instaladores en máquinas limpias con el modelo real",
+   "depends": [
+    "I2"
+   ],
+   "paths": [],
+   "spec": "As the current Installers workflow: clean runners, real model, an answer through /v1; README download section with only what was tested.",
+   "accept": [
+    "run ids recorded in docs/STATUS.md"
+   ]
+  },
+  {
+   "id": "I4",
+   "owner": "joan",
+   "status": "todo",
+   "phase": "instalador",
+   "title": "Opcional: certificados de firma",
+   "depends": [],
+   "paths": [],
+   "spec": "Apple Developer (about 99 USD a year) and a Windows certificate remove the OS warnings. They cost money, so only if joan decides.",
+   "accept": [
+    "joan's decision"
+   ]
+  },
+  {
+   "id": "L1",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Grabar la demo real",
+   "depends": [
+    "M2"
+   ],
+   "paths": [],
+   "spec": "The recording script in the repo, on the Mac, with a real model.",
+   "accept": [
+    "GIF/MP4 in the repo"
+   ]
+  },
+  {
+   "id": "L2",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Revisión final de seguridad y licencias y notas de versión",
+   "depends": [
+    "I3",
+    "L1"
+   ],
+   "paths": [],
+   "spec": "v0.1 checklist in docs/PLAN.md §27.",
+   "accept": [
+    "checklist all ticked with evidence"
+   ]
+  },
+  {
+   "id": "L3",
+   "owner": "joan",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Aprobar: repo público, Hugging Face y anuncio",
+   "depends": [
+    "L2"
+   ],
+   "paths": [],
+   "spec": "From joan's accounts, with joan's OK only.",
+   "accept": [
+    "joan's OK"
+   ]
+  },
+  {
+   "id": "N1",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "negocio",
+   "title": "Estudio de monetización",
+   "depends": [
+    "L2"
+   ],
+   "paths": [],
+   "spec": "Options with evidence and what each license allows (app Apache-2.0, base model license, every dataset's commercial terms): open-core with a Pro edition, paid specialist packs trained only on commercially licensed data, support and custom specialists for companies, sponsorships, marketplace revenue share, hosted API; costs, risks, recommendation.",
+   "accept": [
+    "document with sources"
+   ]
+  },
+  {
+   "id": "N2",
+   "owner": "joan",
+   "status": "todo",
+   "phase": "negocio",
+   "title": "Elegir cómo monetizar",
+   "depends": [
+    "N1"
+   ],
+   "paths": [],
+   "spec": "joan decides from N1.",
+   "accept": [
+    "joan's decision"
+   ]
+  },
+  {
+   "id": "N3",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "negocio",
+   "title": "Implementar la monetización elegida",
+   "depends": [
+    "N2"
+   ],
+   "paths": [],
+   "spec": "Split between Claude and Codex once N2 is decided; payments only through joan's own accounts.",
+   "accept": [
+    "tested"
+   ]
+  }
+ ]
+}
