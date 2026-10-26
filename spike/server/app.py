@@ -33,6 +33,7 @@ from spike.finance.live import LiveError
 from spike.finance.market import EXCHANGES
 from spike.finance.paper import PaperError
 from spike.forge.blueprint import from_user as blueprint_from_user
+from spike.memory.service import Recall
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
@@ -47,6 +48,7 @@ from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.state import AppState
+from spike.server.workspace_api import create_workspace_router
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
 from spike.tools.documents import MissingLibrary
@@ -79,6 +81,7 @@ class ProviderIn(BaseModel):
 
 
 class ChatIn(BaseModel):
+    comment_threads: list[str] = Field(default_factory=list, max_length=20)
     message: str = Field(min_length=1, max_length=200_000)
     conversation_id: str | None = None
     mode: str = "auto"
@@ -327,6 +330,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             return await call_next(request)
 
     app.include_router(create_router(st))
+    app.include_router(create_workspace_router(st))
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)
@@ -1198,6 +1202,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             try:
                 report = await state.optimize_prompt(specialist, body.instructions, body.max_calls, queue.put)
                 await queue.put({"type": "done", "report": report})
+            except asyncio.CancelledError:
+                await queue.put({"type": "error", "message": "job cancelled"})
             except Exception as exc:  # the client must hear why it stopped
                 await queue.put({"type": "error", "message": f"{exc.__class__.__name__}: {exc}"})
             finally:
@@ -1259,6 +1265,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     # ---------------------------------------------------------------- memory
     def check_scope(scope: str) -> str:
+        if scope.startswith("specialist:") and scope[11:] in st().catalog.specialists:
+            return scope
         if scope != "global" and not (scope.startswith("project:") and st().store.get_project(scope[8:])):
             raise HTTPException(400, f"unknown memory scope '{scope}'")
         return scope
@@ -1462,6 +1470,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         history = [Message(role=m["role"], content=m["content"],
                            private=[m["content"]] if m["meta"].get("private") else [])  # answers that quote files
                    for m in store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
+        try:
+            state.discussions.context(body.comment_threads)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
         user_message = store.add_message(conv["id"], "user", body.message)
         await state.ensure_adapters(body.provider_id)
         await state.connectors.ensure_started()
@@ -1477,6 +1489,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             options = state.options(mode, project)
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
             options.json_schema = body.response_schema
+            if body.comment_threads:
+                options.artifact_comments = state.discussions.context(body.comment_threads)
             options.forge = blueprint
             trust = state.trust_settings()  # claim labels are for the app's chats; /v1, MCP and the CLI do not get them
             options.trust, options.trust_model_pass = trust["enabled"], trust["enabled"] and trust["model_pass"]
@@ -1521,6 +1535,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
                     options.memory = await state.memory.recall(body.message, project["id"] if project else None,
                                                                context=[m.content for m in history[-6:]])
                     options.memory.saved = saved
+                    for sid in state.catalog.specialists:
+                        scope = f"specialist:{sid}"
+                        options.specialist_memory[sid] = Recall(
+                            rules=state.memory.store.rules([scope]),
+                            hits=state.memory.store.search(body.message, [scope]))
                     if (memory_event := options.memory.event()) is not None:
                         meta["memory"] = memory_event
                         record(memory_event)

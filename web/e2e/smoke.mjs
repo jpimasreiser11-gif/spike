@@ -189,6 +189,40 @@ await page.getByRole("button", { name: "Todos los chats" }).click();
 await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).waitFor();
 if (await page.locator(".conv-title", { hasText: "Resume las ventas" }).count()) fail("project chat leaked into the main list");
 
+// A9: fork the actual project, review and approve its diff, and preserve the parent chat snapshot.
+await page.getByRole("button", { name: "Tesis", exact: true }).click();
+await page.locator(".project-branches summary").click();
+await page.getByLabel("Nombre de la rama").fill("Tesis alternativa");
+await page.getByRole("button", { name: "Crear rama", exact: true }).click();
+await page.getByText("Rama creada; disponible en Proyectos.").waitFor();
+await page.getByRole("button", { name: "Tesis alternativa", exact: true }).click();
+await page.locator(".project-branches summary").click();
+const allProjects = await (await fetch(`${base}/api/projects`)).json();
+const forked = allProjects.find((p) => p.name === "Tesis alternativa");
+const parentProject = allProjects.find((p) => p.name === "Tesis");
+await fetch(`${base}/api/projects/${forked.id}/files/branch.txt`, { method: "PUT", body: "approved change\n" });
+await page.getByRole("button", { name: "Comparar con el origen" }).click();
+await page.getByRole("region", { name: "Vista previa de fusión" }).getByText("+approved change", { exact: false }).waitFor();
+await page.getByRole("button", { name: "Aprobar este diff y fusionar" }).click();
+await page.getByText("Archivos fusionados.").waitFor();
+if (await (await fetch(`${base}/api/projects/${parentProject.id}/files/branch.txt`)).text() !== "approved change\n") fail("approved merge did not update parent");
+await page.screenshot({ path: `${out}/07-a9-branches.png` });
+await page.getByRole("button", { name: "Todos los chats" }).click();
+
+// A9: specialist knowledge and a fake heavy job; cancellation exercises the real session queue without models.
+await fetch(`${base}/_test/queue-job`, { method: "POST" });
+await page.getByRole("button", { name: "Trabajos y conocimiento" }).click();
+const jobsDialog = page.getByRole("dialog", { name: "Trabajos y conocimiento" });
+await jobsDialog.getByLabel("Texto del conocimiento").fill("quartz: usar tipos explícitos");
+await jobsDialog.getByRole("button", { name: "Guardar conocimiento", exact: true }).click();
+await jobsDialog.getByText("quartz: usar tipos explícitos", { exact: true }).waitFor();
+await jobsDialog.getByLabel("Especialista", { exact: true }).selectOption("medicine");
+await page.waitForFunction(() => !document.querySelector('[aria-label="Conocimiento por especialista"]')?.textContent.includes("quartz:"));
+await jobsDialog.getByRole("region", { name: "Trabajos", exact: true }).getByRole("button", { name: "Cancelar" }).click();
+await jobsDialog.getByText("Entrenamiento · Detenido", { exact: true }).waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07-a9-jobs-knowledge.png` });
+await jobsDialog.getByRole("button", { name: "Cerrar", exact: true }).click();
+
 // privacy: the call log shows the DeepSeek call with the file passage withheld
 await page.getByRole("button", { name: "Ajustes" }).click();
 await page.getByRole("tab", { name: "Privacidad" }).click();
@@ -468,6 +502,18 @@ if (!artifactLogs.some((l) => l.includes("connect-src"))) fail("expected the CSP
 await page.screenshot({ path: `${out}/07c-artifact.png` });
 const [page_dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Descargar" }).click()]);
 if (page_dl.suggestedFilename() !== "prueba-de-aislamiento.html") fail("artifact download name: " + page_dl.suggestedFilename());
+await page.locator(".artifact-panel").getByRole("tab", { name: "Comentarios", exact: true }).click();
+await page.getByLabel("Comentario", { exact: true }).fill("Revisar la línea inicial");
+await page.getByRole("button", { name: "Guardar comentario" }).click();
+await page.getByText("Revisar la línea inicial", { exact: true }).waitFor();
+await page.getByRole("button", { name: "Responder al hilo" }).click();
+await page.getByLabel("Comentario", { exact: true }).fill("Confirmado");
+await page.getByRole("button", { name: "Guardar comentario" }).click();
+await page.getByText("Confirmado", { exact: true }).waitFor();
+await page.getByRole("button", { name: "Usar hilo en el próximo mensaje" }).click();
+await page.getByText("Hilo seleccionado para el próximo mensaje.").waitFor();
+await page.screenshot({ path: `${out}/07-a9-comments.png` });
+await page.getByRole("button", { name: "Hilos seleccionados:", exact: false }).click();
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
 
 // Spike Design: Settings lists the design systems with a sample page; a chat with one gets a page in its tokens

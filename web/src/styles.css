@@ -577,3 +577,14 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .graph-nodes ul { margin: 4px 0 0; padding-left: 18px; max-height: 16em; overflow: auto; display: grid; gap: 3px; }
 .graph-nodes li.focus > .link-btn { font-weight: 700; }
 .graph-found { gap: 6px; }
+
+/* Project variants and local review data stay outside the isolated artifact iframe. */
+.project-branches { margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.project-branches summary { cursor: pointer; margin-bottom: 8px; }
+.project-branches .row { flex-wrap: wrap; }
+.project-branches pre { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.artifact-comments { padding: 18px; overflow: auto; }
+.artifact-comments label { display: grid; gap: 6px; margin: 8px 0; }
+.artifact-comments textarea { min-height: 80px; }
+.artifact-comments article { border-bottom: 1px solid var(--border); padding: 12px 0; overflow-wrap: anywhere; }
+.comment-selection { position: fixed; bottom: 8px; right: 16px; z-index: 25; }

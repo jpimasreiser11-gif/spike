@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ProjectBranches } from "./ProjectBranches";
 import { api } from "../api";
 import { lang } from "../i18n";
 import type { DesignSystemInfo, Project, ProjectFile, Specialist } from "../types";
@@ -137,6 +138,7 @@ export function ProjectPanel({ project, specialists, designs = [], onEdit }: { p
         <button className="btn" onClick={onEdit}>{PL.edit}</button>
         <a className="btn" href={`/api/projects/${project.id}/export`} download>{PL.export}</a>
       </div>
+      <ProjectBranches key={project.id} projectId={project.id} />
       {project.instructions && <p className="project-instructions">{project.instructions}</p>}
       <div className="project-files">
         <div className="project-files-head">

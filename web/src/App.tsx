@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
+import { WorkspacePanel } from "./components/WorkspacePanel";
 import { Composer } from "./components/Composer";
 import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
@@ -98,6 +99,14 @@ export default function App() {
   const [design, setDesign] = useState(""); // "" = the project's design system (or none)
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [commentThreads, setCommentThreads] = useState<string[]>([]);
+  useEffect(() => {
+    const listener = (e: Event) => setCommentThreads((ids) => [...new Set([...ids, (e as CustomEvent<string>).detail])].slice(-20));
+    window.addEventListener("spike-comment-context", listener);
+    return () => window.removeEventListener("spike-comment-context", listener);
+  }, []);
+  useEffect(() => { setCommentThreads([]); }, [activeId, project?.id]);
   const [forgeOpen, setForgeOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [engine, setEngine] = useState<{ running: boolean } | null>(null);
@@ -125,6 +134,11 @@ export default function App() {
     [projectId],
   );
   const loadProjects = useCallback(() => api.get<Project[]>("/api/projects").then(setProjects), []);
+  useEffect(() => {
+    const refresh = () => { void loadProjects(); };
+    window.addEventListener("spike-projects-changed", refresh);
+    return () => window.removeEventListener("spike-projects-changed", refresh);
+  }, [loadProjects]);
   const loadProviders = useCallback(() => api.get<ProviderInfo[]>("/api/providers").then(setProviders), []);
   const loadDesigns = useCallback(() => api.get<DesignSystemInfo[]>("/api/design-systems").then(setDesigns), []);
 
@@ -214,11 +228,13 @@ export default function App() {
     const controller = new AbortController();
     abortRef.current = controller;
     const started = performance.now();
+    const selectedThreads = commentThreads;
+    setCommentThreads([]);
     const views = [...viewContext.current.values()].slice(-4); // what MCP App views reported, for this turn only
     viewContext.current.clear();
     try {
       await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
-                         replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
+                         comment_threads: selectedThreads, replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
                          ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}),
                          ...(extra?.design_system || design ? { design_system: extra?.design_system || design } : {}),
                          ...(extra?.skills.length ? { skills: extra.skills } : {}),
@@ -336,6 +352,7 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
+          <button className="side-btn" onClick={() => setWorkspaceOpen(true)}>{t.workspaceJobs}</button>
           <button className="side-btn" onClick={() => setSettingsOpen(true)}><IconSettings size={16} /> {t.settings}</button>
           <div className="engine-status" title={t.localEngine}>
             <span className={`status-dot ${engine?.running ? "on" : ""}`} /> {t.localEngine}: {engine?.running ? t.running : t.stopped2}
@@ -416,6 +433,8 @@ export default function App() {
         )}
       </main>
 
+      {workspaceOpen && <WorkspacePanel specialists={specialists} onClose={() => setWorkspaceOpen(false)} />}
+      {commentThreads.length > 0 && <button className="btn comment-selection" onClick={() => setCommentThreads([])}>{t.selectedComments}: {commentThreads.length} · {t.clearComments}</button>}
       {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
 
       {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}

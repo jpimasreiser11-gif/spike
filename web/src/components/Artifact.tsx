@@ -1,4 +1,5 @@
 import { createContext, useMemo, useState } from "react";
+import { ArtifactComments } from "./ArtifactComments";
 import { t } from "../i18n";
 import { IconClose, IconDownload } from "./Icons";
 
@@ -24,7 +25,7 @@ export function artifactFromCode(code: string, lang: string): ArtifactDoc {
 }
 
 export function ArtifactPanel({ doc, onClose }: { doc: ArtifactDoc; onClose: () => void }) {
-  const [view, setView] = useState<"preview" | "code">("preview");
+  const [view, setView] = useState<"preview" | "code" | "comments">("preview");
   const srcDoc = useMemo(() => artifactDocument(doc.html), [doc.html]);
   const download = () => {
     const type = doc.filename.endsWith(".svg") ? "image/svg+xml" : "text/html";
@@ -45,11 +46,12 @@ export function ArtifactPanel({ doc, onClose }: { doc: ArtifactDoc; onClose: () 
         <div className="seg" role="tablist">
           <button role="tab" aria-selected={view === "preview"} className={view === "preview" ? "on" : ""} onClick={() => setView("preview")}>{t.preview}</button>
           <button role="tab" aria-selected={view === "code"} className={view === "code" ? "on" : ""} onClick={() => setView("code")}>{t.code}</button>
+        <button role="tab" aria-selected={view === "comments"} onClick={() => setView("comments")}>{t.artifactComments}</button>
         </div>
         <button className="icon-btn" onClick={download} aria-label={t.download} title={t.download}><IconDownload size={17} /></button>
         <button className="icon-btn" onClick={onClose} aria-label={t.close} title={t.close}><IconClose size={17} /></button>
       </header>
-      {view === "preview" ? (
+      {view === "comments" ? <ArtifactComments key={doc.html} content={doc.html} title={doc.title} /> : view === "preview" ? (
         // allow-scripts without allow-same-origin: the page gets an opaque origin, so it cannot read SPIKE's
         // storage or cookies, call its API with them, or touch this window; no forms, popups or top navigation.
         <iframe key={srcDoc} className="artifact-frame" title={doc.title} sandbox="allow-scripts" srcDoc={srcDoc} referrerPolicy="no-referrer" />

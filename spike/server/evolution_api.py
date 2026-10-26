@@ -5,6 +5,7 @@ personal-adapter`."""
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from typing import Any
 
@@ -64,6 +65,8 @@ def create_evolution_router(get_state: Callable[[], Any]) -> APIRouter:
         state.optimizing = True
         try:
             return await state.activate_prompt(specialist, body.version)
+        except asyncio.CancelledError as exc:
+            raise HTTPException(409, "job cancelled") from exc
         except LookupError as exc:
             raise HTTPException(404, str(exc)) from exc
         except ValueError as exc:

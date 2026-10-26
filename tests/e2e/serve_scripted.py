@@ -285,6 +285,9 @@ Promise.allSettled([fetch("/api/health"), fetch("http://127.0.0.1:" + (location.
 class ScriptedApp:
     """Stands in for an MCP server with an app (the real protocol is tested in tests/test_mcp_apps.py)."""
 
+    async def close(self):
+        pass
+
     async def call_tool(self, name, args):
         price = 50_000 if name == "get_price" else 50_100
         raw = {"content": [{"type": "text", "text": f"{args.get('symbol')}: {price}"}],
@@ -377,6 +380,10 @@ def main() -> None:
     state.connectors.connections["prices"] = Connection(client=client, status="running", tools=[get_price],
                                                         by_remote={"get_price": get_price, "refresh_price": refresh})
     app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
+    @app.post("/_test/queue-job")
+    async def queue_test_job():
+        return {"id": state.jobs.submit("training", lambda: asyncio.sleep(3600))}
+
     app.state.tuner = scripted_tuner
     uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
 
