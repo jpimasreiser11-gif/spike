@@ -42,6 +42,8 @@ def _words(text: str) -> set[str]:
 def _list(value: Any) -> list[str]:
     if isinstance(value, str):
         return [v.strip() for v in value.split(",") if v.strip()]
+    if value is not None and not isinstance(value, list):
+        raise SkillError("routing metadata must be a string or list")
     return [str(v).strip() for v in value or [] if str(v).strip()]
 
 
@@ -90,6 +92,8 @@ def parse_skill(folder: Path, hints: dict[str, Any] | None = None, source: str =
         front = yaml.safe_load(parts[1]) or {}
     except yaml.YAMLError as exc:
         raise SkillError(f"{folder.name}: invalid front matter: {exc}") from exc
+    if not isinstance(front, dict):
+        raise SkillError(f"{folder.name}: front matter must be a mapping")
     name, description = str(front.get("name") or ""), str(front.get("description") or "").strip()
     if not name:
         raise SkillError(f"{folder.name}: 'name' is required")
