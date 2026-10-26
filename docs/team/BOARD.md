@@ -6,18 +6,18 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 7 | 0 | 0 | 0 | 7 | 0 | 14 |
+| Claude | 6 | 1 | 0 | 0 | 7 | 0 | 14 |
 | Codex | 12 | 0 | 0 | 0 | 6 | 0 | 18 |
-| Mac | 5 | 1 | 0 | 0 | 0 | 0 | 6 |
+| Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **27** | **1** | **0** | **0** | **13** | **0** | **41** |
+| **Total** | **25** | **2** | **0** | **0** | **14** | **0** | **41** |
 
 ## Fase: equipo
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
 | A0 | Claude | hecha | Tablero del equipo y trabajador de Codex | - |
-| M0 | Mac | pendiente | Arrancar a Codex en el Mac | A0 |
+| M0 | Mac | hecha | Arrancar a Codex en el Mac | A0 |
 
 ## Fase: app
 
@@ -56,7 +56,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M6 | Codex | pendiente | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
 | M7 | Claude | pendiente | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
-| M9 | Claude | pendiente | Router con los 13 especialistas | M8 |
+| M9 | Claude | en curso | Router con los 13 especialistas | M8 |
 
 ## Fase: instalador
 

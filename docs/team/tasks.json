@@ -21,7 +21,7 @@
   {
    "id": "M0",
    "owner": "mac",
-   "status": "todo",
+   "status": "done",
    "phase": "equipo",
    "title": "Arrancar a Codex en el Mac",
    "depends": [
@@ -511,7 +511,7 @@
   {
    "id": "M9",
    "owner": "claude",
-   "status": "todo",
+   "status": "doing",
    "phase": "modelos",
    "title": "Router con los 13 especialistas",
    "depends": [
