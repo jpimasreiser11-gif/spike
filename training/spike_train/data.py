@@ -277,7 +277,119 @@ def fmt_mmlu_pro(row: dict[str, Any], system: str) -> Chat | None:
     ]}
 
 
+# Candidate human-authored specialist sources. All converters are pure; MBPP tests and SQL are never executed.
+CODE_INSTRUCTION = "Return only the Python solution in a fenced code block."
+SQL_INSTRUCTION = ('Return only SQL in a fenced code block, using table data, double-quoted column names and '
+                   'single-quoted values. Preserve the annotated condition order.')
+
+
+def fmt_case_hold(row: dict[str, Any], system: str) -> Chat | None:
+    """LexGLUE CaseHOLD: citing context and five candidate holdings; labels are zero-based."""
+    question = row.get("context")
+    options = row.get("endings") or []
+    label = row.get("label")
+    if not isinstance(question, str) or not question.strip() or len(options) != 5:
+        return None
+    if not all(isinstance(o, str) and o.strip() for o in options):
+        return None
+    if not isinstance(label, int) or not 0 <= label < 5:
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": mcq_prompt(question, options)},
+        {"role": "assistant", "content": f"Answer: {LETTERS[label]}"},
+    ]}
+
+
+def fmt_openbookqa(row: dict[str, Any], system: str) -> Chat | None:
+    """OpenBookQA main schema. The additional-facts configuration is not used: no answer-bearing fact in prompts."""
+    question, choices, gold = row.get("question_stem"), row.get("choices") or {}, row.get("answerKey")
+    labels, options = choices.get("label", []), choices.get("text", [])
+    if not isinstance(question, str) or not question.strip() or labels != list("ABCD") or len(options) != 4:
+        return None
+    if gold not in labels or not all(isinstance(o, str) and o.strip() for o in options):
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": mcq_prompt(question, options)},
+        {"role": "assistant", "content": f"Answer: {gold}"},
+    ]}
+
+
+def fmt_gsm8k(row: dict[str, Any], system: str) -> Chat | None:
+    """Human-authored GSM8K reasoning with its #### numeric target changed to the shared Answer marker."""
+    question, answer = row.get("question"), row.get("answer")
+    if not isinstance(question, str) or not question.strip() or not isinstance(answer, str) or "####" not in answer:
+        return None
+    reasoning, gold = answer.rsplit("####", 1)
+    gold = gold.strip().replace(",", "")
+    if not re.fullmatch(r"-?\d+(?:\.\d+)?", gold):
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": gsm8k_prompt(question)},
+        {"role": "assistant", "content": f"{reasoning.strip()}\n\nAnswer: {gold}".strip()},
+    ]}
+
+
+def fmt_mbpp(row: dict[str, Any], system: str) -> Chat | None:
+    """MBPP full configuration: a human problem and Python solution, without exposing or executing test_list."""
+    question, code = row.get("text"), row.get("code")
+    if not isinstance(question, str) or not question.strip() or not isinstance(code, str) or not code.strip():
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"{question.strip()}\n\n{CODE_INSTRUCTION}"},
+        {"role": "assistant", "content": f"```python\n{code.strip()}\n```"},
+    ]}
+
+
+def fmt_wikisql(row: dict[str, Any], system: str) -> Chat | None:
+    """WikiSQL Hub schema -> canonical SQL over table `data` (schema only, no rows, no execution).
+    Hub conditions are parallel column_index/operator_index/condition lists. Preserve their annotation order;
+    exact textual matching is a recipe smoke metric, not WikiSQL execution accuracy."""
+    question, table, sql = row.get("question"), row.get("table") or {}, row.get("sql") or {}
+    headers, types = table.get("header", []), table.get("types", [])
+    if not isinstance(question, str) or not question.strip() or not headers or len(headers) != len(types):
+        return None
+    if not all(isinstance(h, str) and h.strip() for h in headers):
+        return None
+    sel, agg = sql.get("sel"), sql.get("agg")
+    if not isinstance(sel, int) or not 0 <= sel < len(headers) or not isinstance(agg, int) or not 0 <= agg < 6:
+        return None
+    columns = ['"' + h.replace('"', '""') + '"' for h in headers]
+    funcs = ["", "MAX", "MIN", "COUNT", "SUM", "AVG"]
+    target = columns[sel] if agg == 0 else f"{funcs[agg]}({columns[sel]})"
+    conditions = sql.get("conds") or {}
+    indices, ops, values = (conditions.get(k, []) for k in ("column_index", "operator_index", "condition"))
+    if not len(indices) == len(ops) == len(values):
+        return None
+    where = []
+    for col, op, value in zip(indices, ops, values, strict=True):
+        if not isinstance(col, int) or not 0 <= col < len(headers) or not isinstance(op, int) or not 0 <= op < 3:
+            return None
+        if not isinstance(value, (str, int, float)):
+            return None
+        literal = str(value).replace("'", "''")
+        where.append(f"{columns[col]} {['=', '>', '<'][op]} '{literal}'")
+    target = f"SELECT {target} FROM data" + (" WHERE " + " AND ".join(where) if where else "")
+    schema = "\n".join(f"{col}: {kind}" for col, kind in zip(columns, types, strict=True))
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"Table data:\n{schema}\n\nQuestion: {question.strip()}\n\n{SQL_INSTRUCTION}"},
+        {"role": "assistant", "content": f"```sql\n{target}\n```"},
+    ]}
+
+
+TEMPLATES += (CODE_INSTRUCTION, SQL_INSTRUCTION)
+
+
 FORMATTERS = {
+    "case_hold": fmt_case_hold,
+    "openbookqa": fmt_openbookqa,
+    "gsm8k": fmt_gsm8k,
+    "mbpp": fmt_mbpp,
+    "wikisql": fmt_wikisql,
     "medmcqa": fmt_medmcqa,
     "pubmedqa": fmt_pubmedqa,
     "sujet": fmt_sujet,

@@ -21,6 +21,7 @@ suites:
   law:
     specialist: law
     tasks:
+      - {name: casehold-test, source: casehold-test, n: 600}
       - {name: mmlu-pro-law, source: mmlu-pro, categories: [law], n: 600}
   math:
     specialist: math
@@ -30,12 +31,14 @@ suites:
   science:
     specialist: science
     tasks:
+      - {name: openbookqa-test, source: openbookqa-test, n: 300}
       - {name: mmlu-pro-physics, source: mmlu-pro, categories: [physics], n: 400}
       - {name: mmlu-pro-chemistry, source: mmlu-pro, categories: [chemistry], n: 400}
       - {name: mmlu-pro-biology, source: mmlu-pro, categories: [biology], n: 400}
   code:
     specialist: code
     tasks:
+      - {name: mbpp-test, source: mbpp-test, n: 300}
       - {name: mmlu-pro-cs, source: mmlu-pro, categories: [computer science]}
   general:
     specialist: core
@@ -55,3 +58,27 @@ suites:
     tasks:
       - {name: finqa-test-select, source: finqa-test, skip: 600, n: 300}
       - {name: tatqa-test-select, source: tatqa-test, skip: 600, n: 300}
+  law-select:
+    specialist: law
+    tasks:
+      - {name: casehold-test-select, source: casehold-test, skip: 600, n: 300}
+  science-select:
+    specialist: science
+    tasks:
+      - {name: openbookqa-test-select, source: openbookqa-test, skip: 300, n: 150}
+  math-select:
+    specialist: math
+    tasks:
+      - {name: gsm8k-select, source: gsm8k, skip: 500, n: 300}
+  code-select:
+    specialist: code
+    tasks:
+      - {name: mbpp-test-select, source: mbpp-test, skip: 300, n: 150}
+  data:
+    specialist: data
+    tasks:
+      - {name: wikisql-test, source: wikisql-test, n: 600}
+  data-select:
+    specialist: data
+    tasks:
+      - {name: wikisql-test-select, source: wikisql-test, skip: 600, n: 300}

@@ -9,6 +9,7 @@ test on the paired items.
 from __future__ import annotations
 
 import asyncio
+import re
 import socket
 import time
 from collections import defaultdict
@@ -18,10 +19,10 @@ from typing import Any
 import httpx
 
 from spike_train.data import (
+    FORMATTERS,
     LETTERS,
     finqa_answer,
     finqa_prompt,
-    gsm8k_prompt,
     mcq_prompt,
     pubmedqa_prompt,
     tatqa_prompt,
@@ -46,7 +47,7 @@ class Item:
     id: str
     task: str
     prompt: str
-    kind: str  # mcq | yesno | numeric | amount | span | spans
+    kind: str  # mcq | yesno | numeric | amount | span | spans | literal
     gold: str  # amount: a number; spans: 'a; b; c'
     n_options: int = 0
     alt: str = ""  # amount: a second accepted number (FinQA's rounded annotated answer)
@@ -70,9 +71,20 @@ def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | No
             return None
         return Item(f"{task}/{row.get('question_id', index)}", task, mcq_prompt(row["question"], options), "mcq",
                     row["answer"], len(options))
-    if fmt == "gsm8k":
-        gold = str(row.get("answer", "")).rsplit("####", 1)[-1].strip().replace(",", "")
-        return Item(f"{task}/{index}", task, gsm8k_prompt(row["question"]), "numeric", gold)
+    if fmt in ("case_hold", "openbookqa", "gsm8k", "mbpp", "wikisql"):
+        chat = FORMATTERS[fmt](row, "")
+        if not chat:
+            return None
+        prompt, target = (m["content"] for m in chat["messages"][1:])
+        key = {"case_hold": "example_id", "openbookqa": "id", "gsm8k": "id",
+               "mbpp": "task_id", "wikisql": "id"}[fmt]
+        item_id = f"{task}/{row.get(key, index)}"
+        if fmt in ("case_hold", "openbookqa"):
+            return Item(item_id, task, prompt, "mcq", target.rsplit("Answer: ", 1)[-1],
+                        5 if fmt == "case_hold" else 4)
+        if fmt == "gsm8k":
+            return Item(item_id, task, prompt, "numeric", target.rsplit("Answer: ", 1)[-1])
+        return Item(item_id, task, prompt, "literal", literal_answer(target))
     if fmt == "finqa":  # gold-facts setting, see data.py
         qa = row.get("qa") or {}
         prompt, exe = finqa_prompt(row), qa.get("exe_ans")
@@ -104,7 +116,17 @@ def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | No
     raise ValueError(f"no evaluation format '{fmt}'")
 
 
+def literal_answer(response: str) -> str:
+    """A single fenced code/SQL block or the entire bare answer; preserve case, operators and indentation.
+    No execution and no whitespace/punctuation normalization that could change program meaning."""
+    blocks = re.findall(r"```(?:python|sql)?[ \t]*\r?\n(.*?)```", response, re.DOTALL)
+    return (blocks[0] if len(blocks) == 1 else response).strip().replace("\r\n", "\n")
+
+
 def score(item: Item, response: str) -> tuple[str | None, bool]:
+    if item.kind == "literal":
+        parsed = literal_answer(response)
+        return parsed or None, bool(parsed) and parsed == item.gold
     if item.kind == "mcq":
         parsed = extract_choice(response, item.n_options or 10)
         return parsed, parsed == item.gold

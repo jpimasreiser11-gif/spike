@@ -172,3 +172,108 @@ sources:
     role: eval
     format: gsm8k
     provenance: 1,319 grade-school math word problems with numeric answers.
+
+  # ------------------------------------------------------------------ M5 candidates (NOT cleared for use)
+  # All licenses below are claims pending Claude review, including underlying text/table rights.
+  # license_status: unverified blocks preparation (also offline) and evaluation before network access.
+  casehold-train:
+    hub: coastalcph/lex_glue
+    config: case_hold
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/coastalcph/lex_glue
+    role: train
+    format: case_hold
+    provenance: 'UNVERIFIED candidate. CaseHOLD: legal citing contexts and candidate holdings from US judicial opinions,
+      with human labels. Verify the dataset grant, underlying opinion rights, upstream schema and absence of generated
+      text before use.'
+  casehold-test:
+    hub: coastalcph/lex_glue
+    config: case_hold
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/coastalcph/lex_glue
+    role: eval
+    format: case_hold
+    provenance: 'UNVERIFIED candidate. CaseHOLD: legal citing contexts and candidate holdings from US judicial opinions,
+      with human labels. Verify the dataset grant, underlying opinion rights, upstream schema and absence of generated
+      text before use.'
+  openbookqa-train:
+    hub: allenai/openbookqa
+    config: main
+    split: train
+    license: apache-2.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/openbookqa
+    role: train
+    format: openbookqa
+    provenance: 'UNVERIFIED candidate. OpenBookQA: crowdworker-written elementary science questions and answer options,
+      based on science facts. Use the original main configuration, no generated explanations or fact1 in prompts.'
+  openbookqa-test:
+    hub: allenai/openbookqa
+    config: main
+    split: test
+    license: apache-2.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/openbookqa
+    role: eval
+    format: openbookqa
+    provenance: 'UNVERIFIED candidate. OpenBookQA: crowdworker-written elementary science questions and answer options,
+      based on science facts. Use the original main configuration, no generated explanations or fact1 in prompts.'
+  gsm8k-train:
+    hub: openai/gsm8k
+    config: main
+    split: train
+    license: mit
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/openai/gsm8k
+    role: train
+    format: gsm8k
+    provenance: UNVERIFIED candidate. GSM8K original human-written grade-school problems and human step-by-step solutions
+      (not model outputs). Verify the original data grant and authorship; no synthetic derivatives.
+  mbpp-train:
+    hub: google-research-datasets/mbpp
+    config: full
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/google-research-datasets/mbpp
+    role: train
+    format: mbpp
+    provenance: UNVERIFIED candidate. MBPP original crowdworker-written Python problems, reference programs and tests.
+      No model-generated augmentations. Recipes train only on the train split; the test split is eval-only. Tests are neither exposed in prompts nor executed.
+  mbpp-test:
+    hub: google-research-datasets/mbpp
+    config: full
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/google-research-datasets/mbpp
+    role: eval
+    format: mbpp
+    provenance: UNVERIFIED candidate. MBPP original crowdworker-written Python problems, reference programs and tests.
+      No model-generated augmentations. Recipes train only on the train split; the test split is eval-only. Tests are neither exposed in prompts nor executed.
+  wikisql-train:
+    hub: Salesforce/wikisql
+    split: train
+    license: bsd-3-clause
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/Salesforce/wikisql
+    role: train
+    format: wikisql
+    provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
+      SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
+      repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
+  wikisql-test:
+    hub: Salesforce/wikisql
+    split: test
+    license: bsd-3-clause
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/Salesforce/wikisql
+    role: eval
+    format: wikisql
+    provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
+      SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
+      repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
