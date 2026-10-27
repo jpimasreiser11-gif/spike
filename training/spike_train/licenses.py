@@ -28,6 +28,8 @@ def check(license_id: str | None, role: str) -> tuple[bool, str]:
 def source_license(src: dict) -> str | None:
     """The license to gate a registry source on: as published on the Hub for a Hub source; for a URL source, which
     the Hub cannot be asked about, the one recorded in datasets.yaml (with the LICENSE file's URL)."""
+    if src.get("license_status") == "unverified":
+        raise SystemExit("source license is unverified; Claude must review license and provenance before use")
     return hub_license(src["hub"]) if "hub" in src else src.get("license")
 
 
