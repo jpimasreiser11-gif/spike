@@ -45,6 +45,7 @@ from spike.providers.guard import CURRENT_CHAT
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
+from spike.server.data_app_api import create_data_app_router
 from spike.server.desktop_api import create_desktop_router
 from spike.server.evolution_api import create_evolution_router
 from spike.server.lab_api import create_lab_router
@@ -370,6 +371,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     app.include_router(create_router(st))
     app.include_router(create_lab_router(st))
+    app.include_router(create_data_app_router(st))
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)

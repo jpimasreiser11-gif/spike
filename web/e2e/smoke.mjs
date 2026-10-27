@@ -1,5 +1,6 @@
 // End-to-end smoke test of the real web app against tests/e2e/serve_scripted.py.
 // Usage: node e2e/smoke.mjs [baseUrl] [screenshotDir]
+import { dataAppFlow } from "./data-app.mjs";
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import os from "node:os";
@@ -978,6 +979,8 @@ if (overflow) fail("horizontal overflow on mobile");
 const send = await mp.locator(".send-btn").boundingBox();
 if (!send || send.x + send.width > 390) fail("send button outside the mobile viewport");
 await mp.screenshot({ path: `${out}/09-mobile.png` });
+
+await dataAppFlow(page, ctx.request, base);
 
 if (errors.length) fail("browser errors: " + errors.join(" | "));
 await browser.close();
