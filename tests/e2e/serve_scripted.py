@@ -23,6 +23,7 @@ from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
 from spike.server.state import AppState  # noqa: E402
 from tests.helpers_desktop import FakeDriver, instant  # noqa: E402
+from tests.helpers_research import pdf_bytes  # noqa: E402
 
 # An artifact that probes its sandbox: it reports whether it could read storage, reach the parent page or call
 # SPIKE's API. The browser test expects all three blocked.
@@ -125,6 +126,15 @@ class DemoProvider(Provider):
         system = request.messages[0].content if request.messages else ""
         last = request.messages[-1]
         props = (request.json_schema or {}).get("properties", {})
+        if system.startswith("SPIKE research "):
+            ref = {"source_id": "s1", "page": 1, "quote": "compare two seeds", "claim": "Comparar dos semillas"}
+            result = {"methods": [ref], "equations": [], "tables": []} if "methods" in props else {"pairs": [{
+                "left": {**ref, "quote": "The result is positive.", "claim": "Resultado positivo"},
+                "right": {**ref, "source_id": "s2", "quote": "The result is negative.", "claim": "Resultado negativo"},
+                "reason": "Resultados distintos; revisar condiciones del experimento."}]}
+            yield StreamEvent(kind="text", text=json.dumps(result))
+            yield StreamEvent(kind="done")
+            return
         if "steps" in props:  # a Forge blueprint
             yield StreamEvent(kind="text", text=json.dumps(BLUEPRINT))
             yield StreamEvent(kind="done")
@@ -332,6 +342,9 @@ Promise.allSettled([fetch("/api/health"), fetch("http://127.0.0.1:" + (location.
 class ScriptedApp:
     """Stands in for an MCP server with an app (the real protocol is tested in tests/test_mcp_apps.py)."""
 
+    async def close(self):
+        pass
+
     async def call_tool(self, name, args):
         price = 50_000 if name == "get_price" else 50_100
         raw = {"content": [{"type": "text", "text": f"{args.get('symbol')}: {price}"}],
@@ -401,6 +414,9 @@ def main() -> None:
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
     (home / "ws").mkdir(parents=True, exist_ok=True)
+    (home / "ws" / "research-paper.pdf").write_bytes(pdf_bytes())
+    (home / "ws" / "research-a.txt").write_text("The result is positive.", encoding="utf-8")
+    (home / "ws" / "research-b.txt").write_text("The result is negative.", encoding="utf-8")
     (home / "ws" / "contrato.md").write_text(CONTRACT, encoding="utf-8")
     (home / "ws" / "ventas.csv").write_text("fecha,region,producto,unidades,precio\n2024-01-15,norte,A,10,2.50\n"
                                             "2024-01-20,sur,B,4,10.00\n2024-02-03,norte,B,6,10.00\n"

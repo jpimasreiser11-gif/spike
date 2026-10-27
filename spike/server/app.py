@@ -52,6 +52,7 @@ from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
 from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
+from spike.server.research_api import create_research_router
 from spike.server.state import AppState
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
@@ -370,6 +371,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     app.include_router(create_router(st))
     app.include_router(create_lab_router(st))
+    app.include_router(create_research_router(st))
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)

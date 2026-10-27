@@ -1,4 +1,18 @@
 const es = {
+  research: {
+    title: "Investigación", intro: "Del documento a evidencias revisables y un plan de reproducción. Solo se analiza cuando lo solicitas.",
+    paper: "Paper Rebuilder", contradictions: "Mapa de contradicciones", kind: "Tipo de análisis", paths: "Archivos relativos (uno por línea)",
+    pathHint: "Un PDF para Paper Rebuilder; entre 2 y 4 PDF, TXT o MD para contrastar. Máximo 2 MB por archivo, 80 páginas y 20.000 caracteres de texto en total.",
+    workspace: "Carpeta de trabajo", scope: "Origen", preview: "Revisar texto y destino", analyze: "Enviar y analizar una vez", busy: "Procesando…",
+    close: "Volver al chat", notebook: "Descargar cuaderno .ipynb", notebookHint: "Exporta el chat seleccionado sin ejecutar código. Solo Python se convierte en celdas ejecutables. Sus salidas registradas son de procesos aislados, no de un kernel compartido; pueden estar truncadas. Revisa el código antes de ejecutarlo.",
+    noChat: "Abre un chat para exportar su cuaderno.", extractionHint: "Extracción de texto sin OCR. El formato de tablas y ecuaciones puede perderse. Revisa los fragmentos antes de enviarlos. La vista previa caduca a los cinco minutos.",
+    sendHint: "Esta acción envía exactamente los documentos mostrados al proveedor indicado en una solicitud, sin herramientas. El coste es una estimación según tus precios; no es un tope. Revisa permisos y límites en Ajustes → Proveedores.",
+    cost: "Coste estimado", unknownCost: "Sin precios configurados", source: "Fuente", page: "Página", quote: "Cita exacta", claim: "Interpretación propuesta", reason: "Posible discrepancia",
+    candidates: "Candidatas a revisión; una cita exacta no demuestra que la interpretación sea correcta ni que exista contradicción.",
+    draft: "Borrador de extracción. El artículo todavía no se ha reproducido.", methods: "Métodos", equations: "Ecuaciones", tables: "Tablas", empty: "No se identificaron fragmentos en esta categoría.",
+    review: "Revisar plan en Forge", export: "Descargar evidencias JSON", back: "Volver a las evidencias", model: "Modelo", local: "local", external: "externo",
+    errors: { invalid_path: "La ruta debe ser un archivo de esta carpeta, sin enlaces simbólicos ni saltos fuera de ella.", invalid_format: "Usa PDF, TXT o MD.", invalid_sources: "Revisa el número y tipo de documentos; no repitas archivos.", too_large: "Los documentos superan los límites. Selecciona un extracto más pequeño.", encrypted_pdf: "El PDF está cifrado. Proporciona una copia accesible.", invalid_document: "No se pudo extraer el documento como PDF o texto UTF-8.", no_text: "No hay texto extraíble; no se dispone de OCR para escaneos.", unknown_project: "El proyecto ya no existe.", unknown_provider: "El proveedor ya no existe.", unknown_conversation: "El chat ya no existe.", files_blocked: "El proveedor no tiene permiso para recibir archivos.", provider_blocked: "El proveedor está bloqueado por permisos de pago o límites de uso.", context_limit: "El texto supera el contexto declarado del proveedor.", expired_preview: "La vista previa caducó o ya se utilizó. Genera otra.", changed_preview: "El archivo, proyecto o proveedor cambió. Revisa una nueva vista previa.", invalid_analysis: "El modelo devolvió un formato no válido. No se aceptó ninguna evidencia.", invalid_quote: "Una cita no coincide exactamente con su fuente. No se aceptó ninguna evidencia.", analysis_failed: "Falló el proveedor. No hay resultados comprobados; crea una nueva vista previa para reintentar." } as Record<string, string>,
+  },
   bundledSkillDescriptions: {
     "decision-simulator": "Compara decisiones empresariales con escenarios, supuestos y análisis de sensibilidad.",
     "test-inventor": "Inventa casos límite y pruebas de propiedades a partir del contrato del código.",
@@ -277,6 +291,20 @@ const es = {
 type Dict = typeof es;
 
 const en: Dict = {
+  research: {
+    title: "Research", intro: "From documents to reviewable evidence and a reproduction plan. Analysis runs only when you request it.",
+    paper: "Paper Rebuilder", contradictions: "Contradiction Map", kind: "Analysis type", paths: "Relative files (one per line)",
+    pathHint: "One PDF for Paper Rebuilder; 2–4 PDF, TXT or MD files to compare. At most 2 MB per file, 80 pages and 20,000 extracted characters in total.",
+    workspace: "Workspace", scope: "Source folder", preview: "Review text and destination", analyze: "Send and analyze once", busy: "Processing…",
+    close: "Back to chat", notebook: "Download .ipynb notebook", notebookHint: "Export the selected chat without executing code. Only Python becomes executable cells. Recorded outputs come from isolated processes, not a shared kernel; they may be truncated. Review code before running it.",
+    noChat: "Open a chat to export its notebook.", extractionHint: "Text extraction without OCR. Table and equation layout may be lost. Review passages before sending. The preview expires after five minutes.",
+    sendHint: "This sends exactly the displayed documents to the named provider in one request, without tools. Cost is an estimate at your configured prices, not a spending cap. Review permissions and limits in Settings → Providers.",
+    cost: "Estimated cost", unknownCost: "No prices configured", source: "Source", page: "Page", quote: "Exact quote", claim: "Proposed interpretation", reason: "Possible discrepancy",
+    candidates: "Candidates for review; an exact quote does not prove that the interpretation is correct or that a contradiction exists.",
+    draft: "Extraction draft. The paper has not been reproduced yet.", methods: "Methods", equations: "Equations", tables: "Tables", empty: "No passages identified in this category.",
+    review: "Review plan in Forge", export: "Download evidence JSON", back: "Back to evidence", model: "Model", local: "local", external: "external",
+    errors: { invalid_path: "The path must be a file in this folder, without symlinks or escaping paths.", invalid_format: "Use PDF, TXT or MD.", invalid_sources: "Check document count and type; do not repeat files.", too_large: "Documents exceed the limits. Select a smaller extract.", encrypted_pdf: "The PDF is encrypted. Provide an accessible copy.", invalid_document: "Could not extract this document as PDF or UTF-8 text.", no_text: "No extractable text; OCR for scans is unavailable.", unknown_project: "The project no longer exists.", unknown_provider: "The provider no longer exists.", unknown_conversation: "The chat no longer exists.", files_blocked: "This provider is not allowed to receive files.", provider_blocked: "The provider is blocked by paid-call permissions or usage limits.", context_limit: "Text exceeds the provider's declared context.", expired_preview: "The preview expired or was already used. Create another.", changed_preview: "The file, project or provider changed. Review a new preview.", invalid_analysis: "The model returned an invalid format. No evidence was accepted.", invalid_quote: "A quote does not match its source exactly. No evidence was accepted.", analysis_failed: "The provider failed. There are no checked results; create a new preview to retry." } as Record<string, string>,
+  },
   bundledSkillDescriptions: {
     "decision-simulator": "Compare business decisions with scenarios, assumptions and sensitivity analysis.",
     "test-inventor": "Invent edge cases and property tests from the software contract.",
