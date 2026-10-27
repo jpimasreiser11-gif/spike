@@ -217,7 +217,7 @@ await jobsDialog.getByLabel("Texto del conocimiento").fill("quartz: usar tipos e
 await jobsDialog.getByRole("button", { name: "Guardar conocimiento", exact: true }).click();
 await jobsDialog.getByText("quartz: usar tipos explícitos", { exact: true }).waitFor();
 await jobsDialog.getByLabel("Especialista", { exact: true }).selectOption("medicine");
-await page.waitForFunction(() => !document.querySelector('[aria-label="Conocimiento por especialista"]')?.textContent.includes("quartz:"));
+await jobsDialog.locator("article").filter({ hasText: "quartz: usar tipos explícitos" }).waitFor({ state: "detached" });
 await jobsDialog.getByRole("region", { name: "Trabajos", exact: true }).getByRole("button", { name: "Cancelar" }).click();
 await jobsDialog.getByText("Entrenamiento · Detenido", { exact: true }).waitFor({ timeout: 5000 });
 await page.screenshot({ path: `${out}/07-a9-jobs-knowledge.png` });

@@ -41,7 +41,7 @@ export function WorkspacePanel({ specialists, onClose }: { specialists: Speciali
           {["queued", "running"].includes(j.status) && <button className="btn" onClick={() => api.post(`/api/jobs/${j.id}/cancel`).catch((e) => setError(e.message))}>{t.cancel}</button>}</div>)}
       </section>
       <section aria-label={t.specialistKnowledge}><h3>{t.specialistKnowledge}</h3><p>{t.knowledgeHint}</p>
-        <label className="field">{t.specialistSelect}<select value={scope} onChange={(e) => setScope(e.target.value)}>{specialists.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+        <label className="field">{t.specialistSelect}<select aria-label={t.specialistSelect} value={scope} onChange={(e) => setScope(e.target.value)}>{specialists.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <label className="field">{t.knowledgeKind}<select value={kind} onChange={(e) => setKind(e.target.value)}><option value="fact">{t.knowledgeNote}</option><option value="document">{t.knowledgeDocument}</option><option value="rule">{t.knowledgeRule}</option></select></label>
         <label className="field">{t.knowledgeText}<textarea value={draft} onChange={(e) => setDraft(e.target.value)} /></label>
         <button className="btn primary" disabled={!draft.trim()} onClick={save}>{t.saveKnowledge}</button>
