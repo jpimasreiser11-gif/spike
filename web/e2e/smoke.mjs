@@ -22,7 +22,34 @@ page.on("console", (m) => m.type() === "error" && (m.location().url.startsWith("
 const frameRequests = [];
 page.on("request", (r) => r.frame() !== page.mainFrame() && frameRequests.push(r.url()));
 
+// Exercise the launcher wizard with local browser fixtures; never download weights in a smoke test.
+let setupDownloads = 0;
+let setupComplete = false;
+await page.route(/\/api\/setup(?:\/|$)/, async (route) => {
+  const request = route.request();
+  if (request.method() === "POST" && request.url().endsWith("/download")) {
+    setupDownloads++;
+    if (JSON.stringify(request.postDataJSON()) !== JSON.stringify({ specialists: ["code"] })) fail("wizard selection lost");
+    setupComplete = true;
+    return route.fulfill({ json: { status: "done" } });
+  }
+  return route.fulfill({ json: { enabled: true, complete: setupComplete, can_download: true,
+    disk_free: 20 * 1024 ** 3, ram_total: 16 * 1024 ** 3, ram_available: 10 * 1024 ** 3,
+    required_disk: 6 * 1024 ** 3, required_ram: 8 * 1024 ** 3,
+    job: { status: setupComplete ? "done" : "idle", file: "", done: 0, total: 0 },
+    specialists: [{ id: "code", name: "Code", available: true }, { id: "law", name: "Law", available: false }] } });
+});
 await page.goto(base);
+const wizard = page.getByRole("dialog", { name: "Preparar SPIKE" });
+await wizard.waitFor();
+if (setupDownloads) fail("wizard must never download on mount");
+if (!await wizard.getByRole("checkbox").nth(1).isDisabled()) fail("unpublished adapter must be disabled");
+await wizard.getByRole("checkbox").first().check();
+await wizard.getByRole("button", { name: "Descargar todo", exact: true }).click();
+await wizard.waitFor({ state: "hidden" });
+if (setupDownloads !== 1) fail("wizard must submit exactly one download request");
+await page.unroute(/\/api\/setup(?:\/|$)/);
+
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
@@ -903,6 +930,7 @@ const desktopSetting = page.getByLabel("Control del escritorio (solo con un prov
 await desktopSetting.waitFor();
 if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
 if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+await page.getByTestId("desktop-provider").locator("option[disabled]").first().waitFor({ state: "attached" });
 const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
 if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
 await desktopSetting.click();
