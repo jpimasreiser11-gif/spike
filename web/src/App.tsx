@@ -12,6 +12,7 @@ import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { ProofDownload } from "./components/ProofDownload";
 import { Replay } from "./components/Replay";
+import { SetupWizard } from "./components/SetupWizard";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
@@ -308,6 +309,7 @@ export default function App() {
 
   return (
     <ArtifactContext.Provider value={setArtifact}>
+    <SetupWizard />
     <div className={`app ${sidebar ? "with-sidebar" : ""} ${artifact ? "with-artifact" : ""}`}>
       <aside className="sidebar" aria-label="Conversations">
         <div className="sidebar-top">

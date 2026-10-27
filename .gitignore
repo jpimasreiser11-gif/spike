@@ -17,3 +17,6 @@ evals/results/*/predictions.jsonl
 *.safetensors
 .claude/worktrees/
 *.tsbuildinfo
+
+# I1 release staging (verified local archives/binaries are not source).
+packaging/vendor/

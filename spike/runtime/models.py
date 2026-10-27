@@ -77,6 +77,7 @@ async def download(
     dest_dir: Path | None = None,
     progress: Callable[[int, int], None] | None = None,
     client: httpx.AsyncClient | None = None,
+    require_hash: bool = False,
 ) -> tuple[Path, bool]:
     """Download a model; returns (file, whether the Hub's SHA-256 was checked). The Hub may give no hash."""
     entry = MODELS[model_id]
@@ -91,29 +92,10 @@ async def download(
         info = await remote_file_info(client, entry.repo, filename)
         if info["license"] and info["license"].lower() not in ALLOWED_LICENSES:
             raise PermissionError(f"{entry.repo} has license '{info['license']}', which is not on SPIKE's allowlist")
-        if dest.exists() and info["sha256"] and sha256_file(dest) == info["sha256"]:
-            return dest, True
-        part = dest.with_suffix(dest.suffix + ".part")
-        offset = part.stat().st_size if part.exists() else 0
-        headers = {"Range": f"bytes={offset}-"} if offset else {}
-        async with client.stream("GET", f"{HF}/{entry.repo}/resolve/main/{filename}", headers=headers) as r:
-            r.raise_for_status()
-            if offset and r.status_code != 206:
-                offset = 0  # server ignored the range: restart
-            total = info["size"] or int(r.headers.get("content-length", 0)) + offset
-            with part.open("ab" if offset else "wb") as f:
-                done = offset
-                async for chunk in r.aiter_bytes(1 << 20):
-                    f.write(chunk)
-                    done += len(chunk)
-                    if progress:
-                        progress(done, total)
-        if info["sha256"]:
-            digest = sha256_file(part)
-            if digest != info["sha256"]:
-                part.unlink(missing_ok=True)
-                raise ValueError(f"checksum mismatch for {filename}: expected {info['sha256']}, got {digest}")
-        part.rename(dest)
+        if require_hash and (not info["license"] or not info["sha256"]):
+            raise ValueError("A license and SHA-256 are required for desktop installation")
+        await download_file(client, f"{HF}/{entry.repo}/resolve/main/{filename}", dest,
+                            info["sha256"], info["size"], progress)
         return dest, bool(info["sha256"])
     finally:
         if own_client:
@@ -130,3 +112,51 @@ def sha256_file(path: Path) -> str:
 
 def local_models() -> list[Path]:
     return sorted(models_dir().glob("*.gguf"))
+
+
+async def download_file(
+    client: httpx.AsyncClient, url: str, dest: Path, digest: str | None,
+    size: int | None = None, progress: Callable[[int, int], None] | None = None,
+) -> Path:
+    """Shared installer transfer: resume a partial file, verify before atomic replacement.
+
+    A server ignoring Range restarts from zero; a malformed partial response is rejected. Completed partial
+    files are verified before another request (an interrupted final rename needs no re-download). A bad hash
+    removes only the partial, preserving any previously installed file. Callers control the source and path.
+    """
+    if digest is not None and (len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest)):
+        raise ValueError("Invalid SHA-256")
+    part = dest.with_suffix(dest.suffix + ".part")
+    if dest.is_symlink() or part.is_symlink():
+        raise ValueError("Refusing a symlink download destination")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.is_file() and digest and sha256_file(dest) == digest:
+        return dest
+    if part.is_file() and digest and sha256_file(part) == digest:
+        part.replace(dest)
+        return dest
+    offset = part.stat().st_size if part.exists() else 0
+    headers = {"Range": f"bytes={offset}-"} if offset else {}
+    async with client.stream("GET", url, headers=headers) as response:
+        response.raise_for_status()
+        if response.status_code == 206:
+            content_range = response.headers.get("content-range", "")
+            if not content_range.startswith(f"bytes {offset}-"):
+                raise ValueError("Invalid download Content-Range")
+        elif offset:
+            offset = 0
+        total = size or int(response.headers.get("content-length", 0)) + offset
+        with part.open("ab" if offset else "wb") as target:
+            done = offset
+            async for chunk in response.aiter_bytes(1 << 20):
+                target.write(chunk)
+                done += len(chunk)
+                if progress:
+                    progress(done, total)
+    if digest and sha256_file(part) != digest:
+        part.unlink(missing_ok=True)
+        raise ValueError(f"checksum mismatch for {dest.name}")
+    if size is not None and part.stat().st_size != size:
+        raise ValueError("Incomplete download")
+    part.replace(dest)
+    return dest
