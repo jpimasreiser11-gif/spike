@@ -25,7 +25,7 @@ page.on("request", (r) => r.frame() !== page.mainFrame() && frameRequests.push(r
 // Exercise the launcher wizard with local browser fixtures; never download weights in a smoke test.
 let setupDownloads = 0;
 let setupComplete = false;
-await page.route("**/api/setup**", async (route) => {
+await page.route(/\/api\/setup(?:\/|$)/, async (route) => {
   const request = route.request();
   if (request.method() === "POST" && request.url().endsWith("/download")) {
     setupDownloads++;
@@ -48,7 +48,7 @@ await wizard.getByRole("checkbox").first().check();
 await wizard.getByRole("button", { name: "Descargar todo", exact: true }).click();
 await wizard.waitFor({ state: "hidden" });
 if (setupDownloads !== 1) fail("wizard must submit exactly one download request");
-await page.unroute("**/api/setup**");
+await page.unroute(/\/api\/setup(?:\/|$)/);
 
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
@@ -930,6 +930,7 @@ const desktopSetting = page.getByLabel("Control del escritorio (solo con un prov
 await desktopSetting.waitFor();
 if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
 if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+await page.getByTestId("desktop-provider").locator("option[disabled]").first().waitFor({ state: "attached" });
 const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
 if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
 await desktopSetting.click();
