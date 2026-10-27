@@ -145,8 +145,8 @@ TEMPLATES: list[Template] = [
         extras={"focus": {"es": " ({focus})", "en": " ({focus})"}}),
     Template(
         "data_app", "table", {"es": "De datos a aplicación", "en": "Data to app"},
-        {"es": "Convierte un archivo de datos en una aplicación con búsqueda, filtros y gráfico.",
-         "en": "Turns a data file into an app with search, filters and a chart."},
+        {"es": "Convierte un CSV o XLSX en una app local con búsqueda y edición aprobada.",
+         "en": "Turns CSV or XLSX into a local app with search and approved editing."},
         [DATA_FILE, Field("about", {"es": "¿Para qué es la aplicación?", "en": "What is the app for?"}, "textarea", True,
                           {"es": "Ej.: consultar el stock por almacén y ver qué productos reponer",
                            "en": "E.g.: check stock per warehouse and see which products to reorder"})],

@@ -1,8 +1,9 @@
 import { createContext, useMemo, useState } from "react";
 import { t } from "../i18n";
+import { DataAppFrame } from "./DataApp";
 import { IconClose, IconDownload } from "./Icons";
 
-export type ArtifactDoc = { title: string; html: string; filename: string };
+export type ArtifactDoc = { title: string; html: string; filename: string; dataAppId?: string };
 
 /** Opens a page in the artifact panel; provided by App. */
 export const ArtifactContext = createContext<((doc: ArtifactDoc) => void) | null>(null);
@@ -52,7 +53,7 @@ export function ArtifactPanel({ doc, onClose }: { doc: ArtifactDoc; onClose: () 
       {view === "preview" ? (
         // allow-scripts without allow-same-origin: the page gets an opaque origin, so it cannot read SPIKE's
         // storage or cookies, call its API with them, or touch this window; no forms, popups or top navigation.
-        <iframe key={srcDoc} className="artifact-frame" title={doc.title} sandbox="allow-scripts" srcDoc={srcDoc} referrerPolicy="no-referrer" />
+        <>{doc.dataAppId ? <DataAppFrame key={doc.dataAppId} id={doc.dataAppId} title={doc.title} srcDoc={srcDoc} /> : <iframe key={srcDoc} className="artifact-frame" title={doc.title} sandbox="allow-scripts" srcDoc={srcDoc} referrerPolicy="no-referrer" />}</>
       ) : (
         <pre className="artifact-code"><code>{doc.html}</code></pre>
       )}

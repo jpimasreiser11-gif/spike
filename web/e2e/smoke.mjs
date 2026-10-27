@@ -1,5 +1,6 @@
 // End-to-end smoke test of the real web app against tests/e2e/serve_scripted.py.
 // Usage: node e2e/smoke.mjs [baseUrl] [screenshotDir]
+import { dataAppFlow } from "./data-app.mjs";
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import os from "node:os";
@@ -903,6 +904,7 @@ const desktopSetting = page.getByLabel("Control del escritorio (solo con un prov
 await desktopSetting.waitFor();
 if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
 if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+await page.getByTestId("desktop-provider").locator("option[disabled]").first().waitFor({ state: "attached" });
 const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
 if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
 await desktopSetting.click();
@@ -978,6 +980,8 @@ if (overflow) fail("horizontal overflow on mobile");
 const send = await mp.locator(".send-btn").boundingBox();
 if (!send || send.x + send.width > 390) fail("send button outside the mobile viewport");
 await mp.screenshot({ path: `${out}/09-mobile.png` });
+
+await dataAppFlow(page, ctx.request, base);
 
 if (errors.length) fail("browser errors: " + errors.join(" | "));
 await browser.close();
