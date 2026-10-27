@@ -26,6 +26,21 @@ await page.goto(base);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
+// A13: image preparation stays in the browser; speech settings never execute a command on opening.
+const mediaPosts = [];
+page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/media/")) mediaPosts.push(r.url()); });
+await page.getByRole("button", { name: "Imagen y voz", exact: true }).click();
+await page.getByLabel("Modelo whisper.cpp", { exact: true }).waitFor();
+if (mediaPosts.length) fail("opening speech settings must not execute speech");
+await page.getByRole("button", { name: "Imagen y voz", exact: true }).click();
+const tinyPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6SAAAAABJRU5ErkJggg==", "base64");
+await page.locator('input[type="file"][accept="image/png,image/jpeg,image/webp"]').setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: tinyPng });
+await page.getByRole("button", { name: "Quitar imagen 1", exact: true }).waitFor();
+const preview = page.locator('.composer img');
+if (!(await preview.getAttribute("src"))?.startsWith("data:image/jpeg;base64,")) fail("image must be decoded and resized locally");
+await page.getByRole("button", { name: "Quitar imagen 1", exact: true }).click();
+if (await preview.count()) fail("removed image must leave the composer");
+
 // Lab opens with local history only; both preview and explicit execution are exercised before chat.
 const labPosts = [];
 page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/lab/")) labPosts.push(r.url()); });

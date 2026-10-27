@@ -33,6 +33,9 @@ def _to_openai_message(m: Message) -> dict[str, Any]:
     if m.role == "tool":
         return {"role": "tool", "tool_call_id": m.tool_call_id, "content": m.content}
     out: dict[str, Any] = {"role": m.role, "content": m.content}
+    if m.images:
+        out["content"] = [{"type": "text", "text": m.content},
+                          *({"type": "image_url", "image_url": {"url": image}} for image in m.images)]
     if m.role == "assistant" and m.tool_calls:
         out["tool_calls"] = [
             {
@@ -64,6 +67,7 @@ class OpenAICompatProvider(Provider):
     # ----------------------------------------------------------------------
     def build_payload(self, request: ChatRequest) -> tuple[dict[str, Any], bool]:
         caps = self.capabilities
+        self.validate_vision(request)
         emulate_tools = bool(request.tools) and not caps.native_tools
         messages = list(request.messages)
         if emulate_tools:
@@ -113,7 +117,11 @@ class OpenAICompatProvider(Provider):
         except PaidCallBlocked as exc:
             yield StreamEvent(kind="error", text=str(exc))
             return
-        payload, emulate_tools = self.build_payload(request)
+        try:
+            payload, emulate_tools = self.build_payload(request)
+        except ProviderError as exc:
+            yield StreamEvent(kind="error", text=str(exc))
+            return
         url = self.config.base_url.rstrip("/") + "/chat/completions"
         tool_filter = StreamingToolFilter() if emulate_tools else None
         pending: dict[int, dict[str, Any]] = {}

@@ -51,6 +51,19 @@ class Provider(ABC):
                 setattr(caps, key, value)
         return caps
 
+    def validate_vision(self, request: ChatRequest) -> None:
+        if not any(m.images for m in request.messages):
+            return
+        from spike.media import MediaError, validate_images
+
+        try:
+            for message in request.messages:
+                validate_images(message.images)
+        except MediaError as exc:
+            raise ProviderError(str(exc)) from exc
+        if not self.capabilities.vision:
+            raise ProviderError("vision_required")
+
     @abstractmethod
     def default_capabilities(self) -> Capabilities: ...
 

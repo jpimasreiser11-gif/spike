@@ -1,3 +1,4 @@
+import { VisionSetting } from "./VisionSetting";
 import { useEffect, useState } from "react";
 import { api, streamPost } from "../api";
 import { lang, t } from "../i18n";
@@ -236,6 +237,8 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
               </label>
             )}
           </div>
+          <VisionSetting capabilities={p.capabilities} effective={p.capabilities_effective?.vision === true}
+            save={(capabilities) => void patch(p.id, { capabilities })} />
           {p.paid && (
             <label className="check warn"><input type="checkbox" checked={p.allow_paid} onChange={(e) => patch(p.id, { allow_paid: e.target.checked })} />{L.allowPaid}<small>{L.paidWarn}</small></label>
           )}

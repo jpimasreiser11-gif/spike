@@ -44,6 +44,10 @@ def to_anthropic(messages: list[Message]) -> tuple[str, list[dict[str, Any]]]:
                 push("assistant", {"type": "tool_use", "id": c.id, "name": c.name, "input": c.arguments})
         else:
             push("user", {"type": "text", "text": m.content})
+            for image in m.images:
+                header, data = image.split(",", 1)
+                push("user", {"type": "image", "source": {"type": "base64",
+                     "media_type": header[5:].split(";", 1)[0], "data": data}})
     return "\n\n".join(p for p in system_parts if p), out
 
 
@@ -62,6 +66,7 @@ class AnthropicProvider(Provider):
         }
 
     def build_payload(self, request: ChatRequest) -> dict[str, Any]:
+        self.validate_vision(request)
         system, messages = to_anthropic(request.messages)
         if request.json_schema is not None:
             system = (system + "\n\n" if system else "") + (

@@ -36,6 +36,7 @@ export type ProviderInfo = {
   limits?: Limits;
   has_key: boolean;
   preset?: string | null;
+  capabilities?: Record<string, unknown>;
   capabilities_effective: Record<string, unknown> | null;
 };
 

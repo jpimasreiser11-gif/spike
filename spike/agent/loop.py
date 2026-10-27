@@ -71,7 +71,7 @@ async def run_agent(
             history[-1] = replace(history[-1], content=f"{history[-1].content}\n\n{LAST_STEP}")
         fitted, dropped = fit_messages(history, context_budget)
         # only a model that actually gets the files can quote them (a guarded provider may withhold them)
-        run.private = run.private or (getattr(provider, "receives_files", True) and any(m.private for m in fitted))
+        run.private = run.private or (getattr(provider, "receives_files", True) and any(m.private or m.images for m in fitted))
         if dropped:
             yield {"type": "context_trimmed", "dropped": dropped, **tag}
         request = ChatRequest(

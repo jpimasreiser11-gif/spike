@@ -18,11 +18,11 @@ import { t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
 import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, MindsSpec, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
-type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
+type Item = { kind: "user"; text: string; images?: string[]; id?: string } | { kind: "assistant"; run: RunState };
 
 /** A sent message, editable in place: sending the edit replaces it and everything after it, or goes on in a branch
  * (a copy of the chat up to this message) so the original stays as it was. */
-function UserMessage({ text, onEdit, onBranch }: { text: string; onEdit?: (text: string) => void; onBranch?: (text: string) => void }) {
+function UserMessage({ text, images, onEdit, onBranch }: { images?: string[]; text: string; onEdit?: (text: string) => void; onBranch?: (text: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
   if (draft !== null) {
     return (
@@ -40,7 +40,8 @@ function UserMessage({ text, onEdit, onBranch }: { text: string; onEdit?: (text:
   return (
     <div className="msg user">
       {onEdit && <button className="icon-btn edit-btn" onClick={() => setDraft(text)} title={t.edit} aria-label={t.edit}><IconEdit size={14} /></button>}
-      <div className="bubble"><Markdown text={text} /></div>
+      <div className="bubble"><Markdown text={text} />{images?.map((image, i) => <img key={i} src={image}
+        alt={`${t.media.image} ${i + 1}`} style={{ maxWidth: "100%", maxHeight: 240 }} />)}</div>
     </div>
   );
 }
@@ -164,7 +165,7 @@ export default function App() {
     setArtifact(null);
     setMode(conv.mode || "auto");
     setTemporary(Boolean((conv as { temporary?: boolean }).temporary));
-    setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content, id: m.id } : { kind: "assistant", run: runFromStored(m) })));
+    setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content, images: m.meta.images, id: m.id } : { kind: "assistant", run: runFromStored(m) })));
     if (window.innerWidth <= 860) setSidebar(false);
   };
 
@@ -211,11 +212,12 @@ export default function App() {
 
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
   const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object,
-                    specialist?: string, forge?: Blueprint, extra?: CreatorExtra, minds?: MindsSpec) => {
+                    specialist?: string, forge?: Blueprint, extra?: CreatorExtra, minds?: MindsSpec, images?: string[]) => {
     const replaced = from !== undefined ? items[from] : undefined;
+    images = images ?? (replaced?.kind === "user" ? replaced.images : undefined);
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
-    setItems((prev) => [...(from !== undefined ? prev.slice(0, from) : prev), { kind: "user", text },
+    setItems((prev) => [...(from !== undefined ? prev.slice(0, from) : prev), { kind: "user", text, images },
       { kind: "assistant", run: { ...emptyRun(), status: "running" } }]);
     setBusy(true);
     stick.current = true;
@@ -225,7 +227,7 @@ export default function App() {
     const views = [...viewContext.current.values()].slice(-4); // what MCP App views reported, for this turn only
     viewContext.current.clear();
     try {
-      await streamChat({ message: text, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
+      await streamChat({ message: text, images, conversation_id: conversationId, mode: specialist ?? mode, provider_id: provider, project_id: project?.id ?? null,
                          replace_from: replaceFrom ?? null, temporary: temporary && !conversationId,
                          ...(schema ? { response_schema: schema } : {}), ...(forge ? { forge } : {}), ...(minds ? { parallel_minds: minds } : {}),
                          ...(extra?.design_system || design ? { design_system: extra?.design_system || design } : {}),
@@ -257,7 +259,7 @@ export default function App() {
     if (specialist && target.id) {
       try { await api.post(`/api/messages/${target.id}/route`, { specialist }); } catch { /* learning is optional */ }
     }
-    await send(target.text, from, provider, activeId, undefined, specialist);
+    await send(target.text, from, provider, activeId, undefined, specialist, undefined, undefined, undefined, target.images);
   };
 
   /** Copy the chat up to user message `from` and send the edited text there; the original chat stays as it was. */
@@ -270,7 +272,7 @@ export default function App() {
         { before: target.id, title: title ? `${title} · ${t.branch}` : undefined });
       setActiveId(conv.id);
       setItems((prev) => prev.slice(0, from));
-      await send(text, undefined, providerId, conv.id);
+      await send(text, undefined, providerId, conv.id, undefined, undefined, undefined, undefined, undefined, target.images);
     } catch (e) {
       setFatal(String((e as Error).message));
     }
@@ -299,7 +301,7 @@ export default function App() {
   const empty = items.length === 0;
   const lastUser = items.map((it) => it.kind).lastIndexOf("user");
   const composer = (
-    <Composer onSend={(text, schema, minds) => send(text, undefined, providerId, activeId, schema, undefined, undefined, undefined, minds)}
+    <Composer onSend={(text, schema, minds, images) => send(text, undefined, providerId, activeId, schema, undefined, undefined, undefined, minds, images)}
       onStop={() => abortRef.current?.abort()} busy={busy} mode={mode} setMode={setMode} projectId={project?.id} conversationId={activeId}
       providerId={providerId} setProviderId={setProviderId} specialists={specialists.filter((s) => s.id !== "core")}
       providers={providers} followUp={!empty} autoFocus designs={designs} design={design} setDesign={setDesign}
@@ -409,7 +411,7 @@ export default function App() {
                 {temporary && <div className="notice temp-notice"><IconTimer size={14} /> {t.temporaryHint}</div>}
                 {items.map((it, i) =>
                   it.kind === "user" ? (
-                    <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined}
+                    <UserMessage key={i} text={it.text} images={it.images} onEdit={!busy && it.id ? (text) => send(text, i) : undefined}
                       onBranch={!busy && it.id && activeId ? (text) => branch(text, i) : undefined} />
                   ) : (
                     <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id}
