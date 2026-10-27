@@ -1,5 +1,14 @@
 const es = {
   bundledSkillDescriptions: {
+    "landing-page": "Crea una landing page con mensajes verificables, secciones accesibles y una llamada a la acción clara.",
+    "report-creator": "Crea un informe ejecutivo que distingue hechos, interpretación, incertidumbre y próximos pasos.",
+    "deck-creator": "Crea una presentación de diapositivas con una idea por diapositiva, fuentes y notas para presentar.",
+    "dashboard-creator": "Crea un panel de indicadores con denominadores definidos, filtros temporales, gráficos accesibles y estados vacíos.",
+    "data-app-creator": "Crea una aplicación de datos local con contratos de entrada, transformaciones reproducibles y exportación controlada.",
+    "release-notes": "Redacta notas de versión basadas en cambios verificados, con migraciones y limitaciones conocidas.",
+    "incident-review": "Redacta un postmortem sin culpas con cronología respaldada por fuentes y medidas preventivas comprobables.",
+    "dataset-audit": "Audita calidad, procedencia, licencias, fugas y representatividad de un dataset antes de reutilizarlo.",
+    "api-contract": "Define un contrato de API con esquemas, errores, permisos y reglas de compatibilidad.",
     "decision-simulator": "Compara decisiones empresariales con escenarios, supuestos y análisis de sensibilidad.",
     "test-inventor": "Inventa casos límite y pruebas de propiedades a partir del contrato del código.",
     "migration-architect": "Diseña migraciones por fases con validación, compatibilidad y reversión.",
@@ -278,6 +287,15 @@ type Dict = typeof es;
 
 const en: Dict = {
   bundledSkillDescriptions: {
+    "landing-page": "Create a product landing page with evidence-backed copy, accessible sections and a focused call to action.",
+    "report-creator": "Create an executive report separating source facts, interpretation, uncertainty and recommended next steps.",
+    "deck-creator": "Create a slide deck outline with one claim per slide, source notes and speaker guidance.",
+    "dashboard-creator": "Create a metrics dashboard with defined denominators, time filters, accessible charts and empty states.",
+    "data-app-creator": "Create a local data app with explicit input contracts, reproducible transformations and safe export boundaries.",
+    "release-notes": "Write release notes from verified changes with migration steps and known limitations.",
+    "incident-review": "Write a blameless incident postmortem using a source-tied timeline and testable prevention actions.",
+    "dataset-audit": "Audit dataset quality, provenance, licensing, leakage and representativeness before reuse.",
+    "api-contract": "Define an API contract with request schemas, error cases, authorization boundaries and compatibility rules.",
     "decision-simulator": "Compare business decisions with scenarios, assumptions and sensitivity analysis.",
     "test-inventor": "Invent edge cases and property tests from the software contract.",
     "migration-architect": "Design phased migrations with validation, compatibility and rollback.",

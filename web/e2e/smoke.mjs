@@ -165,12 +165,13 @@ await page.getByRole("tab", { name: "Especialistas" }).click();
 await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
 await page.getByRole("tab", { name: "Skills" }).click();
 await page.getByRole("dialog").locator('[data-skill="financial-ratio-analysis"]').waitFor();
-for (const name of ["decision-simulator", "test-inventor", "migration-architect", "performance-profiler", "localization", "experiment-designer", "synthetic-data", "vector-designer", "system-diagnostic"]) {
+for (const name of ["decision-simulator", "test-inventor", "migration-architect", "performance-profiler", "localization", "experiment-designer", "synthetic-data", "vector-designer", "system-diagnostic", "landing-page", "report-creator", "deck-creator", "dashboard-creator", "data-app-creator", "release-notes", "incident-review", "dataset-audit", "api-contract"]) {
   const card = page.getByRole("dialog").locator(`[data-skill="${name}"]`);
   await card.waitFor();
   if (!(await card.locator("input[type=checkbox]").isChecked())) fail(`bundled skill disabled: ${name}`);
 }
 await page.getByRole("dialog").locator('[data-skill="localization"]').getByText("Traduce textos con el glosario", { exact: false }).waitFor();
+await page.getByRole("dialog").locator('[data-skill="landing-page"]').getByText("Crea una landing page", { exact: false }).waitFor();
 await page.getByRole("tab", { name: "Herramientas" }).click();
 const sandboxCard = page.getByRole("dialog").getByTestId("sandbox");
 await sandboxCard.getByText("Aislamiento del código").waitFor();

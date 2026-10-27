@@ -18,7 +18,7 @@ from spike.specialists.catalog import load_catalog
 from spike.tools.base import PermissionBroker, ToolRegistry
 from tests.helpers import ScriptedProvider, call, text
 
-BUNDLED_NAMES = {"test-driven-development", "systematic-debugging", "writing-plans", "verification-before-completion",
+BUNDLED_NAMES = {'landing-page', 'report-creator', 'deck-creator', 'dashboard-creator', 'data-app-creator', 'release-notes', 'incident-review', 'dataset-audit', 'api-contract', "test-driven-development", "systematic-debugging", "writing-plans", "verification-before-completion",
                  "frontend-design", "mcp-builder", "webapp-testing", "medical-evidence-summary",
                  "financial-ratio-analysis", "campaign-brief", "web-design-guidelines", "motion-scene",
                  "decision-simulator", "test-inventor", "migration-architect", "performance-profiler", "localization", "experiment-designer", "synthetic-data", "vector-designer", "system-diagnostic"}
