@@ -97,6 +97,7 @@ class OrchestratorOptions:
     learned_skills: dict[str, dict[str, str]] = field(default_factory=dict)  # skill -> "always" | "off", per specialist
     trust: bool = False  # label the answer's claims (verified | hypothesis | unchecked) and inspect its citations
     trust_model_pass: bool = False  # a model call that may lower those labels, never raise one
+    images: list[str] = field(default_factory=list)  # attachments for this turn, never planner text
     read_only: bool = False  # only tools that read or compute (Parallel Minds run N copies of the same turn)
 
     @property
@@ -313,7 +314,7 @@ class Orchestrator:
         if skill_event:
             yield skill_event
         messages = [self.system_message(spec, opts, skill_text, backend.context_budget), *history,
-                    Message(role="user", content=user_text)]
+                    Message(role="user", content=user_text, images=opts.images)]
         async for ev in run_agent(
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,
@@ -370,13 +371,13 @@ class Orchestrator:
         schema = opts.json_schema or {}
         backend = self.resolve(spec)
         messages = [self.system_message(spec, opts, "", backend.context_budget), *history,
-                    Message(role="user", content=user_text)]
+                    Message(role="user", content=user_text, images=opts.images)]
         tag = {"specialist": spec.id}
         answer, value, errors, attempt = "", None, ["no answer"], 0
         for attempt in range(1, retries + 2):
             fitted, _ = fit_messages(messages, backend.context_budget)
             final.private = final.private or (getattr(backend.provider, "receives_files", True)
-                                              and any(m.private for m in fitted))
+                                              and any(m.private or m.images for m in fitted))
             request = ChatRequest(messages=fitted, model=backend.model, adapter=backend.adapter,
                                   temperature=opts.temperature, max_tokens=opts.max_tokens, json_schema=schema,
                                   reasoning=opts.reasoning)

@@ -1,4 +1,16 @@
 const es = {
+  media: {
+    vision: "El modelo configurado admite imágenes", visionHint: "Declaración manual; no instala ni prueba el modelo. Para modelos locales, configura también la proyección visual en tu servidor.",
+    limit: "Límite de 2 minutos: se ha detenido y descartado la grabación.",
+    image: "Adjuntar imagen", remove: "Quitar imagen", voice: "Imagen y voz", hint: "Hasta 4 imágenes. Requiere visión y permiso de archivos; envío al pulsar Enviar.",
+    describe: "Describe la imagen.", invalid: "Usa hasta 4 imágenes PNG, JPEG o WebP de menos de 10 MB, o un WAV de menos de 8 MB.",
+    local: "Voz local opcional. Instala tus binarios y modelos por tu cuenta. Rutas relativas al espacio de trabajo; sin descargas. Guardar habilita el uso; cada acción requiere un clic.",
+    enable: "Permitir voz local", whisper_model: "Modelo whisper.cpp", piper_model: "Modelo Piper", piper_license: "Archivo de licencia de la voz",
+    save: "Guardar voz", installed: "Detectado", missing: "No instalado", dictate: "Dictar con micrófono", stop: "Terminar dictado",
+    wav: "Transcribir WAV (mono, 16 kHz, PCM16)", failed: "No se pudo procesar el audio.", speak: "Leer en voz alta", play: "Generar audio local",
+    license: "Licencia de la voz seleccionada:", configure: "Configura y habilita Piper en Imagen y voz.",
+  },
+
   bundledSkillDescriptions: {
     "decision-simulator": "Compara decisiones empresariales con escenarios, supuestos y análisis de sensibilidad.",
     "test-inventor": "Inventa casos límite y pruebas de propiedades a partir del contrato del código.",
@@ -277,6 +289,18 @@ const es = {
 type Dict = typeof es;
 
 const en: Dict = {
+  media: {
+    vision: "The configured model supports images", visionHint: "Manual declaration; does not install or test the model. For local models, also configure the vision projector in your server.",
+    limit: "Two minute limit: recording stopped and discarded.",
+    image: "Attach image", remove: "Remove image", voice: "Image and voice", hint: "Up to 4 images. Requires vision and file permission; sent when you click Send.",
+    describe: "Describe the image.", invalid: "Use up to 4 PNG, JPEG or WebP images under 10 MB, or a WAV under 8 MB.",
+    local: "Optional local speech. Install your own binaries and models. Paths relative to the workspace; no downloads. Save enables use; each action requires a click.",
+    enable: "Allow local speech", whisper_model: "whisper.cpp model", piper_model: "Piper model", piper_license: "Voice license file",
+    save: "Save speech settings", installed: "Detected", missing: "Not installed", dictate: "Dictate with microphone", stop: "Finish dictation",
+    wav: "Transcribe WAV (mono, 16 kHz, PCM16)", failed: "Audio processing failed.", speak: "Read aloud", play: "Generate local audio",
+    license: "Selected voice license:", configure: "Configure and enable Piper in Image and voice.",
+  },
+
   bundledSkillDescriptions: {
     "decision-simulator": "Compare business decisions with scenarios, assumptions and sensitivity analysis.",
     "test-inventor": "Invent edge cases and property tests from the software contract.",
@@ -558,6 +582,22 @@ export const t: Dict = lang === "es" ? es : en;
 
 
 const projectErrors: Record<string, { es: string; en: string }> = {
+  'vision_required': { es: 'Selecciona un proveedor con visión; para modelos locales configura primero un modelo visual y declara su capacidad de visión.', en: 'Select a vision provider; for local models first configure a vision model and declare vision support.' },
+  'images_private': { es: 'Permite enviar archivos a este proveedor en Ajustes antes de enviar imágenes.', en: 'Allow sending files to this provider in Settings before sending images.' },
+  'images_single': { es: 'Las imágenes requieren una respuesta individual; desactiva los modos paralelos.', en: 'Images require a single response; turn off parallel modes.' },
+  'images_limit': { es: 'Máximo 4 imágenes de 2 MB después de reducirlas.', en: 'At most 4 images of 2 MB each after resizing.' },
+  'image_invalid': { es: 'Imagen inválida: usa PNG, JPEG o WebP.', en: 'Invalid image: use PNG, JPEG or WebP.' },
+  'disabled': { es: 'Guarda la opción Permitir voz local antes de usarla.', en: 'Save Allow local speech before using it.' },
+  'binary_missing': { es: 'No se detectó whisper-cli o piper en PATH.', en: 'whisper-cli or piper was not detected in PATH.' },
+  'model_missing': { es: 'Selecciona un archivo existente dentro del espacio de trabajo.', en: 'Select an existing file inside the workspace.' },
+  'workspace': { es: 'La ruta debe estar dentro del espacio de trabajo.', en: 'The path must stay inside the workspace.' },
+  'WAV': { es: 'Usa audio WAV mono, PCM16, 16 kHz.', en: 'Use mono PCM16 16kHz WAV audio.' },
+  'audio_limit': { es: 'Máximo 2 minutos de audio y 8 MB.', en: 'Audio is limited to 2 minutes and 8 MB.' },
+  'speech_failed': { es: 'El programa de voz falló o agotó el tiempo; revisa los modelos instalados.', en: 'The speech program failed or timed out; check the installed models.' },
+  'license_missing': { es: 'Selecciona el archivo de licencia de la voz antes de generar audio.', en: 'Select the voice license file before generating audio.' },
+  'speech_busy': { es: 'Ya se está procesando audio.', en: 'Audio is already being processed.' },
+  'text_limit': { es: 'Usa entre 1 y 10000 caracteres para la voz.', en: 'Use between 1 and 10000 characters for speech.' },
+
   "file path leaves the project or uses a symbolic link": {
     es: "La ruta sale del proyecto o usa un enlace simbólico.",
     en: "The path leaves the project or uses a symbolic link.",

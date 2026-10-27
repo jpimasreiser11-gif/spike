@@ -36,6 +36,7 @@ from spike.finance.paper import PaperError
 from spike.forge import prototypes
 from spike.forge.blueprint import from_user as blueprint_from_user
 from spike.forge.prototypes import PrototypeError
+from spike.media import MediaError, validate_images
 from spike.orchestrator.minds import Mind, plan_minds, run_minds
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
@@ -49,6 +50,7 @@ from spike.server.desktop_api import create_desktop_router
 from spike.server.evolution_api import create_evolution_router
 from spike.server.lab_api import create_lab_router
 from spike.server.mcp_server import PARSE_ERROR, SpikeMcp, rpc_error
+from spike.server.media_api import create_media_router
 from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
@@ -117,6 +119,7 @@ class ChatIn(BaseModel):
     design_system: str | None = None  # a design system id; "none" for none; absent = the project's (Spike Design)
     view_context: list[dict[str, str]] | None = Field(default=None, max_length=4)  # MCP Apps: what views reported
     skills: list[str] | None = Field(default=None, max_length=3)  # skills chosen for this run (Creator templates)
+    images: list[str] = Field(default_factory=list, max_length=4)
     parallel_minds: MindsIn | None = None  # N independent answers, the best by the trust labels (off unless sent)
 
 
@@ -1402,6 +1405,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     app.include_router(create_memory_router(st, check_scope, this_computer))
     app.include_router(create_desktop_router(st, this_computer))
+    app.include_router(create_media_router(st, this_computer))
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")
@@ -1658,6 +1662,21 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             check_design(body.design_system)
         if unknown := [n for n in body.skills or [] if state.skills.get(n) is None]:
             raise HTTPException(400, f"unknown skill '{unknown[0]}'")
+        try:
+            validate_images(body.images)
+        except MediaError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        old_images = any(m["meta"].get("images") for m in store.messages(conv["id"])) if conv else False
+        if body.images or old_images:
+            if body.forge or body.parallel_minds:
+                raise HTTPException(400, "images_single")
+            image_project = conv.get("project_id") if conv else body.project_id
+            backend = state.orchestrator(body.provider_id, project_id=image_project).resolve(
+                state.catalog.get(body.mode if body.mode != "auto" else "core"))
+            if not backend.provider.capabilities.vision:
+                raise HTTPException(400, "vision_required")
+            if not backend.provider.receives_files:
+                raise HTTPException(400, "images_private")
         blueprint = None
         if body.forge is not None:
             if body.response_schema is not None:
@@ -1691,9 +1710,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             if retried:  # EV3: the answer that was just asked for again no longer counts as a success
                 state.evolution.flag_strategy([retried], "retried")
         history = [Message(role=m["role"], content=m["content"],
+                           images=m["meta"].get("images", []),
                            private=[m["content"]] if m["meta"].get("private") else [])  # answers that quote files
                    for m in store.messages(conv["id"]) if m["role"] in ("user", "assistant") and m["content"]]
-        user_message = store.add_message(conv["id"], "user", body.message)
+        user_message = store.add_message(conv["id"], "user", body.message,
+                                         {"images": body.images} if body.images else None)
         await state.ensure_adapters(body.provider_id)
         for pid in dict.fromkeys(m.provider_id for m in minds or [] if m.provider_id):
             await state.ensure_adapters(pid)
@@ -1713,6 +1734,9 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             orchestrator = state.orchestrator(body.provider_id, project_id=project["id"] if project else None)
             options = state.options(mode, project)
             options.checkpoints = RunCheckpoints(state.checkpoints, conv["id"])
+            options.images = body.images
+            if body.images or old_images:
+                options.mode = body.mode if body.mode != "auto" else "core"
             options.json_schema = body.response_schema
             options.forge = blueprint
             trust = state.trust_settings()  # claim labels are for the app's chats; /v1, MCP and the CLI do not get them

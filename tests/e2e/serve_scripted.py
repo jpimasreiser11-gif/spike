@@ -332,6 +332,9 @@ Promise.allSettled([fetch("/api/health"), fetch("http://127.0.0.1:" + (location.
 class ScriptedApp:
     """Stands in for an MCP server with an app (the real protocol is tested in tests/test_mcp_apps.py)."""
 
+    async def close(self):
+        pass
+
     async def call_tool(self, name, args):
         price = 50_000 if name == "get_price" else 50_100
         raw = {"content": [{"type": "text", "text": f"{args.get('symbol')}: {price}"}],
