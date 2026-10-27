@@ -904,6 +904,7 @@ const desktopSetting = page.getByLabel("Control del escritorio (solo con un prov
 await desktopSetting.waitFor();
 if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
 if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+await page.getByTestId("desktop-provider").locator("option[disabled]").first().waitFor({ state: "attached" });
 const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
 if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
 await desktopSetting.click();
