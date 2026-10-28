@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from spike.core.types import Message
+from spike.dev.history import find_session, session_titles
 from spike.dev.tools import dev_tools
 from spike.orchestrator.orchestrator import Orchestrator, OrchestratorOptions
 from spike.server.state import AppState
@@ -56,7 +57,7 @@ class DevSession:
     the user; `None` means nobody can answer and the model is told to go on with its best assumption."""
 
     def __init__(self, state: AppState, root: Path, *, provider_id: str | None = None, specialist: str = "code",
-                 accept_edits: bool = False, resume: bool = False,
+                 accept_edits: bool = False, resume: bool = False, resume_id: str | None = None,
                  decide: Callable[[Event], str] = no_decision, answer: Callable[[Event], str | None] = no_answer):
         self.state = state
         self.root = Workspace(root).root
@@ -64,10 +65,16 @@ class DevSession:
             raise FileNotFoundError(f"{self.root} is not a folder")
         if specialist != "auto":
             state.catalog.get(specialist)  # KeyError for an unknown specialist
+        self.history_path = state.home / "dev" / "sessions.db"
+        if resume and resume_id is not None:
+            raise ValueError("choose --continue or --resume / elige --continue o --resume")
+        latest = find_session(self.history_path, self.root, resume_id) if resume or resume_id is not None else None
+        if resume_id is not None and latest is None:
+            raise ValueError("saved session not found in this folder / sesión guardada no encontrada en esta carpeta")
         self.specialist, self.provider_id = specialist, provider_id
         self.decide, self.answer = decide, answer
         home = state.home / "dev"
-        self.store = Store(home / "sessions.db")
+        self.store = Store(self.history_path)
         self.checkpoints = Checkpoints(self.store, home / "checkpoints")
         policies = dict(state.settings()["tool_policies"])
         if accept_edits:
@@ -78,8 +85,7 @@ class DevSession:
         tools.shared = lambda: extra  # every specialist gets them, not only those that list them
         base = state.orchestrator(provider_id)
         self.orchestrator = Orchestrator(state.catalog, base.resolve, tools, self.broker, skills=state.skills)
-        self.title = f"dev:{self.root}"
-        latest = next((c for c in self.store.list_conversations() if c["title"] == self.title), None) if resume else None
+        self.title = session_titles(self.root)[0]
         self.conversation_id = latest["id"] if latest else self._new_conversation()
         self.history = [Message(role=m["role"], content=m["content"],
                                 private=[m["content"]] if m["meta"].get("private") else [])
@@ -141,7 +147,8 @@ class DevSession:
     # ------------------------------------------------------------------ undo
     def changes(self) -> list[dict[str, Any]]:
         """File changes SPIKE made in this folder (this session and earlier ones), oldest first."""
-        ids = [c["id"] for c in self.store.list_conversations(limit=100_000) if c["title"] == self.title]
+        ids = [c["id"] for c in self.store.list_conversations(limit=100_000)
+               if c["title"] in session_titles(self.root)]
         return sorted((cp for cid in ids for cp in self.store.list_checkpoints(cid)), key=lambda c: c["created"])
 
     def undo_last(self, force: bool = False) -> dict[str, Any]:
