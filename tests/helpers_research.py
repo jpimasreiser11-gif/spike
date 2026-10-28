@@ -25,4 +25,3 @@ def pdf_bytes(text="Methods: compare two seeds. Equation: x = 2. Table: A 10, B 
     out = io.BytesIO()
     writer.write(out)
     return out.getvalue()
-
