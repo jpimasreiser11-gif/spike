@@ -8,20 +8,46 @@ import contextlib
 import difflib
 import json
 import os
+import sqlite3
 import sys
+import unicodedata
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TextIO
 
+from spike.dev.history import list_sessions
 from spike.dev.session import DevSession, Event
 from spike.store.checkpoints import CheckpointError
 
 HELP = """/undo   put back the files of the latest change (repeat to go further back)
 /steps  list the file changes SPIKE made in this folder
+/sessions  list saved sessions in this folder / ver sesiones guardadas de esta carpeta
 /clear  start a new conversation (the changes stay undoable)
 /help   this list
 /exit   leave (also Ctrl-D); Ctrl-C stops the current request"""
 PREVIEW_LINES = 40
+
+
+def sessions_text(rows: list[dict[str, Any]]) -> list[str]:
+    """Terminal-only summary. User requests and stored metadata cannot emit terminal escape/control sequences."""
+    def safe(value: Any) -> str:
+        return " ".join("".join(c if not unicodedata.category(c).startswith("C") else " "
+                                for c in str(value)).split())
+
+    if not rows:
+        return ["No saved sessions on this page. / No hay sesiones guardadas en esta página."]
+    result = ["Saved sessions / Sesiones guardadas (UTC):"]
+    for row in rows:
+        try:
+            date = datetime.fromtimestamp(row["updated"], UTC).strftime("%Y-%m-%d %H:%M")
+        except (ValueError, TypeError, OSError, OverflowError):
+            date = "?"
+        result.append(f"{safe(row['id'])}  {date}  {safe(row['mode'])}  "
+                      f"{safe(row['messages'])} msgs  {safe(row['preview'])}")
+    result.append("Reopen / Reabrir: spike dev <folder/carpeta> --resume <ID>")
+    result.append("More / Más: spike dev <folder/carpeta> --sessions --offset N --limit 20")
+    return result
 
 
 class Out:
@@ -250,6 +276,12 @@ def repl(loop: asyncio.AbstractEventLoop, session: DevSession, out: Out, read: C
             elif command == "/steps":
                 for row in steps_text(session):
                     out(row)
+            elif command == "/sessions":
+                try:
+                    for row in sessions_text(list_sessions(session.history_path, session.root)):
+                        out(row)
+                except (sqlite3.Error, OSError) as exc:
+                    out(f"Cannot read saved sessions / No se pueden leer las sesiones: {exc}", style="yellow")
             elif command == "/undo":
                 undo(session, out, read)
             elif command == "/clear":
@@ -284,6 +316,7 @@ def main(session: DevSession, loop: asyncio.AbstractEventLoop, prompt: str | Non
     provider, model = session.backend()
     edits = "edits without asking" if session.broker.policies.get("edit_file") == "allow" else "edits ask first"
     out(f"SPIKE dev · {session.root}", style="bold")
+    out(f"Session / Sesión: {session.conversation_id}", style="dim")
     out(f"{session.specialist} on {provider}{f' ({model})' if model else ''} · {edits} · commands ask first · "
         f"sandbox: {session.state.sandbox.isolation(command=True).line()} · /help", style="dim")
     if session.root in (Path.home(), Path(session.root.anchor)):

@@ -414,14 +414,38 @@ def cmd_forge(args: argparse.Namespace) -> int:
 
 def cmd_dev(args: argparse.Namespace) -> int:
     """`spike dev [folder]`: SPIKE's agent codes in a folder from the terminal, asking before edits and commands."""
+    import sqlite3
+
     from spike.dev import terminal
+    from spike.dev.history import find_session, list_sessions
     from spike.dev.session import DevSession
     from spike.dev.tools import stop_commands
+    from spike.runtime.paths import spike_home
     from spike.server.state import AppState
 
     root = Path(args.path).expanduser().resolve()
     if not root.is_dir():
         print(f"error: {root} is not a folder", file=sys.stderr)
+        return 2
+    if (not args.sessions and (args.limit is not None or args.offset is not None)) or (
+        args.sessions and (args.start_local or args.prompt is not None or args.accept_edits or args.provider)
+    ):
+        print("error: --sessions only lists history; --limit/--offset require --sessions / "
+              "--sessions solo lista el historial; --limit/--offset requieren --sessions", file=sys.stderr)
+        return 2
+    try:
+        if args.sessions:
+            rows = list_sessions(spike_home() / "dev" / "sessions.db", root,
+                                 limit=20 if args.limit is None else args.limit,
+                                 offset=0 if args.offset is None else args.offset)
+            for line in terminal.sessions_text(rows):
+                print(line)
+            return 0
+        if args.resume_id is not None and find_session(spike_home() / "dev" / "sessions.db", root,
+                                                       args.resume_id) is None:
+            raise ValueError("saved session not found in this folder / sesión guardada no encontrada en esta carpeta")
+    except (ValueError, sqlite3.Error, OSError) as exc:
+        print(f"error reading saved sessions / error al leer sesiones: {exc}", file=sys.stderr)
         return 2
     state = AppState()
     if args.provider and not state.provider_config(args.provider):
@@ -440,13 +464,16 @@ def cmd_dev(args: argparse.Namespace) -> int:
         if hasattr(signal, name):
             signal.signal(getattr(signal, name), leave)
     try:
+        session = DevSession(state, root, provider_id=args.provider, specialist=args.specialist,
+                             accept_edits=args.accept_edits, resume=args.resume, resume_id=args.resume_id)
         if args.start_local:
             loop.run_until_complete(state.start_runtime())
         for pid in state.providers_for_run(args.provider):
             loop.run_until_complete(state.refresh_adapters(pid))
-        session = DevSession(state, root, provider_id=args.provider, specialist=args.specialist,
-                             accept_edits=args.accept_edits, resume=args.resume)
         return terminal.main(session, loop, args.prompt)
+    except (ValueError, sqlite3.Error, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     finally:
         stop_commands()
         if args.start_local:
@@ -751,8 +778,15 @@ def build_parser() -> argparse.ArgumentParser:
     dv.add_argument("-p", "--print", dest="prompt", help="run one request without questions and print the answer")
     dv.add_argument("--accept-edits", action="store_true", help="edit and create files without asking (commands "
                                                                  "still ask)")
-    dv.add_argument("-c", "--continue", dest="resume", action="store_true",
-                    help="continue the latest conversation in this folder")
+    history = dv.add_mutually_exclusive_group()
+    history.add_argument("-c", "--continue", dest="resume", action="store_true",
+                         help="continue the latest conversation in this folder")
+    history.add_argument("--resume", dest="resume_id", metavar="ID",
+                         help="reopen a saved conversation in this folder / reabrir una sesión por ID")
+    history.add_argument("--sessions", action="store_true",
+                         help="list saved sessions without loading a model / listar sesiones sin cargar un modelo")
+    dv.add_argument("--limit", type=int, help="sessions per page, 1–100 (default 20) / sesiones por página")
+    dv.add_argument("--offset", type=int, help="skip this many sessions (default 0) / sesiones que omitir")
     dv.add_argument("--start-local", action="store_true", help="start the local engine first (and stop it after)")
     dv.set_defaults(func=cmd_dev)
 
