@@ -26,6 +26,56 @@ await page.goto(base);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
+// A14: explicit local transcription, editing, downloads and keyboard/mobile layout.
+const subtitlePosts = [];
+page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/subtitles/")) subtitlePosts.push(r.url()); });
+const subtitleLaunch = page.getByRole("button", { name: "Audio y subtítulos", exact: true });
+await subtitleLaunch.click();
+const subtitleDialog = page.getByRole("dialog", { name: "Audio y subtítulos", exact: true });
+await subtitleDialog.getByRole("button", { name: "Transcribir localmente" }).waitFor();
+if (subtitlePosts.length) fail("opening subtitles must not execute a command");
+await page.keyboard.press("Escape");
+await subtitleDialog.waitFor({ state: "hidden" });
+if (!(await subtitleLaunch.evaluate((el) => el === document.activeElement))) fail("subtitles must restore keyboard focus");
+await subtitleLaunch.click();
+await subtitleDialog.locator('[name="media-path"]').fill("intro.mp4");
+if (!(await subtitleDialog.getByTestId("subtitle-transcribe").isDisabled())) fail("transcription needs approval");
+await subtitleDialog.locator('[name="approve-media"]').check();
+const [subtitleResponse] = await Promise.all([
+  page.waitForResponse((r) => r.url().endsWith("/api/subtitles/transcribe") && r.request().method() === "POST"),
+  subtitleDialog.getByTestId("subtitle-transcribe").click(),
+]);
+if (!subtitleResponse.ok()) throw new Error("Subtitle transcription: " + await subtitleResponse.text());
+await subtitleDialog.getByLabel("Texto 2", { exact: true }).waitFor();
+await subtitleDialog.getByLabel("Texto 1", { exact: true }).fill("SPIKE conserva tu trabajo en local");
+await subtitleDialog.getByRole("button", { name: "Dividir 1", exact: true }).click();
+await subtitleDialog.getByLabel("Texto 3", { exact: true }).waitFor();
+await subtitleDialog.getByRole("button", { name: "Unir con siguiente 1", exact: true }).click();
+await subtitleDialog.getByLabel("Texto 3", { exact: true }).waitFor({ state: "hidden" });
+await subtitleDialog.getByLabel("Desplazar todos (milisegundos)").fill("200");
+await subtitleDialog.getByRole("button", { name: "Aplicar desplazamiento", exact: true }).click();
+await page.waitForFunction(() => document.querySelector('[aria-label="Inicio (ms) 1"]')?.value === "200");
+const [vttDownload] = await Promise.all([page.waitForEvent("download"), subtitleDialog.getByRole("button", { name: "Descargar VTT", exact: true }).click()]);
+const vttPath = await vttDownload.path();
+const vttText = fs.readFileSync(vttPath, "utf8");
+if (!vttText.startsWith("WEBVTT") || !vttText.includes("00:00:00.200") || !vttText.includes("SPIKE")) fail("VTT export lost edited cues");
+await subtitleDialog.locator('[name="subtitle-import"]').setInputFiles({ name: "roundtrip.vtt", mimeType: "text/vtt", buffer: Buffer.from(vttText) });
+await subtitleDialog.getByRole("button", { name: "Descargar SRT", exact: true }).waitFor();
+await page.screenshot({ path: `${out}/00-subtitles.png` });
+await page.setViewportSize({ width: 390, height: 844 });
+if (await subtitleDialog.evaluate((el) => el.scrollWidth > el.clientWidth)) fail("subtitle editor must fit mobile width");
+await page.screenshot({ path: `${out}/00-subtitles-mobile.png` });
+await page.setViewportSize({ width: 1360, height: 860 });
+const renderButton = subtitleDialog.getByRole("button", { name: "Crear y descargar MP4", exact: true });
+if (!(await renderButton.isDisabled())) fail("burn-in needs separate approval");
+await subtitleDialog.locator('[name="approve-render"]').check();
+const [renderDownload] = await Promise.all([page.waitForEvent("download"), renderButton.click()]);
+if (!(fs.readFileSync(await renderDownload.path()).subarray(4, 8).toString() === "ftyp")) fail("render download missing");
+await subtitleDialog.getByTestId("subtitle-close").click();
+await subtitleDialog.getByText(/Hay cambios sin exportar/).waitFor();
+await subtitleDialog.getByRole("button", { name: "Cerrar y descartar", exact: true }).click();
+await subtitleDialog.waitFor({ state: "hidden" });
+
 // A13: image preparation stays in the browser; speech settings never execute a command on opening.
 const mediaPosts = [];
 page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/media/")) mediaPosts.push(r.url()); });

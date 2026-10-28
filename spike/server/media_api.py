@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import binascii
 from collections.abc import Callable
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from spike.media import DEFAULTS, MAX_AUDIO, MediaError, Speech
 from spike.runtime.paths import workspace_dir
+from spike.server.speech_jobs import execute_speech
 
 
 class SpeechSettings(BaseModel):
@@ -33,7 +33,6 @@ class TextIn(BaseModel):
 
 def create_media_router(get_state: Callable[[], Any], this_computer: Callable[[Request, str], None]) -> APIRouter:
     router = APIRouter(prefix='/api/media')
-    lock = asyncio.Lock()
 
     def service() -> Speech:
         return Speech(workspace_dir(), get_state().store.get_setting('speech', dict(DEFAULTS)))
@@ -56,15 +55,6 @@ def create_media_router(get_state: Callable[[], Any], this_computer: Callable[[R
         get_state().store.set_setting('speech', speech.settings)
         return speech.status()
 
-    async def execute(action, *args):
-        if lock.locked():
-            raise HTTPException(409, 'speech_busy')
-        async with lock:
-            try:
-                return await asyncio.to_thread(action, *args)
-            except (MediaError, OSError, UnicodeError) as exc:
-                raise HTTPException(400, str(exc) if isinstance(exc, MediaError) else "speech_failed") from exc
-
     @router.post('/transcribe')
     async def transcribe(body: AudioIn, request: Request) -> dict:
         this_computer(request, 'speech')
@@ -72,12 +62,12 @@ def create_media_router(get_state: Callable[[], Any], this_computer: Callable[[R
             audio = base64.b64decode(body.audio, validate=True)
         except (ValueError, binascii.Error) as exc:
             raise HTTPException(400, 'WAV') from exc
-        return {'text': await execute(service().transcribe, audio)}
+        return {'text': await execute_speech(get_state(), service().transcribe, audio)}
 
     @router.post('/speak')
     async def speak(body: TextIn, request: Request) -> Response:
         this_computer(request, 'speech')
-        audio = await execute(service().synthesize, body.text)
+        audio = await execute_speech(get_state(), service().synthesize, body.text)
         return Response(audio, media_type='audio/wav', headers={'Cache-Control': 'no-store'})
 
     return router
