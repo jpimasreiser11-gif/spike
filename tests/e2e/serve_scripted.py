@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import tempfile
+import wave
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -22,6 +23,7 @@ from spike.desktop.driver import Availability  # noqa: E402
 from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
 from spike.server.state import AppState  # noqa: E402
+from spike.subtitles import SubtitleStudio  # noqa: E402
 from tests.helpers_desktop import FakeDriver, instant  # noqa: E402
 
 # An artifact that probes its sandbox: it reports whether it could read storage, reach the parent page or call
@@ -397,6 +399,25 @@ async def scripted_tuner(model, quick=False):
                                                          "results": [], "context": {"measured": False}}}
 
 
+def scripted_subtitle_command(args, cwd, *, capture=False):
+    """The browser exercises the real routes/editor; stand in only for external media programs."""
+    if args[0] == 'ffprobe':
+        return json.dumps({'format': {'duration': '4'}, 'streams': [{'codec_type': 'video', 'width': 640, 'height': 360}]})
+    if args[0] == 'whisper-cli':
+        Path(args[args.index('-of') + 1] + '.srt').write_text(
+            '1\n00:00:00,000 --> 00:00:01,000\nSPIKE trabaja en local\n\n'
+            '2\n00:00:01,200 --> 00:00:03,500\nRevisa y exporta tus subtítulos\n', encoding='utf-8')
+    elif args[-1].endswith('.wav'):
+        with wave.open(args[-1], 'wb') as audio:
+            audio.setnchannels(1)
+            audio.setsampwidth(2)
+            audio.setframerate(16000)
+            audio.writeframes(b'\0\0' * 16000 * 4)
+    else:
+        Path(args[-1]).write_bytes(b'\0\0\0\x18ftypmp42-scripted')
+    return ''
+
+
 def main() -> None:
     home = Path(tempfile.mkdtemp(prefix="spike-e2e-"))
     os.environ["SPIKE_HOME"] = str(home)
@@ -404,6 +425,12 @@ def main() -> None:
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
     (home / "ws").mkdir(parents=True, exist_ok=True)
+    (home / "ws" / "subtitle-model.bin").write_bytes(b'scripted model')
+    (home / "ws" / "intro.mp4").write_bytes(b'scripted video')
+    state.store.set_setting('speech', {'enabled': True, 'whisper_model': 'subtitle-model.bin'})
+    SubtitleStudio.available = staticmethod(lambda: {'whisper': True, 'ffmpeg': True, 'ffprobe': True})
+    SubtitleStudio.binary = staticmethod(lambda name: name)
+    SubtitleStudio.run = staticmethod(scripted_subtitle_command)
     (home / "ws" / "contrato.md").write_text(CONTRACT, encoding="utf-8")
     (home / "ws" / "ventas.csv").write_text("fecha,region,producto,unidades,precio\n2024-01-15,norte,A,10,2.50\n"
                                             "2024-01-20,sur,B,4,10.00\n2024-02-03,norte,B,6,10.00\n"

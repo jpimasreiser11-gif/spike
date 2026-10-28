@@ -129,6 +129,7 @@ def clean_finance(value: dict[str, Any]) -> dict[str, Any]:
 
 class AppState:
     def __init__(self, home: Path | None = None, provider_factory=create_provider, market_factory=ccxt_exchange):
+        self.speech_lock = asyncio.Lock()  # dictation, synthesis and subtitle jobs share one local worker
         self.home = home or spike_home()
         self.store = Store(self.home / "spike.db")
         self.temp = Store(Path(":memory:"))  # temporary chats: never on disk, gone when SPIKE stops
