@@ -10,6 +10,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from spike.store import history
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations (
   id TEXT PRIMARY KEY, title TEXT NOT NULL, created REAL NOT NULL, updated REAL NOT NULL,
@@ -61,6 +63,7 @@ class Store:
             self._conn.execute("ALTER TABLE calls ADD COLUMN conversation_id TEXT")  # logs from before chat tagging
         self._conn.execute("DELETE FROM calls WHERE ts < ?", (time.time() - CALL_LOG_DAYS * 86400,))
         self._conn.commit()
+        history.initialize(self._conn)
         self._lock = threading.Lock()
 
     def _exec(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
@@ -69,6 +72,10 @@ class Store:
             rows = cur.fetchall()
             self._conn.commit()
             return rows
+
+    def search_history(self, **filters: Any) -> dict:
+        with self._lock:
+            return history.search(self._conn, **filters)
 
     # -------------------------------------------------------------- conversations
     def create_conversation(self, title: str = "New chat", mode: str = "auto", provider_id: str | None = None,

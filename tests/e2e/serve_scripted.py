@@ -338,6 +338,9 @@ class ScriptedApp:
                "structuredContent": {"symbol": args.get("symbol"), "price": price}, "isError": False}
         return CallResult(text=raw["content"][0]["text"], is_error=False, raw=raw)
 
+    async def close(self):
+        pass
+
     async def read_resource(self, uri):
         return {"contents": [{"uri": uri, "mimeType": APP_MIME, "text": APP_PAGE,
                               "_meta": {"ui": {"csp": {"connectDomains": ["https://api.example.com"]},
@@ -400,6 +403,16 @@ def main() -> None:
     os.environ["SPIKE_WORKSPACE"] = str(home / "ws")
     os.environ["SPIKE_NO_KEYRING"] = "1"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
+    archive = state.store.create_project("Archivo de decisiones")
+    chat = state.store.create_conversation("Decisiones de arquitectura", project_id=archive["id"])
+    state.store.add_message(chat["id"], "user", "Compara opciones para conservar las decisiones del proyecto.")
+    state.store.add_message(chat["id"], "assistant", "Elegimos SQLite para la memoria local del proyecto. "
+                            "Esta decisión permite consultar el historial sin enviar datos a proveedores.")
+    for i in range(8):
+        state.store.add_message(chat["id"], "user", f"Seguimiento de la decisión {i}.")
+        state.store.add_message(chat["id"], "assistant", "Seguimos usando almacenamiento local. " * 20)
+    temp = state.temp.create_conversation("Temporal")
+    state.temp.add_message(temp["id"], "user", "SQLite memoria solo temporal")
     (home / "ws").mkdir(parents=True, exist_ok=True)
     (home / "ws" / "contrato.md").write_text(CONTRACT, encoding="utf-8")
     (home / "ws" / "ventas.csv").write_text("fecha,region,producto,unidades,precio\n2024-01-15,norte,A,10,2.50\n"
