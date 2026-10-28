@@ -26,6 +26,38 @@ await page.goto(base);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
+// Research is inert on open. Local extraction precedes a single explicit model request; Forge only reviews.
+const researchPosts = [];
+page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/research/")) researchPosts.push(r.url()); });
+await page.getByRole("button", { name: "Investigación", exact: true }).click();
+const research = page.getByRole("region", { name: "Investigación", exact: true });
+await research.getByText("Abre un chat para exportar su cuaderno.").waitFor();
+if (researchPosts.length) fail("Research opening must not call a model or read files");
+await research.getByLabel("Archivos relativos (uno por línea)").fill("research-paper.pdf");
+await research.getByRole("button", { name: "Revisar texto y destino" }).click();
+await research.getByRole("button", { name: "Enviar y analizar una vez" }).waitFor();
+if (researchPosts.length !== 1 || !researchPosts[0].endsWith("/preview")) fail("Research preview must stay local");
+await research.locator("summary").filter({ hasText: "research-paper.pdf" }).click();
+await research.locator("pre").getByText(/Methods: compare two seeds/).waitFor();
+await research.getByRole("button", { name: "Enviar y analizar una vez" }).click();
+await research.locator("blockquote").getByText("compare two seeds", { exact: true }).waitFor();
+await research.locator(".research-result").scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}/00-research-paper.png` });
+await research.getByRole("button", { name: "Revisar plan en Forge" }).click();
+await page.getByRole("button", { name: "Aprobar y ejecutar", exact: true }).waitFor();
+if (await page.locator(".conv").count()) fail("Paper Rebuilder must not silently run a plan");
+await page.getByRole("button", { name: "Volver", exact: true }).click();
+await research.getByLabel("Tipo de análisis").selectOption("contradictions");
+await research.getByLabel("Archivos relativos (uno por línea)").fill("research-a.txt\nresearch-b.txt");
+await research.getByRole("button", { name: "Revisar texto y destino" }).click();
+await research.getByRole("button", { name: "Enviar y analizar una vez" }).click();
+await research.locator("tbody tr").waitFor();
+if (await research.locator("blockquote").allTextContents().then((q) => q.join("|")) !== "The result is positive.|The result is negative.") fail("Contradictions must retain both exact quotes");
+if (researchPosts.filter((p) => p.endsWith("/analyze")).length !== 2) fail("Research must call once per explicit analysis");
+await research.locator(".research-result").scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}/00-research-contradictions.png` });
+await research.getByRole("button", { name: "Volver al chat" }).click();
+
 // Lab opens with local history only; both preview and explicit execution are exercised before chat.
 const labPosts = [];
 page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/lab/")) labPosts.push(r.url()); });
@@ -65,6 +97,11 @@ await page.getByText("proveedor *de prueba*".replace(/\*/g, "")).first().waitFor
 await page.locator(".msg.assistant .markdown").first().waitFor();
 await page.waitForFunction(() => document.querySelector(".msg-actions") !== null, null, { timeout: 10000 });
 if (!(await page.locator(".conv").count())) fail("conversation not listed in sidebar");
+await page.getByRole("button", { name: "Investigación", exact: true }).click();
+const notebookLink = research.getByRole("link", { name: "Descargar cuaderno .ipynb" });
+const exportedNotebook = await (await ctx.request.get(new URL(await notebookLink.getAttribute("href"), base).href)).json();
+if (exportedNotebook.nbformat !== 4 || !exportedNotebook.cells.length) fail("Notebook export must be nbformat v4");
+await research.getByRole("button", { name: "Volver al chat" }).click();
 
 // 1b. retry on the same model, then edit the question: each replaces the turn instead of adding one
 await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
@@ -903,6 +940,7 @@ const desktopSetting = page.getByLabel("Control del escritorio (solo con un prov
 await desktopSetting.waitFor();
 if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
 if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+await page.getByTestId("desktop-provider").locator("option[disabled]").filter({ hasText: "nunca controla el escritorio" }).waitFor({ state: "attached" });
 const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
 if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
 await desktopSetting.click();
@@ -978,6 +1016,10 @@ if (overflow) fail("horizontal overflow on mobile");
 const send = await mp.locator(".send-btn").boundingBox();
 if (!send || send.x + send.width > 390) fail("send button outside the mobile viewport");
 await mp.screenshot({ path: `${out}/09-mobile.png` });
+await mp.getByRole("button", { name: "Investigación", exact: true }).click();
+await mp.getByRole("heading", { name: "Investigación", exact: true }).waitFor();
+if (await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) fail("Research overflows mobile");
+await mp.screenshot({ path: `${out}/09-research-mobile.png` });
 
 if (errors.length) fail("browser errors: " + errors.join(" | "));
 await browser.close();

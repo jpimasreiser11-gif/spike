@@ -107,11 +107,12 @@ export function BlueprintEditor({ bp, onChange, requirements, setRequirements, c
 }
 
 /** Forge: a task becomes a blueprint the user approves, then runs as a chat with the team's trace and a report. */
-export function Forge({ specialists, providers, projectId, initialTask = "", initialBlueprint, title, intro, onBack, onRun, onClose }: {
+export function Forge({ specialists, providers, projectId, initialTask = "", initialBlueprint, initialProviderId, title, intro, onBack, onRun, onClose }: {
   specialists: Specialist[];
   providers: ProviderInfo[];
   projectId?: string;
   initialTask?: string;
+  initialProviderId?: string | null;
   initialBlueprint?: Blueprint; // a plan made elsewhere (a Creator template): Forge opens on its review
   title?: string;
   intro?: string;
@@ -120,7 +121,7 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
   onClose: () => void;
 }) {
   const [task, setTask] = useState(initialTask);
-  const [providerId, setProviderId] = useState<string | null>(null);
+  const [providerId, setProviderId] = useState<string | null>(initialProviderId ?? null);
   const [bp, setBp] = useState<Blueprint | null>(initialBlueprint ?? null);
   const [requirements, setRequirements] = useState(initialBlueprint?.requirements.join("\n") ?? "");
   const [criteria, setCriteria] = useState(initialBlueprint?.criteria.join("\n") ?? "");

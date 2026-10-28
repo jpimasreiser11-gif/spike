@@ -12,6 +12,7 @@ import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { ProofDownload } from "./components/ProofDownload";
 import { Replay } from "./components/Replay";
+import { Research } from "./components/Research";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { SpecMark } from "./components/SpecMark";
 import { t } from "./i18n";
@@ -103,6 +104,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [forgeOpen, setForgeOpen] = useState(false);
   const [labOpen, setLabOpen] = useState(false);
+  const [researchOpen, setResearchOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(false);
   const [desktopOn, setDesktopOn] = useState(false); // desktop actions are turned on in Settings
@@ -157,6 +159,7 @@ export default function App() {
 
   const openConversation = async (id: string) => {
     if (busy) return;
+    setResearchOpen(false);
     setForgeOpen(false);
     setCreatorOpen(false);
     const conv = await api.get<Conversation & { messages: StoredMessage[] }>(`/api/conversations/${id}`);
@@ -169,6 +172,7 @@ export default function App() {
   };
 
   const newChat = () => {
+    setResearchOpen(false);
     if (busy) abortRef.current?.abort();
     setForgeOpen(false);
     setCreatorOpen(false);
@@ -180,6 +184,7 @@ export default function App() {
   };
 
   const selectProject = (p: Project | null) => {
+    setResearchOpen(false);
     if (busy) abortRef.current?.abort();
     setProject(p);
     setActiveId(null);
@@ -278,6 +283,7 @@ export default function App() {
 
   /** Run an approved Forge blueprint as a new chat: the team's trace and the report show up as its answer. */
   const runForge = (task: string, blueprint: Blueprint, provider: string | null, extra?: CreatorExtra) => {
+    setResearchOpen(false);
     setForgeOpen(false);
     setCreatorOpen(false);
     setActiveId(null);
@@ -315,8 +321,8 @@ export default function App() {
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label="Close sidebar"><IconSidebar /></button>
         </div>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
-        <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
-        <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
+        <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
+        <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
@@ -359,7 +365,8 @@ export default function App() {
           {!sidebar && <button className="icon-btn" onClick={newChat} aria-label={t.newChat}><IconPlus /></button>}
           {project && <span className="crumb"><IconFolder size={15} /> {project.name}</span>}
           <div className="spacer" />
-          <button className="btn small" disabled={busy} onClick={() => setLabOpen(true)}>{t.lab.title}</button>
+          <button className="btn small" disabled={busy} onClick={() => { setResearchOpen(true); setLabOpen(false); }}>{t.research.title}</button>
+          <button className="btn small" disabled={busy} onClick={() => { setResearchOpen(false); setLabOpen(true); }}>{t.lab.title}</button>
           {(empty || temporary) && (
             <button className={`btn small temp-toggle ${temporary ? "on" : ""}`} aria-pressed={temporary} disabled={!empty}
               onClick={() => setTemporary(!temporary)} title={t.temporaryHint}><IconTimer size={15} /> {t.temporaryChat}</button>
@@ -372,7 +379,10 @@ export default function App() {
 
         {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}
 
-        {labOpen ? (
+        {researchOpen ? (
+          <Research key={`${project?.id || "workspace"}:${activeId || "new"}`} conversationId={activeId} projectId={project?.id}
+            projectName={project?.name} specialists={specialists} providers={providers} onRun={runForge} onClose={() => setResearchOpen(false)} />
+        ) : labOpen ? (
           <Lab specialists={specialists} providers={providers} onClose={() => setLabOpen(false)} />
         ) : creatorOpen ? (
           <Creator specialists={specialists} providers={providers} projectId={project?.id} designs={designs} projectDesign={project?.design}
