@@ -1,4 +1,17 @@
 const es = {
+  history: {
+    title: "Buscar conversaciones", close: "Cerrar", query: "Palabras o frase", placeholder: "¿Dónde hablamos de…?",
+    note: "Búsqueda local en títulos y mensajes guardados. No incluye chats temporales, archivos ni memoria. No consulta modelos.",
+    search: "Buscar", scope: "Dónde buscar", workspace: "Sin proyecto", everywhere: "Todos los proyectos y chats",
+    match: "Coincidencia", words: "Todas las palabras", phrase: "Frase en orden", sender: "Contenido",
+    allContent: "Títulos y mensajes", user: "Tú", date: "Fecha del mensaje o título", anyDate: "Cualquier fecha",
+    days7: "Últimos 7 días", days30: "Últimos 30 días", days90: "Últimos 90 días", searching: "Buscando…",
+    empty: "Sin coincidencias. Prueba otras palabras o amplía los filtros.", ready: "Escribe hasta 12 palabras y pulsa Buscar.",
+    result: "coincidencia", results: "coincidencias", moreAvailable: "hay más resultados", more: "Cargar más", chatTitle: "Título",
+    error: "No se pudo buscar. Revisa la conexión local y usa entre 1 y 12 palabras.",
+    openError: "No se pudo abrir el chat. Puede haber sido eliminado; vuelve a buscar.",
+  },
+
   bundledSkillDescriptions: {
     "decision-simulator": "Compara decisiones empresariales con escenarios, supuestos y análisis de sensibilidad.",
     "test-inventor": "Inventa casos límite y pruebas de propiedades a partir del contrato del código.",
@@ -277,6 +290,19 @@ const es = {
 type Dict = typeof es;
 
 const en: Dict = {
+  history: {
+    title: "Search conversations", close: "Close", query: "Words or phrase", placeholder: "Where did we discuss…?",
+    note: "Local search of saved titles and messages. Excludes temporary chats, files and memory. No model calls.",
+    search: "Search", scope: "Search in", workspace: "No project", everywhere: "All projects and chats",
+    match: "Match", words: "All words", phrase: "Phrase in order", sender: "Content",
+    allContent: "Titles and messages", user: "You", date: "Message or title date", anyDate: "Any date",
+    days7: "Last 7 days", days30: "Last 30 days", days90: "Last 90 days", searching: "Searching…",
+    empty: "No matches. Try different words or broaden the filters.", ready: "Enter up to 12 words and press Search.",
+    result: "match", results: "matches", moreAvailable: "more results available", more: "Load more", chatTitle: "Title",
+    error: "Search failed. Check the local connection and use between 1 and 12 words.",
+    openError: "Could not open the chat. It may have been deleted; search again.",
+  },
+
   bundledSkillDescriptions: {
     "decision-simulator": "Compare business decisions with scenarios, assumptions and sensitivity analysis.",
     "test-inventor": "Invent edge cases and property tests from the software contract.",

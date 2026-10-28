@@ -7,6 +7,7 @@ import { D as DESKTOP, DesktopTask } from "./components/Desktop";
 import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
 import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
+import { HistorySearch, type HistoryHit } from "./components/HistorySearch";
 import { Lab } from "./components/Lab";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
@@ -18,7 +19,7 @@ import { t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
 import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, MindsSpec, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
-type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState };
+type Item = { kind: "user"; text: string; id?: string } | { kind: "assistant"; run: RunState; id?: string };
 
 /** A sent message, editable in place: sending the edit replaces it and everything after it, or goes on in a branch
  * (a copy of the chat up to this message) so the original stays as it was. */
@@ -102,6 +103,8 @@ export default function App() {
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [forgeOpen, setForgeOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTarget, setSearchTarget] = useState<string | null>(null);
   const [labOpen, setLabOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(false);
@@ -112,6 +115,7 @@ export default function App() {
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
+  const searchJump = useRef(false);
   const importRef = useRef<HTMLInputElement>(null);
   const viewContext = useRef(new Map<string, { view: string; name: string; text: string }>());
 
@@ -155,20 +159,51 @@ export default function App() {
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [items]);
 
-  const openConversation = async (id: string) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !e.altKey && !busy
+          && !settingsOpen && !projectDialog && !desktopOpen && !replay && !searchOpen) {
+        e.preventDefault(); setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, settingsOpen, projectDialog, desktopOpen, replay, searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen || !searchTarget || !searchJump.current) return;
+    const target = document.getElementById(`history-message-${searchTarget}`);
+    target?.scrollIntoView({ block: "center" });
+    target?.focus({ preventScroll: true });
+    if (target) searchJump.current = false;
+  }, [searchTarget, searchOpen, items]);
+
+  const openConversation = async (id: string, messageId?: string | null) => {
     if (busy) return;
-    setForgeOpen(false);
-    setCreatorOpen(false);
     const conv = await api.get<Conversation & { messages: StoredMessage[] }>(`/api/conversations/${id}`);
+    if (messageId && !conv.messages.some((m) => m.id === messageId)) throw new Error("message_not_found");
+    const destination = conv.project_id ? (projects.find((p) => p.id === conv.project_id)
+      ?? await api.get<Project>(`/api/projects/${conv.project_id}`)) : null;
+    setProject(destination);
+    setForgeOpen(false); setCreatorOpen(false); setLabOpen(false);
+    searchJump.current = Boolean(messageId);
+    setSearchTarget(messageId ?? null);
+    stick.current = !messageId;
     setActiveId(id);
     setArtifact(null);
     setMode(conv.mode || "auto");
     setTemporary(Boolean((conv as { temporary?: boolean }).temporary));
-    setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content, id: m.id } : { kind: "assistant", run: runFromStored(m) })));
+    setItems(conv.messages.map((m) => (m.role === "user" ? { kind: "user", text: m.content, id: m.id } : { kind: "assistant", run: runFromStored(m), id: m.id })));
     if (window.innerWidth <= 860) setSidebar(false);
   };
 
+  const openSearchResult = async (hit: HistoryHit) => {
+    await openConversation(hit.conversation_id, hit.message_id);
+    setSearchOpen(false);
+  };
+
   const newChat = () => {
+    setSearchTarget(null);
     if (busy) abortRef.current?.abort();
     setForgeOpen(false);
     setCreatorOpen(false);
@@ -180,6 +215,7 @@ export default function App() {
   };
 
   const selectProject = (p: Project | null) => {
+    setSearchTarget(null);
     if (busy) abortRef.current?.abort();
     setProject(p);
     setActiveId(null);
@@ -212,6 +248,7 @@ export default function App() {
   /** Send a message; `from` (an index into items) replaces that user message and everything after it. */
   const send = async (text: string, from?: number, provider: string | null = providerId, conversationId = activeId, schema?: object,
                     specialist?: string, forge?: Blueprint, extra?: CreatorExtra, minds?: MindsSpec) => {
+    setSearchTarget(null);
     const replaced = from !== undefined ? items[from] : undefined;
     const replaceFrom = replaced?.kind === "user" ? replaced.id : undefined;
     if (from !== undefined && !replaceFrom) return; // not saved yet: nothing to replace
@@ -314,6 +351,8 @@ export default function App() {
           <div className="brand"><img src="/spike-mark.png" alt="" width={30} height={30} /><span className="wordmark">SPIKE</span></div>
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label="Close sidebar"><IconSidebar /></button>
         </div>
+        <button className="side-btn history-launch" disabled={busy} onClick={() => setSearchOpen(true)} aria-keyshortcuts="Control+k Meta+k">
+          <span>{t.history.title}</span><kbd>⌘ / Ctrl K</kbd></button>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
         <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
         <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
@@ -407,8 +446,10 @@ export default function App() {
             }}>
               <div className="thread-inner">
                 {temporary && <div className="notice temp-notice"><IconTimer size={14} /> {t.temporaryHint}</div>}
-                {items.map((it, i) =>
-                  it.kind === "user" ? (
+                {items.map((it, i) => (
+                  <div key={it.id ?? i} id={it.id ? `history-message-${it.id}` : undefined}
+                    className={it.id && searchTarget === it.id ? "history-message" : undefined} tabIndex={-1}>
+                  {it.kind === "user" ? (
                     <UserMessage key={i} text={it.text} onEdit={!busy && it.id ? (text) => send(text, i) : undefined}
                       onBranch={!busy && it.id && activeId ? (text) => branch(text, i) : undefined} />
                   ) : (
@@ -418,8 +459,8 @@ export default function App() {
                       question={items[i - 1]?.kind === "user" ? (items[i - 1] as { text: string }).text : undefined}
                       onRetry={!busy && i === items.length - 1 && lastUser === i - 1 && items[lastUser].kind === "user"
                         ? (pid, specialist) => retry(lastUser, pid ?? providerId, specialist) : undefined} />
-                  ),
-                )}
+                  )}</div>
+                ))}
               </div>
             </div>
             <div className="bottom-composer">{composer}</div>
@@ -428,6 +469,8 @@ export default function App() {
       </main>
 
       {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
+
+      {searchOpen && <HistorySearch projects={projects} projectId={project?.id} onClose={() => setSearchOpen(false)} onSelect={openSearchResult} />}
 
       {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}
 
