@@ -121,7 +121,7 @@ def test_linux_appdir_preserves_spaces_and_launch_arguments(tmp_path):
 def test_workflow_tests_installed_artifacts_before_any_draft():
     doc = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8"))
     triggers = doc.get("on", doc.get(True))
-    assert {"push", "workflow_dispatch", "pull_request"} <= triggers.keys()
+    assert set(triggers) == {"push", "workflow_dispatch"}
     assert triggers["workflow_dispatch"]["inputs"]["create_draft"]["default"] is False
     matrix = doc["jobs"]["build"]["strategy"]["matrix"]["include"]
     assert {item["target"] for item in matrix} == set(TARGETS)

@@ -45,7 +45,8 @@ and installer signing remain release checks. DMG, Inno Setup and AppImage wrappe
 
 ## Native installer candidates (I2)
 
-`.github/workflows/release.yml` builds on a pull request affecting packaging, an existing `v*` tag, or a manual run.
+`.github/workflows/release.yml` builds on an existing `v*` tag or an explicit manual run.
+Native builds do not run on pull requests; this follows the existing installer workflow's budget controls.
 The first matrix is **Apple Silicon / macOS 14**, **Windows 2022 runner / x64** and **Ubuntu 24.04 / x86_64**.
 These are build/test targets, not a promise of compatibility with every older OS or architecture. Intel Macs,
 Windows ARM and Linux ARM need their own runner evidence before announcement.
@@ -86,7 +87,7 @@ manual `create_draft=true` run **on an existing version tag**, creates a **draft
 The tag must match `pyproject.toml`; no tag is created, no release overwritten and no draft published. Joan still
 approves public release, accounts and any spending. Release packaging does not replace the RELEASE1 evidence gates,
 Claude's review, L2 license/security review or I3 real-model installation journeys. The new workflow must be known to
-GitHub on the default branch before its manual dispatch can be used. A PR run is separately identified evidence.
+GitHub on the default branch before its manual dispatch can be used. Do not enable paid overage to run these checks; use the included Actions allowance.
 
 ### Abrir sin firma de pago / Opening without paid signing
 
