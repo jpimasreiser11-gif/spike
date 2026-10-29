@@ -964,8 +964,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.delete("/api/projects/{pid}")
     async def delete_project(pid: str) -> dict:
         project_or_404(pid)
-        st().store.delete_project(pid)
-        st().forget_project(pid)
+        try:
+            st().forget_project(pid)
+        except ProjectError as exc:
+            raise HTTPException(409, str(exc)) from exc
         return {"ok": True}
 
     @app.get("/api/projects/{pid}/files")
