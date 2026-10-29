@@ -192,3 +192,15 @@ grants no trademark rights (section 6), so they may not be used as another produ
   Source/release: https://github.com/ggml-org/llama.cpp/releases/tag/b11709. No upstream binaries are checked in.
 - **pywebview** (BSD-3-Clause): detected only when already installed in the build/runtime environment; SPIKE's
   launcher otherwise uses the standard-library browser opener. Source: https://github.com/r0x0r/pywebview.
+- **PyInstaller 6.22.3**: build tool/bootloader, GPL-2.0 with its distribution exception; see
+  https://github.com/pyinstaller/pyinstaller/blob/v6.22.3/COPYING.txt. No source code is adapted into SPIKE.
+- **appimagetool 1.9.1**: CI-only packaging tool, https://github.com/AppImage/appimagetool/releases/tag/1.9.1.
+  Its pinned bytes are downloaded only for a Linux release build; the tool itself is not shipped inside SPIKE.
+- **AppImage type2-runtime**: embedded Linux runtime, MIT with bundled-library notices (including LGPL libfuse),
+  https://github.com/AppImage/type2-runtime. The build pins GitHub asset 657374641 and SHA-256
+  `617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46`.
+  Upstream notices are retained in `packaging/licenses/type2-runtime.txt`; L2 must review the linked-library
+  redistribution/source obligations before public distribution. Pinning a binary does not establish those rights.
+- **Inno Setup 6**: existing Windows runner build tool; installer-engine license and terms:
+  https://github.com/jrsoftware/issrc/blob/main/license.txt. No paid signing or service is configured.
+- **actionlint 1.7.12** (MIT): CI-only workflow linter, https://github.com/rhysd/actionlint/releases/tag/v1.7.12.

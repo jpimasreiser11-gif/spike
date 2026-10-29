@@ -19,6 +19,13 @@ Configuration is not a passing run or a measurement with real weights. Dynamic r
 | ci.yml | llama-cpp | ubuntu-latest | 3.13 |
 | installers.yml | plan | ubuntu-latest | — |
 | installers.yml | install | dynamic | 3.13 |
+| release.yml | metadata | ubuntu-24.04 | 3.12 |
+| release.yml | lint | ubuntu-24.04 | — |
+| release.yml | build | macos-14 | 3.12 |
+| release.yml | build | windows-2022 | 3.12 |
+| release.yml | build | ubuntu-24.04 | 3.12 |
+| release.yml | collect | ubuntu-24.04 | 3.12 |
+| release.yml | draft | ubuntu-24.04 | — |
 
 ## Measured evidence / Evidencia medida
 
