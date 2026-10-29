@@ -1,0 +1,31 @@
+{
+  "name": "spike-launch-video",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "tsc --noEmit",
+    "preflight": "node scripts/preflight.mjs",
+    "captions": "node scripts/captions.mjs",
+    "studio": "remotion studio src/index.tsx",
+    "bundle": "remotion bundle src/index.tsx --out-dir=out/bundle",
+    "render:master": "node scripts/preflight.mjs --final && remotion render src/index.tsx Spike-Master out/spike-master.mp4 --concurrency=1",
+    "references": "node scripts/references.mjs",
+    "render:promo30": "node scripts/preflight.mjs --final --variant=promo30 && remotion render src/index.tsx Spike-30 out/promo30.mp4 --concurrency=1",
+    "render:promo60": "node scripts/preflight.mjs --final --variant=promo60 && remotion render src/index.tsx Spike-60 out/promo60.mp4 --concurrency=1",
+    "render:vertical30": "node scripts/preflight.mjs --final --variant=vertical30 && remotion render src/index.tsx Spike-Vertical-30 out/vertical30.mp4 --concurrency=1"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.539",
+    "@remotion/media": "4.0.539",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.539"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "typescript": "5.6.3"
+  }
+}
