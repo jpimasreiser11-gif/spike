@@ -129,7 +129,7 @@ async def run_benchmark(args: Any) -> dict[str, Any]:
         "date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "hardware": hw.to_dict(),
         "python": platform.python_version(),
-        "model": {"path": str(model), "file_gb": round(model.stat().st_size / 1024**3, 3)},
+        "model": {"path": model.as_posix(), "file_gb": round(model.stat().st_size / 1024**3, 3)},
         "settings": {"contexts": contexts, "gen": args.gen, "repeats": args.repeats, "threads": args.threads,
                      "gpu_layers": args.gpu_layers, "kv_cache_type": args.kv, "server_context": config.context},
         "results": [],

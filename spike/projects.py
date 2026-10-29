@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
 import shutil
+import stat
 import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -44,7 +46,33 @@ class ProjectFiles:
         return path
 
     def remove(self, pid: str) -> None:
-        shutil.rmtree(self.root / pid, ignore_errors=True)
+        """Remove one managed project; retry read-only Git objects, but report locked files for a later retry.
+
+        Never chmod links or paths outside this project. Missing files are already removed; other failures must
+        reach the caller before its project record and conversations are deleted. This is not an atomic rollback.
+        """
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", pid):
+            raise ProjectError("invalid project id / identificador de proyecto no válido")
+        base = self.root / pid
+        if self._linked(self.root, base) or not base.resolve().is_relative_to(self.root.resolve()):
+            raise ProjectError("project folder uses a link or leaves its root / la carpeta del proyecto usa un enlace o sale de su raíz")
+
+        def retry_readonly(function, path, info):
+            error = info[1]
+            if isinstance(error, FileNotFoundError):
+                return
+            target = Path(path)
+            if (not isinstance(error, PermissionError) or function not in (os.unlink, os.remove, os.rmdir)
+                    or target.is_symlink() or not target.resolve().is_relative_to(base.resolve())):
+                raise error
+            target.chmod(target.stat().st_mode | stat.S_IWUSR)
+            function(path)
+
+        try:
+            shutil.rmtree(base, onerror=retry_readonly)
+        except OSError as exc:
+            raise ProjectError("Cannot remove project files; close applications using them and retry. / "
+                               "No se pueden eliminar los archivos; cierra las aplicaciones que los usan y reintenta.") from exc
 
     def list(self, pid: str) -> list[dict[str, Any]]:
         base = self.folder(pid)  # a repository's own files (Parallel Prototypes makes one) are not the user's files

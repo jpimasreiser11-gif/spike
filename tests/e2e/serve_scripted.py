@@ -332,6 +332,9 @@ Promise.allSettled([fetch("/api/health"), fetch("http://127.0.0.1:" + (location.
 class ScriptedApp:
     """Stands in for an MCP server with an app (the real protocol is tested in tests/test_mcp_apps.py)."""
 
+    async def close(self):
+        pass
+
     async def call_tool(self, name, args):
         price = 50_000 if name == "get_price" else 50_100
         raw = {"content": [{"type": "text", "text": f"{args.get('symbol')}: {price}"}],
@@ -394,6 +397,22 @@ async def scripted_tuner(model, quick=False):
                                                          "results": [], "context": {"measured": False}}}
 
 
+class StreamEndDelay:
+    """Optional test transport delay after SSE `done`, before EOF, exposing premature next-message submission."""
+
+    def __init__(self, app, delay: float):
+        self.app, self.delay = app, delay
+
+    async def __call__(self, scope, receive, send):
+        async def delayed(message):
+            if (scope.get("path") == "/api/chat" and message["type"] == "http.response.body"
+                    and not message.get("more_body", False)):
+                await asyncio.sleep(self.delay)
+            await send(message)
+
+        await self.app(scope, receive, delayed)
+
+
 def main() -> None:
     home = Path(tempfile.mkdtemp(prefix="spike-e2e-"))
     os.environ["SPIKE_HOME"] = str(home)
@@ -435,7 +454,8 @@ def main() -> None:
 
     app.add_api_route("/__e2e/desktop", desktop_calls, methods=["GET"], include_in_schema=False)
     app.router.routes.insert(0, app.router.routes.pop())  # before the web app's catch-all
-    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
+    delay = min(2.0, max(0.0, float(os.environ.get("SPIKE_E2E_STREAM_END_DELAY", "0"))))
+    uvicorn.run(StreamEndDelay(app, delay), host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
 
 
 if __name__ == "__main__":

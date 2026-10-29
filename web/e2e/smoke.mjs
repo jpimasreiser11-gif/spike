@@ -15,6 +15,13 @@ const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const fail = (msg) => { console.error("FAIL:", msg); process.exitCode = 1; };
 const ctx = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "es-ES", colorScheme: "light" });
 const page = await ctx.newPage();
+// An SSE `done` event renders the answer before the transport reaches EOF. Wait for the real send control so
+// the next Enter is not discarded while the previous request is still finishing. Keep keyboard submission covered.
+const chatIdle = () => page.locator(".composer .send-btn:not(.stop)").waitFor({ timeout: 10000 });
+const submitChat = async () => {
+  await page.locator(".composer .send-btn:not(.stop):enabled").waitFor({ timeout: 10000 });
+  await page.locator("#composer-input").press("Enter");
+};
 const errors = [];
 const artifactLogs = []; // what the sandboxed artifact tried and the browser refused, kept apart from app errors
 page.on("pageerror", (e) => errors.push(String(e)));
@@ -60,18 +67,20 @@ await lab.getByRole("button", { name: "Volver al chat" }).click();
 
 // 1. direct chat
 await page.locator("#composer-input").fill("Hola, ¿quién eres?");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByText("proveedor *de prueba*".replace(/\*/g, "")).first().waitFor({ timeout: 10000 }).catch(() => {});
 await page.locator(".msg.assistant .markdown").first().waitFor();
 await page.waitForFunction(() => document.querySelector(".msg-actions") !== null, null, { timeout: 10000 });
 if (!(await page.locator(".conv").count())) fail("conversation not listed in sidebar");
 
 // 1b. retry on the same model, then edit the question: each replaces the turn instead of adding one
+await chatIdle();
 await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
 await page.getByRole("menuitem", { name: "El mismo modelo" }).click();
 await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 1 && document.querySelectorAll(".msg.user").length === 1, null, { timeout: 10000 })
   .catch(() => fail("retry should replace the answer"));
 await page.locator(".msg.user").first().hover();
+await chatIdle();
 await page.locator(".msg.user").first().getByRole("button", { name: "Editar" }).click();
 await page.getByLabel("Editar").fill("Hola de nuevo, ¿quién eres?");
 await page.locator(".msg.user.editing").getByRole("button", { name: "Enviar", exact: true }).click();
@@ -83,10 +92,11 @@ await page.waitForFunction(() => document.querySelectorAll(".msg-actions").lengt
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 for (const [question, answers] of [["¿Qué sabes hacer?", 1], ["Dímelo en una lista", 2]]) {
   await page.locator("#composer-input").fill(question);
-  await page.keyboard.press("Enter");
+  await submitChat();
   await page.waitForFunction((n) => document.querySelectorAll(".msg-actions").length === n, answers, { timeout: 10000 });
 }
 await page.locator(".msg.user").last().hover();
+await chatIdle();
 await page.locator(".msg.user").last().getByRole("button", { name: "Editar" }).click();
 await page.getByRole("textbox", { name: "Editar" }).fill("Dímelo en una tabla");
 await page.locator(".msg.user.editing").getByRole("button", { name: "Enviar en una rama" }).click();
@@ -95,14 +105,16 @@ await page.waitForFunction(() => document.querySelectorAll(".msg-actions").lengt
 const branchTexts = (await page.locator(".msg.user .bubble").allTextContents()).map((x) => x.trim()).join("|");
 if (branchTexts !== "¿Qué sabes hacer?|Dímelo en una tabla") fail("branch thread: " + branchTexts);
 await page.screenshot({ path: `${out}/01c-branch.png` });
+await chatIdle();
 await page.locator(".conv-title", { hasText: /^¿Qué sabes hacer\?$/ }).click();
 await page.locator(".msg.user .bubble", { hasText: "Dímelo en una lista" }).waitFor({ timeout: 10000 });
+await chatIdle();
 await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).click();
 await page.locator(".msg.user .bubble", { hasText: "Hola de nuevo" }).waitFor({ timeout: 10000 });
 
 // 2. multi-specialist plan with synthesis
 await page.locator("#composer-input").fill("Plan a marketing campaign for an ETF and estimate the ROI of the investment");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByText("Plan de lanzamiento").waitFor({ timeout: 15000 });
 await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length >= 2, null, { timeout: 10000 });
 const chips = await page.locator(".msg.assistant").nth(1).locator(".route .chip").allInnerTexts();
@@ -113,7 +125,7 @@ await page.screenshot({ path: `${out}/02-multi-specialist.png` });
 
 // 3. tool permission flow (write_file asks by default)
 await page.locator("#composer-input").fill("Crea un archivo de notas");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByRole("button", { name: "Permitir una vez" }).waitFor({ timeout: 10000 });
 const card = await page.locator(".permission").boundingBox();
 if (!card || card.y + card.height > 860) fail("permission card not scrolled into view");
@@ -142,7 +154,9 @@ await page.screenshot({ path: `${out}/03b-replay.png` });
 await page.keyboard.press("Escape");
 
 // 4. reload restores history
+await chatIdle();
 await page.reload();
+await chatIdle();
 await page.locator(".conv-title").first().click();
 await page.getByText("Plan de lanzamiento").waitFor({ timeout: 5000 });
 
@@ -201,7 +215,25 @@ await page.getByTestId("tune").getByText("Guardado").waitFor();
 await page.screenshot({ path: `${out}/05-settings-engine.png` });
 await page.keyboard.press("Escape");
 
-// 6. projects: create, upload a file, export, chat with the project's instructions; the chat stays in its project
+// 6. projects: deleting requires two clicks, then removes both the project and its uploaded files.
+await page.getByRole("button", { name: "Nuevo proyecto" }).click();
+const disposable = page.getByRole("dialog", { name: "Nuevo proyecto" });
+await disposable.getByLabel("Nombre").fill("Proyecto para borrar");
+await disposable.getByRole("button", { name: "Crear" }).click();
+await page.locator(".project-panel h2", { hasText: "Proyecto para borrar" }).waitFor();
+await page.getByTestId("project-upload").setInputFiles({ name: "nota.txt", mimeType: "text/plain", buffer: Buffer.from("solo este proyecto") });
+await page.locator(".file-list a", { hasText: "nota.txt" }).waitFor();
+const disposableId = (await (await ctx.request.get(`${base}/api/projects`)).json()).find((p) => p.name === "Proyecto para borrar").id;
+await page.locator(".project-panel").getByRole("button", { name: "Editar", exact: true }).click();
+const deletingProject = page.getByRole("dialog", { name: "Editar proyecto" });
+await deletingProject.getByRole("button", { name: "Eliminar proyecto", exact: true }).click();
+if (!(await ctx.request.get(`${base}/api/projects/${disposableId}`)).ok()) fail("first click deleted the project before confirmation");
+await deletingProject.getByRole("button", { name: "Pulsa otra vez para borrar el proyecto, sus chats y sus archivos", exact: true }).click();
+await deletingProject.waitFor({ state: "hidden" });
+if ((await ctx.request.get(`${base}/api/projects/${disposableId}`)).status() !== 404) fail("confirmed project deletion did not finish");
+if ((await ctx.request.get(`${base}/api/projects/${disposableId}/files/nota.txt`)).status() !== 404) fail("deleted project file remains accessible");
+
+// Create, upload a file, export, chat with the project's instructions; the chat stays in its project.
 await page.getByRole("button", { name: "Nuevo proyecto" }).click();
 const dlg = page.getByRole("dialog", { name: "Nuevo proyecto" });
 await dlg.getByLabel("Nombre").fill("Tesis");
@@ -233,14 +265,16 @@ if (!importedNotes.some((m) => m.kind === "decision" && m.text === note.text)) f
 await ctx.request.delete(`${base}/api/projects/${importedProject.id}`);
 await ctx.request.delete(`${base}/api/memory/${note.id}`);
 await page.locator("#composer-input").fill("Resume las ventas por producto");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByText("Respuesta del proyecto").waitFor({ timeout: 10000 });
 // the same turn on DeepSeek: the file passage memory found is withheld, and the answer says so
+await chatIdle();
 await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
 await page.getByRole("menuitem", { name: "DeepSeek" }).click();
 await page.locator(".privacy-chip", { hasText: "Archivos protegidos" }).waitFor({ timeout: 10000 });
 await page.waitForFunction(() => document.querySelectorAll(".conv").length === 1, null, { timeout: 5000 }).catch(() => fail("project chat list should hold only the project's chat"));
 await page.screenshot({ path: `${out}/07-project-chat.png` });
+await chatIdle();
 await page.getByRole("button", { name: "Todos los chats" }).click();
 await page.locator(".conv-title", { hasText: "Hola, ¿quién eres?" }).waitFor();
 if (await page.locator(".conv-title", { hasText: "Resume las ventas" }).count()) fail("project chat leaked into the main list");
@@ -257,7 +291,7 @@ await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Finance" }).click();
 await page.locator("#composer-input").fill("Calcula el margen EBITDA y el ROE");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".skill-chip", { hasText: "financial-ratio-analysis" }).waitFor({ timeout: 10000 });
 await page.screenshot({ path: `${out}/07b-skill.png` });
 
@@ -273,7 +307,7 @@ await page.screenshot({ path: `${out}/07e-memory-settings.png` });
 await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("¿A cuántos días paga el cliente Norte?");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".memory-chip", { hasText: "Memoria · 1" }).waitFor({ timeout: 10000 });
 
 // memory folders: a folder added in Settings is indexed in the background and cited by a chat; what is hidden or
@@ -303,7 +337,7 @@ for (const word of ["quimeraoculta", "quimeraajena"]) {
 await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("¿Cuándo entrega Zafiro los pedidos?");
-await page.keyboard.press("Enter");
+await submitChat();
 const folderChip = page.locator(".memory-chip").last();
 await folderChip.waitFor({ timeout: 10000 });
 if (!(await folderChip.getAttribute("title"))?.includes(path.join(notesDir, "acuerdo.md").split(path.sep).join("/"))) fail("the answer should cite the file's path");
@@ -336,7 +370,7 @@ await page.screenshot({ path: `${out}/07i-tutor.png` });
 await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("Revisa la factura del cliente Norte");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".memory-chip").last().waitFor({ timeout: 10000 });
 if (!(await page.locator(".memory-chip").last().getAttribute("title"))?.includes("Glosario: factura")) fail("the glossary term should show on the answer");
 
@@ -367,11 +401,11 @@ fs.rmSync(outsideDir, { recursive: true, force: true });
 // learning: "recuerda que…" is saved at once (with undo); a correction proposes a rule the user edits and saves
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("Recuerda que nunca uses emojis. ¿Qué es el IVA?");
-await page.keyboard.press("Enter");
+await submitChat();
 const learnedRule = page.locator('.learned-line[data-learned="rule"]', { hasText: "Nunca uses emojis." });
 await learnedRule.waitFor({ timeout: 10000 });
 await page.locator("#composer-input").fill("No, el IVA general en España es del 21 %, no del 18 %.");
-await page.keyboard.press("Enter");
+await submitChat();
 const learnCard = page.locator(".learn-card");
 await learnCard.waitFor({ timeout: 10000 });
 if ((await learnCard.getByRole("textbox").inputValue()) !== "El IVA general en España es del 21 %, no del 18 %.") fail("proposed rule text");
@@ -391,7 +425,7 @@ await page.locator(".learned-line", { hasText: "Quitado de la memoria" }).waitFo
 // human handoff: the specialist asks, the run waits, the answer goes back and the run finishes
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("¿Qué IVA pongo en la factura?");
-await page.keyboard.press("Enter");
+await submitChat();
 const question = page.getByRole("alertdialog", { name: "SPIKE necesita que le digas algo para seguir" });
 await question.getByText("¿Para qué país es la factura?").waitFor({ timeout: 10000 });
 await page.screenshot({ path: `${out}/07h-question.png` });
@@ -409,13 +443,13 @@ if (fs.readFileSync(await proofDl.path()).subarray(0, 2).toString() !== "PK") fa
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByLabel("Formato", { exact: true }).selectOption("json");
 await page.locator("#composer-input").fill("Dame el IVA de España");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".contract.ok", { hasText: "Cumple el esquema" }).waitFor({ timeout: 10000 });
 if (!(await page.locator("pre.json-answer").innerText()).includes('"iva": 21')) fail("contract JSON answer");
 await page.getByLabel("Formato", { exact: true }).selectOption("schema");
 await page.getByLabel("JSON con esquema").fill('{"type": "object", "required": ["total"]}');
 await page.locator("#composer-input").fill("Y el total");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".contract.bad", { hasText: "'total' is a required property" }).waitFor({ timeout: 10000 });
 await page.screenshot({ path: `${out}/07i-contract.png` });
 await page.getByLabel("Formato", { exact: true }).selectOption("text");
@@ -425,7 +459,7 @@ await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByRole("button", { name: "Chat temporal" }).click();
 await page.getByRole("heading", { name: "Chat temporal" }).waitFor();
 await page.locator("#composer-input").fill("Pregunta temporal sobre el cliente Norte");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".temp-notice").waitFor();
 await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
 if (await page.locator(".conv-title", { hasText: "Pregunta temporal" }).count()) fail("temporary chat listed in the sidebar");
@@ -436,9 +470,10 @@ await page.screenshot({ path: `${out}/07g-temporary.png` });
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
 await page.locator("#composer-input").fill("Mi perro tiene diarrea desde ayer, ¿qué le doy?");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".msg.assistant .route .chip.spec-core").waitFor({ timeout: 10000 });
 await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
+await chatIdle();
 await page.locator(".msg.assistant").last().getByRole("button", { name: "Reintentar" }).click();
 await page.getByLabel("Con otro especialista").selectOption("medicine");
 await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeout: 10000 });
@@ -446,7 +481,7 @@ await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 1000
 if ((await page.locator(".msg.assistant").count()) !== 1) fail("retry with a specialist should replace the answer");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("Mi perro tiene diarrea otra vez");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeout: 10000 })
   .catch(() => fail("the learned router should send the same kind of question to Medicine"));
 await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
@@ -516,7 +551,7 @@ await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
 await page.locator("#composer-input").fill("Ejecuta Dependency Doctor");
-await page.keyboard.press("Enter");
+await submitChat();
 const diagnosticPermission = page.locator(".permission", { hasText: "dependency_doctor" });
 await diagnosticPermission.getByRole("button", { name: "Permitir una vez" }).click();
 await page.getByRole("button", { name: "Ver informe de diagnóstico" }).click();
@@ -528,7 +563,7 @@ await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).cl
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
 await page.locator("#composer-input").fill("Hazme una página de prueba");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".code-preview").first().click({ timeout: 10000 });
 await page.locator(".artifact-panel").getByText("Prueba de aislamiento").waitFor();
 const probe = page.frameLocator(".artifact-frame").locator("#out");
@@ -554,7 +589,7 @@ await page.keyboard.press("Escape");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByLabel("Diseño", { exact: true }).selectOption("spike");
 await page.locator("#composer-input").fill("Hazme una landing para mi app");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.locator(".design-chip", { hasText: "SPIKE" }).waitFor({ timeout: 10000 });
 await page.locator(".code-preview").first().click({ timeout: 10000 });
 const cta = page.frameLocator(".artifact-frame").locator("button.cta");
@@ -569,7 +604,7 @@ await page.getByLabel("Diseño", { exact: true }).selectOption("");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByLabel("Especialista", { exact: true }).selectOption("finance");
 await page.locator("#composer-input").fill("Compra 0,01 BTC en paper");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByText("en la cuenta simulada").waitFor({ timeout: 10000 });
 await page.getByRole("button", { name: "Ajustes" }).click();
 await page.getByRole("tab", { name: "Finanzas" }).click();
@@ -591,7 +626,7 @@ if (settingsText.includes("e2e-secret")) fail("the exchange secret is in the set
 await page.screenshot({ path: `${out}/07n-finance-settings.png`, fullPage: true });
 await page.keyboard.press("Escape");
 await page.locator("#composer-input").fill("Haz una orden real: compra 0,001 BTC");
-await page.keyboard.press("Enter");
+await submitChat();
 const order = page.locator(".live-order");
 await order.getByText("esperando tu confirmación").waitFor({ timeout: 10000 });
 let placed = await (await fetch(`${base}/api/finance/live/orders`)).json();
@@ -607,7 +642,7 @@ await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
 // MCP Apps: a connector's view shows the tool's result in an isolated frame; its calls need the user
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("Muéstrame el precio con la app");
-await page.keyboard.press("Enter");
+await submitChat();
 const view = page.frameLocator(".mcp-app-frame");
 await view.locator("#price", { hasText: "50000" }).waitFor({ timeout: 10000 });
 if ((await view.locator("#input").textContent()) !== "BTC") fail("the view did not get the tool's input");
@@ -626,7 +661,7 @@ await view.locator("#out", { hasText: "denied" }).waitFor({ timeout: 5000 });
 await view.getByRole("button", { name: "Contexto" }).click();
 await page.getByText("La app añadirá lo que muestra a tu próximo mensaje").waitFor({ timeout: 5000 });
 await page.locator("#composer-input").fill("¿Qué ves en la app?");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByText("En la vista veo: BTC a 50100 USD").waitFor({ timeout: 10000 });
 const audit = await (await fetch(`${base}/api/connectors-audit`)).json();
 if (!audit.some((e) => e.event === "tools/call" && e.decision === "approved")) fail("the approved view call is not in the audit log");
@@ -636,7 +671,7 @@ if (!audit.some((e) => e.event === "model-context")) fail("the context update is
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Data" }).click();
 await page.locator("#composer-input").fill("Haz un gráfico de ventas por región con ventas.csv");
-await page.keyboard.press("Enter");
+await submitChat();
 const chartCard = page.locator(".chart-card");
 await chartCard.locator(".chart svg").waitFor({ timeout: 15000 });
 const bars = await chartCard.locator('.chart svg path[aria-roledescription="bar"]').count();
@@ -670,7 +705,7 @@ await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();
 await page.locator("#composer-input").fill("Redacta el informe en Word");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
 const docLink = page.locator(".file-chip a", { hasText: "informe.docx" });
 await docLink.waitFor({ timeout: 10000 });
@@ -683,7 +718,7 @@ await page.screenshot({ path: `${out}/07d-document.png` });
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Law" }).click();
 await page.locator("#composer-input").fill("Busca en el BOE la ley del IVA");
-await page.keyboard.press("Enter");
+await submitChat();
 const browserCard = page.locator(".permission").filter({ hasText: "Abrirá boe.es." });
 await browserCard.waitFor({ timeout: 10000 });
 if (await browserCard.getByRole("button", { name: "Permitir en esta sesión" }).count()) fail("a page must offer its domain, not the whole tool");
@@ -768,7 +803,7 @@ await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).cl
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByLabel("Especialista", { exact: true }).selectOption("code");
 await page.locator("#composer-input").fill("Hazme un vídeo animado de 2 segundos con el título SPIKE");
-await page.keyboard.press("Enter");
+await submitChat();
 for (let i = 0; i < 2; i++) { // write the scene, then render it
   await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
   await page.locator(".permission.done").nth(i).waitFor({ timeout: 30000 });
@@ -788,7 +823,7 @@ await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
 // Code isolation: the card of a python call says whether it will run isolated, and the call runs
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("Haz un cálculo en python");
-await page.keyboard.press("Enter");
+await submitChat();
 const pyCard = page.locator(".permission", { hasText: "python" });
 await pyCard.waitFor({ timeout: 10000 });
 const isolation = pyCard.locator("[data-isolated]");
@@ -807,7 +842,7 @@ const remoteCalls = async () => (await (await fetch(`${base}/api/calls?remote=tr
 const callsBefore = await remoteCalls();
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator("#composer-input").fill("Haz una comprobación de fuentes con contrato.md");
-await page.keyboard.press("Enter");
+await submitChat();
 const trustBox = page.locator(".msg.assistant").last().locator("[data-trust]");
 await trustBox.locator("[data-trust-summary]").waitFor({ timeout: 15000 });
 const trustSummary = ((await trustBox.locator("[data-trust-summary]").textContent()) ?? "").trim();
@@ -829,7 +864,9 @@ await offer.getByRole("button", { name: "Preguntar a DeepSeek" }).click();
 await trustBox.locator("[data-second-opinion]").getByText("Soy SPIKE", { exact: false }).waitFor({ timeout: 10000 });
 if ((await remoteCalls()) !== callsBefore + 1) fail(`pressing the button should make exactly one call, got ${(await remoteCalls()) - callsBefore}`);
 await trustBox.locator("[data-second-opinion]").getByText("Segunda opinión de DeepSeek", { exact: false }).waitFor();
+await chatIdle();
 await page.reload();
+await chatIdle();
 await page.locator(".conv-title", { hasText: "comprobación de fuentes" }).first().click();
 const storedBox = page.locator(".msg.assistant").last().locator("[data-trust]");
 await storedBox.locator("[data-trust-summary]").getByText("1 verificada · 3 sin comprobar").waitFor({ timeout: 10000 });
@@ -860,7 +897,7 @@ if (!((await mindsBox.locator("[data-minds-estimate]").textContent()) ?? "").inc
 await page.getByLabel("Proveedor", { exact: true }).selectOption("");
 await mindsBox.locator("[data-minds-estimate]").getByText("modelo local", { exact: false }).waitFor({ timeout: 5000 });
 const callsBeforeMinds = (await (await fetch(`${base}/api/calls?remote=true`)).json()).length;
-await page.locator("#composer-input").press("Enter"); // the provider select had the focus
+await submitChat(); // the provider select had the focus
 const mindsAnswer = page.locator(".msg.assistant").last();
 await mindsAnswer.locator("[data-minds]").waitFor({ timeout: 15000 });
 await mindsAnswer.locator("[data-mind-chosen]").waitFor({ timeout: 15000 });
@@ -878,7 +915,9 @@ await mindsAnswer.locator('[data-mind="3"] .trace-head').click();
 await mindsAnswer.locator('[data-mind="3"] .trace-body').getByText("Fue entrenado en 2019 con 40 GPUs", { exact: false }).waitFor({ timeout: 5000 });
 await page.screenshot({ path: `${out}/07z-minds-answer.png` });
 if ((await (await fetch(`${base}/api/calls?remote=true`)).json()).length !== callsBeforeMinds) fail("local minds should not log remote calls");
+await chatIdle();
 await page.reload(); // the minds are kept with the answer
+await chatIdle();
 await page.locator(".conv-title", { hasText: "Dime algo del modelo Zorvak" }).first().click();
 const storedMinds = page.locator(".msg.assistant").last().locator("[data-minds]");
 await storedMinds.waitFor({ timeout: 10000 });
@@ -886,7 +925,7 @@ await storedMinds.locator('[data-mind="2"] [data-mind-chosen]').waitFor({ timeou
 await storedMinds.locator('[data-mind="1"] [data-mind-labels]').getByText("1 verificada · 2 sin comprobar").waitFor({ timeout: 5000 });
 // an ordinary message right after it makes one answer and shows no minds
 await page.locator("#composer-input").fill("Hola, ¿quién eres?");
-await page.keyboard.press("Enter");
+await submitChat();
 await page.waitForFunction(() => document.querySelectorAll(".msg-actions").length === 2, null, { timeout: 15000 });
 if (await page.locator(".msg.assistant").last().locator("[data-minds]").count()) fail("a message sent without the toggle must not run minds");
 // 6e. desktop actions (A19): off until the user turns them on; each action waits for an approval card; Stop is always there
@@ -894,6 +933,7 @@ const desktopCalls = async () => (await (await fetch(`${base}/__e2e/desktop`)).j
 const anthropic = await page.request.post(`${base}/api/providers`, { data: {
   preset: "anthropic", api_key: "sk-e2e-not-a-real-key", model: "claude-sonnet-5-5", allow_paid: true, share_files: true } });
 if (!anthropic.ok()) fail("could not add the provider with computer use: " + (await anthropic.text()));
+await chatIdle();
 await page.reload();
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 if (await page.getByTestId("desktop-open").count()) fail("the desktop button must not show while the setting is off");
@@ -903,6 +943,7 @@ const desktopSetting = page.getByLabel("Control del escritorio (solo con un prov
 await desktopSetting.waitFor();
 if (await desktopSetting.isChecked()) fail("desktop control must be off by default");
 if (!(await page.getByTestId("desktop-start").isDisabled())) fail("a desktop task must not start while the setting is off");
+await page.getByTestId("desktop-provider").locator("option", { hasText: "nunca controla el escritorio" }).waitFor({ state: "attached" });
 const refusedProviders = await page.getByTestId("desktop-provider").locator("option[disabled]").allTextContents();
 if (!refusedProviders.some((o) => o.includes("nunca controla el escritorio"))) fail("a local model must be refused: " + refusedProviders.join(" | "));
 await desktopSetting.click();

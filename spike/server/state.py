@@ -262,10 +262,12 @@ class AppState:
                 for c in self.provider_configs()]
 
     def forget_project(self, project_id: str) -> None:
+        root = self.project_files.root / project_id / "files"
+        self.project_files.remove(project_id)  # if a file is locked, keep metadata so deletion can be retried
+        self.store.delete_project(project_id)
         self.checkpoints.prune()  # the project's chats are gone: so are the copies kept to undo their steps
         self._project_tools.pop(project_id, None)
-        prototypes.forget(self.prototypes_home, self.project_files.folder(project_id))
-        self.project_files.remove(project_id)
+        prototypes.forget(self.prototypes_home, root)
         scope = f"project:{project_id}"
         self.memory.folders.forget_scope(scope)
         self.memory.glossary.delete_scope(scope)

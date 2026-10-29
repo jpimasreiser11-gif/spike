@@ -39,6 +39,8 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
   const [design, setDesign] = useState(project?.design ?? "");
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const deletePending = useRef(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -48,6 +50,7 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (deletePending.current) return;
     try {
       const body = { name: name.trim(), instructions, mode, design };
       onSaved(project ? await api.patch<Project>(`/api/projects/${project.id}`, body) : await api.post<Project>("/api/projects", body));
@@ -57,15 +60,26 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
   };
 
   const remove = async () => {
-    if (!project) return;
+    if (!project || deletePending.current) return;
     if (!confirm) return setConfirm(true);
-    await api.del(`/api/projects/${project.id}`);
-    onDeleted(project.id);
+    deletePending.current = true;
+    setDeleting(true);
+    setError("");
+    try {
+      await api.del(`/api/projects/${project.id}`);
+      onDeleted(project.id);
+    } catch (err) {
+      setError(String((err as Error).message));
+      setConfirm(false);
+    } finally {
+      deletePending.current = false;
+      setDeleting(false);
+    }
   };
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form className="modal small" role="dialog" aria-modal="true" aria-label={project ? PL.editProject : PL.newProject} onSubmit={submit}>
+      <form className="modal small" role="dialog" aria-modal="true" aria-busy={deleting} aria-label={project ? PL.editProject : PL.newProject} onSubmit={submit}>
         <div className="modal-head">
           <h2>{project ? PL.editProject : PL.newProject}</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
@@ -95,9 +109,9 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
           )}
           {error && <div className="error-box" role="alert">{error}</div>}
           <div className="row end">
-            {project && <button type="button" className="btn danger" onClick={remove}>{confirm ? PL.confirmRemove : PL.remove}</button>}
+            {project && <button type="button" className="btn danger" disabled={deleting} onClick={remove}>{confirm ? PL.confirmRemove : PL.remove}</button>}
             <div className="spacer" />
-            <button className="btn primary" type="submit" disabled={!name.trim()}>{project ? PL.save : PL.create}</button>
+            <button className="btn primary" type="submit" disabled={!name.trim() || deleting}>{project ? PL.save : PL.create}</button>
           </div>
         </div>
       </form>
