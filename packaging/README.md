@@ -42,3 +42,74 @@ not install PyInstaller or pywebview and does not add the optional `desktop` ext
 
 The spec was not built with real upstream binaries: native startup, shared-library resolution, macOS bundle behavior
 and installer signing remain release checks. DMG, Inno Setup and AppImage wrappers belong to later installer tasks.
+
+## Native installer candidates (I2)
+
+`.github/workflows/release.yml` builds on a pull request affecting packaging, an existing `v*` tag, or a manual run.
+The first matrix is **Apple Silicon / macOS 14**, **Windows 2022 runner / x64** and **Ubuntu 24.04 / x86_64**.
+These are build/test targets, not a promise of compatibility with every older OS or architecture. Intel Macs,
+Windows ARM and Linux ARM need their own runner evidence before announcement.
+
+The build installs PyInstaller 6.22.3 and gguf 0.19.0 only in the disposable CI environment, alongside SPIKE's
+existing docs/data/finance/motion extras. macOS and Windows also install pywebview 6.2.1; Linux opens the default
+browser. No training dependencies, production weights, keys, paid signing or user accounts are required. The
+packaged llama-server is b11709 CPU, verified against I1's SHA pins. This does not establish GPU acceleration,
+16-GB performance, model quality, or availability of external programs such as ffmpeg/Blender/Godot.
+
+1. Build the web app and install the declared build tools in an isolated environment.
+2. `python packaging/release.py fetch --target TARGET --vendor packaging/vendor/release` downloads the pinned
+   llama archive and stages it. Linux additionally fetches appimagetool 1.9.1 and the AppImage runtime asset with
+   fixed SHA-256 values; changed bytes fail closed. Nothing runs until checksum validation succeeds.
+3. Set `SPIKE_LLAMA_STAGE=packaging/vendor/release/llama` and run
+   `python -m PyInstaller --noconfirm packaging/spike.spec`.
+4. `python tests/fixtures/make_tiny_gguf.py tests/fixtures/out/package` creates random weights locally. They produce
+   meaningless text and cannot be used for quality claims or included as the user's production model.
+5. `python packaging/release.py build --target TARGET --version 0.1.0 --commit FULL_COMMIT_SHA
+   --vendor packaging/vendor/release --model tests/fixtures/out/package/spike-tiny.gguf --output dist/release`
+   wraps the app, installs/extracts that artifact into a disposable location, and executes its frozen entry point.
+   The self-test checks loopback health, static UI script availability, catalog/skills, a real four-token inference
+   through the bundled runtime and runtime stop. It uses a new SPIKE_HOME, no keyring and no external provider.
+   It is **not** a browser interaction, native-window usability test or model benchmark; those belong to I3/L1.
+6. After all three runners pass, `assemble` verifies the exact version, source commit, model fixture, required smoke
+   results and each artifact's SHA-256 before creating `SHA256SUMS`. Mixed/incomplete/tampered candidates fail.
+   CI preserves smoke JSON, llama logs and PyInstaller warnings separately, including on failure.
+
+On Windows, Inno Setup installs per user with no administrator request, creates a shortcut and uninstaller, and
+leaves models/projects in SPIKE_HOME untouched. The CI smoke then uninstalls its temporary copy. On macOS the DMG
+contains SPIKE.app and an Applications shortcut; the build verifies PyInstaller's ad-hoc signature, mounts the DMG,
+copies the installed app out, unmounts and tests that copy. AppImage uses extract-and-run in CI, without FUSE.
+
+### Drafts and publication
+
+A normal manual run (`create_draft=false`) only uploads private workflow artifacts. A version-tag push, or an explicit
+manual `create_draft=true` run **on an existing version tag**, creates a **draft**, after all native checks succeed.
+The tag must match `pyproject.toml`; no tag is created, no release overwritten and no draft published. Joan still
+approves public release, accounts and any spending. Release packaging does not replace the RELEASE1 evidence gates,
+Claude's review, L2 license/security review or I3 real-model installation journeys. The new workflow must be known to
+GitHub on the default branch before its manual dispatch can be used. A PR run is separately identified evidence.
+
+### Abrir sin firma de pago / Opening without paid signing
+
+**Español.** Compara `SHA256SUMS` con el archivo descargado antes de abrirlo. En macOS copia SPIKE.app a Aplicaciones;
+si Gatekeeper lo bloquea, usa la excepción para esa app en Ajustes del Sistema → Privacidad y seguridad → Abrir
+igualmente, solamente si confías en su procedencia. No desactives Gatekeeper. En Windows comprueba el archivo y,
+si SmartScreen permite continuar, usa Más información → Ejecutar de todas formas para esa copia. Una política de
+empresa puede impedirlo. En Linux marca el AppImage como ejecutable; si falta FUSE, usa
+`./SPIKE-VERSION-Linux-x86_64.AppImage --appimage-extract-and-run`. Los modelos se descargan después de tu clic en
+el asistente, con licencia y checksum; los especialistas aún no publicados aparecen como perfiles.
+
+**English.** Verify the downloaded file against `SHA256SUMS`. On macOS copy SPIKE.app to Applications; if Gatekeeper
+blocks it, use System Settings → Privacy & Security → Open Anyway for this specific trusted app. Do not disable
+Gatekeeper. On Windows verify the file, then use More info → Run anyway only if SmartScreen offers that choice and
+you trust its provenance; organizational policies can prevent overrides. On Linux make the AppImage executable;
+without FUSE use `./SPIKE-VERSION-Linux-x86_64.AppImage --appimage-extract-and-run`. Model downloads begin only after
+an explicit wizard click and license/hash checks. Unpublished specialists remain instruction profiles.
+
+Authoritative references: [PyInstaller signing](https://pyinstaller.org/en/stable/feature-notes.html#macos-binary-code-signing),
+[Inno per-user installs](https://jrsoftware.org/ishelp/topic_setup_privilegesrequired.htm),
+[Inno silent install switches](https://jrsoftware.org/ishelp/topic_setupcmdline.htm),
+[AppImage FUSE fallback](https://docs.appimage.org/user-guide/troubleshooting/fuse.html),
+[Apple Gatekeeper](https://support.apple.com/en-us/102445),
+[AppImage runtime license](https://github.com/AppImage/type2-runtime/blob/main/LICENSE).
+The AppImage runtime includes third-party libraries (including LGPL libfuse); retain notices and have L2 review
+binary/source/relinking obligations. A checksum verifies bytes, not redistribution rights or public-release approval.

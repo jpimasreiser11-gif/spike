@@ -1,0 +1,172 @@
+name: Native installers
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths: ['packaging/**', 'spike/launcher/**', 'tests/test_release_packaging.py', '.github/workflows/release.yml']
+  workflow_dispatch:
+    inputs:
+      create_draft:
+        description: 'Create a private draft release (requires an existing vVERSION tag; never publishes)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.source.outputs.version }}
+      commit: ${{ steps.source.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: source
+        env:
+          REQUEST_DRAFT: ${{ inputs.create_draft || false }}
+        run: |
+          python - <<'PY'
+          import os, runpy, subprocess, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']['version']
+          runpy.run_path('packaging/release.py')['validate_version'](version)
+          is_tag = os.environ['GITHUB_REF_TYPE'] == 'tag'
+          if is_tag and os.environ['GITHUB_REF_NAME'] != 'v' + version:
+              raise SystemExit('Tag must match pyproject.toml version')
+          if os.environ['REQUEST_DRAFT'] == 'true' and not is_tag:
+              raise SystemExit('Draft requires an existing version tag, not a branch')
+          commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write(f'version={version}\ncommit={commit}\n')
+          PY
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify pinned actionlint and check workflow
+        run: |
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/actionlint.tar.gz" https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/release.yml
+  build:
+    needs: [metadata, lint]
+    name: Installer (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-14, target: Darwin-arm64}
+          - {os: windows-2022, target: Windows-AMD64}
+          - {os: ubuntu-24.04, target: Linux-x86_64}
+    defaults:
+      run:
+        shell: bash
+    env:
+      SPIKE_VERSION: ${{ needs.metadata.outputs.version }}
+      SOURCE_COMMIT: ${{ needs.metadata.outputs.commit }}
+      TARGET: ${{ matrix.target }}
+      SPIKE_NO_KEYRING: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build bundled UI
+        working-directory: web
+        run: npm ci && npm run build
+      - name: Isolated packaging dependencies (no training dependencies)
+        run: python -m pip install '.[docs,data,finance,motion]' 'pyinstaller==6.22.3' 'gguf==0.19.0'
+      - name: Native webview where supported; Linux uses the default browser
+        if: runner.os != 'Linux'
+        run: python -m pip install 'pywebview==6.2.1'
+      - name: Fetch and verify pinned native components
+        run: python packaging/release.py fetch --target "$TARGET" --vendor packaging/vendor/release
+      - name: Freeze application and generate random fixture (not a downloaded model)
+        env:
+          SPIKE_LLAMA_STAGE: packaging/vendor/release/llama
+        run: |
+          python -m PyInstaller --noconfirm packaging/spike.spec
+          python tests/fixtures/make_tiny_gguf.py tests/fixtures/out/package
+      - name: Build installer, install it, check health and real tiny inference, then close it
+        run: |
+          python packaging/release.py build --target "$TARGET" --version "$SPIKE_VERSION" --commit "$SOURCE_COMMIT" --vendor packaging/vendor/release --model tests/fixtures/out/package/spike-tiny.gguf --output dist/release
+      - name: Preserve smoke diagnostics, including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ matrix.target }}
+          path: |
+            dist/release/*-smoke.json
+            dist/release/*.llama.log
+            build/SPIKE/warn-SPIKE.txt
+          if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.target }}
+          path: |
+            dist/release/SPIKE-*.dmg
+            dist/release/SPIKE-*.exe
+            dist/release/SPIKE-*.AppImage
+            dist/release/SPIKE-*.json
+          if-no-files-found: error
+          retention-days: 7
+  collect:
+    needs: [metadata, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: dist/release
+      - name: Reject incomplete evidence and write SHA256SUMS
+        env:
+          VERSION: ${{ needs.metadata.outputs.version }}
+          SOURCE_COMMIT: ${{ needs.metadata.outputs.commit }}
+        run: python packaging/release.py assemble --version "$VERSION" --commit "$SOURCE_COMMIT" --output dist/release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-release-candidate
+          path: dist/release
+          if-no-files-found: error
+          retention-days: 7
+  draft:
+    needs: [metadata, build, collect]
+    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || inputs.create_draft)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-release-candidate
+          path: dist/release
+      - name: Create draft only; never overwrite an existing release or publish it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          SOURCE_COMMIT: ${{ needs.metadata.outputs.commit }}
+        run: gh release create "$TAG" dist/release/* --draft --verify-tag --target "$SOURCE_COMMIT" --title "SPIKE $TAG — candidate" --notes-file packaging/RELEASE-NOTES.md
