@@ -85,6 +85,19 @@ def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | No
         if fmt == "gsm8k":
             return Item(item_id, task, prompt, "numeric", target.rsplit("Answer: ", 1)[-1])
         return Item(item_id, task, prompt, "literal", literal_answer(target))
+    if fmt in ("qasc", "commonsense_qa", "banking77", "phishing_url", "billsum_title"):
+        chat = FORMATTERS[fmt](row, "")
+        if not chat:
+            return None
+        prompt, target = (m["content"] for m in chat["messages"][1:])
+        item_id = f"{task}/{row.get('id', index)}"
+        if fmt in ("qasc", "commonsense_qa", "phishing_url"):
+            return Item(item_id, task, prompt, "mcq", target.rsplit("Answer: ", 1)[-1],
+                        {"qasc": 8, "commonsense_qa": 5, "phishing_url": 2}[fmt])
+        if fmt == "banking77":
+            return Item(item_id, task, prompt, "span", target.rsplit("Answer: ", 1)[-1])
+        # A literal title match is a diagnostic only. Writing acceptance uses the existing pairwise evaluator.
+        return Item(item_id, task, prompt, "literal", target)
     if fmt == "finqa":  # gold-facts setting, see data.py
         qa = row.get("qa") or {}
         prompt, exe = finqa_prompt(row), qa.get("exe_ans")
@@ -218,6 +231,8 @@ def check_acceptance(summary: dict[str, Any], acceptance: dict[str, Any], varian
     reasons: list[str] = []
     ok = True
     primary = acceptance.get("primary") or {}
+    if "min_win_rate" in primary:
+        return False, ["this recipe requires pairwise evaluation; regression or literal matches cannot accept it"]
     if "min_gain_points" in primary:
         cmp = summary["suites"].get(primary["suite"], {}).get("vs_" + baseline, {}).get(variant)
         if not cmp:
