@@ -20,7 +20,8 @@ from spike.server.state import AppState
 from spike.specialists.catalog import load_catalog
 from spike.store.db import Store
 from spike.tools.base import HeadlessBroker, PermissionBroker
-from spike.tools.builtin import default_registry
+from spike.tools.builtin import PythonRunner, default_registry
+from spike.tools.sandbox import strip_note
 from tests.helpers import ScriptedProvider, call, text
 
 CATALOG = load_catalog()
@@ -313,12 +314,26 @@ async def test_a_json_file_that_does_not_parse_goes_back_and_is_fixed(tmp_path):
     assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 2
 
 
-async def test_files_that_pass_are_reported_as_passed_and_not_sent_back(tmp_path):
+@pytest.fixture
+def python_imports(monkeypatch):
+    """Observe real subprocess output; host /tmp markers are invisible across Linux sandbox namespaces."""
+    results = []
+    original = PythonRunner.run
+
+    async def observe(self, args):
+        result = await original(self, args)
+        results.append(result)
+        return result
+
+    monkeypatch.setattr(PythonRunner, "run", observe)
+    return results
+
+
+async def test_files_that_pass_are_reported_as_passed_and_not_sent_back(tmp_path, python_imports):
     work = tmp_path / "ws"
     work.mkdir()
-    imported, started = tmp_path / "imported", tmp_path / "started"
-    program = (f"open({str(imported)!r}, 'w').close()\nopen('scratch.txt', 'w').close()\n\n\ndef main():\n"
-               f"    input('nombre? ')\n    open({str(started)!r}, 'w').close()\n\n\n"
+    program = ("print('SPIKE_IMPORT_OK')\nopen('scratch.txt', 'w', encoding='utf-8').close()\n\n\ndef main():\n"
+               "    print('SPIKE_MAIN_STARTED')\n    input('nombre? ')\n\n\n"
                "if __name__ == '__main__':\n    main()\n")
     files = {"app.py": program, "datos.json": '{"a": [1, 2]}', "ventas.csv": "mes,ventas\nene,100\nfeb,200\n",
              "nota.md": "# Nota\nHola\n"}
@@ -330,7 +345,9 @@ async def test_files_that_pass_are_reported_as_passed_and_not_sent_back(tmp_path
     assert next(e for e in events if e["type"] == "forge_report")["rounds"] == 1
     asked = provider.requests[-1].messages[-1].content
     assert asked.count(", passed: ") == 4 and "FAILED" not in asked and "not fully checked" not in asked
-    assert imported.exists() and not started.exists()  # imported, not started: the __main__ block did not run
+    (imported,) = python_imports
+    assert imported.ok and strip_note(imported.content).splitlines() == ["SPIKE_IMPORT_OK"]
+    # stdout crosses the sandbox boundary; a marker in its private /tmp does not. __main__ must not run.
     assert sorted(p.name for p in work.iterdir()) == sorted(files)  # it ran in a copy: no scratch.txt here
 
 
@@ -340,12 +357,11 @@ async def test_files_that_pass_are_reported_as_passed_and_not_sent_back(tmp_path
     ("deny", None, False, "the user has disabled the 'python' tool"),
     ("headless", None, False, "'python' needs the user's approval"),
 ])
-async def test_nothing_is_imported_without_the_permission_the_python_tool_needs(tmp_path, setup, answer, ran, why):
+async def test_nothing_is_imported_without_the_permission_the_python_tool_needs(
+        tmp_path, python_imports, setup, answer, ran, why):
     work = tmp_path / "ws"
     work.mkdir()
-    marker = tmp_path / "imported"
-    provider = ScriptedProvider([write("hola.py", f"open({str(marker)!r}, 'w').close()\n"), text("Guardé"),
-                                 text(ALL_MET)])
+    provider = ScriptedProvider([write("hola.py", "print('SPIKE_IMPORT_OK')\n"), text("Guardé"), text(ALL_MET)])
     policies = {"write_file": "allow", **({"python": "deny"} if setup == "deny" else {})}
     broker = HeadlessBroker(PermissionBroker(policies)) if setup == "headless" else PermissionBroker(policies)
     orch = orchestrator(provider, work, broker)
@@ -358,8 +374,11 @@ async def test_nothing_is_imported_without_the_permission_the_python_tool_needs(
     asked = [e for e in events if e["type"] == "permission_request"]
     assert len(asked) == (1 if setup == "ask" else 0)
     program = next(e for e in events if e["type"] == "verify")["checks"][0]["program"]
-    assert marker.exists() is ran
+    assert len(python_imports) == int(ran)
+    assert sorted(p.name for p in work.iterdir()) == ["hola.py"]
     if ran:
+        (imported,) = python_imports
+        assert imported.ok and strip_note(imported.content) == "SPIKE_IMPORT_OK"
         assert program["ok"] is True
     else:  # not run is not a failure: nothing goes back, and the checker is told what was not checked
         assert program["ok"] is None and f"not imported: {why}" in program["note"]
