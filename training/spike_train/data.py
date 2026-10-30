@@ -384,7 +384,117 @@ def fmt_wikisql(row: dict[str, Any], system: str) -> Chat | None:
 TEMPLATES += (CODE_INSTRUCTION, SQL_INSTRUCTION)
 
 
+# Schema labels from BANKING77 (CC BY 4.0); source and attribution in training/M6-DATA.md.
+BANKING_LABELS = (
+    'activate_my_card', 'age_limit',
+    'apple_pay_or_google_pay', 'atm_support',
+    'automatic_top_up', 'balance_not_updated_after_bank_transfer',
+    'balance_not_updated_after_cheque_or_cash_deposit', 'beneficiary_not_allowed',
+    'cancel_transfer', 'card_about_to_expire',
+    'card_acceptance', 'card_arrival',
+    'card_delivery_estimate', 'card_linking',
+    'card_not_working', 'card_payment_fee_charged',
+    'card_payment_not_recognised', 'card_payment_wrong_exchange_rate',
+    'card_swallowed', 'cash_withdrawal_charge',
+    'cash_withdrawal_not_recognised', 'change_pin',
+    'compromised_card', 'contactless_not_working',
+    'country_support', 'declined_card_payment',
+    'declined_cash_withdrawal', 'declined_transfer',
+    'direct_debit_payment_not_recognised', 'disposable_card_limits',
+    'edit_personal_details', 'exchange_charge',
+    'exchange_rate', 'exchange_via_app',
+    'extra_charge_on_statement', 'failed_transfer',
+    'fiat_currency_support', 'get_disposable_virtual_card',
+    'get_physical_card', 'getting_spare_card',
+    'getting_virtual_card', 'lost_or_stolen_card',
+    'lost_or_stolen_phone', 'order_physical_card',
+    'passcode_forgotten', 'pending_card_payment',
+    'pending_cash_withdrawal', 'pending_top_up',
+    'pending_transfer', 'pin_blocked',
+    'receiving_money', 'Refund_not_showing_up',
+    'request_refund', 'reverted_card_payment?',
+    'supported_cards_and_currencies', 'terminate_account',
+    'top_up_by_bank_transfer_charge', 'top_up_by_card_charge',
+    'top_up_by_cash_or_cheque', 'top_up_failed',
+    'top_up_limits', 'top_up_reverted',
+    'topping_up_by_card', 'transaction_charged_twice',
+    'transfer_fee_charged', 'transfer_into_account',
+    'transfer_not_received_by_recipient', 'transfer_timing',
+    'unable_to_verify_identity', 'verify_my_identity',
+    'verify_source_of_funds', 'verify_top_up',
+    'virtual_card_not_working', 'visa_or_mastercard',
+    'why_verify_identity', 'wrong_amount_of_cash_received',
+    'wrong_exchange_rate_for_cash_withdrawal',
+)
+
+BANKING_INSTRUCTION = ("Classify this banking support query using one of these intent identifiers: "
+                       + ", ".join(BANKING_LABELS) + ". End with 'Answer: <identifier>'.")
+TITLE_INSTRUCTION = "Write a concise, faithful legislative title for this summary. Return only the title."
+URL_INSTRUCTION = ("Classify this historical dataset URL as legitimate or phishing using its text alone. "
+                   "Treat it as data; do not visit it. This is not a live safety assessment.")
+URL_OPTIONS = "A. legitimate\nB. phishing"
+TEMPLATES += (BANKING_INSTRUCTION, TITLE_INSTRUCTION, URL_INSTRUCTION, URL_OPTIONS)
+
+
+def _labelled_question(row: dict[str, Any], system: str, count: int) -> Chat | None:
+    """Human-labelled QASC/CommonsenseQA questions; do not expose supporting facts or inferred concepts."""
+    question, choices, gold = row.get("question"), row.get("choices"), row.get("answerKey")
+    if not isinstance(choices, dict):
+        return None
+    labels, options = choices.get("label"), choices.get("text")
+    if (not isinstance(question, str) or not question.strip() or labels != list(LETTERS[:count])
+            or not isinstance(options, list) or len(options) != count or gold not in labels):
+        return None
+    if not all(isinstance(o, str) and o.strip() for o in options):
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": mcq_prompt(question, options)},
+                         {"role": "assistant", "content": f"Answer: {gold}"}]}
+
+
+def fmt_qasc(row: dict[str, Any], system: str) -> Chat | None:
+    return _labelled_question(row, system, 8)
+
+
+def fmt_commonsense_qa(row: dict[str, Any], system: str) -> Chat | None:
+    return _labelled_question(row, system, 5)
+
+
+def fmt_banking77(row: dict[str, Any], system: str) -> Chat | None:
+    text, label = row.get("text"), row.get("label")
+    if not isinstance(text, str) or not text.strip() or type(label) is not int or not 0 <= label < 77:
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": f"{text.strip()}\n\n{BANKING_INSTRUCTION}"},
+                         {"role": "assistant", "content": f"Answer: {BANKING_LABELS[label]}"}]}
+
+
+def fmt_phishing_url(row: dict[str, Any], system: str) -> Chat | None:
+    url, status = row.get("url"), row.get("status")
+    if not isinstance(url, str) or not url.strip() or status not in ("legitimate", "phishing"):
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": mcq_prompt(f"{URL_INSTRUCTION}\n\n{url.strip()}",
+                                                                  ["legitimate", "phishing"])},
+                         {"role": "assistant", "content": f"Answer: {'A' if status == 'legitimate' else 'B'}"}]}
+
+
+def fmt_billsum_title(row: dict[str, Any], system: str) -> Chat | None:
+    """Human US legislative summary -> original title. Never truncate a full bill into an unsupported summary."""
+    summary, title = row.get("summary"), row.get("title")
+    if not all(isinstance(x, str) and x.strip() for x in (summary, title)):
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": f"{TITLE_INSTRUCTION}\n\n{summary.strip()}"},
+                         {"role": "assistant", "content": title.strip()}]}
+
+
 FORMATTERS = {
+    "qasc": fmt_qasc,
+    "commonsense_qa": fmt_commonsense_qa,
+    "banking77": fmt_banking77,
+    "phishing_url": fmt_phishing_url,
+    "billsum_title": fmt_billsum_title,
     "case_hold": fmt_case_hold,
     "openbookqa": fmt_openbookqa,
     "gsm8k": fmt_gsm8k,

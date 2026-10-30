@@ -82,3 +82,70 @@ suites:
     specialist: data
     tasks:
       - {name: wikisql-test-select, source: wikisql-test, skip: 600, n: 300}
+
+  # M6: writing is a literal diagnostic/export pool; writing acceptance is pairwise, never exact-title accuracy.
+  education:
+    specialist: education
+    tasks:
+    - name: qasc-eval
+      source: qasc-eval
+      n: 600
+  education-select:
+    specialist: education
+    tasks:
+    - name: qasc-select
+      source: qasc-eval
+      skip: 600
+      n: 250
+  core:
+    specialist: core
+    tasks:
+    - name: commonsenseqa-eval
+      source: commonsenseqa-eval
+      n: 800
+  core-select:
+    specialist: core
+    tasks:
+    - name: commonsenseqa-select
+      source: commonsenseqa-eval
+      skip: 800
+      n: 300
+  business:
+    specialist: business
+    tasks:
+    - name: banking77-eval
+      source: banking77-eval
+      n: 1200
+  business-select:
+    specialist: business
+    tasks:
+    - name: banking77-select
+      source: banking77-eval
+      skip: 1200
+      n: 600
+  security:
+    specialist: security
+    tasks:
+    - name: phishing-url-eval
+      source: phishing-url-eval
+      n: 1200
+  security-select:
+    specialist: security
+    tasks:
+    - name: phishing-url-select
+      source: phishing-url-eval
+      skip: 1200
+      n: 600
+  writing:
+    specialist: writing
+    tasks:
+    - name: billsum-eval
+      source: billsum-eval
+      n: 600
+  writing-select:
+    specialist: writing
+    tasks:
+    - name: billsum-select
+      source: billsum-eval
+      skip: 600
+      n: 300

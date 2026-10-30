@@ -277,3 +277,119 @@ sources:
     provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
       SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
       repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
+
+  # M6 candidates. Source cards inspected; full license/provenance review remains required before any load.
+
+  qasc-train:
+    hub: allenai/qasc
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/qasc
+    role: train
+    format: qasc
+    provenance: UNVERIFIED candidate. Crowd-authored eight-choice elementary science questions. No fact1, fact2,
+      combinedfact or formatted_question is exposed. Education coverage is science QA, not interactive tutoring.
+
+  qasc-eval:
+    hub: allenai/qasc
+    split: validation
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/qasc
+    role: eval
+    format: qasc
+    provenance: UNVERIFIED candidate. Crowd-authored eight-choice elementary science questions. No fact1, fact2,
+      combinedfact or formatted_question is exposed. Education coverage is science QA, not interactive tutoring.
+
+  commonsenseqa-train:
+    hub: tau/commonsense_qa
+    split: train
+    license: mit
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/tau/commonsense_qa
+    role: train
+    format: commonsense_qa
+    provenance: UNVERIFIED candidate. Original crowd-authored CommonsenseQA questions and annotated answers. Review
+      upstream ConceptNet attribution. Common-sense QA only, not evidence of general agent capability.
+
+  commonsenseqa-eval:
+    hub: tau/commonsense_qa
+    split: validation
+    license: mit
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/tau/commonsense_qa
+    role: eval
+    format: commonsense_qa
+    provenance: UNVERIFIED candidate. Original crowd-authored CommonsenseQA questions and annotated answers. Review
+      upstream ConceptNet attribution. Common-sense QA only, not evidence of general agent capability.
+
+  banking77-train:
+    hub: PolyAI/banking77
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/PolyAI/banking77
+    role: train
+    format: banking77
+    provenance: UNVERIFIED candidate. Human banking-support queries and expert intent labels. Labels are schema
+      identifiers, not approved customer advice or bank policies. No synthetic instruction derivatives.
+
+  banking77-eval:
+    hub: PolyAI/banking77
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/PolyAI/banking77
+    role: eval
+    format: banking77
+    provenance: UNVERIFIED candidate. Human banking-support queries and expert intent labels. Labels are schema
+      identifiers, not approved customer advice or bank policies. No synthetic instruction derivatives.
+
+  phishing-url-train:
+    hub: pirocheto/phishing-url
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/pirocheto/phishing-url
+    role: train
+    format: phishing_url
+    provenance: UNVERIFIED candidate. Mirror of Hannousse and Yahiouche (2021) historical phishing/legitimate URLs.
+      URL text only, never fetch URLs or compute live features. Review original grant, mirror split, duplicates
+      and same-domain leakage; not a live security verdict.
+
+  phishing-url-eval:
+    hub: pirocheto/phishing-url
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/pirocheto/phishing-url
+    role: eval
+    format: phishing_url
+    provenance: UNVERIFIED candidate. Mirror of Hannousse and Yahiouche (2021) historical phishing/legitimate URLs.
+      URL text only, never fetch URLs or compute live features. Review original grant, mirror split, duplicates
+      and same-domain leakage; not a live security verdict.
+
+  billsum-train:
+    hub: FiscalNote/billsum
+    split: train
+    license: cc0-1.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/FiscalNote/billsum
+    role: train
+    format: billsum_title
+    provenance: UNVERIFIED candidate. US congressional summaries and titles from BillSum, originally sourced from
+      GPO. Human summary-to-title supervision, not full-bill summarization. ca_test is excluded. Verify originating
+      public-domain grant and attribution. Exact title matching is diagnostic only; use pairwise acceptance.
+
+  billsum-eval:
+    hub: FiscalNote/billsum
+    split: test
+    license: cc0-1.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/FiscalNote/billsum
+    role: eval
+    format: billsum_title
+    provenance: UNVERIFIED candidate. US congressional summaries and titles from BillSum, originally sourced from
+      GPO. Human summary-to-title supervision, not full-bill summarization. ca_test is excluded. Verify originating
+      public-domain grant and attribution. Exact title matching is diagnostic only; use pairwise acceptance.
