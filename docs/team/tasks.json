@@ -148,7 +148,7 @@
   {
    "id": "A9",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Ramas de proyecto, comentarios, conocimiento por especialista y cola de trabajos",
    "depends": [],
@@ -168,7 +168,7 @@
   {
    "id": "A11",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Marketplace de skills y hasta 30 skills",
    "depends": [
@@ -186,7 +186,7 @@
   {
    "id": "A12",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "De un Excel a una app (Data-to-Software)",
    "depends": [
@@ -204,7 +204,7 @@
   {
    "id": "A13",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Imagen y voz",
    "depends": [],
@@ -221,7 +221,7 @@
   {
    "id": "A14",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Audio y subtítulos",
    "depends": [
@@ -238,8 +238,8 @@
   },
   {
    "id": "A15",
-   "owner": "claude",
-   "status": "todo",
+   "owner": "codex",
+   "status": "done",
    "phase": "app",
    "title": "Investigación: notebook, Paper Rebuilder y mapa de contradicciones",
    "depends": [],
@@ -443,7 +443,7 @@
   {
    "id": "M5",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "modelos",
    "title": "Recetas de datos: derecho, ciencia, matemáticas, código y datos",
    "depends": [],
@@ -461,7 +461,7 @@
   {
    "id": "M6",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "modelos",
    "title": "Recetas de datos: educación, escritura, negocio, seguridad y core",
    "depends": [
@@ -526,7 +526,7 @@
   {
    "id": "I1",
    "owner": "codex",
-   "status": "todo",
+   "status": "done",
    "phase": "instalador",
    "title": "App de escritorio: lanzador y asistente de modelos",
    "depends": [],
@@ -544,7 +544,7 @@
   {
    "id": "I2",
    "owner": "codex",
-   "status": "todo",
+   "status": "doing",
    "phase": "instalador",
    "title": "Instaladores de un clic y publicación",
    "depends": [

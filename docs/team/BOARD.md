@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 7 | 3 | 0 | 0 | 7 | 0 | 17 |
-| Codex | 9 | 0 | 0 | 0 | 6 | 0 | 15 |
+| Claude | 6 | 3 | 0 | 0 | 7 | 0 | 16 |
+| Codex | 0 | 1 | 0 | 0 | 15 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **23** | **4** | **0** | **0** | **14** | **0** | **41** |
+| **Total** | **13** | **5** | **0** | **0** | **23** | **0** | **41** |
 
 ## Fase: equipo
 
@@ -29,12 +29,12 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A3 | Codex | hecha | Analytics: contratos, SQL Guardian, rescate, linaje y previsiones | - |
 | A5 | Codex | hecha | Dependency Doctor y Visual Critic | - |
 | A8 | Codex | hecha | Lab: comparar modelos y probar proveedores | - |
-| A9 | Codex | pendiente | Ramas de proyecto, comentarios, conocimiento por especialista y cola de trabajos | - |
-| A11 | Codex | pendiente | Marketplace de skills y hasta 30 skills | A1 |
-| A12 | Codex | pendiente | De un Excel a una app (Data-to-Software) | A3 |
-| A13 | Codex | pendiente | Imagen y voz | - |
-| A14 | Codex | pendiente | Audio y subtítulos | A13 |
-| A15 | Claude | pendiente | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
+| A9 | Codex | hecha | Ramas de proyecto, comentarios, conocimiento por especialista y cola de trabajos | - |
+| A11 | Codex | hecha | Marketplace de skills y hasta 30 skills | A1 |
+| A12 | Codex | hecha | De un Excel a una app (Data-to-Software) | A3 |
+| A13 | Codex | hecha | Imagen y voz | - |
+| A14 | Codex | hecha | Audio y subtítulos | A13 |
+| A15 | Codex | hecha | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
 | A16 | Claude | en curso | Geo, grabador del navegador y explorador de arquitectura | - |
 | A18 | Claude | en curso | 3D con Blender y juegos con Godot | - |
 | A4 | Claude | hecha | Aislamiento del sistema para python y run_command | - |
@@ -52,8 +52,8 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M2 | Claude | pendiente | Decidir medicina con los números y elegir la receta | M1 |
 | M3 | Mac | pendiente | Entrenar finanzas con la receta que pase | M2 |
 | M4 | Mac | pendiente | Entrenar marketing | M3 |
-| M5 | Codex | pendiente | Recetas de datos: derecho, ciencia, matemáticas, código y datos | - |
-| M6 | Codex | pendiente | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
+| M5 | Codex | hecha | Recetas de datos: derecho, ciencia, matemáticas, código y datos | - |
+| M6 | Codex | hecha | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
 | M7 | Claude | pendiente | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
 | M9 | Claude | en curso | Router con los 13 especialistas | M8 |
@@ -62,8 +62,8 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
-| I1 | Codex | pendiente | App de escritorio: lanzador y asistente de modelos | - |
-| I2 | Codex | pendiente | Instaladores de un clic y publicación | I1 |
+| I1 | Codex | hecha | App de escritorio: lanzador y asistente de modelos | - |
+| I2 | Codex | en curso | Instaladores de un clic y publicación | I1 |
 | I3 | Claude | pendiente | Probar los instaladores en máquinas limpias con el modelo real | I2 |
 | I4 | joan | pendiente | Opcional: certificados de firma | - |
 

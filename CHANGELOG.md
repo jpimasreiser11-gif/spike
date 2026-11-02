@@ -71,6 +71,22 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   password fields; Stop, a step cap and a cost estimate come first. Screenshots go only to the provider you
   chose, through the paid-call, limit and privacy guard, and are not saved unless you ask. Tested with fake
   drivers and a scripted provider; not yet run on a real screen or against the live API.
+- Project branches, artifact comments, knowledge per specialist and a job queue with a Jobs panel. (A9, Codex)
+- Skills marketplace from an index you choose (license and SHA-256 checked, nothing remote by default) and 30
+  bundled skills, five of them Creator templates. (A11, Codex)
+- Creator: a CSV or XLSX becomes a small local app to search and edit it; the original changes only after you
+  approve the edits. (A12, Codex)
+- Images in the composer for providers with vision, and optional local dictation (whisper.cpp) and reading
+  aloud (Piper) with the voice's license shown. (A13, Codex)
+- Audio and subtitles: local transcription, an SRT/VTT editor and a burned-in MP4, each step approved. (A14, Codex)
+- Research: chats as Jupyter notebooks, Paper Rebuilder into a Forge plan you review, and a contradiction map
+  with exact quotes. (A15, Codex)
+- Local conversation search and `spike dev --sessions` / `--resume`. (Codex)
+- Desktop launcher and first-run model wizard with resumable, SHA-256-checked downloads; installer candidates
+  (.dmg, .exe, AppImage) built by a manual workflow and never published automatically. (I1, I2, Codex)
+- Release readiness gate that refuses simulated or stale evidence, and a separate launch video project. (Codex)
+- Fixes: portable benchmark paths and Windows project cleanup; the browser tests wait for the end of each
+  answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
 ### Learning from use (Evolution)
 - Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the
@@ -88,6 +104,8 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - With the user's consent, approved corrections (from SPIKE's local model only) export as SFT and DPO data.
 
 ### Training and evaluation
+- Candidate data recipes for the other 10 specialists (M5, M6, Codex); every new source stays blocked until
+  its license is verified.
 - Recipe per specialist with acceptance criteria written before training; mlx-lm LoRA on Apple silicon
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.
