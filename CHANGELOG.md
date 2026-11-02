@@ -130,6 +130,8 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - `web_fetch` refuses the shared address space 100.64.0.0/10 and IPv4-mapped IPv6 forms.
 - Desktop builds carry the license text of every bundled Python and web package, NOTICE and THIRD_PARTY.md
   (`licenses/third-party/`); the web app serves the OFL text of its fonts as `/FONT-LICENSES.txt`.
+- The notices of the libraries llama.cpp compiles into `llama-server` (cpp-httplib, nlohmann/json, xxHash and six
+  more), copied from tag b11709, ship as `licenses/native/llama-vendored.txt`.
 - `docs/release/REVIEW-v0.1.md`: v0.1 checklist with evidence, findings, secrets scan and license table.
 - `web_fetch` resolves a name once, checks every address and connects to a checked one (the `Host` header, TLS
   server name and certificate check stay those of the name), so DNS rebinding after the check cannot move the request;

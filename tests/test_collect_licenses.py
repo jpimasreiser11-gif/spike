@@ -136,3 +136,13 @@ def test_the_spec_bundles_notice_and_the_collected_texts():
     spec = (ROOT / "packaging" / "spike.spec").read_text(encoding="utf-8")
     for needed in ('"NOTICE"', '"THIRD_PARTY.md"', "collect_licenses.py", "licenses/third-party"):
         assert needed in spec
+
+
+def test_llama_servers_vendored_notices_match_the_staged_tag():
+    stage = runpy.run_path(str(ROOT / "packaging" / "stage_llama.py"))
+    text = (ROOT / "packaging" / "licenses" / "llama-vendored.txt").read_text(encoding="utf-8")
+    assert text.splitlines()[0].startswith(f"Third-party code inside llama.cpp's llama-server (tag {stage['TAG']},")
+    for name in ("cpp-httplib", "nlohmann/json", "xxHash", "rotate-bits", "sha256", "sha1", "stb_image", "miniaudio",
+                 "subprocess.h"):
+        assert f"\n{name}" in text
+    assert "Copyright (c) 2017 yhirose" in text and "Copyright (c) 2012-2021 Yann Collet" in text

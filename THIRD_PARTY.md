@@ -212,10 +212,11 @@ grants no trademark rights (section 6), so they may not be used as another produ
   The prebuilt `llama-server` statically contains the libraries llama.cpp keeps in `vendor/` and `licenses/`: cpp-httplib
   (MIT, Yuji Hirose), nlohmann/json (MIT, Niels Lohmann), xxHash (BSD-2-Clause, Yann Collet), sha256 (public domain, Igor
   Pavlov), rotate-bits (MIT, William Casarin), stb_image (public domain or MIT), miniaudio (public domain or MIT-0) and
-  subprocess.h (Unlicense). L2 listed the Linux x86_64 b11709 archive on disk (61 entries; its only license file is the
-  top-level MIT LICENSE) and read the vendored libraries' licenses in a local, untagged llama.cpp source tree; the
-  b11709 tag itself could not be read offline. All are permissive; before the first public release, read the tag's `licenses/` and `vendor/` folders and append
-  their copyright notices to `packaging/licenses/llama.txt` (pending, see `docs/release/REVIEW-v0.1.md`).
+  subprocess.h (Unlicense), plus sha1 (public domain, Steve Reid). The b11709 archive's only license file is the
+  top-level MIT LICENSE (61 entries listed), so the vendored libraries' texts, copied from the `vendor/` folder of tag
+  b11709 (commit 62318cd), are in `packaging/licenses/llama-vendored.txt` and ship as
+  `licenses/native/llama-vendored.txt`. llama-server also embeds llama.cpp's own web UI (`tools/ui`, built with npm
+  packages); SPIKE does not use it and its packages' notices are not reproduced (open item, `docs/release/REVIEW-v0.1.md`).
 - **pywebview** (BSD-3-Clause): detected only when already installed in the build/runtime environment; SPIKE's
   launcher otherwise uses the standard-library browser opener. Source: https://github.com/r0x0r/pywebview.
 - **PyInstaller 6.22.3**: build tool/bootloader, GPL-2.0 with its distribution exception; see

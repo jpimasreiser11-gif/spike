@@ -114,7 +114,7 @@ files).
 | 8 skills copied from obra/superpowers, anthropics/skills, Vercel (via open-design) | `spike/skills/bundled` | MIT x5, Apache-2.0 x3 | ok; license file in each folder; credited in NOTICE (was missing) |
 | 20 design systems from open-design | `spike/design/systems` | Apache-2.0 | ok; `LICENSE-open-design` present; no company brand look; credited in NOTICE |
 | Brand images, specialist avatars, state illustrations | `web/public` | project's own; derived from the founder's logo with ChatGPT image generation | ok as own work; the generator's terms on output rights are not checkable offline |
-| llama.cpp b11709 `llama-server` | desktop bundle | MIT, plus statically linked cpp-httplib, nlohmann/json, xxHash, sha256, rotate-bits, stb_image, miniaudio, subprocess.h (all MIT, BSD-2, public domain, MIT-0 or Unlicense) | ok. Pending: the archive carries only the top-level LICENSE (61 entries listed); the vendored libraries' notices were read in an untagged local source tree, not the b11709 tag. Append them from the tag before release |
+| llama.cpp b11709 `llama-server` | desktop bundle | MIT, plus statically linked cpp-httplib, nlohmann/json, xxHash, sha256, rotate-bits, stb_image, miniaudio, subprocess.h (all MIT, BSD-2, public domain, MIT-0 or Unlicense) | ok. The archive carries only the top-level LICENSE (61 entries listed); the vendored libraries' texts, copied from tag b11709 (commit 62318cd), are in `packaging/licenses/llama-vendored.txt` (bundled as `licenses/native/`). Open: llama-server embeds llama.cpp's web UI (`tools/ui`, 77 npm dev dependencies bundled by Vite, fetched prebuilt at build time since `LLAMA_USE_PREBUILT_UI` defaults to on; inferred from the tag's CMake, not checked in the binary); SPIKE never serves it, but its packages' notices are in the binary's bytes and are not reproduced |
 | AppImage type2-runtime | Linux AppImage | MIT; statically links libfuse (LGPL-2.1), musl, squashfuse, libzstd, zlib | flagged: LGPL. Met as far as engineering can tell (unmodified upstream binary, replaceable with `appimagetool --runtime-file`, source links in THIRD_PARTY.md and the release notes). Whether that satisfies LGPL-2.1 section 6 for a static link is the founder's or counsel's decision |
 | PyInstaller bootloader | frozen executables | GPL-2.0 with the PyInstaller exception for non-GPL programs | ok under the exception; text not readable offline |
 | pywebview 6.2.1 | macOS and Windows bundles | BSD-3-Clause (per project) | not readable offline: not installed here |
@@ -136,7 +136,11 @@ THIRD_PARTY.md differ from the build environment for two packages (`duckdb` 1.5.
    built all three; the installed-app smoke, which now refuses a bundle without LICENSE, NOTICE, THIRD_PARTY.md and
    `third-party/INDEX.md`, counted 199 (macOS), 198 (Windows) and 194 (Linux) license files.
 2. Founder's decision on the LGPL libfuse inside the AppImage runtime (section 4).
-3. Append the vendored-library notices of llama.cpp tag b11709 to `packaging/licenses/llama.txt`.
+3. ~~Append the vendored-library notices of llama.cpp tag b11709~~ Done: `packaging/licenses/llama-vendored.txt`
+   (copied from the tag; `tests/test_collect_licenses.py` fails if the staged tag changes and the file is not redone).
+   Still open: the npm packages of llama-server's embedded web UI (section 4), for the founder: accept as upstream
+   ships it, or build llama-server without it (`-DLLAMA_USE_PREBUILT_UI=OFF`, the tag's default fetches a prebuilt UI
+   from a Hugging Face bucket; `LLAMA_BUILD_UI` is already off), which replaces the pinned upstream binaries.
 4. Green CI on the release commit, and `pip-audit` and `npm audit` with network.
 5. L1 demo, M2 adapter, L3 Hugging Face publication, final release notes: pending as listed in section 1.
 6. The Low findings: L2 to L8 are fixed (section 2); L1 stays open on purpose (the dev server's origin) and does not block v0.1 by itself.
