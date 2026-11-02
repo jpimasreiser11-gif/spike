@@ -114,3 +114,48 @@ Authoritative references: [PyInstaller signing](https://pyinstaller.org/en/stabl
 [AppImage runtime license](https://github.com/AppImage/type2-runtime/blob/main/LICENSE).
 The AppImage runtime includes third-party libraries (including LGPL libfuse); retain notices and have L2 review
 binary/source/relinking obligations. A checksum verifies bytes, not redistribution rights or public-release approval.
+
+## Installers on a clean machine with the real model (I3)
+
+`.github/workflows/installers-real-model.yml` ("Installers with the real model") is manual only and has **not run yet**:
+nothing below is a result. Dispatch it with the id of a successful "Native installers" run (its `native-*` artifacts are
+kept 7 days), for example `gh workflow run installers-real-model.yml -f run_id=RUN_ID`; the workflow file must be on the
+default branch first. Each of macOS 14 arm64, Windows Server 2022 and Ubuntu 24.04 is a fresh runner: nothing is cached
+between runs and the profile starts absent. The job fails, rather than guesses, when the run is not a successful
+"Native installers" run, an artifact has expired, or the machine already has a `~/.spike`. No secret is used; the run's own
+token only reads that run's artifacts, and nothing is published.
+
+The driver is `packaging/real_model_check.py` (tested without a network by `tests/test_real_model_check.py`, with a fake
+app process and a fake download). On each runner it:
+
+1. downloads `native-TARGET` and refuses to go on unless the installer's SHA-256 equals the `SPIKE-*.json` build evidence;
+2. installs it as a user does: mounts the .dmg read-only and copies SPIKE.app; runs the Inno Setup installer with
+   `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART` into a temporary folder; `chmod +x` the AppImage, with
+   `--appimage-extract-and-run` only when FUSE (`/dev/fuse` and `fusermount`) is missing;
+3. starts the installed program without a window. The frozen entry point only knows `--package-smoke` (tiny fixture, at
+   most 8 MiB), so the driver starts its normal entry with `SPIKE_NO_KEYRING=1` (and `BROWSER=true` off Windows), finds the loopback
+   port the launcher picked and waits for `/api/health`. On macOS and Windows the pywebview window may open on the
+   runner's desktop; on Linux there is no window. Secrets and `SPIKE_*`/`HF_*` variables are not passed on;
+4. runs the shared UI/catalog/skills checks (`package_smoke.check_app`), then drives the wizard's own API: `GET
+   /api/setup`, a same-origin JSON `POST /api/setup/download`, polling until the job is done. The app's resource guard
+   (8 GiB RAM, 6 GiB free disk) is **not bypassed**: if it declines, the result says `refused_resources`. The macOS 14
+   runner has about 7 GB of RAM, so expect that outcome there; it is a finding about the guard, not a pass;
+5. hashes the placed file itself and compares it and its size with the Hub's published SHA-256 (the same source the app
+   uses). A mismatch stops the run before the model is started;
+6. starts the runtime with `POST /api/runtime/start`, asks one question through `/v1/chat/completions` (streaming, model
+   `spike-auto`, temperature 0), then quits with `POST /api/setup/quit` like the Quit button;
+7. uninstalls (Windows uninstaller silently; deletes the .app or the AppImage) and checks that every file of the
+   profile, including the model, is unchanged. Whatever fails, the program is stopped and removed.
+
+Measured on the runner, printed in the log (artifact downloads may be blocked for reviewers) and uploaded as
+`real-model-TARGET`: `model.download_seconds`, `model.bytes`, `model.sha256` and `model.hash_match`;
+`chat.ttft_seconds` (request sent to first streamed content or reasoning text, through the app's orchestrator on a cold
+first request); `chat.tokens_per_second` ((completion tokens - 1) / seconds between the first and last streamed text,
+from the usage the app reports; `null` when it reports none); `llama_metrics` (llama-server's own average gauges);
+`runtime.peak_rss_mib` of llama-server (Linux VmHWM or Windows peak working set when the OS has one, otherwise the
+highest of samples every 0.2 s; RSS counts memory-mapped model pages); `wall_seconds`; `runner` (OS, CPU, cores, RAM);
+and per-stage seconds in `phases`. With `outcome: "ok"` the stages `prepare`, `verify`, `install`, `start`, `ui`,
+`setup`, `model`, `runtime`, `chat`, `quit` and `uninstall` all passed; otherwise `failed_stage` and a scrubbed `error`
+name the first that did not. Printed and saved text shows the work directory as `<work>` and the home as `~`; secrets and
+user names never appear. These are single runs on shared CI runners: not a benchmark (use `spike bench`), not a quality
+measure, and no claim about a user's own machine, GPU, antivirus or Gatekeeper/SmartScreen prompts.

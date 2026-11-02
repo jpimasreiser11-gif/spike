@@ -15,37 +15,44 @@ from pathlib import Path
 import httpx
 
 
+def request(client: httpx.Client, method: str, path: str, **kwargs) -> httpx.Response:
+    response = client.request(method, path, **kwargs)
+    response.raise_for_status()
+    return response
+
+
+def check_app(client: httpx.Client) -> dict:
+    """Health, bundled web app, catalog and skills of a running app; the real-model check (I3) shares it."""
+    result = {}
+    if request(client, "GET", "/api/health").json().get("ok") is not True:
+        raise ValueError("API health failed")
+    result["health"] = True
+    html = request(client, "GET", "/").text
+    scripts = re.findall(r'<script[^>]+src="(/assets/[^"<>]+\.js)"', html)
+    if 'id="root"' not in html or not scripts:
+        raise ValueError("Bundled web app missing")
+    for path in scripts:
+        if not request(client, "GET", path).content:
+            raise ValueError("Empty UI script")
+    result["ui"] = True
+    for name, endpoint in (("catalog", "specialists"), ("skills", "skills")):
+        if not request(client, "GET", f"/api/{endpoint}").json():
+            raise ValueError(f"Bundled {name} missing")
+        result[name] = True
+    return result
+
+
 def probe(client: httpx.Client, model: Path, port: int) -> dict:
     result = {}
-
-    def request(method, path, **kwargs):
-        response = client.request(method, path, **kwargs)
-        response.raise_for_status()
-        return response
-
     try:
-        if request("GET", "/api/health").json().get("ok") is not True:
-            raise ValueError("API health failed")
-        result["health"] = True
-        html = request("GET", "/").text
-        scripts = re.findall(r'<script[^>]+src="(/assets/[^"<>]+\.js)"', html)
-        if 'id="root"' not in html or not scripts:
-            raise ValueError("Bundled web app missing")
-        for path in scripts:
-            if not request("GET", path).content:
-                raise ValueError("Empty UI script")
-        result["ui"] = True
-        for name, endpoint in (("catalog", "specialists"), ("skills", "skills")):
-            if not request("GET", f"/api/{endpoint}").json():
-                raise ValueError(f"Bundled {name} missing")
-            result[name] = True
-        request("PUT", "/api/settings", json={"local_runtime": {
+        result.update(check_app(client))
+        request(client, "PUT", "/api/settings", json={"local_runtime": {
             "model": model.as_posix(), "port": port, "adapters": [], "threads": 1,
             "context": 512, "gpu_layers": 0, "kv_cache_type": "f16"}})
-        runtime = request("POST", "/api/runtime/start", json={}).json()
+        runtime = request(client, "POST", "/api/runtime/start", json={}).json()
         if runtime.get("running") is not True or runtime.get("base_url") != f"http://127.0.0.1:{port}":
             raise ValueError("Bundled runtime did not start on the requested loopback port")
-        answer = request("POST", runtime["base_url"] + "/v1/chat/completions", json={
+        answer = request(client, "POST", runtime["base_url"] + "/v1/chat/completions", json={
             "model": "spike-tiny-test", "messages": [{"role": "user", "content": "hello"}],
             "max_tokens": 4, "temperature": 0}).json()
         if not answer.get("choices") or "message" not in answer["choices"][0]:
