@@ -74,7 +74,8 @@ def references(accepted: list[dict[str, Any]]) -> list[tuple[str, str]]:
             for line in path.read_text(encoding="utf-8").splitlines():
                 if line.strip():
                     row = json.loads(line)
-                    refs.append((f"evals/data/{path.name}", str(row.get("prompt") or row.get("question") or "")))
+                    text = row.get("prompt") or row.get("question") or row.get("query")  # query: the router sets
+                    refs.append((f"evals/data/{path.name}", str(text or "")))
     refs += [(f"accepted candidate {c['id']}", c["question"]) for c in accepted]
     return refs
 

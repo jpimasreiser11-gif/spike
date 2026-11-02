@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT / "training"))
 from spike_train import evaluation as training_eval  # noqa: E402
 
 CATALOG = load_catalog()
-PET = "Mi perro tiene diarrea desde ayer, ¿qué le doy?"
+PET = "Mi perro lleva dos días sin comer nada y está muy decaído, ¿qué le doy?"
 CAT = "Mi gato vomita pelo cada semana"
 JOB = "Escribe una oferta de empleo para un puesto de camarero"
 
@@ -194,6 +194,9 @@ def test_contamination_flags_known_questions_only():
     known = load_labeled("test")[0]["query"]
     assert contamination(known, refs)["with"] == "router set"
     assert contamination("¿Qué tipo de IVA se aplica a las bicicletas eléctricas en Portugal?", refs) is None
+    dev2_file = ROOT / "evals" / "data" / "router_dev2.jsonl"
+    dev2 = json.loads(dev2_file.read_text(encoding="utf-8").splitlines()[1])["query"]
+    assert contamination(dev2, refs)["with"] == "evals/data/router_dev2.jsonl"  # the second router set is guarded too
 
 
 # ---------------------------------------------------------------- the app
@@ -242,7 +245,7 @@ def test_a_saved_correction_becomes_an_eval_candidate(env):
                             json={"status": "accepted", "checks": {"include": ["21%"], "exclude": ["18%"]}}).json()
     assert accepted["status"] == "accepted"
     exported = [json.loads(line) for line in client.get("/api/evolution/candidates.jsonl").text.splitlines()]
-    assert exported == [{"id": candidate["id"], "prompt": candidate["question"], "specialist": "core",
+    assert exported == [{"id": candidate["id"], "prompt": candidate["question"], "specialist": "finance",
                          "checks": {"include": ["21%"], "exclude": ["18%"]},
                          "reference": "No, el tipo general es del 21%, no del 18%.", "from": "correction",
                          "source": "spike-evolution"}]

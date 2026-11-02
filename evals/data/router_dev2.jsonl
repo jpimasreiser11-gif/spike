@@ -1,0 +1,130 @@
+{"query": "Hola, ¿qué tal? Hoy me siento algo perdido, ¿charlamos un rato?", "labels": ["core"], "lang": "es"}
+{"query": "¿Cuál es la capital de Australia y por qué no es Sídney?", "labels": ["core"], "lang": "es"}
+{"query": "Estoy organizando una semana en Lisboa en octubre con mi pareja, ¿me ayudas con un itinerario?", "labels": ["core"], "lang": "es"}
+{"query": "Recomiéndame una serie para ver este fin de semana, algo ligero que no me quite el sueño", "labels": ["core"], "lang": "es"}
+{"query": "Me mudo a Berlín el año que viene: ayúdame a ordenar el traslado, el presupuesto mensual y los trámites del piso", "labels": ["core", "finance"], "lang": "es"}
+{"query": "hey! how's your day going?", "labels": ["core"], "lang": "en"}
+{"query": "Who painted the ceiling of the Sistine Chapel, and how long did it take him?", "labels": ["core"], "lang": "en"}
+{"query": "What's a good way to spend three days in Edinburgh in winter?", "labels": ["core"], "lang": "en"}
+{"query": "Friends are coming over on Saturday and I want to cook something impressive but easy. Ideas?", "labels": ["core"], "lang": "en"}
+{"query": "Help me plan my week: gym three times, finish a thesis chapter, and the tax return I keep putting off", "labels": ["core", "finance"], "lang": "en"}
+{"query": "Llevo tres días con fiebre y dolor de garganta, y hoy me han salido placas blancas en las amígdalas. ¿Qué puede ser?", "labels": ["medicine"], "lang": "es"}
+{"query": "¿Puedo tomar ibuprofeno junto con omeprazol?", "labels": ["medicine"], "lang": "es"}
+{"query": "Mi madre tiene 70 años y la tensión siempre le sale alta por las mañanas, ¿debería preocuparnos?", "labels": ["medicine"], "lang": "es"}
+{"query": "Me han salido la hemoglobina glicosilada en 7,2 y el colesterol LDL en 160, ¿qué significa?", "labels": ["medicine"], "lang": "es"}
+{"query": "Estudio para el MIR y no termino de entender la insuficiencia cardiaca; explícamelo paso a paso y hazme preguntas tipo test", "labels": ["medicine", "education"], "lang": "es"}
+{"query": "I've had a pounding headache behind my left eye for two days and bright lights make it worse. Migraine?", "labels": ["medicine"], "lang": "en"}
+{"query": "What's the difference between amoxicillin and azithromycin, and when do doctors choose one over the other?", "labels": ["medicine"], "lang": "en"}
+{"query": "My dad's blood sugar was 240 after dinner. Is that dangerous?", "labels": ["medicine"], "lang": "en"}
+{"query": "Is a resting pulse of 48 normal? I run a lot but sometimes I feel faint.", "labels": ["medicine"], "lang": "en"}
+{"query": "We want to sell home blood pressure monitors online. How accurate do the readings need to be and how should we price them?", "labels": ["medicine", "business"], "lang": "en"}
+{"query": "Me sale 'undefined is not a function' en mi componente de React cuando hago el map de la lista, ¿qué pasa?", "labels": ["code"], "lang": "es"}
+{"query": "¿Cómo invierto una lista enlazada en Python sin usar memoria extra?", "labels": ["code"], "lang": "es"}
+{"query": "Este bucle tarda una eternidad con 10 millones de elementos, ¿cómo lo optimizo?", "labels": ["code"], "lang": "es"}
+{"query": "¿Qué diferencia hay entre una promesa y async/await en JavaScript?", "labels": ["code"], "lang": "es"}
+{"query": "Revisa esta función que sube ficheros a un bucket y dime si hay algún agujero que pueda aprovechar un atacante", "labels": ["code", "security"], "lang": "es"}
+{"query": "git says detached HEAD and I think I lost my last commits, how do I get them back?", "labels": ["code"], "lang": "en"}
+{"query": "Write a Rust function that parses a semver string into major, minor and patch.", "labels": ["code"], "lang": "en"}
+{"query": "why does my script throw KeyError: 'name' when the json clearly has that field", "labels": ["code"], "lang": "en"}
+{"query": "Can you refactor this nested if/else pyramid into something readable? Guard clauses maybe", "labels": ["code"], "lang": "en"}
+{"query": "Write a Python script that reads my sales CSV and prints revenue per month", "labels": ["code", "data"], "lang": "en"}
+{"query": "¿Cómo calculo el valor actual neto de un proyecto que cuesta 100.000 euros y devuelve 30.000 al año durante cinco años?", "labels": ["finance"], "lang": "es"}
+{"query": "Tengo 20.000 euros ahorrados, ¿los meto en un fondo indexado o amortizo parte de la hipoteca?", "labels": ["finance"], "lang": "es"}
+{"query": "¿Qué es el ratio de endeudamiento y cómo se interpreta en el balance de una empresa?", "labels": ["finance"], "lang": "es"}
+{"query": "Mi cuñado dice que las acciones de Inditex están caras, ¿cómo lo comprobaría yo?", "labels": ["finance"], "lang": "es"}
+{"query": "Quiero declarar lo que gano con mi alquiler turístico; ¿qué gastos puedo deducir y cómo tributa?", "labels": ["finance", "law"], "lang": "es"}
+{"query": "Walk me through a discounted cash flow for a SaaS company growing 40% a year.", "labels": ["finance"], "lang": "en"}
+{"query": "Should I pay off my credit card first or build an emergency fund?", "labels": ["finance"], "lang": "en"}
+{"query": "What does it mean when the yield curve inverts, and why does everyone panic?", "labels": ["finance"], "lang": "en"}
+{"query": "How do I record depreciation on a delivery van in the books?", "labels": ["finance"], "lang": "en"}
+{"query": "Our startup has 18 months of runway; model three burn scenarios and tell me how that should change what we charge", "labels": ["finance", "business"], "lang": "en"}
+{"query": "Mi casero quiere subirme el alquiler un 15% a mitad de contrato, ¿puede hacerlo?", "labels": ["law"], "lang": "es"}
+{"query": "Firmé un contrato con cláusula de no competencia, ¿es válida si me voy a trabajar a otra empresa?", "labels": ["law"], "lang": "es"}
+{"query": "Me ha llegado una multa de tráfico de hace más de un año, ¿ha prescrito?", "labels": ["law"], "lang": "es"}
+{"query": "¿Qué obligaciones tengo con el RGPD si mi tienda online guarda los correos de los clientes?", "labels": ["law"], "lang": "es"}
+{"query": "Quiero montar una SL con un socio: ¿qué pasos legales hay y qué reparto de participaciones nos conviene?", "labels": ["law", "business"], "lang": "es"}
+{"query": "Can my landlord keep my whole security deposit for normal wear and tear?", "labels": ["law"], "lang": "en"}
+{"query": "I was fired two days after reporting harassment to HR. Do I have a case?", "labels": ["law"], "lang": "en"}
+{"query": "What's the difference between a trademark and a copyright, and which one protects my logo?", "labels": ["law"], "lang": "en"}
+{"query": "Someone posted my photo online without asking. What can I do?", "labels": ["law"], "lang": "en"}
+{"query": "Add a liability cap to our SaaS agreement and tell me if it would survive in court", "labels": ["law", "writing"], "lang": "en"}
+{"query": "Necesito un eslogan para una cafetería de especialidad que quiere atraer a gente joven.", "labels": ["marketing"], "lang": "es"}
+{"query": "Mi web no sale en Google por ninguna búsqueda, ¿qué debería tocar?", "labels": ["marketing"], "lang": "es"}
+{"query": "Tengo 500 euros al mes para anuncios, ¿Instagram o Google, cuál me conviene?", "labels": ["marketing"], "lang": "es"}
+{"query": "¿Cómo me diferencio de las otras tres tiendas de cosmética natural de mi barrio?", "labels": ["marketing"], "lang": "es"}
+{"query": "Escríbeme el email de lanzamiento de nuestra app y dime qué cifras mirar después para saber si funcionó", "labels": ["marketing", "data"], "lang": "es"}
+{"query": "What's a good hook for a TikTok promoting a budget meal-prep service?", "labels": ["marketing"], "lang": "en"}
+{"query": "My Facebook ads get lots of clicks but nobody buys. What am I doing wrong?", "labels": ["marketing"], "lang": "en"}
+{"query": "How do I position a new running shoe against Nike without a Nike budget?", "labels": ["marketing"], "lang": "en"}
+{"query": "Give me ten blog topics that could rank for 'standing desk'.", "labels": ["marketing"], "lang": "en"}
+{"query": "Help me name my bakery and set a price that doesn't look cheap", "labels": ["marketing", "business"], "lang": "en"}
+{"query": "¿Por qué el cielo es azul de día y rojo al atardecer?", "labels": ["science"], "lang": "es"}
+{"query": "Un coche pasa de 0 a 100 km/h en 8 segundos, ¿qué aceleración media lleva?", "labels": ["science"], "lang": "es"}
+{"query": "¿Cómo se forman los huracanes y por qué giran siempre en el mismo sentido?", "labels": ["science"], "lang": "es"}
+{"query": "¿Qué le pasa al agua cuando le echo sal? ¿Por qué tarda más en congelarse?", "labels": ["science"], "lang": "es"}
+{"query": "Explícame la fotosíntesis como si tuviera doce años", "labels": ["science", "education"], "lang": "es"}
+{"query": "How does DNA replication work, and what exactly does helicase do?", "labels": ["science"], "lang": "en"}
+{"query": "Why does ice float when most solids sink in their own liquid?", "labels": ["science"], "lang": "en"}
+{"query": "If I drop a ball from 20 meters, how long until it hits the ground?", "labels": ["science"], "lang": "en"}
+{"query": "What causes earthquakes, and why are they so common around Japan?", "labels": ["science"], "lang": "en"}
+{"query": "How much energy does it take to boil a litre of water, and what would that cost me in electricity?", "labels": ["science", "finance"], "lang": "en"}
+{"query": "¿Cómo hago para sacar los 5 clientes que más han comprado en el último trimestre?", "labels": ["data"], "lang": "es"}
+{"query": "Tengo un Excel con 20.000 filas y quiero quitar duplicados y hacer una tabla dinámica por región", "labels": ["data"], "lang": "es"}
+{"query": "¿Cómo diseño las tablas para una academia con alumnos, cursos y matrículas?", "labels": ["data"], "lang": "es"}
+{"query": "Cambié el diseño de mi web y quiero saber si de verdad subieron las conversiones o es casualidad", "labels": ["data"], "lang": "es"}
+{"query": "En pandas, ¿cómo agrupo por mes y calculo la media móvil de las ventas?", "labels": ["data", "code"], "lang": "es"}
+{"query": "What's the difference between a LEFT JOIN and an INNER JOIN?", "labels": ["data"], "lang": "en"}
+{"query": "My dashboard says churn is 4% but finance says 6%. How do I find where the numbers diverge?", "labels": ["data"], "lang": "en"}
+{"query": "How should I model orders, products and customers in a reporting warehouse?", "labels": ["data"], "lang": "en"}
+{"query": "VLOOKUP keeps returning #N/A even though the value is clearly there", "labels": ["data"], "lang": "en"}
+{"query": "Is a correlation of 0.3 between ad spend and sales worth acting on?", "labels": ["data", "marketing"], "lang": "en"}
+{"query": "Resuelve la ecuación x² − 5x + 6 = 0", "labels": ["math"], "lang": "es"}
+{"query": "¿Cómo derivo e^(2x)·sen(x)?", "labels": ["math"], "lang": "es"}
+{"query": "Demuestra que la raíz de 2 es irracional", "labels": ["math"], "lang": "es"}
+{"query": "¿De cuántas formas se pueden sentar 6 personas en una mesa redonda?", "labels": ["math"], "lang": "es"}
+{"query": "No entiendo los límites; explícamelos con un ejemplo fácil y ponme tres ejercicios para practicar", "labels": ["math", "education"], "lang": "es"}
+{"query": "Find the integral of x·ln(x) dx.", "labels": ["math"], "lang": "en"}
+{"query": "Prove by induction that 1+2+...+n = n(n+1)/2", "labels": ["math"], "lang": "en"}
+{"query": "What are the eigenvalues of the matrix [[2,1],[1,2]]?", "labels": ["math"], "lang": "en"}
+{"query": "A bag has 3 red and 5 blue marbles. What's the chance of drawing two reds in a row without putting them back?", "labels": ["math"], "lang": "en"}
+{"query": "Show that the sum of the first n odd numbers is n squared, then give me a Python one-liner to check it", "labels": ["math", "code"], "lang": "en"}
+{"query": "Tengo examen de historia el viernes y no he estudiado nada; ¿me haces un plan para tres días?", "labels": ["education"], "lang": "es"}
+{"query": "Mi hijo de 10 años no entiende las fracciones, ¿cómo se las explico?", "labels": ["education"], "lang": "es"}
+{"query": "Hazme un test de 10 preguntas sobre la Revolución Francesa y pon las respuestas al final.", "labels": ["education"], "lang": "es"}
+{"query": "Soy profesora y busco ideas para que mis alumnos de primaria aprendan los verbos jugando", "labels": ["education"], "lang": "es"}
+{"query": "Quiero que me expliques qué es la inflación como si tuviera catorce años", "labels": ["education", "finance"], "lang": "es"}
+{"query": "I'm learning Spanish and keep mixing up ser and estar. Can you give me some exercises?", "labels": ["education"], "lang": "en"}
+{"query": "Make me a six-week study plan for the GRE, I can do about an hour a day", "labels": ["education"], "lang": "en"}
+{"query": "Here's my son's essay on the water cycle, could you give feedback like a teacher would?", "labels": ["education"], "lang": "en"}
+{"query": "How can I stop forgetting what I read? I'm a first-year student", "labels": ["education"], "lang": "en"}
+{"query": "Help me prepare a lesson for 15-year-olds about compound interest", "labels": ["education", "finance"], "lang": "en"}
+{"query": "Resume este texto en cinco líneas para que lo pueda leer rápido", "labels": ["writing"], "lang": "es"}
+{"query": "Tradúceme al inglés este correo para mi jefe, que suene formal", "labels": ["writing"], "lang": "es"}
+{"query": "Quiero escribir una carta de presentación para un puesto de administrativa, ayúdame con el borrador", "labels": ["writing"], "lang": "es"}
+{"query": "Reescribe esta frase para que suene menos agresiva: 'No has entregado nada a tiempo, otra vez.'", "labels": ["writing"], "lang": "es"}
+{"query": "Redacta una carta de reclamación a mi aseguradora porque no me cubren el siniestro", "labels": ["writing", "law"], "lang": "es"}
+{"query": "Can you proofread this paragraph and fix the grammar?", "labels": ["writing"], "lang": "en"}
+{"query": "Make my cover letter sound less stiff, more like a real person", "labels": ["writing"], "lang": "en"}
+{"query": "Write a toast for my sister's wedding, funny but touching", "labels": ["writing"], "lang": "en"}
+{"query": "Shorten this to a tweet without losing the point", "labels": ["writing"], "lang": "en"}
+{"query": "Rewrite this product description so it's punchier and works for SEO", "labels": ["writing", "marketing"], "lang": "en"}
+{"query": "Quiero abrir una tienda online de ropa de segunda mano, ¿cómo valido la idea antes de gastar dinero?", "labels": ["business"], "lang": "es"}
+{"query": "Mi equipo de seis personas no cumple plazos y hay mal ambiente, ¿cómo lo gestiono?", "labels": ["business"], "lang": "es"}
+{"query": "¿Cuánto debería cobrar por mis servicios de diseño como autónomo?", "labels": ["business"], "lang": "es"}
+{"query": "Tengo un restaurante y los costes de los proveedores se han disparado, ¿cómo protejo el margen?", "labels": ["business"], "lang": "es"}
+{"query": "Estoy montando una startup de reparto en bici y tengo que presentar el plan a inversores, ¿qué debe llevar?", "labels": ["business", "finance"], "lang": "es"}
+{"query": "How do I know when it's time to hire my first employee?", "labels": ["business"], "lang": "en"}
+{"query": "What's a good business model for a mobile app that teaches guitar?", "labels": ["business"], "lang": "en"}
+{"query": "Our biggest client is 60% of our revenue. Is that a problem and what should I do about it?", "labels": ["business"], "lang": "en"}
+{"query": "I run a small gym. How do I cut member cancellations?", "labels": ["business"], "lang": "en"}
+{"query": "Draft a one-page memo proposing that we open a second bakery location", "labels": ["business", "writing"], "lang": "en"}
+{"query": "Me llegó un SMS del banco con un enlace para verificar mi cuenta, ¿es una estafa?", "labels": ["security"], "lang": "es"}
+{"query": "¿Cómo protejo mi servidor Linux para que no entren por SSH probando contraseñas?", "labels": ["security"], "lang": "es"}
+{"query": "Creo que alguien ha entrado en mi correo, ¿qué hago ahora mismo?", "labels": ["security"], "lang": "es"}
+{"query": "¿Es seguro guardar las contraseñas de los usuarios con MD5?", "labels": ["security"], "lang": "es"}
+{"query": "Mira este endpoint de login en Express y dime si alguien podría saltarse la autenticación", "labels": ["security", "code"], "lang": "es"}
+{"query": "Someone is hammering my site with thousands of requests per second and it keeps going down. What do I do?", "labels": ["security"], "lang": "en"}
+{"query": "How should I design authentication for an API that third-party apps will call?", "labels": ["security"], "lang": "en"}
+{"query": "What is an injection attack and how do I make sure my web form isn't vulnerable?", "labels": ["security"], "lang": "en"}
+{"query": "Our company laptop was stolen with customer data on it. What are our first steps?", "labels": ["security"], "lang": "en"}
+{"query": "We got a ransom note on the file server. Walk me through containing it, and tell me whether we have to notify regulators", "labels": ["security", "law"], "lang": "en"}
