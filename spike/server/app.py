@@ -58,6 +58,7 @@ from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.research_api import create_research_router
+from spike.server.reverse_api import create_reverse_router
 from spike.server.setup_api import create_setup_router
 from spike.server.state import AppState
 from spike.server.subtitles_api import create_subtitles_router
@@ -1426,6 +1427,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_memory_router(st, check_scope, this_computer))
     app.include_router(create_desktop_router(st, this_computer))
     app.include_router(create_media_router(st, this_computer))
+    app.include_router(create_reverse_router(st, this_computer))
     app.include_router(create_subtitles_router(st, this_computer))
     app.include_router(create_view_router(st, this_computer))  # A16 browser recorder and replay
 

@@ -4,6 +4,7 @@ import { lang } from "../i18n";
 import type { DesignSystemInfo } from "../types";
 import { artifactDocument } from "./Artifact";
 import { IconTrash, IconUpload } from "./Icons";
+import { ReverseStudio } from "./ReverseStudio";
 
 const D = lang === "es"
   ? {
@@ -28,7 +29,7 @@ function Preview({ id }: { id: string }) {
 }
 
 /** Settings › Design: the design systems SPIKE knows, their colours and a sample page; import and remove yours. */
-export function DesignSystems({ onChange }: { onChange?: () => void }) {
+export function DesignSystems({ onChange, onClose }: { onChange?: () => void; onClose?: () => void }) {
   const [systems, setSystems] = useState<DesignSystemInfo[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
@@ -84,6 +85,7 @@ export function DesignSystems({ onChange }: { onChange?: () => void }) {
         </div>
       ))}
       <small className="muted">{D.credit}</small>
+      <ReverseStudio onClose={onClose} />
     </div>
   );
 }
