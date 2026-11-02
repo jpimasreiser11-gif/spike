@@ -637,7 +637,7 @@
   {
    "id": "I3",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "instalador",
    "title": "Probar los instaladores en máquinas limpias con el modelo real",
    "depends": [
@@ -647,7 +647,8 @@
    "spec": "As the current Installers workflow: clean runners, real model, an answer through /v1; README download section with only what was tested.",
    "accept": [
     "run ids recorded in docs/STATUS.md"
-   ]
+   ],
+   "note": "Run 41449693467 (2026-11-02): Windows and Linux passed with the real model; macOS refused by the 8 GiB guard on the 7 GiB free runner (covered by L1 on the Mac). README section added."
   },
   {
    "id": "I4",

@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 4 | 1 | 0 | 0 | 15 | 0 | 20 |
+| Claude | 4 | 0 | 0 | 0 | 16 | 0 | 20 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **11** | **2** | **0** | **0** | **32** | **0** | **45** |
+| **Total** | **11** | **1** | **0** | **0** | **33** | **0** | **45** |
 
 ## Fase: equipo
 
@@ -73,7 +73,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---|---|---|---|
 | I1 | Codex | hecha | App de escritorio: lanzador y asistente de modelos | - |
 | I2 | Codex | hecha | Instaladores de un clic y publicación | I1 |
-| I3 | Claude | en curso | Probar los instaladores en máquinas limpias con el modelo real | I2 |
+| I3 | Claude | hecha | Probar los instaladores en máquinas limpias con el modelo real | I2 |
 | I4 | joan | pendiente | Opcional: certificados de firma | - |
 
 ## Fase: lanzamiento

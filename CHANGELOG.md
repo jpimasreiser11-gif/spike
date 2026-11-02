@@ -85,6 +85,10 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Desktop launcher and first-run model wizard with resumable, SHA-256-checked downloads; installer candidates
   (.dmg, .exe, AppImage) built by a manual workflow and never published automatically; on 2026-11-02 each was
   built, installed and answered with a tiny test model on GitHub's macOS, Windows and Linux runners. (I1, I2, Codex)
+- Installers with the real model: a manual workflow installs the native installers on fresh runners, lets the app
+  download Qwen3.5-4B through its own first-run setup (SHA-256 checked), asks one question and uninstalls. On
+  2026-11-02 Windows Server 2022 and Ubuntu 24.04 passed (generation 4.9 and 7.9 tok/s, see STATUS); the free macOS
+  runner (7 GiB) is below the app's 8 GiB guard, so macOS with the real model is not tested on a runner. (I3)
 - Release readiness gate that refuses simulated or stale evidence, and a separate launch video project. (Codex)
 - Router: about 3,850 Spanish and English domain keywords, threshold 2.0 and `multi_ratio` 0.75, so requests
   without the old hand-picked keywords no longer fall back to Core: 0.46 to 0.89 on a blind holdout of 130
@@ -184,5 +188,5 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   profile. `run_eval.py --resume` finishes an interrupted evaluation without regenerating complete groups.
 
 ### Not measured yet
-- Quality of any trained adapter, how well a 4B model follows skills or writes scenes, and the installer on a
-  desktop (non-server) Windows.
+- Quality of any trained adapter, how well a 4B model follows skills or writes scenes, the installer on a
+  desktop (non-server) Windows, and the native macOS installer with the real model.

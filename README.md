@@ -135,6 +135,11 @@ spike serve --open                       # app at http://127.0.0.1:8740
 ```
 
 Or use the installer scripts in [`scripts/`](scripts/) (they show every step before running it).
+Native installers (.dmg for Apple Silicon, .exe for Windows, AppImage for Linux x86_64) come with the first
+release; they are not published yet and are not signed. Tested on clean GitHub runners on 2026-11-02: on Windows
+Server 2022 and Ubuntu 24.04 each installed, downloaded the real model through the app's first-run setup, answered
+and uninstalled keeping the user's profile; on macOS only with a tiny test model (details in
+[docs/STATUS.md](docs/STATUS.md)).
 SPIKE works without a local model too: add an external provider in Settings → Providers.
 Pages, slides and documents can follow a design system (`DESIGN.md`): SPIKE's own, 20 generic ones, or yours (Settings → Diseño).
 Spike Finance reads public prices, runs backtests, measures portfolio risk and keeps a paper trading account; real orders stay off unless you set them up, and each one waits for your click (Settings → Finanzas).
