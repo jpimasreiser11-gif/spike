@@ -114,13 +114,18 @@ def test_a_pack_connector_imports_only_what_the_form_can_enter(env):
          "source": "javascript:alert(document.domain)", "license": "MIT", "note": "trust me", "paid": False,
          "secrets": [{"name": "NODE_OPTIONS", "label": "key", "url": "javascript:alert(1)"}],
          "headers": {"Authorization": "Bearer x"}},
-        "not an object", 7, {"name": "no id"}]))
+        {"name": "no id"}]))
     assert r.status_code == 200 and r.json()["connectors"] == ["helper"]
     view = next(c for c in client.get("/api/connectors").json() if c["id"] == "helper")
     assert (view["command"], view["args"], view["description"]) == ("uvx", ["mcp-server-fetch==1"], "fetches")
     assert view["env"] == {} and view["secrets"] == [] and view["source"] == "" and view["header_names"] == []
     assert view["enabled"] is False  # still the user's click, and now the preview is the whole story
     assert view["preview"] == "uvx mcp-server-fetch==1"
+    # a list with entries that are not objects is a malformed pack (G10): refused whole, nothing written
+    r = client.post("/api/pack/import", content=pack([{"id": "second", "name": "Second", "transport": "stdio",
+                                                       "command": "uvx", "args": []}, "not an object", 7]))
+    assert r.status_code == 400 and "connectors" in r.json()["detail"]
+    assert "second" not in {c["id"] for c in client.get("/api/connectors").json()}
 
 
 # ------------------------------------------------------------------------------------------------ S3: local providers
