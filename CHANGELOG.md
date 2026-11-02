@@ -170,6 +170,9 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - With the user's consent, approved corrections (from SPIKE's local model only) export as SFT and DPO data.
 
 ### Training and evaluation
+- Multiple-choice answer extraction also reads `Answer: Option B`, a letter line followed by confidence or
+  disclaimer notes, `option B is correct` and `we select option B`, without reading an option argued against or a
+  capital-letter word as the answer (not yet measured on saved eval predictions; re-score them with `--rescore`).
 - Data recipes for the other 10 specialists (M5, M6, Codex) and their license review (M7): 15 sources verified
   on the Hub (license, commit, every row counted and formatted, `training/verify_sources.py`); OpenBookQA and
   WikiSQL rejected, so Science and Data get their data by distillation instead (next bullet).
