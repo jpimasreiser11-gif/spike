@@ -1737,7 +1737,6 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             state.discussions.context(body.comment_threads)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
-        user_message = store.add_message(conv["id"], "user", body.message)
         user_message = store.add_message(conv["id"], "user", body.message,
                                          {"images": body.images} if body.images else None)
         await state.ensure_adapters(body.provider_id)
