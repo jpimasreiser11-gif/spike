@@ -694,7 +694,7 @@
    "accept": [
     "checklist all ticked with evidence"
    ],
-   "note": "2026-11-02 part 1 done (73fe361): docs/release/REVIEW-v0.1.md, 4 medium fixes, licenses in the bundle. Waits on: L1 demo, M2 adapter, a Native installers run with the new spec, libfuse decision, llama.cpp vendored notices, release notes."
+   "note": "2026-11-02: review, 4 medium + 7 low fixes, licenses in the bundle (Native installers run 41501251258 counted 199/198/194 files), llama.cpp b11709 vendored notices (6e1b2b0). Waits on: L1 demo, M2 adapter, founder decisions on libfuse LGPL and llama-server's embedded web UI notices, final release notes."
   },
   {
    "id": "L3",
