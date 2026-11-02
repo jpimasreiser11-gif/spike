@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 6 | 4 | 0 | 0 | 9 | 0 | 19 |
+| Claude | 6 | 3 | 0 | 0 | 10 | 0 | 19 |
 | Codex | 0 | 1 | 0 | 0 | 15 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **13** | **6** | **0** | **0** | **25** | **0** | **44** |
+| **Total** | **13** | **5** | **0** | **0** | **26** | **0** | **44** |
 
 ## Fase: equipo
 
@@ -35,7 +35,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A13 | Codex | hecha | Imagen y voz | - |
 | A14 | Codex | hecha | Audio y subtítulos | A13 |
 | A15 | Codex | hecha | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
-| A16 | Claude | en curso | Geo, grabador del navegador y explorador de arquitectura | - |
+| A16 | Claude | hecha | Geo, grabador del navegador y explorador de arquitectura | - |
 | A18 | Claude | hecha | 3D con Blender y juegos con Godot | - |
 | A20 | Claude | en curso | Reverse Studio: de una captura propia a código editable | - |
 | A21 | Claude | en curso | Device Lab: probar la app en perfiles de móvil, tablet y escritorio | - |

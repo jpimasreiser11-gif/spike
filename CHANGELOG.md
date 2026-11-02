@@ -91,6 +91,15 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Blender and Godot 4 with the programs you already have (SPIKE never downloads them): the Code specialist
   renders a 3D scene to a small preview and scaffolds and checks a Godot game headless; each run asks first,
   stays in the workspace and follows the sandbox setting. Tested with fake programs only. (A18)
+- Spike Geo: `geo_map` and `geo_measure` draw GeoJSON or CSV lat/lon files as an SVG map with no tile server, with
+  a choropleth by a numeric property and a legend, and measure distances (haversine) and polygon areas on a sphere
+  of radius 6371.0088 km (up to about 0.5 % for distances and 1 % for areas against WGS 84, said in the result). (A16)
+- Spike View recorder: record what the browser connector does as a local JSON script and replay it step by step.
+  Text typed into password-like fields is not stored, and the replay asks before every step that may submit and
+  before a domain the browser settings do not allow. (A16)
+- Architecture Explorer: `architecture_graph` draws the module dependency graph of a folder of Python and
+  JavaScript/TypeScript, with import cycles in red and a table of them; the size limits and what was left out are
+  shown. (A16)
 - Fixes: portable benchmark paths and Windows project cleanup; the browser tests wait for the end of each
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 

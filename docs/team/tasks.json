@@ -255,7 +255,7 @@
   {
    "id": "A16",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Geo, grabador del navegador y explorador de arquitectura",
    "depends": [],
