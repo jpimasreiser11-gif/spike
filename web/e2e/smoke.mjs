@@ -1,6 +1,7 @@
 // End-to-end smoke test of the real web app against tests/e2e/serve_scripted.py.
 // Usage: node e2e/smoke.mjs [baseUrl] [screenshotDir]
 import { dataAppFlow } from "./data-app.mjs";
+import { workflowFlow } from "./workflow.mjs";
 import { chromium } from "playwright-core";
 import fs from "node:fs";
 import os from "node:os";
@@ -1507,6 +1508,7 @@ if (await mp.evaluate(() => document.documentElement.scrollWidth > window.innerW
 await mp.waitForTimeout(500); // the sidebar slides away first
 await mp.screenshot({ path: `${out}/a16-10-architecture-mobile.png` });
 
+await workflowFlow(page, ctx.request, base, out, fail);
 await dataAppFlow(page, ctx.request, base);
 
 if (errors.length) fail("browser errors: " + errors.join(" | "));

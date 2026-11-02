@@ -4,6 +4,7 @@ import { lang, t } from "../i18n";
 import type { Blueprint, DesignSystemInfo, ProviderInfo, Specialist } from "../types";
 import { ArtifactContext } from "./Artifact";
 import { Forge } from "./Forge";
+import { WorkflowBuilder } from "./WorkflowBuilder";
 
 const C = lang === "es"
   ? { title: "Crear", intro: "Elige qué quieres crear y responde unas preguntas. SPIKE prepara el plan de Forge con los pasos, los archivos y los criterios; lo revisas y el equipo lo hace y lo comprueba.",
@@ -59,6 +60,7 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
   const [built, setBuilt] = useState<Built | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [flows, setFlows] = useState(false);
 
   useEffect(() => {
     api.get<Template[]>(`/api/creator/templates?lang=${lang}`).then(setTemplates).catch((e: Error) => setError(e.message));
@@ -94,6 +96,8 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
     setBusy(false);
   };
 
+  if (flows) return <WorkflowBuilder projectId={projectId} providers={providers} onClose={() => setFlows(false)} />;
+
   if (built && chosen) {
     return (
       <Forge specialists={specialists} providers={providers} projectId={projectId} initialTask={built.task} initialBlueprint={built.blueprint}
@@ -107,6 +111,7 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
       <div className="forge-head">
         <h1>{chosen ? `${C.title} · ${chosen.name}` : C.title}</h1>
         <div className="spacer" />
+        {!chosen && <button className="btn" onClick={() => setFlows(true)}>{t.workflow.open}</button>}
         <button className="btn" onClick={onClose}>{C.close}</button>
       </div>
       {!chosen ? (

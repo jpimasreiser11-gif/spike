@@ -64,6 +64,7 @@ from spike.server.setup_api import create_setup_router
 from spike.server.state import AppState
 from spike.server.subtitles_api import create_subtitles_router
 from spike.server.view_api import create_view_router
+from spike.server.workflow_api import create_workflow_router
 from spike.server.workspace_api import create_workspace_router
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
@@ -389,6 +390,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_research_router(st))
     app.include_router(create_history_router(st))
     app.include_router(create_setup_router())
+    app.include_router(create_workflow_router(st))
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)
