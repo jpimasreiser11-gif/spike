@@ -678,7 +678,7 @@ await page.screenshot({ path: `${out}/07g-temporary.png` });
 // evolution: retrying with another specialist teaches the router behind its check; Settings → Evolución shows it
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.getByLabel("Especialista", { exact: true }).selectOption("auto");
-await page.locator("#composer-input").fill("Mi perro tiene diarrea desde ayer, ¿qué le doy?");
+await page.locator("#composer-input").fill("Mi perro lleva dos días sin comer nada y está muy decaído, ¿qué le doy?");
 await submitChat();
 await page.locator(".msg.assistant .route .chip.spec-core").waitFor({ timeout: 10000 });
 await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
@@ -689,7 +689,7 @@ await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeou
 await page.locator(".msg.assistant .msg-actions").last().waitFor({ timeout: 10000 });
 if ((await page.locator(".msg.assistant").count()) !== 1) fail("retry with a specialist should replace the answer");
 await page.getByRole("button", { name: "Nuevo chat" }).click();
-await page.locator("#composer-input").fill("Mi perro tiene diarrea otra vez");
+await page.locator("#composer-input").fill("Mi perro sigue sin comer y está decaído");
 await submitChat();
 await page.locator(".msg.assistant .route .chip.spec-medicine").waitFor({ timeout: 10000 })
   .catch(() => fail("the learned router should send the same kind of question to Medicine"));
