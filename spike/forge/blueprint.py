@@ -41,7 +41,9 @@ class Blueprint:
 
 def clean_path(raw: str) -> str:
     """A deliverable's path, relative to the folder the file tools write to; ValueError when it is not one."""
-    text = str(raw).strip().replace("\\", "/")
+    if not isinstance(raw, str):
+        raise ValueError(f"'{raw}' is not a relative file path")
+    text = raw.strip().replace("\\", "/")
     if not text or len(text) > 200 or not FILE_CHARS.fullmatch(text) or text.startswith("/") or ":" in text:
         raise ValueError(f"'{raw}' is not a relative file path")
     path = PurePosixPath(text)
@@ -104,7 +106,7 @@ def blueprint_prompt(catalog: Catalog, candidates: list[str], max_steps: int, ap
 def _texts(value: Any, limit: int = MAX_ITEMS) -> list[str]:
     if not isinstance(value, list):
         return []
-    return [str(v).strip()[:500] for v in value if str(v).strip()][:limit]
+    return [v.strip()[:500] for v in value if isinstance(v, str) and v.strip()][:limit]
 
 
 def _steps(raw_steps: Any, catalog: Catalog, limit: int, strict: bool) -> list[Subtask]:
@@ -126,16 +128,28 @@ def _steps(raw_steps: Any, catalog: Catalog, limit: int, strict: bool) -> list[S
     for i, raw in enumerate(raw_steps):
         if not isinstance(raw, dict):
             return bad(f"step {i + 1} is not an object")
-        sid = str(raw.get("id") or f"t{i + 1}").strip()
-        spec = str(raw.get("specialist") or "")
-        instruction = str(raw.get("instruction") or "").strip()
+        raw_id = raw.get("id")
+        if raw_id is not None and not isinstance(raw_id, str):
+            return bad(f"step {i + 1} needs a unique id of letters, digits, - or _")
+        sid = (raw_id or f"t{i + 1}").strip()
+        raw_spec = raw.get("specialist")
+        spec = raw_spec if isinstance(raw_spec, str) else ""
+        raw_inst = raw.get("instruction")
+        instruction = raw_inst.strip() if isinstance(raw_inst, str) else ""
         if not STEP_ID.fullmatch(sid) or sid in seen:
             return bad(f"step {i + 1} needs a unique id of letters, digits, - or _")
         if spec not in catalog.specialists:
             return bad(f"step {sid}: unknown specialist '{spec}'")
         if not instruction:
             return bad(f"step {sid} has no instruction")
-        deps = [str(d) for d in raw.get("depends_on") or []]
+        raw_deps = raw.get("depends_on")
+        if raw_deps is None:
+            raw_deps = []
+        elif not isinstance(raw_deps, list) or (strict and not all(isinstance(d, str) for d in raw_deps)):
+            if strict:
+                raise ValueError(f"step {sid}: 'depends_on' must be a list of step ids")
+            raw_deps = []
+        deps = list(dict.fromkeys(d for d in raw_deps if isinstance(d, str)))
         if strict and (later := [d for d in deps if d not in seen]):
             raise ValueError(f"step {sid} depends on {', '.join(later)}, which is not an earlier step")
         role = raw.get("role")
@@ -143,8 +157,15 @@ def _steps(raw_steps: Any, catalog: Catalog, limit: int, strict: bool) -> list[S
             if strict and role is not None:
                 raise ValueError(f"step {sid}: role must be research or execute")
             role = "execute"
+        raw_files = raw.get("deliverables")
+        if raw_files is None:
+            raw_files = []
+        elif not isinstance(raw_files, list):
+            if strict:
+                raise ValueError(f"step {sid}: 'deliverables' must be a list of relative file paths")
+            raw_files = []
         paths: list[str] = []
-        for p in (raw.get("deliverables") or [])[:MAX_FILES if not strict else None]:
+        for p in raw_files[:MAX_FILES if not strict else None]:
             try:
                 path = clean_path(p)
             except ValueError as exc:
@@ -167,12 +188,14 @@ def _steps(raw_steps: Any, catalog: Catalog, limit: int, strict: bool) -> list[S
 
 def validate_blueprint(obj: dict | None, catalog: Catalog, max_steps: int = MAX_STEPS) -> Blueprint | None:
     """The model's draft, cleaned up; None when it has no usable step."""
-    if not obj:
+    if not isinstance(obj, dict) or not obj:
         return None
     steps = _steps(obj.get("steps"), catalog, max_steps, strict=False)
     if not steps:
         return None
-    return Blueprint(goal=str(obj.get("goal") or "").strip()[:500], requirements=_texts(obj.get("requirements")),
+    goal = obj.get("goal")
+    return Blueprint(goal=goal.strip()[:500] if isinstance(goal, str) else "",
+                     requirements=_texts(obj.get("requirements")),
                      steps=steps, criteria=_texts(obj.get("criteria")))
 
 
@@ -180,16 +203,20 @@ def from_user(obj: Any, catalog: Catalog) -> Blueprint:
     """The blueprint the user approved (maybe edited): checked strictly, ValueError says what is wrong."""
     if not isinstance(obj, dict):
         raise ValueError("the blueprint must be an object")
+    for key in ("goal", "note"):
+        if obj.get(key) is not None and not isinstance(obj.get(key), str):
+            raise ValueError(f"'{key}' must be text")
     for key in ("requirements", "criteria"):
-        if not isinstance(obj.get(key, []), list):
+        items = obj.get(key, [])
+        if not isinstance(items, list) or not all(isinstance(v, str) for v in items):
             raise ValueError(f"'{key}' must be a list of texts")
-        if len(obj.get(key, [])) > 2 * MAX_ITEMS:
+        if len(items) > 2 * MAX_ITEMS:
             raise ValueError(f"'{key}' has more than {2 * MAX_ITEMS} items")
     steps = _steps(obj.get("steps"), catalog, MAX_USER_STEPS, strict=True)
-    return Blueprint(goal=str(obj.get("goal") or "").strip()[:500],
+    return Blueprint(goal=(obj.get("goal") or "").strip()[:500],
                      requirements=_texts(obj.get("requirements"), 2 * MAX_ITEMS), steps=steps,
                      criteria=_texts(obj.get("criteria"), 2 * MAX_ITEMS), method="user",
-                     note=str(obj.get("note") or "")[:300])
+                     note=(obj.get("note") or "")[:300])
 
 
 def fallback_blueprint(task: str, candidates: list[str], note: str) -> Blueprint:
