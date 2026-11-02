@@ -41,6 +41,8 @@ fetch("/api/conversations").then(() => r.push("api:open"), () => r.push("api:blo
 </script></body></html>"""
 
 
+REVERSE_PAGE = ("```html\n<!doctype html><html><head><title>Reconstruida</title><style>body{margin:0;background:#f4f1ea;"
+                "font:16px Georgia,serif}h1{padding:24px}</style></head><body><h1>Lorem ipsum dolor</h1></body></html>\n```")
 BLUEPRINT = {"goal": "Informe del IVA de 120 €", "requirements": ["IVA del 21 %"], "criteria": [
     "El informe da el total con IVA"], "steps": [
     {"id": "t1", "specialist": "finance", "role": "research", "instruction": "Calcula el IVA de una base de 120 €",
@@ -142,6 +144,10 @@ class DemoProvider(Provider):
                 "right": {**ref, "source_id": "s2", "quote": "The result is negative.", "claim": "Resultado negativo"},
                 "reason": "Resultados distintos; revisar condiciones del experimento."}]}
             yield StreamEvent(kind="text", text=json.dumps(result))
+            yield StreamEvent(kind="done")
+            return
+        if system.startswith("You are the Reverse Studio"):  # A20: the rebuilt page
+            yield StreamEvent(kind="text", text=REVERSE_PAGE)
             yield StreamEvent(kind="done")
             return
         if "steps" in props:  # a Forge blueprint

@@ -114,7 +114,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
             ) : tab === "skills" ? (
               <Skills settings={settings} save={save} />
             ) : tab === "design" ? (
-              <DesignSystems />
+              <DesignSystems onClose={onClose} />
             ) : tab === "finance" ? (
               <Finance />
             ) : tab === "connectors" ? (
