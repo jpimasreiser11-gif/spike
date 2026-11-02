@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from spike.memory.store import KINDS, MAX_TEXT, MemoryStore
+from spike.runtime.paths import is_git_name
 from spike.store.db import Store
 
 FORMAT, VERSION = "spike-project", 1
@@ -27,10 +28,14 @@ class ProjectError(ValueError):
 
 
 def clean_path(relative: str) -> PurePosixPath:
-    """A relative path that stays inside its folder, or ProjectError."""
+    """A relative path that stays inside its folder, or ProjectError. A `.git` folder is refused: git runs the commands
+    its config names (core.fsmonitor, filters), so a project archive must not be able to plant one for the git calls
+    SPIKE makes in a project's folder (Parallel Prototypes)."""
     path = PurePosixPath(relative.replace("\\", "/"))
     if not relative or path.is_absolute() or any(part in ("", "..") for part in path.parts) or ":" in path.parts[0]:
         raise ProjectError(f"invalid file path '{relative}'")
+    if any(is_git_name(part) for part in path.parts):
+        raise ProjectError(f"invalid file path '{relative}': a .git folder is not part of a project's files")
     return path
 
 

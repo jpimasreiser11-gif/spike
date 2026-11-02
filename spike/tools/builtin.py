@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from spike.runtime.paths import is_git_name
 from spike.tools.base import Review, Tool, ToolRegistry, ToolResult
 from spike.tools.documents import document_tools
 from spike.tools.sandbox import Sandbox, SandboxRefused, default_sandbox, with_note
@@ -132,6 +133,14 @@ class Workspace:
             raise PermissionError(f"path '{relative}' is outside the workspace")
         return candidate
 
+    def resolve_for_write(self, relative: str) -> Path:
+        """`resolve`, and never inside a `.git` folder: git runs the commands its config names (core.fsmonitor, filters,
+        aliases), so a file the model saves there would run code the next time git is used in this folder."""
+        candidate = self.resolve(relative)
+        if any(is_git_name(part) for part in candidate.relative_to(self.root).parts):
+            raise PermissionError(f"path '{relative}' is inside a .git folder; files there are not written by tools")
+        return candidate
+
 
 class ReadFile(Tool):
     name = "read_file"
@@ -194,7 +203,7 @@ class WriteFile(Tool):
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
         try:
-            path = self.workspace.resolve(str(args["path"]))
+            path = self.workspace.resolve_for_write(str(args["path"]))
             path.parent.mkdir(parents=True, exist_ok=True)
             content = str(args.get("content", ""))
             path.write_text(content, encoding="utf-8")
@@ -274,14 +283,27 @@ class PythonRunner(Tool):
 
 
 # --------------------------------------------------------------------------- web fetch
+def _is_public_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Only globally routable unicast addresses. `is_global` also excludes the shared address space 100.64.0.0/10
+    (carrier-grade NAT: Tailscale nodes, Alibaba Cloud's metadata service at 100.100.100.200), which `is_private`
+    does not cover; an IPv4 address inside an IPv6 one (::ffff:a.b.c.d) is judged as the IPv4 address."""
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
+    return ip.is_global and not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast)
+
+
 def _is_public_host(host: str) -> bool:
     try:
         infos = socket.getaddrinfo(host, None)
     except socket.gaierror:
         return False
     for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+        try:
+            ip = ipaddress.ip_address(info[4][0].split("%", 1)[0])  # a scope id (fe80::1%eth0) is not part of the address
+        except ValueError:
+            return False
+        if not _is_public_address(ip):
             return False
     return True
 

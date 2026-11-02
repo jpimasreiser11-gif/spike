@@ -51,7 +51,7 @@ from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
 from spike.providers.guard import CURRENT_CHAT, GuardedProvider, call_cost, month_start, usage_tokens
 from spike.providers.llamacpp import LlamaCppProvider
-from spike.providers.registry import PRESETS_BY_ID, create_provider
+from spike.providers.registry import PRESETS_BY_ID, create_provider, is_local_url
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig, find_binary
 from spike.runtime.models import EMBEDDING_MODEL, MODELS
@@ -266,7 +266,7 @@ class AppState:
         cfg = ProviderConfig(
             id=raw["id"], kind=raw["kind"], name=raw["name"], base_url=raw["base_url"], model=raw.get("model", ""),
             api_key=self.secrets.get(f"provider:{pid}"), paid=bool(raw.get("paid")),
-            allow_paid=bool(raw.get("allow_paid")), local=bool(raw.get("local")),
+            allow_paid=bool(raw.get("allow_paid")), local=bool(raw.get("local")) and is_local_url(raw["base_url"]),
             share_files=bool(raw.get("share_files")),
             headers=dict(raw.get("headers") or {}), capabilities=dict(raw.get("capabilities") or {}),
         )
@@ -302,6 +302,7 @@ class AppState:
 
     def public_provider(self, raw: dict[str, Any]) -> dict[str, Any]:
         out = dict(raw)
+        out["local"] = bool(raw.get("local")) and is_local_url(raw.get("base_url", ""))  # as the guard sees it
         out["has_key"] = self.secrets.has(f"provider:{raw['id']}")
         try:
             out["capabilities_effective"] = asdict(self.provider(raw["id"]).capabilities)

@@ -44,7 +44,7 @@ from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
 from spike.proof import build_proof
 from spike.providers.guard import CURRENT_CHAT
-from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID
+from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID, is_local_url
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.data_app_api import create_data_app_router
@@ -555,7 +555,9 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         added_connectors = []
         for raw in manifest.get("connectors") or []:
             try:
-                state.connectors.add_custom({k: v for k, v in raw.items() if k != "headers"})
+                # only what the Connectors form can enter (CustomConnectorIn): a pack's `env`, `secrets`, `headers` and
+                # links are never imported, because the confirmation to enable one shows the command and nothing else
+                state.connectors.add_custom(CustomConnectorIn.model_validate(raw).model_dump())
                 added_connectors.append(raw["id"])
             except (ValueError, KeyError, TypeError):
                 continue  # already present or invalid: skipped, never overwritten
@@ -681,7 +683,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         base_url = body.base_url or (preset.base_url if preset else None)
         if not base_url or not re.match(r"^https?://", base_url):
             raise HTTPException(400, "base_url must be an http(s) URL")
-        local = bool(preset.local) if preset else bool(re.match(r"^https?://(127\.0\.0\.1|localhost)", base_url))
+        local = (bool(preset.local) if preset else True) and is_local_url(base_url)  # by the host, never by prefix
         config = {
             "id": pid, "kind": kind, "name": body.name or (preset.name if preset else pid), "base_url": base_url,
             "model": body.model or (preset.example_model if preset else ""),
@@ -700,10 +702,14 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         config = st().provider_config(pid)
         if not config:
             raise HTTPException(404, "provider not found")
+        if body.base_url is not None and not re.match(r"^https?://", body.base_url):
+            raise HTTPException(400, "base_url must be an http(s) URL")
         for key in ("name", "base_url", "model", "paid", "allow_paid", "share_files", "capabilities"):
             value = getattr(body, key)
             if value is not None:
                 config[key] = value
+        if body.base_url is not None and config.get("local") and not is_local_url(config["base_url"]):
+            config["local"] = False  # moved to another machine: it is no longer local (files, cost and limits apply)
         if body.limits is not None:
             config["limits"] = body.limits.model_dump()
         st().store.save_provider(config)

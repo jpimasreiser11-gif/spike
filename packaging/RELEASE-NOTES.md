@@ -13,5 +13,11 @@ Paid signatures and notarization are absent. See packaging/README.md for the cor
 instructions. Real-model journeys (I3), final license/security review (L2), Claude's review and Joan's publication
 approval remain separate gates. No payments or accounts are activated by this draft.
 
+Licenses: each build carries SPIKE's Apache-2.0 LICENSE, NOTICE, THIRD_PARTY.md and the license text of every bundled
+Python and web package (`licenses/` next to the program; `licenses/third-party/INDEX.md` lists them). The Linux
+AppImage starts from the unmodified upstream type2-runtime, which statically links libfuse (LGPL-2.1); its source is
+https://github.com/AppImage/type2-runtime (the pinned release) and https://github.com/libfuse/libfuse, and the runtime
+can be replaced by re-packing the AppImage with `appimagetool --runtime-file`.
+
 Español: revisa los hashes y la evidencia antes de probar estos candidatos. Las pruebas con pesos aleatorios no
 validan la calidad de los especialistas ni todas las funciones. La publicación requiere la aprobación de Joan.

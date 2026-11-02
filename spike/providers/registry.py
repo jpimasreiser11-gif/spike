@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ipaddress
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -68,3 +70,19 @@ def create_provider(config: ProviderConfig, client: httpx.AsyncClient | None = N
     except KeyError as exc:
         raise ValueError(f"Unknown provider kind '{config.kind}'. Known: {sorted(KINDS)}") from exc
     return cls(config, client=client)
+
+
+def is_local_url(url: str) -> bool:
+    """Whether an address names this computer: localhost, *.localhost or a loopback IP. The host is parsed, not matched
+    by prefix: `http://localhost.example.com` and `http://127.0.0.1@example.com` are other machines. A provider counts
+    as local (no cost, files may reach it) only when its address is this computer's."""
+    try:
+        host = (urlsplit(url).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return False
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False

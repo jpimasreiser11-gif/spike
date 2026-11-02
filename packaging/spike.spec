@@ -22,8 +22,11 @@ web = root / "web" / "dist"
 if not (web / "index.html").is_file():
     raise ValueError("Build web/dist before packaging")
 data = collect_data_files("spike") + [(str(web), "spike/server/static")]
-data += [(str(root / "LICENSE"), "licenses"), (str(root / "THIRD_PARTY.md"), "licenses"),
-         (str(root / "packaging" / "licenses"), "licenses/native")]
+# The license texts of the Python and npm packages come from what is installed in this build (see collect_licenses.py).
+third_party = runpy.run_path(str(root / "packaging" / "collect_licenses.py"))["collect"](
+    root / "build" / "third-party-licenses", root / "pyproject.toml", web=root / "web")
+data += [(str(root / "LICENSE"), "licenses"), (str(root / "NOTICE"), "licenses"), (str(root / "THIRD_PARTY.md"), "licenses"),
+         (str(root / "packaging" / "licenses"), "licenses/native"), (str(third_party), "licenses/third-party")]
 data += [(str(stage / "LICENSE"), "llama"), (str(stage / "manifest.json"), "llama")]
 binaries = [(str(p), "llama") for p in stage.iterdir() if p.name not in {"LICENSE", "manifest.json"}]
 hidden = collect_submodules("spike") + collect_submodules("uvicorn")
