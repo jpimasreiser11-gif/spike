@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from spike.analytics.tools import analytics_tools
+from spike.artifact_comments import ArtifactComments
 from spike.connectors import browser
 from spike.connectors.manager import ConnectorManager
 from spike.core.context import estimate_tokens
@@ -30,6 +31,7 @@ from spike.finance.market import EXCHANGES, ccxt_exchange
 from spike.finance.tools import Finance, finance_tools
 from spike.forge import prototypes
 from spike.forge.blueprint import Blueprint, make_blueprint
+from spike.jobs import JobQueue
 from spike.memory.extract import extract_text
 from spike.memory.learn import correction_rule, explicit_memories
 from spike.memory.service import Embedder, MemoryService, scopes_for
@@ -38,6 +40,7 @@ from spike.memory.tools import memory_tools
 from spike.motion.tools import motion_tools
 from spike.orchestrator.minds import Mind
 from spike.orchestrator.orchestrator import Backend, Orchestrator, OrchestratorOptions
+from spike.project_branches import ProjectBranches
 from spike.projects import ProjectFiles
 from spike.providers.base import Provider, ProviderConfig
 from spike.providers.guard import CURRENT_CHAT, GuardedProvider, call_cost, month_start, usage_tokens
@@ -131,6 +134,8 @@ class AppState:
     def __init__(self, home: Path | None = None, provider_factory=create_provider, market_factory=ccxt_exchange):
         self.home = home or spike_home()
         self.store = Store(self.home / "spike.db")
+        self.jobs = JobQueue()
+        self.discussions = ArtifactComments(self.store)
         self.temp = Store(Path(":memory:"))  # temporary chats: never on disk, gone when SPIKE stops
         self.checkpoints = Checkpoints(self.store, self.home / "checkpoints")
         self.secrets = SecretStore(self.home / "secrets.json")
@@ -144,6 +149,8 @@ class AppState:
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
         self.broker.on_domain = lambda domain, rule: self.connectors.set_domain(domain, rule)
         self.memory = MemoryService(MemoryStore(self.home / "memory.db"), self._embedder, lambda: [self.home])
+        self.memory.folders.job_queue = self.jobs
+        self.memory.job_queue = self.jobs
         self.embed_server: LlamaServer | None = None
         self.embed_error: str | None = None
         self._summarized: dict[str, int] = {}
@@ -155,11 +162,12 @@ class AppState:
         self.tools = default_registry(workspace_dir(), self.sandbox)
         workspace = Workspace(workspace_dir())
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
-                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
+        self.branches = ProjectBranches(self.store, self.project_files)
         self._project_tools: dict[str, ToolRegistry] = {}
         self.evolution = Evolution(EvolutionStore(self.home / "evolution.db"))
         self.catalog = self._load_catalog()
@@ -319,7 +327,7 @@ class AppState:
         registry = default_registry(folder, self.sandbox)
         workspace = Workspace(folder)
         for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
-                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                     *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
             registry.register(tool)
         registry.shared = self.connectors.tools
@@ -711,11 +719,11 @@ class AppState:
             checks = [router_check(self), catalog_check(self), skills_check(self)]
             return all(c["ok"] for c in checks), "; ".join(c["detail"] for c in checks if not c["ok"])
 
-        return await prompts.optimize(
+        return await self.jobs.execute("eval", lambda: prompts.optimize(
             self.evolution.store, specialist, prompts.eval_set(self.evolution.store, specialist),
             answer or (lambda q, v: answer_with_variant(self, q, specialist, v)),
             prompts.ideas_for(self.evolution.store, specialist, typed), skills,
-            max_calls or prompts.MAX_CALLS, progress, gate)
+            max_calls or prompts.MAX_CALLS, progress, gate))
 
     def propose_prompt(self, specialist: str, lines: list[str] | None = None,
                        skills: dict[str, str] | None = None) -> dict[str, Any]:
@@ -739,8 +747,8 @@ class AppState:
             checks = [router_check(self), catalog_check(self), skills_check(self)]
             return all(c["ok"] for c in checks), "; ".join(c["detail"] for c in checks if not c["ok"])
 
-        return await prompts.activate(self.evolution.store, specialist, version,
-                                      answer or (lambda q, v: answer_with_variant(self, q, specialist, v)), gate)
+        return await self.jobs.execute("eval", lambda: prompts.activate(self.evolution.store, specialist, version,
+                                      answer or (lambda q, v: answer_with_variant(self, q, specialist, v)), gate))
 
     # ------------------------------------------------------------------ evolution: personal adapter (EV6)
     def personal_adapter(self) -> str | None:
@@ -945,6 +953,7 @@ class AppState:
         return self.memory.graph.propose(memory_id, triples)
 
     async def close(self) -> None:
+        await self.jobs.close()
         for task in list(self._background):
             task.cancel()
         if self.embed_server:

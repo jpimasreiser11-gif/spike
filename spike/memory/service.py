@@ -147,9 +147,16 @@ class MemoryService:
 
     async def index(self, limit: int = 2000) -> int:
         """Give vectors to chunks that have none for the current embedding model. Returns how many were embedded."""
+        queue = getattr(self, "job_queue", None)
+        if queue is not None:
+            return await queue.execute("indexing", lambda: self._index_available(limit))
+        return await self._index_available(limit)
+
+    async def _index_available(self, limit: int) -> int:
         embedder = await self.get_embedder()
-        if embedder is None:
-            return 0
+        return 0 if embedder is None else await self._index(embedder, limit)
+
+    async def _index(self, embedder: Embedder, limit: int) -> int:
         done = 0
         while done < limit:
             pending = self.store.pending(embedder.model, limit=64)

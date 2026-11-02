@@ -447,6 +447,10 @@ def main() -> None:
     state.desktop.driver, state.desktop.availability = driver, Availability(True, "scripted")
     state.desktop.task_options = {"sleep": instant, "settle_s": 0.0}
     app = create_app(state, allowed_hosts={"127.0.0.1", "localhost"})  # as `spike serve` runs it
+    @app.post("/_test/queue-job")
+    async def queue_test_job():
+        return {"id": state.jobs.submit("training", lambda: asyncio.sleep(3600))}
+
     app.state.tuner = scripted_tuner
 
     async def desktop_calls() -> dict:  # tests only: what the fake screen was asked to do

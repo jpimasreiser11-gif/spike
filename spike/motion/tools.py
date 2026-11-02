@@ -39,6 +39,11 @@ class RenderVideo(Tool):
             return []
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
+        if getattr(self, "job_queue", None) is not None:
+            return await self.job_queue.execute("render", lambda: self._run(args))
+        return await self._run(args)
+
+    async def _run(self, args: dict[str, Any]) -> ToolResult:
         try:
             scene = self.workspace.resolve(str(args.get("scene") or ""))
             out = self.workspace.resolve(str(args.get("output") or ""))
@@ -71,5 +76,7 @@ class RenderVideo(Tool):
         return ToolResult(ok=True, content="\n".join(lines), data={"file": rel, "ui": ui})
 
 
-def motion_tools(workspace: Workspace) -> list[Tool]:
-    return [RenderVideo(workspace)]
+def motion_tools(workspace: Workspace, queue=None) -> list[Tool]:
+    tool = RenderVideo(workspace)
+    tool.job_queue = queue
+    return [tool]

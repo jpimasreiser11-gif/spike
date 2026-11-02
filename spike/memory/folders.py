@@ -68,6 +68,17 @@ CREATE INDEX IF NOT EXISTS folder_files_memory ON folder_files(memory_id);
 """
 
 
+async def _drained_thread(fn, *args):
+    task = asyncio.create_task(asyncio.to_thread(fn, *args))
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        try:
+            await task
+        finally:
+            raise
+
+
 class FolderError(ValueError):
     """A folder or rule that cannot be accepted; the message is safe to show."""
 
@@ -411,6 +422,17 @@ class FolderIndex:
         return job
 
     async def run(self, job: Job) -> None:
+        queue = getattr(self, "job_queue", None)
+        if queue is not None:
+            try:
+                await queue.execute("indexing", lambda: self._run(job))
+            except asyncio.CancelledError:
+                job.state = "cancelled"
+                raise
+        else:
+            await self._run(job)
+
+    async def _run(self, job: Job) -> None:
         loop = asyncio.get_running_loop()
         if self._turn is None or self._turn[0] is not loop:
             self._turn = (loop, asyncio.Lock())
@@ -444,13 +466,13 @@ class FolderIndex:
             job.state = "cancelled"
             return
         job.state = "scanning"
-        scan = await asyncio.to_thread(scan_folder, folder, self.protected())
+        scan = await _drained_thread(scan_folder, folder, self.protected())
         job.total, job.skipped = len(scan.files), dict(scan.skipped)
         if scan.truncated:
             job.warning = f"the folder has more than {MAX_SCAN} entries: only the first ones were looked at"
         known = self._known(folder.id)
         current = {c.rel for c in scan.files}
-        job.removed = await asyncio.to_thread(self._drop, folder.id, [r for r in known if r not in current])
+        job.removed = await _drained_thread(self._drop, folder.id, [r for r in known if r not in current])
         job.state = "indexing"
         for cand in scan.files:
             if job.cancel or self.get(folder.id) is None:
@@ -463,7 +485,7 @@ class FolderIndex:
                 if before[2] != STATUS_INDEXED:
                     job.skipped[before[2]] = job.skipped.get(before[2], 0) + 1
             else:
-                status = await asyncio.to_thread(self._index_file, folder, cand)
+                status = await _drained_thread(self._index_file, folder, cand)
                 if status is None:  # the folder was forgotten while this file was being read
                     job.state = "cancelled"
                     return
