@@ -82,12 +82,20 @@ export async function streamChat(
 
 /** POST a JSON body and call `onEvent` for each Server-Sent Event of the response. */
 export async function streamPost(path: string, body: unknown, onEvent: (ev: ChatEvent) => void, signal?: AbortSignal): Promise<void> {
-  const res = await fetch(path, {
+  return readEvents(await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal,
-  });
+  }), onEvent);
+}
+
+/** GET a Server-Sent Events stream (a run that is already going) and call `onEvent` for each event. */
+export async function streamGet(path: string, onEvent: (ev: ChatEvent) => void, signal?: AbortSignal): Promise<void> {
+  return readEvents(await fetch(path, { signal }), onEvent);
+}
+
+async function readEvents(res: Response, onEvent: (ev: ChatEvent) => void): Promise<void> {
   if (!res.ok || !res.body) {
     let detail = res.statusText;
     try {

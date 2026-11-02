@@ -1,0 +1,117 @@
+/* Workflow builder: the page, the SVG canvas and the run panel. Only the design tokens of styles.css are used, so the
+   light and dark themes both work; focus and selection are drawn with a line, not with colour alone. */
+.forge.workflow { width: min(1320px, 100%); }
+.workflow { --wf-input: var(--green-shade); --wf-specialist: #3b82c4; --wf-tool: var(--warn); --wf-condition: #7c6bd8; --wf-output: var(--green-dark); }
+
+.wf-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.wf-bar .field.inline { display: grid; gap: 4px; flex: 0 1 auto; width: auto; max-width: 280px; min-width: 0; }
+.wf-bar .field.inline input, .wf-bar .field.inline select { width: 100%; min-width: 150px; }
+.wf-bar > .muted, .wf-bar > .warn-text { margin: 0 0 8px; }
+.wf-bar .file-btn { cursor: pointer; display: inline-flex; align-items: center; }
+.wf-add { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.wf-add .btn { border-left-width: 4px; }
+.wf-add-input { border-left-color: var(--wf-input); }
+.wf-add-specialist { border-left-color: var(--wf-specialist); }
+.wf-add-tool { border-left-color: var(--wf-tool); }
+.wf-add-condition { border-left-color: var(--wf-condition); }
+.wf-add-output { border-left-color: var(--wf-output); }
+.wf-info { border: 1px solid var(--border-strong); background: var(--accent-soft); color: var(--text); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+
+.wf-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.wf-main { min-width: 0; display: grid; gap: 8px; }
+.wf-side { border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; align-content: start; }
+.wf-side h2, .wf-run h2 { margin: 0; font-size: 16px; }
+.wf-side h3, .wf-run h3 { margin: 10px 0 4px; font-size: 14px; }
+.wf-side .form { display: grid; gap: 8px; }
+.wf-side .field { min-width: 0; }
+.wf-side textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
+.wf-side .field.inline { display: flex; align-items: center; gap: 8px; max-width: none; }
+.wf-side .field input[type="checkbox"] { width: auto; }
+.wf-live { min-height: 1.4em; font-size: 13.5px; color: var(--text-2); }
+.wf-problems { border: 1px solid var(--danger); border-radius: 10px; padding: 8px 12px; background: color-mix(in srgb, var(--danger) 6%, var(--surface)); font-size: 14px; }
+.wf-problems ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.linklike { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--text); text-decoration: underline; cursor: pointer; }
+.linklike:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.wf-edges { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; }
+.wf-edges li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wf-result { border-top: 1px solid var(--border); margin-top: 6px; }
+.wf-output { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; background: var(--code-bg); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin: 6px 0 0; }
+
+/* ---- the canvas */
+.wf-canvas-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); max-height: 70vh; }
+.wf-canvas { display: block; background-image: radial-gradient(var(--border-strong) 1px, transparent 1px); background-size: 20px 20px; touch-action: none; }
+.wf-node { cursor: grab; outline: none; --wf-color: var(--border-strong); }
+.wf-node.type-input { --wf-color: var(--wf-input); }
+.wf-node.type-specialist { --wf-color: var(--wf-specialist); }
+.wf-node.type-tool { --wf-color: var(--wf-tool); }
+.wf-node.type-condition { --wf-color: var(--wf-condition); }
+.wf-node.type-output { --wf-color: var(--wf-output); }
+.wf-box { fill: var(--surface); stroke: var(--wf-color); stroke-width: 2; }
+.wf-node.type-condition .wf-box { stroke-dasharray: 0; }
+.wf-node:hover .wf-box { stroke-width: 3; }
+.wf-node.selected .wf-box { stroke-width: 3.5; fill: var(--accent-soft); }
+.wf-node:focus-visible .wf-box { stroke: var(--text); stroke-width: 4; stroke-dasharray: 6 3; }
+.wf-node.invalid .wf-box { stroke: var(--danger); }
+.wf-node.target .wf-box { stroke: var(--text); stroke-width: 3; stroke-dasharray: 6 3; }
+.wf-node.chosen .wf-box { stroke: var(--text); stroke-width: 5; stroke-dasharray: none; fill: var(--accent-soft); }
+.wf-node.st-running .wf-box { stroke: var(--accent); stroke-width: 4; animation: wf-pulse 1.2s ease-in-out infinite; }
+.wf-node.st-ok .wf-box { stroke: var(--green-dark); }
+.wf-node.st-failed .wf-box, .wf-node.st-denied .wf-box { stroke: var(--danger); stroke-width: 4; }
+.wf-node.st-skipped .wf-box { stroke-dasharray: 3 4; opacity: 0.7; }
+.wf-node.st-cancelled .wf-box { stroke: var(--warn); stroke-width: 4; stroke-dasharray: 8 4; }
+@keyframes wf-pulse { 50% { stroke-opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .wf-node.st-running .wf-box { animation: none; } }
+.wf-type { font: 600 10.5px var(--font); fill: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; pointer-events: none; }
+.wf-name { font: 600 14px var(--font); fill: var(--text); pointer-events: none; }
+.wf-sub { font: 12px var(--font); fill: var(--text-2); pointer-events: none; }
+.wf-state { font: 600 10.5px var(--font); pointer-events: none; fill: var(--text-2); }
+.wf-state.st-ok { fill: var(--green-dark); }
+.wf-state.st-failed, .wf-state.st-denied { fill: var(--danger); }
+.wf-state.st-cancelled { fill: var(--warn); }
+.wf-bad { fill: var(--danger); }
+.wf-bad-text { font: 700 11px var(--font); fill: #fff; pointer-events: none; }
+.wf-port { fill: var(--surface); stroke: var(--text-2); stroke-width: 2; }
+.wf-port.out { cursor: crosshair; }
+.wf-port.out.true { stroke: var(--green-dark); }
+.wf-port.out.false { stroke: var(--danger); }
+.wf-port.out:hover { fill: var(--accent); }
+.wf-port.in.target { fill: var(--accent); stroke: var(--text); }
+.wf-port-label { font: 600 10.5px var(--font); fill: var(--text-2); pointer-events: none; }
+.wf-edge { outline: none; cursor: pointer; }
+.wf-edge-hit { fill: none; stroke: transparent; stroke-width: 14; }
+.wf-edge-line { fill: none; stroke: var(--text-2); stroke-width: 2; }
+.wf-edge.selected .wf-edge-line, .wf-edge:focus-visible .wf-edge-line { stroke: var(--text); stroke-width: 3.5; stroke-dasharray: 7 3; }
+.wf-arrow { fill: var(--text-2); }
+
+/* ---- running */
+.wf-run { border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; }
+.wf-run .row.end { align-items: flex-end; }
+.wf-run .field { min-width: 140px; max-width: 320px; }
+.wf-log { display: grid; gap: 6px; }
+.wf-log-node { border: 1px solid var(--border); border-left-width: 4px; border-radius: 8px; padding: 6px 10px; background: var(--surface); }
+.wf-log-node summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.wf-log-node.st-ok { border-left-color: var(--green-dark); }
+.wf-log-node.st-running { border-left-color: var(--accent); }
+.wf-log-node.st-failed, .wf-log-node.st-denied { border-left-color: var(--danger); }
+.wf-log-node.st-cancelled { border-left-color: var(--warn); }
+.wf-log-node.st-skipped { border-left-style: dashed; }
+.wf-log-line { font: 12.5px var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; padding: 2px 0; }
+.wf-log-line.error, .wf-log-line.tool_error { color: var(--danger); }
+.wf-chip { display: inline-block; border: 1px solid var(--border-strong); border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.wf-chip.st-ok { border-color: var(--green-dark); color: var(--green-dark); }
+.wf-chip.st-failed, .wf-chip.st-denied { border-color: var(--danger); color: var(--danger); }
+.wf-chip.st-cancelled { border-color: var(--warn); color: var(--warn); }
+.wf-chip.st-running { border-color: var(--text); color: var(--text); }
+:root[data-theme="dark"] .wf-chip.st-ok { color: var(--highlight); border-color: var(--highlight); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wf-chip.st-ok { color: var(--highlight); border-color: var(--highlight); } }
+.wf-history { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wf-history li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+@media (max-width: 960px) {
+  .wf-layout { grid-template-columns: minmax(0, 1fr); }
+  .wf-canvas-wrap { max-height: 60vh; }
+}
+@media (max-width: 520px) {
+  .wf-bar { align-items: stretch; }
+  .wf-bar .field.inline { max-width: none; width: 100%; flex: 1 1 100%; }
+}

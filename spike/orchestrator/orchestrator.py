@@ -101,6 +101,7 @@ class OrchestratorOptions:
     trust_model_pass: bool = False  # a model call that may lower those labels, never raise one
     images: list[str] = field(default_factory=list)  # attachments for this turn, never planner text
     read_only: bool = False  # only tools that read or compute (Parallel Minds run N copies of the same turn)
+    private_text: list[str] = field(default_factory=list)  # passages of the user's message that are file contents (workflows)
 
     @property
     def labels_claims(self) -> bool:
@@ -325,7 +326,7 @@ class Orchestrator:
         if skill_event:
             yield skill_event
         messages = [self.system_message(spec, opts, skill_text, backend.context_budget), *history,
-                    Message(role="user", content=user_text, images=opts.images)]
+                    Message(role="user", content=user_text, images=opts.images, private=list(opts.private_text))]
         async for ev in run_agent(
             backend.provider, messages, tools=self._tools_for(spec, opts) + skill_tools, broker=self.broker, run=final,
             adapter=backend.adapter, model=backend.model, temperature=opts.temperature,

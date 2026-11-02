@@ -120,7 +120,7 @@ function Learned({ initial, messageId }: { initial: Learn; messageId: string }) 
 }
 
 /** Human handoff: a specialist's question, answered with one of its options or in the user's own words. */
-function Question({ q, readOnly }: { q: QuestionState; readOnly?: boolean }) {
+export function Question({ q, readOnly }: { q: QuestionState; readOnly?: boolean }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");

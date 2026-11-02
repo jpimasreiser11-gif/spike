@@ -872,10 +872,11 @@ class AppState:
         self.background(self.memory.index())
         return True
 
-    def background(self, coro) -> None:
+    def background(self, coro) -> asyncio.Future:
         task = asyncio.ensure_future(coro)
         self._background.add(task)
         task.add_done_callback(self._background.discard)
+        return task
 
     async def maybe_summarize(self, conversation_id: str, override_provider: str | None = None) -> bool:
         """Every few messages, save what a chat established as a 'summary' memory (local models only)."""
