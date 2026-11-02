@@ -26,6 +26,10 @@ from packaging.utils import canonicalize_name
 EXTRAS = ("docs", "data", "finance", "motion")  # what the native-installer workflow installs next to SPIKE
 OPTIONAL = ("pywebview",)  # installed on macOS and Windows only; bundled when present
 LICENSE_FILE = re.compile(r"(?i)^(licen[cs]e|copying|notice|unlicense)([-_. ].*)?$")
+# Notices a wheel carries outside its *.dist-info, for a program it embeds: playwright ships Node.js (its own license
+# list) and the Playwright driver; they go with the text when a build bundles the driver, and cost 220 KB when it does not.
+EXTRA_NOTICES = {"playwright": ("playwright/driver/LICENSE", "playwright/driver/package/NOTICE",
+                                "playwright/driver/package/ThirdPartyNotices.txt")}
 
 
 def safe(name: str) -> str:
@@ -88,8 +92,8 @@ def declared_license(dist: metadata.Distribution) -> str:
 def python_licenses(dest: Path, dists: dict[str, metadata.Distribution]) -> list[dict[str, str]]:
     """Copy each distribution's license files (what its build backend put in `*.dist-info`, also under `licenses/`)."""
     rows = []
-    for _, dist in sorted(dists.items()):
-        wanted = [f for f in dist.files or [] if len(f.parts) > 1 and f.parts[0].endswith((".dist-info", ".egg-info"))
+    for key, dist in sorted(dists.items()):
+        wanted =[f for f in dist.files or [] if len(f.parts) > 1 and f.parts[0].endswith((".dist-info", ".egg-info"))
                   and LICENSE_FILE.match(f.name)]
         folder = dest / "python" / safe(f"{dist.metadata['Name']}-{dist.version}")
         copied = []
@@ -99,6 +103,12 @@ def python_licenses(dest: Path, dists: dict[str, metadata.Distribution]) -> list
                 folder.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(source, folder / safe("__".join(f.parts[1:])))  # keeps licenses/LICENSE apart from LICENSE
                 copied.append("/".join(f.parts[1:]))
+        for rel in EXTRA_NOTICES.get(key, ()):
+            source = Path(str(dist.locate_file(rel)))
+            if source.is_file():
+                folder.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, folder / safe(rel.replace("/", "__")))
+                copied.append(rel)
         rows.append({"name": dist.metadata["Name"], "version": dist.version, "license": declared_license(dist),
                      "files": ", ".join(copied) or "none shipped by the package"})
     return rows

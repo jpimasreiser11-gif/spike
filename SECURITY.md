@@ -29,6 +29,9 @@ acknowledge reports within 7 days.
   until you click; the request (your question, the answer and its unchecked claims, never the conversation or
   memory) goes through the same guard: paid-call permission, monthly limits, and file contents replaced by a notice
   unless you allowed them for that provider.
+- A provider is "local" only when the host of its address is this computer (`localhost`, `*.localhost`, a loopback
+  IP): the flag follows the address, it is not a field a form or a stored row can set, and moving a provider to another
+  address makes it remote at once (so its file-contents and spending rules apply).
 - Every provider call goes through one guard (`spike/providers/guard.py`). A remote provider gets the contents of
   your files only if you enable "send your files' contents" for it (off by default): file passages that memory
   recalled, results of `read_file`, of `recall` hits from files and of file connectors (filesystem, git, GitHub,
@@ -39,7 +42,9 @@ acknowledge reports within 7 days.
   sent, and every call is written to a local call log (provider, model, tokens, files sent or withheld, status;
   Settings → Privacy), kept 400 days.
 - Tools: file tools are confined to the workspace directory; `write_file`, `python` and `web_fetch` ask for
-  permission by default. `web_fetch` refuses private, loopback and link-local addresses and redirects.
+  permission by default. `web_fetch` refuses addresses that are not public (private, loopback, link-local, reserved, multicast and the shared
+  address space 100.64.0.0/10 that Tailscale and some cloud metadata services use, also written as IPv4-mapped IPv6) and redirects. It resolves the name
+  once to check it and the HTTP client resolves it again, so a DNS name that changes between the two is not covered.
   The Python tool runs in a separate process with CPU, memory (Linux) and time limits. Where the computer has
   `bwrap` (Linux) or `/usr/bin/sandbox-exec` (macOS), the code a model writes (`python`, `data_python`) also runs
   inside it (setting `sandbox`, `auto` by default): no network and no writes outside the working folder and a
@@ -114,7 +119,13 @@ acknowledge reports within 7 days.
 - MCP Apps: a connector's view (HTML its server wrote) runs in an iframe with `sandbox="allow-scripts"` and no `allow-same-origin`, so it has an opaque origin: it cannot read SPIKE's storage or cookies, call SPIKE's API (its CSP blocks it too) or touch the app's window. Its CSP only allows the public https/wss origins the server declared (shown above the view); localhost, IP addresses, `.local` names and plain http are dropped. It gets no camera, microphone, location or clipboard. SPIKE serves only views that a tool of that connector declared. A view can call only tools of its own connector that allow it, under each tool's permission (an "ask" tool waits for your click in the card); opening a link asks first; a chat message from a view is put in the text box for you to send; context a view gives goes to the model once, marked as data. Every call is written to `$SPIKE_HOME/connectors/apps-audit.jsonl`. A view can still show misleading content, so it always appears inside a SPIKE frame naming its connector.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
-  and size before anything is written.
+  and size before anything is written. A path through a `.git` folder (any spelling the file system treats alike,
+  including `GIT~1`) is refused in archives, uploads, packs and `write_file`: git runs programs named in a repository's
+  `.git/config` (`core.fsmonitor`, filters, aliases), and Parallel Prototypes runs git in a project's folder.
+- A pack (`spike-pack` zip) can carry custom connectors, but only the fields the connector form can enter (name,
+  transport, command, arguments, address, description) are imported: environment variables, headers, secret
+  definitions, source links and notes are dropped, so the confirmation that shows the command is the whole story. Enabling is
+  still your click.
 - Artifacts (HTML or SVG a model wrote) run in an iframe with `sandbox="allow-scripts"` and no
   `allow-same-origin`, so they get an opaque origin: no access to the app's storage, cookies or window, no forms,
   popups or top navigation. A Content-Security-Policy placed before the page's markup allows only inline code and

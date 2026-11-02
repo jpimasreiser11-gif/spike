@@ -52,6 +52,19 @@ def test_license_files_of_each_package_are_copied_and_indexed(mod, tmp_path):
     assert not (tmp_path / "out/python/gamma-0.3").exists()
 
 
+def test_the_notices_of_the_program_playwright_embeds_travel_with_it(mod, tmp_path):
+    site = tmp_path / "site"
+    dists = {"playwright": make_dist(site, "playwright", "1.56.0", "Apache-2.0", {"licenses/LICENSE": "apache"})}
+    (site / "playwright/driver/package").mkdir(parents=True)
+    (site / "playwright/driver/LICENSE").write_text("Node.js is licensed for use as follows", encoding="utf-8")
+    (site / "playwright/driver/package/ThirdPartyNotices.txt").write_text("notices", encoding="utf-8")
+    rows = mod["python_licenses"](tmp_path / "out", dists)
+    assert rows[0]["files"] == "licenses/LICENSE, playwright/driver/LICENSE, playwright/driver/package/ThirdPartyNotices.txt"
+    folder = tmp_path / "out/python/playwright-1.56.0"
+    assert (folder / "playwright__driver__LICENSE").read_text(encoding="utf-8").startswith("Node.js")
+    assert (folder / "playwright__driver__package__ThirdPartyNotices.txt").is_file()
+
+
 def test_the_python_closure_follows_pyproject_and_stops_at_a_missing_requirement(mod, tmp_path, monkeypatch):
     site = tmp_path / "site"
     make_dist(site, "app-dep", "1", "MIT", {"licenses/LICENSE": "x"}, requires=["sub-dep>=1", "extra-only; extra == 'docs'",

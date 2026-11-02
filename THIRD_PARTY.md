@@ -147,7 +147,7 @@ code and includes nothing from that repository.
 | duckdb (optional, `data` extra: SQL over the user's data files) | 1.5.6 | MIT |
 | pandas (optional, `data`: Excel and SQLite loading, available to `data_python`) | 3.0.6 | BSD-3-Clause |
 | python-dateutil, six (pulled in by pandas) | 2.9.0.post0, 1.17.0 | Apache-2.0 OR BSD-3-Clause, MIT |
-| playwright (optional, `motion` extra: plays a video scene frame by frame in Chromium) | 1.56.0 | Apache-2.0 |
+| playwright (optional, `motion` extra: plays a video scene frame by frame in Chromium) | 1.56.0 | Apache-2.0 (the wheel also embeds the Node.js runtime and the Playwright driver in `playwright/driver/`: Node.js is MIT with a long list of bundled libraries; their notices are copied into `licenses/third-party/`) |
 | pyee, greenlet (pulled in by playwright) | 13.0.1, 3.5.6 | MIT, MIT AND PSF-2.0 |
 
 Two of these are MPL-2.0 (file-level copyleft): certifi's CA bundle and orjson. SPIKE ships them unmodified, with their
@@ -209,6 +209,13 @@ grants no trademark rights (section 6), so they may not be used as another produ
 - **llama.cpp b11709** (ggml-org, MIT): the desktop packaging recipe bundles the official CPU prebuilt archive for
   the build's OS/architecture, its runtime libraries and the upstream MIT LICENSE supplied during offline staging.
   Source/release: https://github.com/ggml-org/llama.cpp/releases/tag/b11709. No upstream binaries are checked in.
+  The prebuilt `llama-server` statically contains the libraries llama.cpp keeps in `vendor/` and `licenses/`: cpp-httplib
+  (MIT, Yuji Hirose), nlohmann/json (MIT, Niels Lohmann), xxHash (BSD-2-Clause, Yann Collet), sha256 (public domain, Igor
+  Pavlov), rotate-bits (MIT, William Casarin), stb_image (public domain or MIT), miniaudio (public domain or MIT-0) and
+  subprocess.h (Unlicense). L2 listed the Linux x86_64 b11709 archive on disk (61 entries; its only license file is the
+  top-level MIT LICENSE) and read the vendored libraries' licenses in a local, untagged llama.cpp source tree; the
+  b11709 tag itself could not be read offline. All are permissive; before the first public release, read the tag's `licenses/` and `vendor/` folders and append
+  their copyright notices to `packaging/licenses/llama.txt` (pending, see `docs/release/REVIEW-v0.1.md`).
 - **pywebview** (BSD-3-Clause): detected only when already installed in the build/runtime environment; SPIKE's
   launcher otherwise uses the standard-library browser opener. Source: https://github.com/r0x0r/pywebview.
 - **PyInstaller 6.22.3**: build tool/bootloader, GPL-2.0 with its distribution exception; see

@@ -2,7 +2,46 @@ SPIKE
 Copyright 2026 SPIKE contributors
 
 This product includes software developed by the SPIKE contributors, licensed under the Apache License 2.0.
-Third-party components and data are listed with their licenses in THIRD_PARTY.md.
+Third-party components and data are listed with their licenses in THIRD_PARTY.md. A desktop build also carries the
+license text of every Python and web package it bundles, collected at build time into licenses/third-party/ (INDEX.md
+there lists them).
 
-The design systems in spike/design/systems/ (except spike/) are copied from open-design
-(https://github.com/nexu-io/open-design), Copyright its contributors, licensed under the Apache License 2.0.
+Material in this distribution that comes from others, under its own license:
+
+* The design systems in spike/design/systems/ (except spike/) are copied from open-design
+  (https://github.com/nexu-io/open-design), Copyright 2026 Open Design contributors, licensed under the Apache License
+  2.0 (copy in spike/design/systems/LICENSE-open-design). The repository has no NOTICE file.
+
+* The skills in spike/skills/bundled/ test-driven-development, systematic-debugging, writing-plans and
+  verification-before-completion are from https://github.com/obra/superpowers, MIT License, Copyright (c) 2025 Jesse
+  Vincent; frontend-design, mcp-builder and webapp-testing are from https://github.com/anthropics/skills, Apache
+  License 2.0; web-design-guidelines is from https://github.com/nexu-io/open-design, which took it from
+  https://github.com/vercel-labs/web-interface-guidelines, MIT License, Copyright (c) 2025 Vercel Labs. Each skill
+  folder carries its upstream license file.
+
+* The web app serves the fonts Inter (Copyright 2016 The Inter Project Authors, https://github.com/rsms/inter) and
+  Nunito (Copyright 2014 The Nunito Project Authors, https://github.com/googlefonts/nunito), both under the SIL Open
+  Font License 1.1; the notices and the license text are in web/public/FONT-LICENSES.txt, served as /FONT-LICENSES.txt.
+
+* A desktop build includes llama.cpp (llama-server and its libraries), MIT License, Copyright (c) 2023-2026 The ggml
+  authors (packaging/licenses/llama.txt), and on Linux the AppImage runtime (packaging/licenses/type2-runtime.txt).
+
+* training/spike_train/resume.py adapts the training loop of mlx-lm (mlx_lm/tuner/trainer.py), Copyright (c) 2023-2024
+  Apple Inc., under the MIT License, whose text follows. This file is part of the repository and the source package;
+  it is not part of the desktop build.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+    documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+    to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+    the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+    THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+The SPIKE name and logo are not licensed for use as another product's identity (Apache License 2.0, section 6).

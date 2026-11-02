@@ -9,6 +9,7 @@ S4  web_fetch let through the shared address space 100.64.0.0/10 (Tailscale node
 import io
 import json
 import zipfile
+from pathlib import Path
 
 import httpx
 import pytest
@@ -178,6 +179,21 @@ def test_web_fetch_accepts_public_addresses():
     import ipaddress
 
     assert all(_is_public_address(ipaddress.ip_address(a)) for a in ("8.8.8.8", "93.184.216.34", "2606:4700::1111"))
+
+
+def test_the_sql_sandbox_cannot_write_a_file_with_vacuum_into(tmp_path, monkeypatch):
+    """A guard, not a fix (M10's sandbox was reviewed and holds): VACUUM INTO would write a database file anywhere
+    the process can. SQLite's authorizer refuses it in both stages on 3.45; a SQLite that stopped asking fails here."""
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "training"))
+    from spike_train import sqlsandbox
+
+    target = tmp_path / "dump.db"
+    schema = "CREATE TABLE t (a INTEGER); INSERT INTO t VALUES (1);"
+    for sql in (f"VACUUM INTO '{target}'", "VACUUM", f"ATTACH '{target}' AS x", "PRAGMA journal_mode"):
+        assert sqlsandbox.run(schema, sql).ok is False
+    assert sqlsandbox.run(f"CREATE TABLE t (a); VACUUM INTO '{target}';", "SELECT 1").ok is False
+    assert not target.exists()
+    assert sqlsandbox.run(schema, "SELECT a FROM t").rows == ((1,),)
 
 
 @pytest.mark.parametrize("url", ["http://100.100.100.200/latest/meta-data/", "http://100.64.12.7:8080/", "http://[::ffff:100.64.0.1]/"])
