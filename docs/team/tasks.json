@@ -289,7 +289,7 @@
   {
    "id": "A20",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Reverse Studio: de una captura propia a código editable",
    "depends": [],
@@ -307,7 +307,7 @@
   {
    "id": "A21",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Device Lab: probar la app en perfiles de móvil, tablet y escritorio",
    "depends": [],
@@ -325,7 +325,7 @@
   {
    "id": "A22",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Visual Workflow Builder: encadenar pasos en un lienzo",
    "depends": [],
@@ -618,7 +618,7 @@
   {
    "id": "I2",
    "owner": "codex",
-   "status": "doing",
+   "status": "done",
    "phase": "instalador",
    "title": "Instaladores de un clic y publicación",
    "depends": [
@@ -637,7 +637,7 @@
   {
    "id": "I3",
    "owner": "claude",
-   "status": "todo",
+   "status": "doing",
    "phase": "instalador",
    "title": "Probar los instaladores en máquinas limpias con el modelo real",
    "depends": [

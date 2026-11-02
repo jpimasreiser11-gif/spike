@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 6 | 3 | 0 | 0 | 11 | 0 | 20 |
-| Codex | 0 | 1 | 0 | 0 | 15 | 0 | 16 |
+| Claude | 5 | 1 | 0 | 0 | 14 | 0 | 20 |
+| Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **13** | **5** | **0** | **0** | **27** | **0** | **45** |
+| **Total** | **12** | **2** | **0** | **0** | **31** | **0** | **45** |
 
 ## Fase: equipo
 
@@ -37,9 +37,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A15 | Codex | hecha | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
 | A16 | Claude | hecha | Geo, grabador del navegador y explorador de arquitectura | - |
 | A18 | Claude | hecha | 3D con Blender y juegos con Godot | - |
-| A20 | Claude | en curso | Reverse Studio: de una captura propia a código editable | - |
-| A21 | Claude | en curso | Device Lab: probar la app en perfiles de móvil, tablet y escritorio | - |
-| A22 | Claude | en curso | Visual Workflow Builder: encadenar pasos en un lienzo | - |
+| A20 | Claude | hecha | Reverse Studio: de una captura propia a código editable | - |
+| A21 | Claude | hecha | Device Lab: probar la app en perfiles de móvil, tablet y escritorio | - |
+| A22 | Claude | hecha | Visual Workflow Builder: encadenar pasos en un lienzo | - |
 | A4 | Claude | hecha | Aislamiento del sistema para python y run_command | - |
 | A6 | Claude | hecha | Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas | - |
 | A7 | Claude | hecha | Memoria: carpetas elegidas, glosario, progreso del tutor y grafo | - |
@@ -72,8 +72,8 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
 | I1 | Codex | hecha | App de escritorio: lanzador y asistente de modelos | - |
-| I2 | Codex | en curso | Instaladores de un clic y publicación | I1 |
-| I3 | Claude | pendiente | Probar los instaladores en máquinas limpias con el modelo real | I2 |
+| I2 | Codex | hecha | Instaladores de un clic y publicación | I1 |
+| I3 | Claude | en curso | Probar los instaladores en máquinas limpias con el modelo real | I2 |
 | I4 | joan | pendiente | Opcional: certificados de firma | - |
 
 ## Fase: lanzamiento

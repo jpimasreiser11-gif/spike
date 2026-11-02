@@ -83,7 +83,8 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   with exact quotes. (A15, Codex)
 - Local conversation search and `spike dev --sessions` / `--resume`. (Codex)
 - Desktop launcher and first-run model wizard with resumable, SHA-256-checked downloads; installer candidates
-  (.dmg, .exe, AppImage) built by a manual workflow and never published automatically. (I1, I2, Codex)
+  (.dmg, .exe, AppImage) built by a manual workflow and never published automatically; on 2026-11-02 each was
+  built, installed and answered with a tiny test model on GitHub's macOS, Windows and Linux runners. (I1, I2, Codex)
 - Release readiness gate that refuses simulated or stale evidence, and a separate launch video project. (Codex)
 - Router: about 3,850 Spanish and English domain keywords, threshold 2.0 and `multi_ratio` 0.75, so requests
   without the old hand-picked keywords no longer fall back to Core: 0.46 to 0.89 on a blind holdout of 130
@@ -100,6 +101,18 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Architecture Explorer: `architecture_graph` draws the module dependency graph of a folder of Python and
   JavaScript/TypeScript, with import cycles in red and a table of them; the size limits and what was left out are
   shown. (A16)
+- Reverse Studio (Settings › Design): turn a screenshot you own (needs a provider with vision and the existing paid
+  and file-sharing permissions) or a page on localhost or in your project (works with the local model) into one
+  editable HTML/CSS file. An ownership confirmation is required and saved with the result; logos, images and brand
+  text become placeholders; a pixel similarity score is measured for that run only. (A20)
+- Device Lab: check a web app running on this computer in six emulated screen sizes plus your own, with overflow and
+  the elements that cause it, small tap targets and text, console errors and failed requests, and screenshots. Only
+  local addresses unless you name a host for that run; each run asks first. It emulates viewports in a desktop
+  browser engine and is not a real-device test; an Android screenshot is offered only if adb is already installed. (A21)
+- Workflows (Create › Workflows): chain inputs, specialists, tools, conditions and outputs on a canvas that works
+  with the keyboard alone; each workflow is checked before it is saved or run, tool steps ask permission like the
+  chat does, Stop cancels cleanly and every run keeps a record with measured times. Workflows are JSON files in the
+  project folder and can be exported and imported. (A22)
 - Fixes: portable benchmark paths and Windows project cleanup; the browser tests wait for the end of each
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
