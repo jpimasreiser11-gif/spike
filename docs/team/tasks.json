@@ -287,6 +287,60 @@
    ]
   },
   {
+   "id": "A20",
+   "owner": "claude",
+   "status": "doing",
+   "phase": "app",
+   "title": "Reverse Studio: de una captura propia a código editable",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "From a screenshot the user owns or has permission to use (explicit checkbox, recorded), or a URL on localhost/the user's own project, produce editable HTML/CSS in the artifacts panel. With a vision-capable provider the image goes to that provider only after the usual paid/egress consent; with the local model it works from the page's DOM and computed styles captured by the existing browser tooling. Never copies logos, images or brand text: placeholders instead. A fidelity score from a pixel comparison of the render against the reference, reported as measured, never claimed. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "authorization required test",
+    "no image egress without consent test",
+    "fidelity score from real render test"
+   ]
+  },
+  {
+   "id": "A21",
+   "owner": "claude",
+   "status": "doing",
+   "phase": "app",
+   "title": "Device Lab: probar la app en perfiles de móvil, tablet y escritorio",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "Open a local web app (localhost or the project's preview) in several device profiles (viewport, device scale, touch, user agent) with the browser SPIKE already uses; per profile: screenshot, console errors, horizontal overflow, tap targets under 24 px, text under 12 px; one report in the artifacts panel. Optional Android: if the user already has adb and a device or emulator, list it and take a screenshot after asking; never download SDKs. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "profile checks on a fixture page",
+    "overflow and tap-target detection tests",
+    "fake adb test with permission asked"
+   ]
+  },
+  {
+   "id": "A22",
+   "owner": "claude",
+   "status": "doing",
+   "phase": "app",
+   "title": "Visual Workflow Builder: encadenar pasos en un lienzo",
+   "depends": [],
+   "paths": [
+    "spike/",
+    "web/src/"
+   ],
+   "spec": "A canvas to build workflows from nodes (input, specialist prompt with {{variables}}, tool call, condition, output to file or artifact) connected by edges; saved as versioned JSON per project, validated (no cycles, known tools, typed inputs), run step by step with each tool step through the normal permission flow, a live log, stop button and a record of each run. Import and export JSON. Pure SVG/React, no diagram library. Tests first; every new behaviour has a test that fails without it. No network in tests, no new dependencies. Strings the user sees in es and en (web/src/i18n.ts). New HTTP routes in their own module with an APIRouter, registered with one line in spike/server/app.py; new UI in new component files, so merges stay small.",
+   "accept": [
+    "validation rejects cycles and unknown tools",
+    "run executes in order with permissions",
+    "export/import round trip"
+   ]
+  },
+  {
    "id": "A4",
    "owner": "claude",
    "status": "done",
