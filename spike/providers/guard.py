@@ -212,10 +212,13 @@ class GuardedProvider(Provider):
             self.log.log_call(**row, status="blocked", detail=reason)
             yield StreamEvent(kind="error", text=reason)
             return
+        if any(m.images for m in request.messages) and not self.receives_files:
+            yield StreamEvent(kind="error", text="images_private")
+            return
         messages, withheld = request.messages, 0
         if not self.receives_files:
             messages, withheld = redact(request.messages, withheld_notice(cfg.name))
-        files_sent = 0 if withheld else sum(len([p for p in m.private if p]) for m in messages)
+        files_sent = 0 if withheld else sum(len([p for p in m.private if p]) + len(m.images) for m in messages)
         if withheld:
             yield StreamEvent(kind="notice", notice={"type": "privacy", "provider": cfg.name, "withheld": withheld})
         status, detail, usage, out_chars = "cancelled", "", None, 0

@@ -12,6 +12,7 @@ import { LiveOrderCard } from "./Finance";
 import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
 import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
+import { VoiceOutput } from "./VoiceOutput";
 import { Markdown } from "./Markdown";
 import { MindsPanel } from "./Minds";
 import { SpecMark } from "./SpecMark";
@@ -466,6 +467,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       {run.error && <div className="error-box" role="alert">{t.error}: {run.error}</div>}
       {run.status === "stopped" && <div className="notice">{t.stopped}</div>}
 
+      {!live && !replay && run.text && <VoiceOutput text={run.text} />}
       {!live && !replay && (run.text || onRetry) && (
         <div className="msg-actions">
           {run.text && <button className="icon-btn" onClick={() => { navigator.clipboard?.writeText(run.text); setCopied(true); setTimeout(() => setCopied(false), 1500); }} title={t.copy} aria-label={t.copy}>

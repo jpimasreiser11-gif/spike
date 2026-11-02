@@ -24,6 +24,7 @@ class Message:
     name: str | None = None  # tool name for role="tool"
     # parts of `content` that are the user's file contents; a provider not allowed to see files gets a notice instead
     private: list[str] = field(default_factory=list)
+    images: list[str] = field(default_factory=list)  # inline raster data URLs; private file content
 
 
 @dataclass

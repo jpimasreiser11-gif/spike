@@ -34,6 +34,21 @@ await page.goto(base);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
+// A13: image preparation stays in the browser; speech settings never execute a command on opening.
+const mediaPosts = [];
+page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/media/")) mediaPosts.push(r.url()); });
+await page.getByRole("button", { name: "Imagen y voz", exact: true }).click();
+await page.getByLabel("Modelo whisper.cpp", { exact: true }).waitFor();
+if (mediaPosts.length) fail("opening speech settings must not execute speech");
+await page.getByRole("button", { name: "Imagen y voz", exact: true }).click();
+const tinyPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC", "base64");
+await page.locator('input[type="file"][accept="image/png,image/jpeg,image/webp"]').setInputFiles({ name: "pixel.png", mimeType: "image/png", buffer: tinyPng });
+await page.getByRole("button", { name: "Quitar imagen 1", exact: true }).waitFor();
+const preview = page.locator('.composer img');
+if (!(await preview.getAttribute("src"))?.startsWith("data:image/jpeg;base64,")) fail("image must be decoded and resized locally");
+await page.getByRole("button", { name: "Quitar imagen 1", exact: true }).click();
+if (await preview.count()) fail("removed image must leave the composer");
+
 // Lab opens with local history only; both preview and explicit execution are exercised before chat.
 const labPosts = [];
 page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/lab/")) labPosts.push(r.url()); });
@@ -175,7 +190,7 @@ await dsCard.getByText("Topes mensuales").click();
 await dsCard.getByLabel("Tokens al mes").fill("500000");
 await dsCard.getByLabel("Tokens al mes").blur();
 await page.screenshot({ path: `${out}/04-settings-providers.png` });
-if (await dsCard.locator("label.check input").nth(1).isChecked()) fail("a new remote provider must not get file contents by default");
+if (await dsCard.getByRole("checkbox", { name: /^Enviar el contenido de tus archivos a este proveedor/ }).isChecked()) fail("a new remote provider must not get file contents by default");
 await page.getByRole("tab", { name: "Especialistas" }).click();
 await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
 await page.getByRole("tab", { name: "Skills" }).click();

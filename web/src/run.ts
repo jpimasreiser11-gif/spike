@@ -1,3 +1,4 @@
+import { projectError } from "./i18n";
 import type { ChatEvent, ForgeReport, MindState, MindsState, RunState, StoredMessage, TrustState, VerifyState } from "./types";
 
 export const emptyRun = (): RunState => ({
@@ -166,7 +167,7 @@ export function applyEvent(state: RunState, ev: ChatEvent): RunState {
       return { ...state, trust: trust as TrustState };
     }
     case "error":
-      return { ...state, status: "error", error: ev.message };
+      return { ...state, status: "error", error: projectError(ev.message) };
     case "done":
       return {
         ...state,

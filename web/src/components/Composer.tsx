@@ -3,11 +3,12 @@ import { api } from "../api";
 import { t } from "../i18n";
 import { MAX_MINDS, MIN_MINDS, type MindPick, estimateLines, mindsSpec } from "../parallel";
 import type { DesignSystemInfo, MindsEstimate, MindsSpec, ProviderInfo, Specialist } from "../types";
+import { MediaControls } from "./MediaControls";
 import { IconSend, IconStop } from "./Icons";
 
 export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setProviderId, specialists, providers, followUp, autoFocus,
   designs = [], design = "", setDesign, projectDesign, projectId, conversationId }: {
-  onSend: (text: string, schema?: object, minds?: MindsSpec) => void;
+  onSend: (text: string, schema?: object, minds?: MindsSpec, images?: string[]) => void;
   onStop: () => void;
   busy: boolean;
   mode: string;
@@ -25,6 +26,8 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
   projectId?: string; // for the cost estimate of Parallel Minds
   conversationId?: string | null;
 }) {
+  const [images, setImages] = useState<string[]>([]);
+  const [pendingImages, setPendingImages] = useState(false);
   const [text, setText] = useState("");
   const [format, setFormat] = useState<"text" | "json" | "schema">("text");
   const [schemaText, setSchemaText] = useState("");
@@ -86,15 +89,17 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
   }, []);
 
   const submit = () => {
-    const value = text.trim();
-    if (!value || busy || schemaProblem || (minds && blocked)) return;
-    onSend(value, schema, minds ?? undefined);
+    const value = text.trim() || (images.length ? t.media.describe : "");
+    if (!value || busy || pendingImages || schemaProblem || (minds && blocked)) return;
+    onSend(value, schema, minds ?? undefined, images);
+    setImages([]);
     setText("");
     setMindsOn(false);
   };
 
   return (
-    <div className="composer">
+    <MediaControls images={images} setImages={setImages} busy={busy} onPending={setPendingImages}
+      onDictation={(value) => setText((previous) => previous ? previous + " " + value : value)}>
       <label className="sr-only" htmlFor="composer-input">{t.placeholder}</label>
       <textarea
         id="composer-input"
@@ -147,7 +152,7 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
             <IconStop />
           </button>
         ) : (
-          <button className="send-btn" onClick={submit} disabled={!text.trim() || Boolean(schemaProblem) || Boolean(minds && blocked)} aria-label={t.send} title={t.send}>
+          <button className="send-btn" onClick={submit} disabled={(!text.trim() && !images.length) || pendingImages || Boolean(schemaProblem) || Boolean(minds && blocked)} aria-label={t.send} title={t.send}>
             <IconSend />
           </button>
         )}
@@ -195,6 +200,6 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
           {schemaProblem && <span className="small warn-text">{schemaProblem}</span>}
         </div>
       )}
-    </div>
+    </MediaControls>
   );
 }

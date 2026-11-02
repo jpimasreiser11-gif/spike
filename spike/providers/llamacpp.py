@@ -73,6 +73,7 @@ class LlamaCppProvider(OpenAICompatProvider):
 
     async def stream(self, request: ChatRequest):  # type: ignore[override]
         try:
+            self.validate_vision(request)
             lora = await self.resolve_lora(request.adapter)
         except Exception as exc:
             yield StreamEvent(kind="error", text=str(exc))
