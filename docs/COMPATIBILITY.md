@@ -19,7 +19,7 @@ Configuration is not a passing run or a measurement with real weights. Dynamic r
 | ci.yml | llama-cpp | ubuntu-latest | 3.13 |
 | installers-real-model.yml | lint | ubuntu-24.04 | — |
 | installers-real-model.yml | source | ubuntu-24.04 | 3.12 |
-| installers-real-model.yml | check | macos-14 | 3.12 |
+| installers-real-model.yml | check | macos-latest | 3.12 |
 | installers-real-model.yml | check | windows-2022 | 3.12 |
 | installers-real-model.yml | check | ubuntu-24.04 | 3.12 |
 | installers.yml | plan | ubuntu-latest | — |

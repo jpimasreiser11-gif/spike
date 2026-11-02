@@ -138,8 +138,9 @@ app process and a fake download). On each runner it:
    runner's desktop; on Linux there is no window. Secrets and `SPIKE_*`/`HF_*` variables are not passed on;
 4. runs the shared UI/catalog/skills checks (`package_smoke.check_app`), then drives the wizard's own API: `GET
    /api/setup`, a same-origin JSON `POST /api/setup/download`, polling until the job is done. The app's resource guard
-   (8 GiB RAM, 6 GiB free disk) is **not bypassed**: if it declines, the result says `refused_resources`. The macOS 14
-   runner has about 7 GB of RAM, so expect that outcome there; it is a finding about the guard, not a pass;
+   (8 GiB RAM, 6 GiB free disk) is **not bypassed**: if it declines, the result says `refused_resources` and the job
+   fails. The macOS leg runs on `macos-latest` (14 GB measured by the Installers workflow on 2026-10-18) because the
+   7 GB `macos-14` runner would be refused by that guard;
 5. hashes the placed file itself and compares it and its size with the Hub's published SHA-256 (the same source the app
    uses). A mismatch stops the run before the model is started;
 6. starts the runtime with `POST /api/runtime/start`, asks one question through `/v1/chat/completions` (streaming, model

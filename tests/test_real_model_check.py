@@ -641,7 +641,7 @@ def test_workflow_is_manual_read_only_clean_machine_per_os_and_pins_its_tools():
     assert doc["permissions"] == {"contents": "read", "actions": "read"}
     check = doc["jobs"]["check"]
     assert {m["target"]: m["os"] for m in check["strategy"]["matrix"]["include"]} == {
-        "Darwin-arm64": "macos-14", "Windows-AMD64": "windows-2022", "Linux-x86_64": "ubuntu-24.04"}
+        "Darwin-arm64": "macos-latest", "Windows-AMD64": "windows-2022", "Linux-x86_64": "ubuntu-24.04"}
     assert set(check["strategy"]["matrix"]["include"][0]) == {"os", "target"} and check["strategy"]["fail-fast"] is False
     assert check["timeout-minutes"] >= 90 and set(check["needs"]) == {"lint", "source"}
     download = next(s for s in check["steps"] if str(s.get("uses", "")).startswith("actions/download-artifact@v4"))

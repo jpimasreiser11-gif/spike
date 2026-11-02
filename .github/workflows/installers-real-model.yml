@@ -56,7 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: macos-14, target: Darwin-arm64}
+          - {os: macos-latest, target: Darwin-arm64}  # measured 14 GB on 2026-10-18 (installers.yml); macos-14 has 7 GB, under the 8 GiB setup guard
           - {os: windows-2022, target: Windows-AMD64}
           - {os: ubuntu-24.04, target: Linux-x86_64}
     defaults:
