@@ -235,6 +235,97 @@ def test_extract_choice_real_endings(text, expected):
     assert extract_choice(text, 10) == expected
 
 
+NOTES = "Confidence: moderate.\nNote: this supports, not replaces, a clinician who can examine the patient."
+
+
+# Endings the base model writes under the medicine system prompt (confidence notes and clinician disclaimers after the
+# answer). Hand-written inert fixtures, not eval or training data.
+@pytest.mark.parametrize("text,expected", [
+    # 'option' / 'choice' between the answer marker and the letter
+    ("The mechanism fits.\n\nAnswer: Option B", "B"),
+    ("The correct answer is option B.", "B"),
+    ("Final answer: choice (C)", "C"),
+    ("**Final Answer:** Choice C. Matches the findings.\n\n" + NOTES, "C"),
+    ("**Answer:** **Option D**\n\n" + NOTES, "D"),
+    ("**Answer**: B\n\n" + NOTES, "B"),
+    # the letter on its own line, followed by short notes
+    ("The mechanism fits.\n\n**B**\n\n" + NOTES, "B"),
+    ("The mechanism fits.\n\nB.\n\nConfidence: moderate", "B"),
+    ("The mechanism fits.\n\n(B)\n\nNote: consult a clinician.\nSeek urgent care for chest pain.", "B"),
+    ("Explanation A.\n\nA\n\nConfidence: low\nNote: a second look is needed.\nDisclaimer: general information.", "A"),
+    # 'option X' stated as correct
+    ("Therefore, option B is correct.", "B"),
+    ("Therefore, option B is correct.\n\n" + NOTES, "B"),
+    ("Option B is the best answer.\n\n" + NOTES, "B"),
+    ("**Option C** is the right choice here.", "C"),
+    ("The fit is best with option D, so option D is the answer", "D"),
+    ("We select **Option B**.", "B"),
+    ("I would choose option C.\n\n" + NOTES, "C"),
+    ("Correct letter: **B**", "B"),
+    ("Correct letter is D.\n\n" + NOTES, "D"),
+    # the last statement wins
+    ("Option A is correct about the dose.\n\nTherefore, option C is correct.", "C"),
+    ("Answer: Option A\n\nOn reflection, the answer is option C.", "C"),
+])
+def test_extract_choice_explicit_endings(text, expected):
+    assert extract_choice(text, 4) == expected
+
+
+# Things that must not change the result: option verdicts against a letter, capital-letter words, articles,
+# letters past the option count and notes that are not notes.
+@pytest.mark.parametrize("text,expected", [
+    ("Option B is wrong because it ignores the dose.\n\nAnswer: C", "C"),
+    ("Option B is incorrect.\n\nThe correct answer is option D.", "D"),
+    ("Options A and B are incorrect; the answer is D.", "D"),
+    ("Option A is not correct and option C is wrong.\n\n**B**\n\n" + NOTES, "B"),
+    ("Answer: Option B is wrong because of the dose.\n\nAnswer: Option C", "C"),
+    ("Option B is incorrect because it ignores the dose.", None),
+    ("Option B is wrong. Option C is not correct. Option D is false.\n\n" + NOTES, None),
+    ("Answer: Option B is not supported by the findings.", None),
+    ("Options A and B are incorrect.", None),
+    ("Option B is correct about the mechanism but misses the dose.", None),
+    ("Option C is right in noting the dose, but the stem asks something else.", None),
+    ("Do not choose option B here.", None),
+    ("We cannot select Option C here.\n\n" + NOTES, None),
+    ("It would be wrong to pick option D here.", None),
+    ("I would not choose option C here.", None),
+    ("Vitamin A deficiency causes night blindness.", None),
+    ("Vitamin A, Vitamin C and Vitamin D are fat- or water-soluble nutrients.\n\n" + NOTES, None),
+    ("Hepatitis B and Group C exposures need a clinical examination; the answer is a clinical decision.", None),
+    ("The best option is a combination; the correct answer is a matter of judgement.\n\n" + NOTES, None),
+    ("The correct letter is a placeholder here.", None),
+    ("Type A behaviour raises risk. Confidence: moderate.", None),
+])
+def test_extract_choice_keeps_false_positives_out(text, expected):
+    assert extract_choice(text, 4) == expected
+
+
+def test_extract_choice_ignores_letters_beyond_the_option_count():
+    for text in ("Answer: Option E", "The correct answer is choice (F).", "Therefore, option E is correct.",
+                 "We select **Option E**.", "Correct letter: **E**", "**E**\n\n" + NOTES):
+        assert extract_choice(text, 4) is None
+    assert extract_choice("Answer: Option E", 10) == "E"
+    assert extract_choice("The correct answer is choice (F).", 10) == "F"
+    assert extract_choice("**E**\n\n" + NOTES, 10) == "E"
+    assert extract_choice("Option E is the best answer.\n\nAnswer: Option B", 4) == "B"
+
+
+def test_extract_choice_letter_line_needs_short_notes_after_it():
+    long_note = "This is general information about the condition and its usual course. " * 6
+    assert extract_choice("**B**\n\n" + long_note, 4) is None  # a paragraph after it: not a final answer
+    assert extract_choice("**B**\n\nConfidence: low\nNote: one.\nNote: two.\nNote: three.", 4) is None  # too far up
+    assert extract_choice("**B**\n\nOn reflection: C. Confidence: low", 4) == "C"  # a note naming another letter
+    assert extract_choice("**B**\n\nThis fits the findings in option D.", 4) == "D"
+    assert extract_choice("**B**\n\nA\n\nConfidence: low", 4) == "A"  # the last letter line wins
+
+
+def test_distillation_verification_reads_option_endings():
+    task = Task("1", "q", "s", {"type": "mcq", "answer": "b"})
+    assert verify(task, "Reasoning.\n\nAnswer: Option B\n\n" + NOTES) is True
+    assert verify(task, "Option B is wrong because of the dose.\n\nAnswer: C\n\n" + NOTES) is False
+    assert verify(task, "Option B is incorrect because of the dose.\n\n" + NOTES) is False
+
+
 def test_extract_yes_no_bold_answer():
     assert extract_yes_no("**Answer:** no. Larger trials could still say yes.") == "no"
 
