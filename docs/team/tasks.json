@@ -273,7 +273,7 @@
   {
    "id": "A18",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "3D con Blender y juegos con Godot",
    "depends": [],
@@ -511,7 +511,7 @@
   {
    "id": "M9",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "modelos",
    "title": "Router con los 13 especialistas",
    "depends": [

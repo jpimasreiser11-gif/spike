@@ -92,6 +92,17 @@ def test_router_eval_dev2_set():
     assert min(sum(v) / len(v) for v in per.values()) >= 0.7
 
 
+def test_router_eval_blind_holdout_reported():
+    # 130 requests written on 2026-10-26 by someone who never saw the keywords, sealed while the vocabulary was tuned
+    # and scored once afterwards (0.46 before, 0.89 after). Never tune on it: this guards against regressions only.
+    router = LexicalRouter(CATALOG)
+    rows = [json.loads(line) for line in Path("evals/data/router_holdout.jsonl").read_text(encoding="utf-8").splitlines()]
+    primary = sum(router.route(r["query"]).specialists[0] in r["labels"] for r in rows)
+    exact = sum(set(router.route(r["query"]).specialists) == set(r["labels"]) for r in rows)
+    print(f"router holdout n={len(rows)} primary={primary / len(rows):.2f} exact={exact / len(rows):.2f}")
+    assert len(rows) == 130 and primary >= 116 and exact >= 90
+
+
 def test_router_keeps_chitchat_and_general_questions_with_core():
     # The wide vocabulary must not pull everyday requests away from core (none of these has a domain to own).
     router = LexicalRouter(CATALOG)

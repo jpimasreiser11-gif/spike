@@ -13,7 +13,7 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   request with explicit scales; external providers (OpenAI-compatible, Anthropic, Gemini, DeepSeek, Ollama,
   LM Studio and others) with the same instructions and tools. Paid providers stay blocked until allowed; keys in
   the OS keychain.
-- Orchestrator: lexical router (0.92 on its original test split; 0.46 on a set written blind later, see STATUS), LLM plan only for multi-domain requests,
+- Orchestrator: lexical router (0.89 on 130 requests written blind, measured; see STATUS), LLM plan only for multi-domain requests,
   dependency graph merged by Core.
 - `spike tune` measures threads and KV cache on the user's machine; `spike bench` records hardware and build.
 - Measured speed: 16 GB x86 4-core CPU-only 6.2 tok/s at 1K context, 5.1 at 8K; Apple M4 Max 82 tok/s; 3.6 GiB
@@ -85,6 +85,12 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Desktop launcher and first-run model wizard with resumable, SHA-256-checked downloads; installer candidates
   (.dmg, .exe, AppImage) built by a manual workflow and never published automatically. (I1, I2, Codex)
 - Release readiness gate that refuses simulated or stale evidence, and a separate launch video project. (Codex)
+- Router: about 3,850 Spanish and English domain keywords, threshold 2.0 and `multi_ratio` 0.75, so requests
+  without the old hand-picked keywords no longer fall back to Core: 0.46 to 0.89 on a blind holdout of 130
+  requests; still about 1 ms per route. (M9)
+- Blender and Godot 4 with the programs you already have (SPIKE never downloads them): the Code specialist
+  renders a 3D scene to a small preview and scaffolds and checks a Godot game headless; each run asks first,
+  stays in the workspace and follows the sandbox setting. Tested with fake programs only. (A18)
 - Fixes: portable benchmark paths and Windows project cleanup; the browser tests wait for the end of each
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 

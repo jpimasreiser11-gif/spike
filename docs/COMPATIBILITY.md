@@ -31,12 +31,6 @@ Configuration is not a passing run or a measurement with real weights. Dynamic r
 
 Only explicitly measured evidence rows and tables under “Measured with real weights” in STATUS.md.
 
-| Area | Evidence | How to reproduce |
-|---|---|---|
-| Router accuracy, held-out test split (never used for tuning) | **measured**: primary 46/50 = 0.92 (Wilson 95 % CI 0.81–0.97); exact set 40/50 = 0.80 (0.67–0.89); dev 22/24. **A set of 130 questions written blind on 2026-10-26 (10 per specialist, half Spanish; never used for tuning) gives primary 60/130 = 0.46 (0.38–0.55), exact 48/130 = 0.37: the original split was written alongside the keywords and overstated it; requests with no keyword fall back to Core. Being fixed (M9)** | `pytest -s tests/test_core.py -k router_eval` |
-
-Source: [STATUS.md](STATUS.md#verified-with-evidence).
-
 **Speed and memory** (`spike bench`, 128 generated tokens, median of 3 runs):
 
 | backend | context | TTFT | prompt tok/s | generation tok/s | peak RSS (MiB = 1024² bytes) |

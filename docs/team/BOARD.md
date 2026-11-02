@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 6 | 3 | 0 | 0 | 7 | 0 | 16 |
+| Claude | 6 | 1 | 0 | 0 | 9 | 0 | 16 |
 | Codex | 0 | 1 | 0 | 0 | 15 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **13** | **5** | **0** | **0** | **23** | **0** | **41** |
+| **Total** | **13** | **3** | **0** | **0** | **25** | **0** | **41** |
 
 ## Fase: equipo
 
@@ -36,7 +36,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A14 | Codex | hecha | Audio y subtítulos | A13 |
 | A15 | Codex | hecha | Investigación: notebook, Paper Rebuilder y mapa de contradicciones | - |
 | A16 | Claude | en curso | Geo, grabador del navegador y explorador de arquitectura | - |
-| A18 | Claude | en curso | 3D con Blender y juegos con Godot | - |
+| A18 | Claude | hecha | 3D con Blender y juegos con Godot | - |
 | A4 | Claude | hecha | Aislamiento del sistema para python y run_command | - |
 | A6 | Claude | hecha | Respuestas fiables: verificado / hipótesis / sin comprobar y citas comprobadas | - |
 | A7 | Claude | hecha | Memoria: carpetas elegidas, glosario, progreso del tutor y grafo | - |
@@ -56,7 +56,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M6 | Codex | hecha | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
 | M7 | Claude | pendiente | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
-| M9 | Claude | en curso | Router con los 13 especialistas | M8 |
+| M9 | Claude | hecha | Router con los 13 especialistas | M8 |
 
 ## Fase: instalador
 
