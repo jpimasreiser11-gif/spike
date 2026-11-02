@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -31,6 +33,42 @@ def _sha(path: Path) -> str | None:
     return digest.hexdigest()
 
 
+def _dedupe_paths(paths: list[Path]) -> list[Path]:
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for raw in paths:
+        norm = os.path.abspath(raw)
+        if norm not in seen:
+            seen.add(norm)
+            unique.append(Path(norm))
+    return unique
+
+
+def _expected_sha(entry: dict[str, Any]) -> str | None:
+    if "after" in entry:
+        return entry["after"]
+    return entry.get("before") if entry.get("existed") else None
+
+
+def _path_blocked(path: Path) -> bool:
+    if (path.exists() or path.is_symlink()) and not path.is_file():
+        return True
+    return any((anc.exists() or anc.is_symlink()) and not anc.is_dir() for anc in path.parents)
+
+
+def _atomic_restore(backup: Path, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix=".spike-undo-", dir=target.parent)
+    os.close(fd)
+    tmp_path = Path(tmp_name)
+    try:
+        shutil.copy2(backup, tmp_path)
+        os.replace(tmp_path, target)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+
 class Checkpoints:
     def __init__(self, store: Store, root: Path):
         self.store = store
@@ -39,23 +77,30 @@ class Checkpoints:
 
     def before(self, conversation_id: str, call_id: str, tool: str, paths: list[Path]) -> str | None:
         """Copy each target as it is now (or note that it does not exist yet); returns the checkpoint id."""
-        if not paths:
+        unique = _dedupe_paths(paths)
+        if not unique:
             return None
         cid = uuid.uuid4().hex
         folder = self.root / cid
         files: list[dict[str, Any]] = []
-        for i, path in enumerate(paths):
-            entry: dict[str, Any] = {"path": str(path), "existed": path.is_file(), "before": None, "copy": None}
-            if path.is_file():
-                if path.stat().st_size > MAX_FILE_BYTES:
-                    entry["too_big"] = True
-                else:
-                    folder.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(path, folder / f"{i}.bin")
-                    entry["copy"], entry["before"] = f"{i}.bin", _sha(path)
-            files.append(entry)
-        self.store.save_checkpoint({"id": cid, "conversation_id": conversation_id, "call_id": call_id, "tool": tool,
-                                    "created": time.time(), "undone": None, "files": files})
+        try:
+            for i, path in enumerate(unique):
+                existed = path.is_file()
+                entry: dict[str, Any] = {"path": str(path), "existed": existed, "before": None, "copy": None}
+                if existed:
+                    if path.stat().st_size > MAX_FILE_BYTES:
+                        entry["too_big"] = True
+                    else:
+                        folder.mkdir(parents=True, exist_ok=True)
+                        backup = folder / f"{i}.bin"
+                        shutil.copy2(path, backup)
+                        entry["copy"], entry["before"] = f"{i}.bin", _sha(backup)
+                files.append(entry)
+            self.store.save_checkpoint({"id": cid, "conversation_id": conversation_id, "call_id": call_id, "tool": tool,
+                                        "created": time.time(), "undone": None, "files": files})
+        except Exception:
+            shutil.rmtree(folder, ignore_errors=True)
+            raise
         return cid
 
     def after(self, checkpoint_id: str) -> None:
@@ -76,14 +121,28 @@ class Checkpoints:
             raise CheckpointError(400, "this step was already undone")
         if any(e.get("too_big") for e in cp["files"]):
             raise CheckpointError(400, "a file was too big to keep a copy of, so this step cannot be undone")
-        changed = [e["path"] for e in cp["files"] if _sha(Path(e["path"])) != e.get("after")]
+        folder = self.root / checkpoint_id
+        backups: dict[str, Path] = {}
+        for entry in cp["files"]:
+            if entry.get("existed"):
+                copy_name = entry.get("copy")
+                if (not isinstance(copy_name, str) or "/" in copy_name or "\\" in copy_name
+                        or copy_name in ("", ".", "..")):
+                    raise CheckpointError(400, "checkpoint backup copy is missing or invalid")
+                backup = folder / copy_name
+                if not backup.is_file() or not isinstance(entry.get("before"), str) or _sha(backup) != entry["before"]:
+                    raise CheckpointError(400, "checkpoint backup copy is missing or corrupted")
+                backups[entry["path"]] = backup
+        blocked = [e["path"] for e in cp["files"] if _path_blocked(Path(e["path"]))]
+        if blocked:
+            raise CheckpointError(409, "a directory or file blocks restoring these paths", blocked)
+        changed = [e["path"] for e in cp["files"] if _sha(Path(e["path"])) != _expected_sha(e)]
         if changed and not force:
             raise CheckpointError(409, "these files changed after this step", changed)
         for entry in cp["files"]:
             path = Path(entry["path"])
-            if entry["existed"]:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(self.root / checkpoint_id / entry["copy"], path)
+            if entry.get("existed"):
+                _atomic_restore(backups[entry["path"]], path)
             elif path.is_file():
                 path.unlink()
         self.store.update_checkpoint(checkpoint_id, undone=time.time())
