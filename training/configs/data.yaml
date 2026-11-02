@@ -1,18 +1,33 @@
-# BLOCKED by the license review of 2026-11-02 (M7). The human-written source this recipe was built on,
-# WikiSQL (no license on the Hub, a loading script that current `datasets` cannot run, and tables from
-# Wikipedia under CC BY-SA), was rejected,
-# and no candidate on the Hub under a license on the training allowlist was found (docs/TRAINING.md lists
-# what was probed). It needs hand-written seed tasks and verified distillation from an open teacher, as
-# marketing does; until then prepare.py stops with no domain data. Hyperparameters and thresholds are hypotheses.
-# The `data` acceptance suite is empty until an eval set passes the review (evals/suites.yaml).
+# Spike Data adapter recipe. The human-written source this recipe was first built on, WikiSQL (no license on the Hub, a
+# loading script that current `datasets` cannot run, and tables from Wikipedia under CC BY-SA), was rejected by the license
+# review of 2026-11-02 (M7), and no candidate under a license on the training allowlist was found (docs/TRAINING.md lists
+# what was probed). The domain data is therefore produced by verified distillation from an open teacher. No text written by
+# an AI assistant may become training data, so the recipe has no seed prompts: it has short topic labels
+# (training/topics/data.yaml) and the teacher writes, for each, a small SQLite schema with INSERT rows, a question and the
+# query. A row is kept only when the schema and the query run in an in-memory sqlite3 database (time limit, no ATTACH, no
+# extensions), the result is not empty, a second independent teacher answer to the same schema and question returns the
+# same result set, and the rubric passes. The row is the schema and question, then the query with a short explanation,
+# all written by the teacher. Python and pandas are not part of this recipe: running model-written Python needs a real
+# sandbox. Nothing has been distilled or trained yet: the hyperparameters and thresholds are hypotheses.
+# The `data` suite is the 40 held-out questions of evals/data/data_eval.jsonl (written by hand) scored by execution; with so
+# few items a pass at p <= 0.05 needs a large gain (docs/TRAINING.md, 2d).
 specialist: data
 base_model: Qwen/Qwen3.5-4B
 hypothesis: >
-  Human-authored data examples may improve held-out data accuracy without degrading general knowledge.
+  Verified distillation from a stronger open teacher on SQLite exercises the teacher wrote from topic labels (schema, rows,
+  question and query, kept only when execution and a second answer agree) improves execution accuracy on held-out
+  questions over databases the training data never mentions, without degrading general knowledge.
 acceptance:
   primary: {suite: data, min_gain_points: 3.0, max_p_value: 0.05}
   regression: {suite: general, max_drop_points: 1.5}
 domain_sources: []
+distill:
+  enabled: true
+  teacher: {repo: Qwen/Qwen3.6-35B-A3B, served_as: mlx-community/Qwen3.6-35B-A3B-4bit}   # license read from the Hub first
+  topics: training/topics/data.yaml       # labels are instructions to the teacher only; none is ever in a training row
+  kinds: {sql: 1}
+  expand_to: 4000                         # exercises the teacher writes from the labels; fewer rows are kept
+  min_score: 8
 replay:
   ratio: 0.3
   sources:
@@ -20,6 +35,7 @@ replay:
 eval:
   max_tokens: 2048
 decontaminate_against: [mmlu-pro]
+decontaminate_files: [evals/data/data_eval.jsonl]      # held-out questions written by hand, never by the teacher
 valid_fraction: 0.02
 seed: 0
 train:

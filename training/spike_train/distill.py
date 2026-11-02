@@ -5,7 +5,9 @@ domain tasks. Answers are kept only when they can be verified:
   * tasks with a gold label (MCQ, yes/no, numeric) must match it;
   * open-ended tasks must pass a rubric review by the teacher (score >= threshold). That is the teacher grading
     its own answer, so they are never counted as verified (meta.verified stays false). There is no cap on their
-    share: one distillation run takes either seeds (all open-ended) or gold-labelled questions (all verified).
+    share: one distillation run takes either tasks the teacher wrote (from topic labels, or from seeds a human wrote;
+    training/distill.py, spike_train/seeding.py) or gold-labelled questions (all verified). The teacher-written
+    multiple-choice and SQL tasks have stricter checks of their own (spike_train/synth.py).
 The teacher runs behind any OpenAI-compatible endpoint (mlx_lm.server, llama-server, vLLM).
 """
 
@@ -101,6 +103,11 @@ class Teacher:
         await self.client.aclose()
 
 
+def with_reasoning(content: str, reasoning: str, keep: bool, max_chars: int = 6000) -> str:
+    """The answer, with the teacher's reasoning in <think> tags before it when `keep` and it is not too long."""
+    return f"<think>\n{reasoning}\n</think>\n\n{content}" if keep and reasoning and len(reasoning) <= max_chars else content
+
+
 async def distill_task(teacher: Teacher, task: Task, samples: int, min_score: int, keep_reasoning: bool,
                        max_reasoning_chars: int = 6000) -> dict[str, Any] | None:
     for _ in range(samples):
@@ -113,12 +120,9 @@ async def distill_task(teacher: Teacher, task: Task, samples: int, min_score: in
             continue
         if verdict is None and await teacher.review(task, content) < min_score:
             continue
-        answer = content
-        if keep_reasoning and reasoning and len(reasoning) <= max_reasoning_chars:
-            answer = f"<think>\n{reasoning}\n</think>\n\n{content}"
         return {"messages": [
             {"role": "system", "content": task.system},
             {"role": "user", "content": task.prompt},
-            {"role": "assistant", "content": answer},
+            {"role": "assistant", "content": with_reasoning(content, reasoning, keep_reasoning, max_reasoning_chars)},
         ], "meta": {"task_id": task.id, "verified": verdict is True, "source": "distill"}}
     return None

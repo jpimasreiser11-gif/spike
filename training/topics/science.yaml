@@ -1,0 +1,127 @@
+# Topic labels for Spike Science (distill.topics of training/configs/science.yaml; spike_train/seeding.py).
+provenance: >
+  Short topic labels (plain noun phrases) chosen by an AI assistant (Claude) at the maintainer's request as a syllabus
+  outline of physics, chemistry and biology at secondary and undergraduate level. They are instructions to the open teacher
+  and nothing else: the teacher writes every multiple-choice and explanation task from them and then the answers; no label
+  is copied into a task, an answer or a training row (tests/test_distill_topics.py). The held-out questions of
+  evals/data/science_eval.jsonl are about other topics: tests/test_heldout_evals.py keeps the two sets disjoint.
+groups:
+  - context: secondary school physics
+    labels:
+      - uniform acceleration
+      - projectile motion
+      - Newton's laws of motion
+      - friction on inclined planes
+      - work and kinetic energy
+      - conservation of momentum
+      - simple harmonic motion
+      - wave speed and frequency
+      - sound and the Doppler effect
+      - refraction of light
+      - thin lenses
+      - heat transfer and specific heat
+      - ideal gas law
+      - Ohm's law and series circuits
+      - parallel circuits
+      - electric field and charge
+      - magnetic force on moving charges
+      - electromagnetic induction
+      - radioactive decay and half-life
+  - context: undergraduate physics
+    labels:
+      - Lagrangian mechanics
+      - rotational dynamics and moment of inertia
+      - orbital mechanics and Kepler's laws
+      - special relativity kinematics
+      - Gauss's law
+      - RC circuits
+      - Maxwell's equations
+      - blackbody radiation
+      - photoelectric effect
+      - particle in a box
+      - quantum harmonic oscillator
+      - atomic spectra and the Bohr model
+      - entropy and the second law
+      - Carnot engines
+      - Maxwell-Boltzmann distribution
+      - diffraction and interference
+      - polarization of light
+      - nuclear binding energy
+      - semiconductors and band structure
+      - fluid dynamics and Bernoulli's principle
+  - context: secondary school chemistry
+    labels:
+      - atomic structure and the periodic table
+      - ionic and covalent bonding
+      - mole concept and stoichiometry
+      - limiting reagents
+      - balancing redox equations
+      - acids, bases and pH
+      - buffer solutions
+      - reaction rates and catalysts
+      - chemical equilibrium and Le Chatelier's principle
+      - gas laws
+      - enthalpy and Hess's law
+      - electrochemical cells
+      - solubility and precipitation
+      - molecular geometry and VSEPR
+      - intermolecular forces
+      - calorimetry
+      - colligative properties
+  - context: undergraduate chemistry
+    labels:
+      - nucleophilic substitution mechanisms
+      - elimination reactions
+      - stereochemistry and chirality
+      - electrophilic aromatic substitution
+      - carbonyl chemistry
+      - NMR and IR spectroscopy
+      - molecular orbital theory
+      - rate laws and reaction mechanisms
+      - Gibbs free energy and spontaneity
+      - Nernst equation and electrode potentials
+      - coordination compounds
+      - titration curves
+      - chromatography
+      - polymer chemistry
+  - context: secondary school biology
+    labels:
+      - cell structure and organelles
+      - photosynthesis
+      - cellular respiration
+      - DNA replication
+      - protein synthesis
+      - mitosis and meiosis
+      - Mendelian genetics
+      - natural selection
+      - ecosystems and energy flow
+      - the human circulatory system
+      - the nervous system and reflexes
+      - the immune response
+      - enzymes and activation energy
+      - osmosis and diffusion
+      - homeostasis
+      - plant hormones and tropisms
+      - food webs
+      - vaccines
+  - context: undergraduate biology
+    labels:
+      - gene regulation in prokaryotes
+      - the lac operon
+      - eukaryotic transcription
+      - PCR and gel electrophoresis
+      - CRISPR genome editing
+      - Hardy-Weinberg equilibrium
+      - genetic drift and gene flow
+      - phylogenetic trees
+      - signal transduction
+      - membrane transport and potentials
+      - action potentials
+      - muscle contraction
+      - hormonal feedback loops
+      - metabolic pathways and regulation
+      - population growth models
+      - symbiosis and coevolution
+      - bacterial growth and antibiotic resistance
+      - apoptosis and cell cycle control
+      - epigenetics

@@ -3,14 +3,20 @@
     # 1. serve the teacher locally (36 GB Mac), e.g.
     mlx_lm.server --model mlx-community/Qwen3.6-35B-A3B-4bit --port 8090
     # 2. distill
-    python training/distill.py training/configs/marketing.yaml --teacher-url http://127.0.0.1:8090/v1 \
-        --teacher-model mlx-community/Qwen3.6-35B-A3B-4bit --out training/data/marketing/distilled.jsonl
+    python training/distill.py training/configs/science.yaml --out training/data/science/distilled.jsonl
 
-Tasks come from `distill.seeds` (expanded by the teacher to `distill.expand_to` variants) or from
-`distill.tasks_from` (training-split questions with gold answers, verified by exact match).
-The teacher's Hub license must be on the training allowlist (spike_train/licenses.py), checked before any task is
-sent; every row records the teacher's repo and license, and prepare.py checks them again. --teacher-repo names the
-Hub repo when the served model name is only an alias or a local path.
+The recipe's `distill` block names exactly one source of tasks (spike_train/seeding.py), because no text written by an
+AI assistant may become training data:
+  distill.topics      a file of short topic labels with a provenance header. The open teacher writes every task from
+                      them (`distill.kinds` says which: open, explanation, mcq, sql) and then the answers; a label is an
+                      instruction to the teacher and never appears in a row. Checks per kind: spike_train/synth.py
+  distill.seeds       example tasks the teacher expands to `distill.expand_to` variants; refused unless the file declares
+                      a human author in its first line
+  distill.tasks_from  training-split questions with gold answers, verified by exact match
+The teacher's Hub license must be on the training allowlist (spike_train/licenses.py), checked before any task is sent;
+every row records the teacher's repo and license and how its tasks were made, and prepare.py checks them again. The
+recipe's `distill.teacher` names the repo (and the name it is served under); --teacher-model and --teacher-repo override it,
+and a different --teacher-model with no --teacher-repo is licensed under its own name, never under the recipe's.
 """
 
 from __future__ import annotations
@@ -28,19 +34,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "training"))
 sys.path.insert(0, str(ROOT))
 
-from spike_train import licenses  # noqa: E402
+from spike_train import licenses, seeding  # noqa: E402
 from spike_train.data import LETTERS, dedupe, mcq_prompt  # noqa: E402
 from spike_train.distill import Task, Teacher, distill_task  # noqa: E402
+from spike_train.synth import MAX_STALLS, PER_CALL, generate  # noqa: E402
+
+DEFAULT_TEACHER = "mlx-community/Qwen3.6-35B-A3B-4bit"
 
 EXPAND = (
     "Here are example tasks that real users bring to a {domain} expert:\n\n{examples}\n\n"
     "Write {n} NEW tasks of the same kind: realistic, specific (numbers, context, constraints), varied in "
     "difficulty, industry and language (about 30% in Spanish). One task per line, no numbering, no answers."
 )
-
-
-PER_CALL = 20      # tasks asked of the teacher per call
-MAX_STALLS = 5     # consecutive calls that add nothing new before the teacher is judged to be out of ideas
 
 
 async def expand_seeds(teacher: Teacher, seeds: list[str], domain: str, target: int, seed: int) -> list[str]:
@@ -87,6 +92,18 @@ def gold_tasks(entry: dict, registry: dict, system: str) -> list[Task]:
     return tasks
 
 
+def resolve_teacher(args: argparse.Namespace, dcfg: dict) -> tuple[str, str]:
+    """(the name the teacher is served under, the Hub repo whose license governs its outputs). The recipe's
+    `distill.teacher` supplies both unless --teacher-model names another model; then, without --teacher-repo, the
+    repo is that model's own name."""
+    named = dcfg.get("teacher") or {}
+    if named and not (isinstance(named, dict) and isinstance(named.get("repo"), str)):
+        raise SystemExit("distill.teacher must be {repo: <Hub repo>, served_as: <name the server uses>}")
+    model = args.teacher_model or named.get("served_as") or named.get("repo") or DEFAULT_TEACHER
+    recipe_model = args.teacher_model is None
+    return model, args.teacher_repo or (named.get("repo") if recipe_model else None) or model
+
+
 async def run(args: argparse.Namespace) -> int:
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
@@ -94,44 +111,58 @@ async def run(args: argparse.Namespace) -> int:
 
     spec = load_catalog().get(cfg["specialist"])
     dcfg = cfg.get("distill") or {}
-    repo = args.teacher_repo or args.teacher_model
-    try:  # before any task is sent: the teacher's terms apply to everything it writes
+    try:  # before any task is sent
+        plan = seeding.resolve(dcfg, ROOT)
+    except seeding.SeedingError as exc:
+        raise SystemExit(str(exc)) from exc
+    model, repo = resolve_teacher(args, dcfg)
+    try:  # the teacher's terms apply to everything it writes
         teacher_license = licenses.teacher_license(repo)
     except ValueError as exc:
         raise SystemExit(f"refusing to distill: {exc} (--teacher-repo names the Hub repo of the weights)") from exc
     provenance = {"teacher": repo, "teacher_license": teacher_license}
-    teacher = Teacher(args.teacher_url, args.teacher_model, concurrency=args.concurrency)
+    teacher = Teacher(args.teacher_url, model, concurrency=args.concurrency)
+    target = args.limit or dcfg.get("expand_to", 1000)
     try:
-        if dcfg.get("seeds"):
-            seeds = [json.loads(line)["prompt"] for line in (ROOT / dcfg["seeds"]).read_text(encoding="utf-8").splitlines() if line.strip()]
-            prompts = await expand_seeds(teacher, seeds, spec.domain, args.limit or dcfg.get("expand_to", 1000), cfg.get("seed", 0))
-            tasks = [Task(id=f"{spec.id}-{i}", prompt=p, system=spec.system_prompt) for i, p in enumerate(prompts)]
-        elif dcfg.get("tasks_from"):
-            tasks = gold_tasks(dcfg["tasks_from"], registry, spec.system_prompt)
-            tasks = tasks[: args.limit] if args.limit else tasks
+        results: list[dict] = []
+        summary: dict = {}
+        if plan.mode == "topics":
+            try:
+                results, kept_by_kind, dropped = await generate(
+                    teacher, spec, list(plan.topics.items), dcfg.get("kinds") or {"open": 1}, target, cfg.get("seed", 0),
+                    min_score=dcfg.get("min_score", 8), samples=args.samples, keep_reasoning=args.keep_reasoning,
+                    progress=lambda message: print(message, file=sys.stderr))
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
+            tasks = range(target)
+            summary = {"kept_by_kind": dict(kept_by_kind), "dropped": dict(sorted(dropped.items()))}
         else:
-            raise SystemExit("config has no distill.seeds or distill.tasks_from")
-        print(f"{len(tasks)} tasks", file=sys.stderr)
-        results = []
-        kept = verified = 0
-        for i in range(0, len(tasks), 32):
-            batch = await asyncio.gather(*[
-                distill_task(teacher, t, samples=args.samples, min_score=dcfg.get("min_score", 8),
-                             keep_reasoning=args.keep_reasoning) for t in tasks[i:i + 32]])
-            for r in batch:
-                if r:
-                    r["meta"].update(provenance)
-                    results.append(r)
-                    kept += 1
-                    verified += r["meta"]["verified"]
-            print(f"  {i + len(batch)}/{len(tasks)} processed, {kept} kept", file=sys.stderr)
+            if plan.mode == "seeds":
+                prompts = await expand_seeds(teacher, list(plan.seeds.prompts), spec.domain, target, cfg.get("seed", 0))
+                tasks = [Task(id=f"{spec.id}-{i}", prompt=p, system=spec.system_prompt) for i, p in enumerate(prompts)]
+            else:
+                tasks = gold_tasks(plan.gold, registry, spec.system_prompt)
+                tasks = tasks[: args.limit] if args.limit else tasks
+            print(f"{len(tasks)} tasks", file=sys.stderr)
+            kept = 0
+            for i in range(0, len(tasks), 32):
+                batch = await asyncio.gather(*[
+                    distill_task(teacher, t, samples=args.samples, min_score=dcfg.get("min_score", 8),
+                                 keep_reasoning=args.keep_reasoning) for t in tasks[i:i + 32]])
+                results += [r for r in batch if r]
+                kept = len(results)
+                print(f"  {i + len(batch)}/{len(tasks)} processed, {kept} kept", file=sys.stderr)
+        for r in results:
+            r["meta"].update(provenance)
+            r["meta"]["seeding"] = plan.record
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
         with out.open("w", encoding="utf-8") as f:
             for r in dedupe(results):
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        print(json.dumps({"tasks": len(tasks), "kept": kept, "verified_against_gold": verified,
-                          "teacher": args.teacher_model, **provenance, "out": str(out)}, indent=2))
+        print(json.dumps({"tasks": len(tasks), "kept": len(results),
+                          "verified_against_gold": sum(r["meta"]["verified"] for r in results),
+                          "teacher": model, **provenance, "seeding": plan.record, **summary, "out": str(out)}, indent=2))
     finally:
         await teacher.aclose()
     return 0
@@ -141,9 +172,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--teacher-url", default="http://127.0.0.1:8090/v1")
-    ap.add_argument("--teacher-model", default="mlx-community/Qwen3.6-35B-A3B-4bit")
+    ap.add_argument("--teacher-model", help=f"name the server uses (default: the recipe's distill.teacher.served_as, else "
+                                            f"{DEFAULT_TEACHER})")
     ap.add_argument("--teacher-repo", help="Hugging Face repo whose license governs the teacher's outputs "
-                                           "(default: --teacher-model, which is a repo id for mlx_lm.server)")
+                                           "(default: the recipe's distill.teacher.repo, else --teacher-model, which is a "
+                                           "repo id for mlx_lm.server)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--samples", type=int, default=2, help="attempts per task (rejection sampling)")
     ap.add_argument("--concurrency", type=int, default=2)

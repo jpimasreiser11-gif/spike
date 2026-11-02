@@ -609,7 +609,7 @@ adapter through llama-server with explicit scales. See [TRAINING.md](TRAINING.md
 ```
 spike/          Python package (server, orchestrator, agent, providers, tools, desktop, runtime, store, CLI, bench)
 web/            React + Vite + TypeScript app (built into the Python wheel)
-training/       data preparation, distillation, mlx-lm training, adapter export, configs, seeds
+training/       data preparation, distillation, mlx-lm training, adapter export, configs, topic labels
 evals/          evaluation suites, runner, pairwise judge (the router set is spike/evolution/router_labeled.jsonl)
 tests/          pytest: unit, API, real llama-server integration, official-converter export
 docs/           plan, research, architecture, status, ADRs, audits

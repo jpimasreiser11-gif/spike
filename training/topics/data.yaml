@@ -1,0 +1,84 @@
+# Topic labels for Spike Data (distill.topics of training/configs/data.yaml; spike_train/seeding.py).
+provenance: >
+  Short labels (plain noun phrases) for the kind of data a SQL exercise is about, chosen by an AI assistant (Claude) at the
+  maintainer's request. They are instructions to the open teacher and nothing else: the teacher writes every SQLite schema,
+  its rows, the question and the query from them; no label is copied into a task, an answer or a training row
+  (tests/test_distill_topics.py). The five databases of evals/data/data_eval.jsonl are about other subjects:
+  tests/test_heldout_evals.py keeps the two sets disjoint.
+groups:
+  - context: retail and commerce
+    labels:
+      - online bookstore orders
+      - retail store inventory
+      - coffee shop sales
+      - supermarket loyalty points
+      - toy store sales
+      - wine cellar inventory
+      - subscription billing
+      - warehouse shipments
+      - laundry service orders
+      - art gallery sales
+      - orchard fruit sales
+      - bakery daily production
+  - context: health and education
+    labels:
+      - hospital outpatient appointments
+      - pharmacy prescriptions
+      - vaccination clinic records
+      - dental practice appointments
+      - university course enrollment
+      - student exam results
+      - online course progress
+      - language school classes
+      - school library loans
+      - laboratory sample tracking
+  - context: travel and transport
+    labels:
+      - airline flight bookings
+      - hotel room reservations
+      - car rental fleet
+      - taxi trip records
+      - public transport ridership
+      - parking garage tickets
+      - electric vehicle charging sessions
+      - hotel housekeeping schedules
+  - context: culture and leisure
+    labels:
+      - football league fixtures
+      - music streaming playlists
+      - movie rental catalog
+      - podcast episode downloads
+      - video game player scores
+      - museum exhibit visitors
+      - concert venue bookings
+      - event ticket sales
+      - radio station playlists
+      - board game collection
+      - restaurant table bookings
+      - recipe collection ingredients
+      - photography studio sessions
+      - gym membership visits
+  - context: operations and administration
+    labels:
+      - employee payroll records
+      - customer support tickets
+      - software bug tracker
+      - project task assignments
+      - job applications tracking
+      - bank account transactions
+      - insurance claims
+      - charity donation records
+      - volunteer shift rosters
+      - construction site inspections
+      - telecom customer plans
+      - solar panel installations
+      - newsletter subscribers
+      - tool library checkouts
+      - real estate property listings
+  - context: nature and agriculture
+    labels:
+      - farm crop harvests
+      - weather station readings
+      - zoo animal care logs
+      - wildlife sighting reports
+      - pet adoption shelter

@@ -1,9 +1,12 @@
-# Spike Marketing adapter recipe. No sufficiently large, permissively licensed marketing corpus was found,
-# so the domain data is produced by verified teacher distillation from hand-written seed tasks.
+# Spike Marketing adapter recipe. No sufficiently large, permissively licensed marketing corpus was found, so the domain
+# data is produced by teacher distillation. No text written by an AI assistant may become training data, so the recipe has
+# no seed prompts: it has short topic labels (training/topics/marketing.yaml), the open teacher writes every task from
+# them and then the answers (rubric-filtered), and no label is ever in a training row.
 specialist: marketing
 base_model: Qwen/Qwen3.5-4B
 hypothesis: >
-  Rubric-filtered distillation from a stronger open teacher on realistic marketing tasks improves
+  Rubric-filtered distillation from a stronger open teacher on realistic marketing tasks (written by the teacher from
+  topic labels) improves
   specificity and actionability of the 4B model's marketing answers (pairwise judged win rate > 60 %)
   without degrading general knowledge.
 acceptance:
@@ -12,8 +15,10 @@ acceptance:
 domain_sources: []
 distill:
   enabled: true
-  seeds: training/seeds/marketing.jsonl
-  expand_to: 6000                     # teacher writes new task variants from the seeds, deduplicated
+  teacher: {repo: Qwen/Qwen3.6-35B-A3B, served_as: mlx-community/Qwen3.6-35B-A3B-4bit}   # license read from the Hub first
+  topics: training/topics/marketing.yaml   # labels are instructions to the teacher only; none is ever in a training row
+  kinds: {open: 1}
+  expand_to: 6000                     # tasks the teacher writes from the labels, deduplicated; fewer rows are kept
   min_score: 8
 replay:
   ratio: 0.35

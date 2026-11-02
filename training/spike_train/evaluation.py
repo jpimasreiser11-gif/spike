@@ -14,10 +14,12 @@ import socket
 import time
 from collections import defaultdict
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from typing import Any
 
 import httpx
 
+from spike_train import sqlsandbox
 from spike_train.data import (
     FORMATTERS,
     LETTERS,
@@ -47,10 +49,12 @@ class Item:
     id: str
     task: str
     prompt: str
-    kind: str  # mcq | yesno | numeric | amount | span | spans | literal
-    gold: str  # amount: a number; spans: 'a; b; c'
+    kind: str  # mcq | yesno | numeric | amount | span | spans | literal | sql
+    gold: str  # amount: a number; spans: 'a; b; c'; sql: the gold query
     n_options: int = 0
     alt: str = ""  # amount: a second accepted number (FinQA's rounded annotated answer)
+    schema: str = ""  # sql: the script that builds the database the question is asked about
+    ordered: bool = False  # sql: the gold query sorts its result, so the answer's row order counts
 
 
 def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | None:
@@ -98,6 +102,12 @@ def make_item(task: str, fmt: str, index: int, row: dict[str, Any]) -> Item | No
             return Item(item_id, task, prompt, "span", target.rsplit("Answer: ", 1)[-1])
         # A literal title match is a diagnostic only. Writing acceptance uses the existing pairwise evaluator.
         return Item(item_id, task, prompt, "literal", target)
+    if fmt in ("science_local", "sql_exec"):  # hand-written held-out files, rows made by spike_train/evalfiles.py
+        item_id = f"{task}/{row.get('id', index)}"
+        if fmt == "science_local":
+            return Item(item_id, task, row["prompt"], "mcq", row["answer"], len(row["options"]))
+        return Item(item_id, task, row["prompt"], "sql", row["gold_sql"], schema=row["schema"],
+                    ordered=sqlsandbox.has_order_by(row["gold_sql"]))
     if fmt == "finqa":  # gold-facts setting, see data.py
         qa = row.get("qa") or {}
         prompt, exe = finqa_prompt(row), qa.get("exe_ans")
@@ -136,7 +146,18 @@ def literal_answer(response: str) -> str:
     return (blocks[0] if len(blocks) == 1 else response).strip().replace("\r\n", "\n")
 
 
+@lru_cache(maxsize=512)
+def gold_result(schema: str, query: str) -> sqlsandbox.Result:
+    return sqlsandbox.run(schema, query)
+
+
 def score(item: Item, response: str) -> tuple[str | None, bool]:
+    if item.kind == "sql":  # executed, not compared as text: the same rows as the gold query on the same database
+        sql = sqlsandbox.extract_sql(response)
+        if sql is None:
+            return None, False
+        got, gold = sqlsandbox.run(item.schema, sql), gold_result(item.schema, item.gold)
+        return sql, got.ok and gold.ok and sqlsandbox.same_result(gold.rows, got.rows, item.ordered)
     if item.kind == "literal":
         parsed = literal_answer(response)
         return parsed or None, bool(parsed) and parsed == item.gold
