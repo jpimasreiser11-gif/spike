@@ -31,6 +31,8 @@ jobs:
           # shellcheck disable=SC2086
           python training/verify_sources.py ${NAMES:+--names $NAMES} --out sources-report.json || echo "some sources failed; see the report"
           pip freeze | grep -iE '^(datasets|huggingface.hub|httpx)==' > versions.txt
+      - name: The report in the log too (for reviewers who cannot download artifacts)
+        run: cat versions.txt sources-report.json
       - uses: actions/upload-artifact@v4
         with:
           name: sources-report

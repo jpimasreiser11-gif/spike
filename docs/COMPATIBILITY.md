@@ -26,6 +26,7 @@ Configuration is not a passing run or a measurement with real weights. Dynamic r
 | release.yml | build | ubuntu-24.04 | 3.12 |
 | release.yml | collect | ubuntu-24.04 | 3.12 |
 | release.yml | draft | ubuntu-24.04 | — |
+| sources.yml | evidence | ubuntu-24.04 | 3.13 |
 
 ## Measured evidence / Evidencia medida
 
