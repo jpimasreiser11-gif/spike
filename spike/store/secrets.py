@@ -35,16 +35,19 @@ class SecretStore:
 
     def _load(self) -> dict[str, str]:
         try:
-            return json.loads(self.fallback_path.read_text())
+            raw = json.loads(self.fallback_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return {}
+        if not isinstance(raw, dict):
+            return {}
+        return {k: v for k, v in raw.items() if isinstance(v, str)}
 
     def _save(self, data: dict[str, str]) -> None:
         self.fallback_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.fallback_path.with_suffix(".tmp")
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
-            json.dump(data, f)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
         os.replace(tmp, self.fallback_path)
         os.chmod(self.fallback_path, 0o600)
 
