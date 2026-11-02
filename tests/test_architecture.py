@@ -2,6 +2,7 @@
 found with Tarjan's strongly connected components, and a deterministic SVG with the cycles highlighted. Offline."""
 
 import json
+import os
 import re
 from pathlib import Path
 from xml.dom import minidom
@@ -280,11 +281,16 @@ def test_the_legend_fits_inside_a_small_picture(tmp_path, lang):
 
 
 def test_module_names_cannot_break_out_of_the_picture(tmp_path):
-    write(tmp_path, {"<script>alert(1)</script>.js": 'import "./&b&.js"', "&b&.js": ""})
+    if os.name == "nt":  # < > are not allowed in Windows file names; & is, and must still be escaped
+        write(tmp_path, {"&a&.js": 'import "./&b&.js"', "&b&.js": ""})
+    else:
+        write(tmp_path, {"<script>alert(1)</script>.js": 'import "./&b&.js"', "&b&.js": ""})
     graph = scan(tmp_path)
     assert len(graph.nodes) == 2
     svg = render_graph(graph, find_cycles(graph.nodes, graph.edges))
-    assert "<script" not in svg and "&lt;script&gt;" in svg
+    assert "&amp;b&amp;.js" in svg and "&b&" not in svg
+    if os.name != "nt":
+        assert "<script" not in svg and "&lt;script&gt;" in svg
     minidom.parseString(svg)
 
 
