@@ -236,9 +236,9 @@ def test_corrections_become_training_examples_only_with_consent_and_approval(env
     [line] = client.get("/api/evolution/training.jsonl").text.splitlines()
     exported = json.loads(line)
     assert [m["role"] for m in exported["messages"]] == ["system", "user", "assistant"]
-    assert exported["messages"][0]["content"] == state.base_catalog().get("core").system_prompt
+    assert exported["messages"][0]["content"] == state.base_catalog().get("finance").system_prompt  # IVA: finance
     assert exported["messages"][2]["content"] == "Tienes razón: es del 21%."
-    assert exported["meta"] == {"id": examples[good]["id"], "specialist": "core", "source": "spike-correction",
+    assert exported["meta"] == {"id": examples[good]["id"], "specialist": "finance", "source": "spike-correction",
                                 "checks": {"include": ["21%"], "exclude": ["18%"]}}
     [pair] = [json.loads(x) for x in client.get("/api/evolution/preferences.jsonl").text.splitlines()]
     assert pair["chosen"][0]["content"] == "Tienes razón: es del 21%." and pair["rejected"][0]["content"] == "Es del 18%."

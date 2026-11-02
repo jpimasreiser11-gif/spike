@@ -71,6 +71,44 @@ def test_router_eval_test_split_reported():
     assert primary >= 0.6
 
 
+def test_router_eval_dev2_set():
+    # 130 requests (10 per specialist, 5 Spanish and 5 English, about 2 in 10 multi-domain) written before the
+    # keywords were extended. The vocabulary was then tuned on this set and the old dev split, so its numbers are a
+    # ceiling for unseen requests, not an estimate of them; the old test split stays the untouched check.
+    router = LexicalRouter(CATALOG)
+    rows = [json.loads(line) for line in Path("evals/data/router_dev2.jsonl").read_text(encoding="utf-8").splitlines()]
+    primary = exact = 0
+    per: dict[str, list[int]] = {}
+    for r in rows:
+        got = router.route(r["query"]).specialists
+        hit = got[0] in r["labels"]
+        primary += hit
+        exact += set(got) == set(r["labels"])
+        per.setdefault(r["labels"][0], []).append(hit)
+    n = len(rows)
+    print(f"router dev2 n={n} primary={primary / n:.2f} exact={exact / n:.2f}")
+    assert n == 130 and set(per) == set(CATALOG.specialists)
+    assert primary / n >= 0.88 and exact / n >= 0.70
+    assert min(sum(v) / len(v) for v in per.values()) >= 0.7
+
+
+def test_router_keeps_chitchat_and_general_questions_with_core():
+    # The wide vocabulary must not pull everyday requests away from core (none of these has a domain to own).
+    router = LexicalRouter(CATALOG)
+    general = [
+        "Hola, buenos días", "¿Cómo estás hoy?", "Cuéntame un chiste", "¿Quién ganó el Mundial de fútbol de 2010?",
+        "Recomiéndame un libro de fantasía para el verano", "¿Cuál es la mejor época para viajar a Japón?",
+        "Dame ideas para una cena romántica en casa", "¿Cómo se hace una tortilla de patatas?",
+        "Me aburro, ¿a qué podemos jugar?", "¿Quién fue Napoleón Bonaparte?", "¿Qué tiempo hará mañana en Sevilla?",
+        "Planifica tres días en Roma con niños", "Sugiéreme nombres para un perro labrador",
+        "Hi there, how are you?", "Who won the World Cup in 2014?", "Give me a recipe for vegetarian lasagna",
+        "What should I pack for a week in Iceland?", "Recommend a good sci-fi novel", "How tall is Mount Everest?",
+        "What's a good workout routine for beginners at home?", "How do I make friends in a new city?",
+        "What's the weather like in Madrid in March?", "Who was Cleopatra?", "What's the capital of Canada?",
+    ]
+    assert [q for q in general if router.route(q).specialists != ["core"]] == []
+
+
 # ---------------------------------------------------------------- planner
 def test_extract_json_handles_fences_and_think():
     assert extract_json('<think>x</think>```json\n{"subtasks": []}\n```') == {"subtasks": []}

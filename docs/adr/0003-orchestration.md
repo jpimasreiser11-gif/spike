@@ -33,5 +33,12 @@ full models in memory (each 4B Q4 model is ~2.7 GB plus its own KV cache, agains
 - Router on 74 hand-labelled queries (`evals/router/labeled.jsonl`, since moved to `spike/evolution/router_labeled.jsonl`), test split never used for tuning:
   primary specialist correct 46/50 = 0.92 (Wilson 95 % CI 0.81–0.97), exact set 40/50 = 0.80 (0.67–0.89);
   dev split 22/24 primary. Measured by `tests/test_core.py`.
+- Added 2026-11-02 (M9): those queries were written next to the keywords, and requests written without them mostly matched
+  no keyword and fell back to core. The catalog now holds general domain vocabulary in Spanish and English (inflected forms
+  are listed, matching is whole-word), weighted for a threshold of 2.0 and a `multi_ratio` of 0.75; a substring test before
+  each regex keeps a route at about 1 ms. `evals/data/router_dev2.jsonl` (130 requests, 10 per specialist, written before
+  the vocabulary) went from primary 45/130 to 119/130 and exact set 35/130 to 96/130; the old dev split from 22/24 to 23/24;
+  the old test split from 46/50 to 48/50 (exact 40/50, unchanged). The vocabulary was tuned on dev2 and the old dev split, so
+  those two are a ceiling for requests nobody has seen; the old test split was only ever scored.
 - Planner, plan validation, DAG execution and synthesis are covered by unit tests with scripted providers.
 - **Not yet measured**: end-to-end quality of orchestrated answers vs. a single model with real weights.

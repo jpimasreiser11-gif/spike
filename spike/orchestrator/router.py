@@ -1,8 +1,11 @@
 """Stage-1 router: fast, deterministic, zero-cost lexical scoring of a request against each specialist.
 
 It decides most requests without any model call. Ambiguous or multi-domain requests are escalated to the
-LLM planner (planner.py). Accuracy is measured on spike/evolution/router_labeled.jsonl (tests/test_core.py; the
-test split also guards router learning, spike/evolution/router_learning.py).
+LLM planner (planner.py). A request goes to the specialists whose keyword score reaches `threshold` and stays within
+`multi_ratio` of the best one; no keyword hit at all means core. Catalog weights are scaled to the threshold.
+Accuracy is measured on spike/evolution/router_labeled.jsonl (tests/test_core.py; the test split also guards router
+learning, spike/evolution/router_learning.py) and on evals/data/router_dev2.jsonl, 130 requests that the vocabulary
+was tuned on together with the old dev split, so those numbers are a ceiling for requests nobody has seen.
 """
 
 from __future__ import annotations
@@ -20,10 +23,15 @@ def normalize(text: str) -> str:
     return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=32768)
 def _pattern(keyword: str) -> re.Pattern[str]:
     escaped = re.escape(normalize(keyword)).replace(r"\ ", r"\s+")
     return re.compile(rf"(?<![\w]){escaped}(?![\w])")
+
+
+@lru_cache(maxsize=32768)
+def _needle(keyword: str) -> str:
+    return " ".join(normalize(keyword).split())
 
 
 @dataclass
@@ -37,7 +45,7 @@ class RouteDecision:
 
 
 class LexicalRouter:
-    def __init__(self, catalog: Catalog, threshold: float = 3.0, multi_ratio: float = 0.6, max_specialists: int = 3):
+    def __init__(self, catalog: Catalog, threshold: float = 2.0, multi_ratio: float = 0.75, max_specialists: int = 3):
         self.catalog = catalog
         self.threshold = threshold
         self.multi_ratio = multi_ratio
@@ -45,10 +53,13 @@ class LexicalRouter:
 
     def score(self, text: str) -> dict[str, float]:
         norm = normalize(text)
+        flat = " ".join(norm.split())  # a keyword can only match if it is a substring: a cheap test before the regex
         scores: dict[str, float] = {}
         for spec in self.catalog.specialists.values():
             total = 0.0
             for keyword, weight in spec.keywords.items():
+                if _needle(keyword) not in flat:
+                    continue
                 hits = len(_pattern(keyword).findall(norm))
                 if hits:
                     total += weight * min(hits, 2)

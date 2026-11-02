@@ -6,6 +6,10 @@
 # model; the app shows this state to the user instead of implying a trained model.
 version: 1
 base_model: qwen3.5-4b
+# Router keywords (spike/orchestrator/router.py) are matched as whole words, accents and case ignored, so each
+# inflected form is listed. Weight scale for the router threshold of 2.0: 4 jargon of the domain, 3 clearly
+# the domain, 2 routes alone but is ambiguous (loses to a stronger cue elsewhere), 1-1.5 weak cue that only
+# counts together with a second one. Everyday words with several meanings stay weak so chit-chat goes to core.
 specialists:
   - id: core
     name: Spike Core
@@ -32,11 +36,11 @@ specialists:
     keywords:
       code: 3
       bug: 3
-      function: 2
+      function: 1.5
       python: 3
       javascript: 3
       typescript: 3
-      rust: 3
+      rust: 2
       golang: 3
       java: 2
       compile: 3
@@ -48,11 +52,255 @@ specialists:
       git: 2
       docker: 3
       algorithm: 2
-      programa: 2
+      programa: 1.5
       código: 3
       depurar: 3
       error de compilación: 4
-      función: 2
+      función: 1.5
+      # languages, runtimes, frameworks and tools
+      kotlin: 4
+      php: 4
+      c++: 4
+      "c#": 4
+      csharp: 4
+      nodejs: 4
+      node.js: 4
+      html: 4
+      css: 4
+      django: 4
+      fastapi: 4
+      laravel: 4
+      kubernetes: 4
+      k8s: 4
+      graphql: 4
+      websocket: 4
+      webpack: 4
+      npm: 4
+      pytest: 4
+      eslint: 4
+      vscode: 4
+      pypi: 4
+      sqlalchemy: 4
+      github: 4
+      gitlab: 4
+      rebase: 4
+      pull request: 4
+      merge conflict: 4
+      unit test: 4
+      unit tests: 4
+      pruebas unitarias: 4
+      test unitario: 4
+      type hints: 4
+      jsx: 4
+      usestate: 4
+      useeffect: 4
+      redux: 4
+      next.js: 4
+      computer science: 4
+      scala: 3
+      perl: 3
+      bash: 3
+      powershell: 3
+      vue: 3
+      svelte: 3
+      haskell: 3
+      cli: 3
+      repo: 3
+      commits: 3
+      linter: 3
+      lint: 3
+      devops: 3
+      deploy: 3
+      deployment: 3
+      microservice: 3
+      microservices: 3
+      endpoint: 3
+      endpoints: 3
+      json: 3
+      yaml: 3
+      frontend: 3
+      backend: 3
+      front-end: 3
+      back-end: 3
+      fullstack: 3
+      full stack: 3
+      pip: 3
+      tailwind: 3
+      kernel: 2.5
+      commit: 2
+      script: 2
+      scripts: 2
+      http: 2
+      framework: 2
+      frameworks: 2
+      ruby: 2
+      props: 2
+      ide: 2
+      jest: 2
+      vite: 2
+      react: 1.5
+      angular: 1.5
+      flask: 1.5
+      node: 1.5
+      linux: 1.5
+      xml: 1.5
+      repository: 1.5
+      lambda: 1.5
+      runtime: 1.5
+      variable: 1.5
+      variables: 1.5
+      componente: 1.5
+      componentes: 1.5
+      librería: 1.5
+      librerías: 1.5
+      servidor: 1.5
+      servidores: 1.5
+      despliegue: 1.5
+      desplegar: 1.5
+      developer: 1.5
+      developers: 1.5
+      desarrollador: 1.5
+      desarrolladora: 1.5
+      undefined: 1.5
+      "null": 1.5
+      loop: 1.5
+      loops: 1.5
+      funciones: 1.5
+      functions: 1.5
+      optimize: 1.5
+      optimizar: 1.5
+      shell: 1.5
+      hooks: 1.5
+      error: 1.5
+      errors: 1.5
+      errores: 1.5
+      library: 1.5
+      libraries: 1.5
+      promise: 1
+      bucket: 1
+      # programming concepts and errors
+      traceback: 4
+      syntaxerror: 4
+      typeerror: 4
+      keyerror: 4
+      valueerror: 4
+      nullpointerexception: 4
+      segfault: 4
+      segmentation fault: 4
+      memory leak: 4
+      null pointer: 4
+      infinite loop: 4
+      list comprehension: 4
+      linked list: 4
+      binary tree: 4
+      hash table: 4
+      time complexity: 4
+      big o: 4
+      bucle infinito: 4
+      lista enlazada: 4
+      árbol binario: 4
+      tabla hash: 4
+      stack overflow: 4
+      race condition: 4
+      coding: 3
+      programming: 3
+      programmer: 3
+      programmers: 3
+      debug: 3
+      debugging: 3
+      debugger: 3
+      compiler: 3
+      compiles: 3
+      compiled: 3
+      syntax: 3
+      array: 3
+      arrays: 3
+      boolean: 3
+      recursion: 3
+      recursive: 3
+      pointer: 3
+      pointers: 3
+      hashmap: 3
+      async: 3
+      await: 3
+      callback: 3
+      closure: 3
+      decorator: 3
+      iterator: 3
+      serialize: 3
+      deserialize: 3
+      orm: 3
+      bucle: 3
+      bucles: 3
+      programar: 3
+      programación: 3
+      programador: 3
+      programadora: 3
+      depuración: 3
+      depurador: 3
+      depura: 3
+      depurando: 3
+      compilar: 3
+      compilador: 3
+      compila: 3
+      compilación: 3
+      sintaxis: 3
+      excepción: 3
+      excepciones: 3
+      recursividad: 3
+      recursiva: 3
+      puntero: 3
+      punteros: 3
+      oop: 3
+      object-oriented: 3
+      orientada a objetos: 3
+      orientado a objetos: 3
+      snippet: 3
+      boilerplate: 3
+      crashes: 3
+      crashed: 3
+      algoritmo: 2
+      algoritmos: 2
+      refactoring: 2
+      refactorizar: 2
+      bugs: 2
+      exceptions: 2
+      # web, mobile and tooling
+      flexbox: 4
+      onclick: 4
+      leetcode: 4
+      flutter: 4
+      swiftui: 4
+      selenium: 4
+      cron: 4
+      stacktrace: 4
+      rustc: 4
+      borrow checker: 4
+      parser: 3
+      scraper: 3
+      scraping: 3
+      sdk: 3
+      package manager: 3
+      utf-8: 3
+      unicode: 3
+      div: 3
+      dependencies: 2.5
+      parse: 2
+      parsing: 2
+      software: 2
+      encoding: 2
+      mobile app: 2
+      command line: 2
+      program: 1.5
+      website: 1.5
+      hosting: 1.5
+      container: 1.5
+      terminal: 1.5
+      automation: 1.5
+      automate: 1.5
+      server: 1.5
+      android: 1.5
+      dependency: 1.5
     system_prompt: |
       You are Spike Code, a senior software engineer. Produce correct, idiomatic, tested code. Read the
       problem carefully, state assumptions, prefer the simplest working design, and explain trade-offs
@@ -83,7 +331,7 @@ specialists:
       balance sheet: 4
       cash flow: 3
       interest rate: 3
-      inflation: 2
+      inflation: 3
       mortgage: 3
       loan: 2
       tax: 2
@@ -103,8 +351,326 @@ specialists:
       contabilidad: 3
       rentabilidad: 3
       tipo de interés: 3
-      balance: 2
+      balance: 1.5
       flujo de caja: 3
+      # markets and investing
+      nasdaq: 4
+      "s&p": 4
+      stock market: 4
+      stock price: 4
+      index fund: 4
+      mutual fund: 4
+      hedge fund: 4
+      bitcoin: 4
+      ethereum: 4
+      cryptocurrency: 4
+      criptomonedas: 4
+      bolsa de valores: 4
+      ibex: 4
+      bursátil: 4
+      fondo indexado: 4
+      fondos indexados: 4
+      fondo de inversión: 4
+      fondos de inversión: 4
+      yield curve: 4
+      curva de tipos: 4
+      call option: 4
+      put option: 4
+      forex: 4
+      private equity: 4
+      venture capital: 4
+      ipo: 4
+      market cap: 4
+      capital gains: 4
+      plusvalía: 4
+      plusvalías: 4
+      net worth: 4
+      emergency fund: 4
+      fondo de emergencia: 4
+      compound interest: 4
+      interés compuesto: 4
+      credit score: 4
+      "401k": 4
+      roth: 4
+      refinance: 4
+      refinanciar: 4
+      dividendos: 4
+      mortgages: 4
+      stocks: 3
+      ticker: 3
+      trader: 3
+      crypto: 3
+      exchange rate: 3
+      tipo de cambio: 3
+      divisa: 3
+      divisas: 3
+      shareholder: 3
+      shareholders: 3
+      accionista: 3
+      accionistas: 3
+      inversor: 3
+      inversores: 3
+      inversiones: 3
+      invertir: 3
+      invierto: 3
+      invertido: 3
+      invest: 3
+      investing: 3
+      investor: 3
+      investors: 3
+      cotización: 3
+      cotiza: 3
+      bonds: 3
+      central bank: 3
+      banco central: 3
+      monetary policy: 3
+      política monetaria: 3
+      diversificar: 3
+      diversification: 3
+      inflación: 3
+      trading: 2.5
+      currency: 2.5
+      currencies: 2.5
+      bono: 2.5
+      taxes: 2.5
+      impuesto: 2.5
+      yield: 2
+      treasury: 2
+      recession: 2
+      recesión: 2
+      gdp: 2
+      pib: 2
+      deflation: 2
+      deflación: 2
+      bolsa: 2
+      derivatives: 2
+      derivados: 2
+      volatilidad: 2
+      volatility: 2
+      préstamos: 2
+      loans: 2
+      shares: 1.5
+      fund: 1.5
+      funds: 1.5
+      fondo: 1.5
+      fondos: 1.5
+      futures: 1.5
+      hedge: 1.5
+      riesgo: 1.5
+      risk: 1.5
+      rendimiento: 1.5
+      ratio: 1.5
+      ratios: 1.5
+      # personal finance and banking
+      savings account: 4
+      cuenta de ahorro: 4
+      checking account: 4
+      plan de pensiones: 4
+      tarjeta de crédito: 4
+      credit card: 4
+      savings: 3
+      retirement: 3
+      pension: 3
+      pensions: 3
+      pensiones: 3
+      jubilación: 3
+      ahorro: 3
+      ahorros: 3
+      ahorrar: 3
+      ahorrado: 3
+      debt: 3
+      debts: 3
+      deuda: 3
+      deudas: 3
+      interest rates: 3
+      tipos de interés: 3
+      hipotecas: 3
+      amortizar: 3
+      bank account: 3
+      cuenta bancaria: 3
+      cuenta corriente: 3
+      bancario: 3
+      life insurance: 3
+      money: 2.5
+      dinero: 2.5
+      crédito: 2.5
+      sueldo: 2.5
+      sueldos: 2.5
+      credit: 2
+      budget: 2
+      budgeting: 2
+      intereses: 2
+      bank: 2
+      banks: 2
+      banking: 2
+      banco: 2
+      bancos: 2
+      gastos: 2
+      gasto: 2
+      ingresos: 2
+      income: 2
+      expenses: 2
+      salary: 2
+      salario: 2
+      nómina: 2
+      nóminas: 2
+      presupuesto: 2
+      seguros: 2
+      aseguradora: 2
+      owe: 2
+      wealth: 2
+      interest: 1.5
+      interés: 1.5
+      ingreso: 1.5
+      transferencia: 1.5
+      insurance: 1.5
+      cash: 1.5
+      efectivo: 1.5
+      pagar: 1.5
+      pagos: 1.5
+      payment: 1.5
+      payments: 1.5
+      # accounting, tax and corporate finance
+      bookkeeping: 4
+      ledger: 4
+      journal entry: 4
+      asiento contable: 4
+      depreciation: 4
+      depreciación: 4
+      amortization: 4
+      amortización: 4
+      accrual: 4
+      accruals: 4
+      devengo: 4
+      accounts receivable: 4
+      accounts payable: 4
+      cuentas por cobrar: 4
+      cuentas por pagar: 4
+      valor actual neto: 4
+      tasa de descuento: 4
+      discount rate: 4
+      tir: 4
+      tax return: 4
+      income tax: 4
+      tax bracket: 4
+      irpf: 4
+      declaración de la renta: 4
+      tributar: 4
+      tributa: 4
+      tributación: 4
+      desgravar: 4
+      desgravación: 4
+      fiscalidad: 4
+      income statement: 4
+      profit and loss: 4
+      "p&l": 4
+      price-to-earnings: 4
+      solvency: 4
+      solvencia: 4
+      liquidity: 4
+      liquidez: 4
+      endeudamiento: 4
+      apalancamiento: 4
+      debt-to-equity: 4
+      working capital: 4
+      capital circulante: 4
+      payroll: 3
+      invoice: 3
+      invoices: 3
+      factura: 3
+      facturas: 3
+      facturación: 3
+      contable: 3
+      contabilizar: 3
+      asset: 3
+      assets: 3
+      liabilities: 3
+      pasivos: 3
+      patrimonio: 3
+      equity: 3
+      leverage: 3
+      profit margin: 3
+      profit: 3
+      profits: 3
+      profitability: 3
+      earnings: 3
+      vat: 3
+      iva: 3
+      deduction: 3
+      deductions: 3
+      deduct: 3
+      deductible: 3
+      deducir: 3
+      deducciones: 3
+      deducible: 3
+      fiscal: 3
+      hacienda: 3
+      free cash flow: 3
+      cashflow: 3
+      flujos de caja: 3
+      financiero: 3
+      financiera: 3
+      financieros: 3
+      financiación: 3
+      financing: 3
+      financiar: 3
+      financial advisor: 3
+      asesor financiero: 3
+      activos: 2.5
+      ganancias: 2
+      audit: 2
+      auditoría: 2
+      merger: 2
+      rentable: 2
+      margen: 1.5
+      beneficio: 1.5
+      beneficios: 1.5
+      pérdidas: 1.5
+      acquisition: 1.5
+      adquisición: 1.5
+      # markets, corporate and personal finance
+      short selling: 4
+      margin call: 4
+      robo-advisor: 4
+      dow jones: 4
+      gaap: 4
+      ifrs: 4
+      ebit: 4
+      capex: 4
+      opex: 4
+      capm: 4
+      sharpe: 4
+      lbo: 4
+      cap rate: 4
+      reit: 4
+      rental yield: 4
+      cuenta de resultados: 4
+      balance de situación: 4
+      factoring: 4
+      leasing: 4
+      crowdfunding: 4
+      microcrédito: 4
+      tae: 4
+      euribor: 4
+      burn rate: 4
+      rate hike: 4
+      brokerage: 3
+      nikkei: 3
+      ecb: 3
+      bce: 3
+      tesorería: 3
+      morosidad: 3
+      impago: 3
+      "m&a": 3
+      iban: 3
+      broker: 2.5
+      brokers: 2.5
+      usura: 2.5
+      arr: 2.5
+      runway: 2
+      renting: 1.5
+      fed: 1.5
+      cuota: 1.5
     system_prompt: |
       You are Spike Finance, a financial analyst with deep knowledge of accounting, corporate finance,
       valuation, markets and personal finance. Show your calculations explicitly and check them with the
@@ -159,6 +725,473 @@ specialists:
       tensión arterial: 4
       infección: 3
       antibiótico: 4
+      # drugs and treatment
+      ibuprofen: 4
+      ibuprofeno: 4
+      paracetamol: 4
+      acetaminophen: 4
+      naproxen: 4
+      naproxeno: 4
+      omeprazole: 4
+      omeprazol: 4
+      amoxicillin: 4
+      amoxicilina: 4
+      azithromycin: 4
+      azitromicina: 4
+      penicillin: 4
+      penicilina: 4
+      metformin: 4
+      metformina: 4
+      insulin: 4
+      insulina: 4
+      statin: 4
+      statins: 4
+      estatinas: 4
+      antihistamine: 4
+      antihistamínico: 4
+      antidepressant: 4
+      antidepressants: 4
+      antidepresivo: 4
+      antidepresivos: 4
+      ansiolítico: 4
+      ansiolíticos: 4
+      corticosteroid: 4
+      corticoides: 4
+      anticoagulant: 4
+      anticoagulante: 4
+      warfarin: 4
+      beta blocker: 4
+      beta blockers: 4
+      betabloqueantes: 4
+      diuretic: 4
+      diurético: 4
+      sertraline: 4
+      sertralina: 4
+      antibiotics: 4
+      antiviral: 4
+      antifungal: 4
+      analgesic: 4
+      analgésico: 4
+      painkiller: 4
+      painkillers: 4
+      medication: 4
+      medications: 4
+      medicación: 4
+      side effects: 4
+      side effect: 4
+      efectos secundarios: 4
+      efecto secundario: 4
+      contraindication: 4
+      contraindicación: 4
+      contraindicaciones: 4
+      overdose: 4
+      sobredosis: 4
+      drug interaction: 4
+      atorvastatin: 4
+      atorvastatina: 4
+      lisinopril: 4
+      enalapril: 4
+      levothyroxine: 4
+      levotiroxina: 4
+      prednisone: 4
+      prednisona: 4
+      vaccines: 4
+      aspirin: 3
+      aspirina: 3
+      medicines: 3
+      medicinas: 3
+      pill: 3
+      pills: 3
+      pastilla: 3
+      pastillas: 3
+      comprimido: 3
+      comprimidos: 3
+      jarabe: 3
+      pharmacist: 3
+      farmacéutico: 3
+      prescription: 3
+      prescribe: 3
+      prescribed: 3
+      receta: 3
+      recetar: 3
+      vacuna: 3
+      vacunas: 3
+      vacunación: 3
+      therapy: 3
+      terapia: 3
+      therapist: 3
+      vitamin: 2
+      vitamins: 2
+      vitamina: 2
+      vitaminas: 2
+      supplement: 2
+      supplements: 2
+      suplemento: 2
+      suplementos: 2
+      # symptoms and conditions
+      migraine: 4
+      migraña: 4
+      jaqueca: 4
+      cefalea: 4
+      sore throat: 4
+      dolor de garganta: 4
+      dolor de cabeza: 4
+      chest pain: 4
+      dolor de pecho: 4
+      palpitations: 4
+      palpitaciones: 4
+      taquicardia: 4
+      tachycardia: 4
+      shortness of breath: 4
+      falta de aire: 4
+      hypertension: 4
+      hipertensión: 4
+      hypotension: 4
+      hipotensión: 4
+      arrhythmia: 4
+      arritmia: 4
+      anemia: 4
+      asthma: 4
+      asma: 4
+      eczema: 4
+      eccema: 4
+      psoriasis: 4
+      arthritis: 4
+      artritis: 4
+      artrosis: 4
+      osteoporosis: 4
+      thyroid: 4
+      tiroides: 4
+      pneumonia: 4
+      neumonía: 4
+      bronchitis: 4
+      bronquitis: 4
+      influenza: 4
+      chemotherapy: 4
+      quimioterapia: 4
+      radiotherapy: 4
+      radioterapia: 4
+      biopsy: 4
+      biopsia: 4
+      ecg: 4
+      ekg: 4
+      electrocardiograma: 4
+      heart attack: 4
+      infarto: 4
+      ictus: 4
+      menopause: 4
+      menopausia: 4
+      contraceptive: 4
+      anticonceptivo: 4
+      anticonceptivos: 4
+      sprain: 4
+      esguince: 4
+      fracture: 4
+      fractura: 4
+      heat stroke: 4
+      golpe de calor: 4
+      anaphylaxis: 4
+      anafilaxia: 4
+      pathology: 4
+      patología: 4
+      hypoglycemia: 4
+      hipoglucemia: 4
+      lumbalgia: 4
+      obesity: 4
+      obesidad: 4
+      bmi: 4
+      imc: 4
+      autism: 4
+      autismo: 4
+      adhd: 4
+      tdah: 4
+      alzheimer: 4
+      dementia: 4
+      demencia: 4
+      parkinson: 4
+      epilepsy: 4
+      epilepsia: 4
+      schizophrenia: 4
+      esquizofrenia: 4
+      psychiatrist: 4
+      psiquiatra: 4
+      hepatitis: 4
+      hiv: 4
+      vih: 4
+      malaria: 4
+      dengue: 4
+      tuberculosis: 4
+      hipertenso: 4
+      hipertensa: 4
+      headache: 3
+      headaches: 3
+      nausea: 3
+      nauseous: 3
+      náuseas: 3
+      vomiting: 3
+      vómitos: 3
+      vomitar: 3
+      diarrhea: 3
+      diarrea: 3
+      constipation: 3
+      estreñimiento: 3
+      cough: 3
+      coughing: 3
+      tos: 3
+      rash: 3
+      sarpullido: 3
+      dizziness: 3
+      dizzy: 3
+      mareo: 3
+      mareos: 3
+      mareado: 3
+      fainting: 3
+      desmayo: 3
+      desmayarse: 3
+      swelling: 3
+      swollen: 3
+      hinchazón: 3
+      escalofríos: 3
+      chills: 3
+      allergy: 3
+      allergies: 3
+      allergic: 3
+      alergia: 3
+      alergias: 3
+      alérgico: 3
+      acne: 3
+      flu: 3
+      gripe: 3
+      resfriado: 3
+      catarro: 3
+      covid: 3
+      tumor: 3
+      pregnancy: 3
+      pregnant: 3
+      embarazo: 3
+      embarazada: 3
+      wound: 3
+      herida: 3
+      bleeding: 3
+      sangrado: 3
+      dehydration: 3
+      deshidratación: 3
+      physiology: 3
+      fisiología: 3
+      anatomy: 3
+      anatomía: 3
+      cardiac: 3
+      cardiología: 3
+      cardiólogo: 3
+      cardiaco: 3
+      cardiaca: 3
+      stroke: 3
+      diabético: 3
+      diabética: 3
+      duele: 3
+      duelen: 3
+      ache: 3
+      aches: 3
+      enfermo: 3
+      enferma: 3
+      enfermedades: 3
+      urine: 3
+      orina: 3
+      lumbar: 3
+      dental: 3
+      dentista: 3
+      dentist: 3
+      hair loss: 3
+      bipolar: 3
+      psychologist: 3
+      psicólogo: 3
+      amígdalas: 3
+      anginas: 3
+      sick: 3
+      vómito: 2
+      vomit: 2
+      garganta: 2
+      doctor: 2
+      doctors: 2
+      doctora: 2
+      hospital: 2
+      clinic: 2
+      clínica: 2
+      itching: 2
+      itchy: 2
+      picor: 2
+      fatigue: 2
+      fatiga: 2
+      insomnia: 2
+      insomnio: 2
+      anxiety: 2
+      ansiedad: 2
+      depression: 2
+      depresión: 2
+      mental health: 2
+      salud mental: 2
+      kidney: 2
+      riñón: 2
+      riñones: 2
+      liver: 2
+      hígado: 2
+      lung: 2
+      lungs: 2
+      pulmón: 2
+      pulmones: 2
+      salud: 2
+      steroid: 2
+      esteroides: 2
+      faint: 2
+      hurts: 2
+      mg: 2
+      knee: 2
+      rodilla: 2
+      joint: 2
+      joints: 2
+      articulaciones: 2
+      ill: 2
+      muela: 2
+      blood: 2
+      sangre: 2
+      pharmacy: 1.5
+      farmacia: 1.5
+      heart: 1.5
+      corazón: 1.5
+      health: 1.5
+      virus: 1.5
+      bacteria: 1.5
+      bacterias: 1.5
+      sore: 1.5
+      mir: 1.5
+      pulse: 1.5
+      pulso: 1.5
+      espalda: 1.5
+      shoulder: 1.5
+      hombro: 1.5
+      muscle: 1.5
+      músculo: 1.5
+      bone: 1.5
+      bones: 1.5
+      hueso: 1.5
+      huesos: 1.5
+      skin: 1.5
+      piel: 1.5
+      teeth: 1.5
+      oído: 1.5
+      calorías: 1.5
+      calories: 1.5
+      dieta: 1.5
+      sleep: 1.5
+      dormir: 1.5
+      cansancio: 1.5
+      # tests and care
+      cholesterol: 4
+      colesterol: 4
+      triglycerides: 4
+      triglicéridos: 4
+      hemoglobin: 4
+      hemoglobina: 4
+      hemograma: 4
+      blood sugar: 4
+      blood test: 4
+      blood count: 4
+      análisis de sangre: 4
+      glucemia: 4
+      frecuencia cardíaca: 4
+      heart rate: 4
+      presión arterial: 4
+      tensión alta: 4
+      tensión baja: 4
+      emergency room: 4
+      glucose: 3
+      glucosa: 3
+      physician: 3
+      médicos: 3
+      médica: 3
+      medical student: 3
+      nurse: 3
+      nurses: 3
+      nursing: 3
+      enfermera: 3
+      enfermería: 3
+      urgencias: 3
+      x-ray: 3
+      radiografía: 3
+      ecografía: 3
+      ultrasound: 3
+      resonancia: 3
+      mri: 3
+      # women's, children's and public health
+      testosterone: 4
+      testosterona: 4
+      estrogen: 4
+      estrógeno: 4
+      pcos: 4
+      endometriosis: 4
+      ovulation: 4
+      ovulación: 4
+      menstrual: 4
+      menstruación: 4
+      pediatric: 4
+      pediatra: 4
+      colic: 4
+      cólico: 4
+      first aid: 4
+      primeros auxilios: 4
+      cpr: 4
+      colonoscopy: 4
+      colonoscopia: 4
+      endoscopy: 4
+      endoscopia: 4
+      mammogram: 4
+      mamografía: 4
+      dejar de fumar: 4
+      quit smoking: 4
+      hormone: 3
+      hormones: 3
+      hormona: 3
+      hormonas: 3
+      fertility: 3
+      fertilidad: 3
+      newborn: 3
+      recién nacido: 3
+      thermometer: 3
+      termómetro: 3
+      contagious: 3
+      contagioso: 3
+      contagio: 3
+      rcp: 3
+      quemadura: 3
+      sunburn: 3
+      picadura: 3
+      poisoning: 3
+      intoxicación: 3
+      hangover: 3
+      resaca: 3
+      addiction: 3
+      adicción: 3
+      immune system: 3
+      sistema inmune: 3
+      quarantine: 2.5
+      cuarentena: 2.5
+      incubation: 2.5
+      outbreak: 2.5
+      brote: 2.5
+      epidemic: 2.5
+      pandemic: 2.5
+      epidemia: 2.5
+      pandemia: 2.5
+      poison: 2
+      veneno: 2
+      smoking: 2
+      tabaco: 2
+      alcohol: 1.5
+      baby: 1.5
+      bebé: 1.5
+      burn: 1.5
+      sting: 1.5
+      withdrawal: 1.5
     system_prompt: |
       You are Spike Medicine, a physician-level medical assistant grounded in evidence-based medicine.
       Reason through differential diagnoses systematically, cite the level of evidence when it matters,
@@ -181,27 +1214,322 @@ specialists:
       contract: 4
       clause: 3
       lawsuit: 4
-      court: 3
+      court: 2.5
       liability: 3
-      gdpr: 4
+      gdpr: 6
       compliance: 3
       regulation: 3
       copyright: 3
       trademark: 3
-      license: 2
+      license: 1.5
       terms of service: 3
       ley: 3
       jurídico: 3
       contrato: 4
       cláusula: 4
-      demanda: 3
+      demanda: 2.5
       tribunal: 3
       responsabilidad civil: 4
-      rgpd: 4
+      rgpd: 6
       normativa: 3
       derechos de autor: 4
       marca registrada: 3
       abogado: 3
+      # people, courts and procedure
+      lawyer: 4
+      lawyers: 4
+      attorney: 4
+      solicitor: 4
+      barrister: 4
+      abogada: 4
+      abogados: 4
+      letrado: 4
+      notary: 4
+      notario: 4
+      notaría: 4
+      sued: 4
+      suing: 4
+      litigation: 4
+      plaintiff: 4
+      defendant: 4
+      jurisdiction: 4
+      jurisdicción: 4
+      case law: 4
+      jurisprudencia: 4
+      statute: 4
+      statute of limitations: 4
+      legislation: 4
+      legislación: 4
+      liable: 4
+      negligence: 4
+      demandar: 4
+      demandado: 4
+      demandante: 4
+      denunciar: 4
+      querella: 4
+      juzgado: 4
+      class action: 4
+      arbitration: 4
+      arbitraje: 4
+      subpoena: 4
+      affidavit: 4
+      perjury: 4
+      bankruptcy: 4
+      quiebra: 4
+      concurso de acreedores: 4
+      sue: 3
+      laws: 3
+      legally: 3
+      illegal: 3
+      ilegal: 3
+      lawful: 3
+      legales: 3
+      jurídica: 3
+      jurídicos: 3
+      jurídicas: 3
+      legalidad: 3
+      regulations: 3
+      regulatory: 3
+      juez: 3
+      jueza: 3
+      jury: 3
+      jurado: 3
+      verdict: 3
+      sentencia: 3
+      juicio: 3
+      precedent: 3
+      arrest: 3
+      arrested: 3
+      detenido: 3
+      detención: 3
+      criminal: 3
+      penal: 3
+      crime: 3
+      crimen: 3
+      cárcel: 3
+      prisión: 3
+      denuncia: 3
+      normativas: 3
+      police: 2
+      policía: 2
+      judge: 2
+      trial: 2
+      regulador: 2
+      regulator: 2
+      damages: 1.5
+      permiso: 1.5
+      permission: 1.5
+      # contracts and obligations
+      indemnity: 4
+      indemnify: 4
+      indemnización: 4
+      indemnizar: 4
+      nda: 4
+      non-compete: 4
+      non compete: 4
+      non-disclosure: 4
+      terms and conditions: 4
+      términos y condiciones: 4
+      privacy policy: 4
+      política de privacidad: 4
+      aviso legal: 4
+      no competencia: 4
+      power of attorney: 4
+      cumplimiento normativo: 4
+      warranty: 3
+      cláusulas: 3
+      contratos: 3
+      estatutos: 3
+      consumer rights: 3
+      derechos del consumidor: 3
+      consumidor: 3
+      consumidores: 3
+      reclamación: 3
+      reclamar: 3
+      reclamo: 3
+      consent: 2.5
+      consentimiento: 2.5
+      derechos: 2.5
+      rights: 2.5
+      constituir: 2.5
+      privacy: 2
+      privacidad: 2
+      garantía: 1.5
+      agreement: 1.5
+      cookies: 1.5
+      acuerdo: 1.5
+      sociedad: 1.5
+      participaciones: 1.5
+      # housing
+      eviction: 4
+      evict: 4
+      desahucio: 4
+      desahuciar: 4
+      tenancy: 4
+      arrendamiento: 4
+      arrendador: 4
+      arrendatario: 4
+      fianza: 4
+      rent control: 4
+      security deposit: 6
+      landlord: 3
+      tenant: 3
+      tenants: 3
+      lease: 3
+      leases: 3
+      casero: 3
+      caseros: 3
+      inquilino: 3
+      inquilinos: 3
+      alquiler: 2.5
+      # work, family, property
+      wrongful termination: 4
+      unfair dismissal: 4
+      despido: 4
+      finiquito: 4
+      convenio colectivo: 4
+      estatuto de los trabajadores: 4
+      derecho laboral: 4
+      divorce: 4
+      divorcio: 4
+      custody: 4
+      custodia: 4
+      alimony: 4
+      child support: 4
+      pensión alimenticia: 4
+      manutención: 4
+      probate: 4
+      herencia: 4
+      heredero: 4
+      herederos: 4
+      testamento: 4
+      albacea: 4
+      pareja de hecho: 4
+      extranjería: 4
+      dismissal: 3
+      severance: 3
+      despedido: 3
+      despedida: 3
+      excedencia: 3
+      harassment: 3
+      acoso: 3
+      discrimination: 3
+      discriminación: 3
+      inheritance: 3
+      immigration: 3
+      inmigración: 3
+      citizenship: 3
+      nacionalidad: 3
+      asylum: 3
+      asilo: 3
+      maternidad: 3
+      paternidad: 3
+      fired: 2
+      visa: 2
+      visado: 2
+      # ip, data, business law
+      patent: 4
+      patents: 4
+      patente: 4
+      patentes: 4
+      intellectual property: 4
+      propiedad intelectual: 4
+      propiedad industrial: 4
+      trade secret: 4
+      secreto comercial: 4
+      fair use: 4
+      defamation: 4
+      difamación: 4
+      calumnia: 4
+      libel: 4
+      slander: 4
+      data protection: 4
+      protección de datos: 4
+      llc: 4
+      sociedad limitada: 4
+      sociedad anónima: 4
+      registro mercantil: 4
+      # fines and offences
+      multa: 4
+      multas: 4
+      delito: 4
+      delitos: 4
+      antecedentes penales: 4
+      felony: 4
+      misdemeanor: 4
+      criminal record: 4
+      restraining order: 4
+      small claims: 4
+      speeding ticket: 4
+      prescrito: 4
+      prescrita: 4
+      código civil: 4
+      código penal: 4
+      derecho penal: 4
+      derecho civil: 4
+      constitucional: 4
+      sanción: 3
+      sanciones: 3
+      infracción: 3
+      infracciones: 3
+      dgt: 3
+      traffic ticket: 3
+      sl: 2.5
+      socio: 1.5
+      socios: 1.5
+      # litigation, labour, ip and regulation
+      tort: 4
+      negligent: 4
+      malpractice: 4
+      personal injury: 4
+      parole: 4
+      probation: 4
+      first amendment: 4
+      cease and desist: 4
+      demand letter: 4
+      ccpa: 4
+      hipaa: 4
+      antitrust: 4
+      dmca: 4
+      creative commons: 4
+      mit license: 4
+      gpl: 4
+      apache license: 4
+      registro de la propiedad: 4
+      usucapión: 4
+      casación: 4
+      erte: 4
+      comunidad de vecinos: 4
+      maternity leave: 3
+      baja por maternidad: 3
+      notice period: 3
+      preaviso: 3
+      kyc: 3
+      aml: 3
+      compraventa: 3
+      okupas: 3
+      okupa: 3
+      apelar: 3
+      apelación: 3
+      recurrir: 3
+      overtime: 2.5
+      minimum wage: 2.5
+      salario mínimo: 2.5
+      constitution: 2.5
+      royalty: 2
+      royalties: 2
+      resignation: 2
+      amendment: 2
+      evidence: 1.5
+      wage: 1.5
+      escritura: 1.5
+      bail: 1.5
+      witness: 1.5
+      testigo: 1.5
+      monopoly: 1.5
+      recurso: 1.5
+      guilty: 1.5
+      innocent: 1
     system_prompt: |
       You are Spike Law, a legal analyst. Identify the jurisdiction (ask or state your assumption), the
       relevant rules, and how they apply to the facts. Separate settled law from interpretation, note
@@ -224,10 +1552,10 @@ specialists:
       campaign: 3
       seo: 4
       copywriting: 4
-      copy: 2
-      audience: 3
+      copy: 1.5
+      audience: 2.5
       funnel: 3
-      conversion: 3
+      conversion: 2.5
       ctr: 3
       cac: 3
       ltv: 3
@@ -242,11 +1570,240 @@ specialists:
       campaña: 3
       público objetivo: 3
       embudo: 3
-      conversión: 3
+      conversión: 2.5
       redes sociales: 3
       publicidad: 3
       posicionamiento: 3
       eslogan: 3
+      # strategy, brand and audience
+      rebrand: 4
+      rebranding: 4
+      slogan: 4
+      slogans: 4
+      tagline: 4
+      taglines: 4
+      value proposition: 4
+      propuesta de valor: 4
+      usp: 4
+      differentiator: 4
+      target market: 4
+      mercado objetivo: 4
+      buyer persona: 4
+      cliente ideal: 4
+      customer acquisition: 4
+      captación de clientes: 4
+      fidelización: 4
+      fidelizar: 4
+      lead generation: 4
+      lead magnet: 4
+      cold email: 4
+      market research: 4
+      estudio de mercado: 4
+      investigación de mercado: 4
+      product launch: 4
+      loyalty program: 4
+      imagen de marca: 4
+      call to action: 4
+      llamada a la acción: 4
+      cta: 4
+      naming: 4
+      marketer: 3
+      marketers: 3
+      advertise: 3
+      advertisement: 3
+      advertisements: 3
+      advert: 3
+      anuncios: 3
+      publicitario: 3
+      publicitaria: 3
+      promocionar: 3
+      differentiate: 3
+      differentiation: 3
+      diferenciar: 3
+      diferenciarse: 3
+      diferenciarme: 3
+      diferenciarnos: 3
+      diferencio: 3
+      diferenciación: 3
+      influencer: 3
+      influencers: 3
+      press release: 3
+      nota de prensa: 3
+      comunicado de prensa: 3
+      storytelling: 3
+      captación: 3
+      hashtag: 3
+      hashtags: 3
+      promote: 2.5
+      promoting: 2.5
+      promotional: 2.5
+      segmentation: 2.5
+      segmentación: 2.5
+      engagement: 2.5
+      viral: 2.5
+      followers: 2.5
+      seguidores: 2.5
+      lema: 2.5
+      eslóganes: 2.5
+      coupon: 2.5
+      coupons: 2.5
+      cupón: 2.5
+      cupones: 2.5
+      lanzamiento: 2.5
+      hook: 2
+      headline: 2
+      headlines: 2
+      logo: 2
+      logos: 2
+      logotipo: 2
+      ad: 2
+      anuncio: 2
+      anunciar: 2
+      promo: 2
+      promoción: 2
+      promociones: 2
+      retention: 2
+      rebajas: 2
+      blog: 2
+      blogs: 2
+      blogging: 2
+      ecommerce: 2
+      e-commerce: 2
+      subscribers: 2
+      suscriptores: 2
+      campañas: 2
+      outreach: 2
+      prospecting: 2
+      marcas: 2
+      stand out: 2
+      destacar: 2
+      segment: 1.5
+      segmentos: 1.5
+      leads: 1.5
+      loyalty: 1.5
+      descuento: 1.5
+      descuentos: 1.5
+      discount: 1.5
+      discounts: 1.5
+      launch: 1.5
+      promotion: 1.5
+      estrategia de marca: 1.5
+      # ads and performance
+      ad spend: 4
+      ad copy: 4
+      ad campaign: 4
+      google ads: 4
+      adwords: 4
+      facebook ads: 4
+      meta ads: 4
+      cpc: 4
+      cpm: 4
+      cpa: 4
+      roas: 4
+      cost per click: 4
+      click-through: 4
+      click through rate: 4
+      impressions: 4
+      email sequence: 4
+      content calendar: 4
+      calendario editorial: 4
+      calendario de contenidos: 4
+      email list: 4
+      lista de correo: 4
+      lista de emails: 4
+      bounce rate: 4
+      tasa de rebote: 4
+      clicks: 3
+      impresiones: 3
+      anunciante: 3
+      anunciantes: 3
+      inversión publicitaria: 3
+      presupuesto publicitario: 3
+      publicitar: 3
+      # seo and content
+      keyword research: 4
+      backlink: 4
+      backlinks: 4
+      link building: 4
+      meta description: 4
+      meta descripción: 4
+      serp: 4
+      organic traffic: 4
+      tráfico orgánico: 4
+      website traffic: 4
+      tráfico web: 4
+      search engine: 4
+      motor de búsqueda: 4
+      motores de búsqueda: 4
+      palabras clave: 4
+      palabra clave: 4
+      buscadores: 4
+      posicionar: 4
+      indexar: 4
+      indexación: 4
+      sitemap: 4
+      keywords: 3
+      keyword: 3
+      content marketing: 3
+      visibilidad: 2
+      ranking: 1.5
+      rank: 1.5
+      traffic: 1.5
+      tráfico: 1.5
+      google: 1.5
+      instagram: 1.5
+      tiktok: 1.5
+      facebook: 1.5
+      linkedin: 1.5
+      youtube: 1.5
+      twitter: 1.5
+      website: 1.5
+      contenidos: 1.5
+      búsqueda: 1
+      búsquedas: 1
+      search: 1
+      content: 1
+      contenido: 1
+      web: 1
+      # email, social and brand
+      open rate: 4
+      subject line: 4
+      subject lines: 4
+      abandoned cart: 4
+      carrito abandonado: 4
+      upsell: 4
+      cross-sell: 4
+      icp: 4
+      growth hacking: 4
+      brand guidelines: 4
+      microcopy: 4
+      video ad: 4
+      community manager: 4
+      b2b: 3
+      b2c: 3
+      affiliate: 3
+      afiliados: 3
+      sponsorship: 3
+      patrocinio: 3
+      trade show: 3
+      mood board: 3
+      moodboard: 3
+      reel: 3
+      reels: 3
+      carrusel: 3
+      inbound: 2
+      outbound: 2
+      referral: 2
+      referidos: 2
+      packaging: 2
+      carousel: 2
+      color palette: 2
+      asunto del correo: 2
+      reach: 1.5
+      alcance: 1.5
+      posts: 1.5
+      podcast: 1.5
+      sponsor: 1.5
     system_prompt: |
       You are Spike Marketing, a senior marketing strategist and copywriter. Start from the audience, the
       offer and the goal. Give concrete, testable recommendations with the metric that would prove them,
@@ -265,22 +1822,584 @@ specialists:
       physics: 4
       chemistry: 4
       molecule: 3
-      reaction: 2
+      reaction: 1.5
       quantum: 4
       biology: 3
       genetics: 4
       thermodynamics: 4
       astronomy: 4
-      cell: 2
+      cell: 1.5
       genética: 4
       termodinámica: 4
       astronomía: 4
-      célula: 2
+      célula: 1.5
       reacción química: 4
       física: 4
       química: 4
       molécula: 3
       biología: 3
+      # physics
+      atom: 4
+      atoms: 4
+      átomo: 4
+      átomos: 4
+      proton: 4
+      neutron: 4
+      electron: 4
+      electrons: 4
+      electrones: 4
+      isotope: 4
+      isótopo: 4
+      radioactive: 4
+      radiactivo: 4
+      radioactivity: 4
+      radiactividad: 4
+      fission: 4
+      fisión: 4
+      photon: 4
+      fotón: 4
+      wavelength: 4
+      longitud de onda: 4
+      oscillation: 4
+      oscilación: 4
+      speed of light: 4
+      velocidad de la luz: 4
+      optics: 4
+      óptica: 4
+      refraction: 4
+      refracción: 4
+      diffraction: 4
+      difracción: 4
+      electromagnetic: 4
+      electromagnético: 4
+      magnetism: 4
+      magnetismo: 4
+      resistor: 4
+      capacitor: 4
+      condensador: 4
+      ohm: 4
+      ohmio: 4
+      ley de ohm: 4
+      joule: 4
+      joules: 4
+      julios: 4
+      kelvin: 4
+      entropy: 4
+      entropía: 4
+      kinetic energy: 4
+      energía cinética: 4
+      potential energy: 4
+      energía potencial: 4
+      gravity: 4
+      gravedad: 4
+      gravitational: 4
+      gravitatoria: 4
+      acceleration: 4
+      aceleración: 4
+      velocity: 4
+      momentum: 4
+      inertia: 4
+      inercia: 4
+      friction: 4
+      fricción: 4
+      rozamiento: 4
+      torque: 4
+      buoyancy: 4
+      flotabilidad: 4
+      free fall: 4
+      caída libre: 4
+      projectile: 4
+      proyectil: 4
+      relativity: 4
+      relatividad: 4
+      spacetime: 4
+      espaciotiempo: 4
+      dark matter: 4
+      materia oscura: 4
+      solar system: 4
+      sistema solar: 4
+      galaxy: 4
+      galaxia: 4
+      galaxias: 4
+      black hole: 4
+      agujero negro: 4
+      big bang: 4
+      orbit: 4
+      orbits: 4
+      órbita: 4
+      órbitas: 4
+      eclipse: 4
+      astronomer: 4
+      astrónomo: 4
+      scattering: 4
+      rainbow: 4
+      arcoíris: 4
+      nucleus: 3
+      radiation: 3
+      radiación: 3
+      nuclear: 3
+      fusion: 3
+      particle: 3
+      particles: 3
+      partícula: 3
+      partículas: 3
+      amplitude: 3
+      amplitud: 3
+      spectrum: 3
+      espectro: 3
+      magnet: 3
+      magnetic: 3
+      imán: 3
+      magnético: 3
+      voltage: 3
+      voltaje: 3
+      volt: 3
+      volts: 3
+      voltio: 3
+      watt: 3
+      watts: 3
+      vatio: 3
+      vatios: 3
+      kilowatt: 3
+      kilovatio: 3
+      thermal: 3
+      térmico: 3
+      density: 3
+      densidad: 3
+      trajectory: 3
+      trayectoria: 3
+      planet: 3
+      planets: 3
+      planeta: 3
+      planetas: 3
+      telescope: 3
+      telescopio: 3
+      cosmos: 3
+      universe: 3
+      universo: 3
+      comet: 3
+      cometa: 3
+      asteroid: 3
+      asteroide: 3
+      meteor: 3
+      meteorito: 3
+      accelerates: 3
+      accelerate: 3
+      acelera: 3
+      aceleran: 3
+      rapidez: 3
+      m/s: 3
+      thunder: 3
+      lightning: 3
+      trueno: 3
+      relámpago: 3
+      resonance: 2.5
+      newton: 2.5
+      pascal: 2.5
+      velocidad: 2.5
+      exponencial: 2.5
+      wave: 2
+      waves: 2
+      onda: 2
+      ondas: 2
+      frequency: 2
+      circuit: 2
+      circuits: 2
+      circuito: 2
+      circuitos: 2
+      temperature: 2
+      temperatura: 2
+      heat: 2
+      calor: 2
+      energy: 2
+      energía: 2
+      moon: 2
+      acelerar: 2
+      accelerating: 2
+      sunset: 2
+      atardecer: 2
+      sunrise: 2
+      amanecer: 2
+      km/h: 2
+      electricity: 2
+      electricidad: 2
+      clima: 2
+      climate: 2
+      atmosphere: 2
+      atmósfera: 2
+      lens: 1.5
+      lente: 1.5
+      reflection: 1.5
+      reflexión: 1.5
+      resistance: 1.5
+      resistencia: 1.5
+      force: 1.5
+      forces: 1.5
+      fuerza: 1.5
+      fuerzas: 1.5
+      mass: 1.5
+      pressure: 1.5
+      presión: 1.5
+      sky: 1.5
+      cielo: 1.5
+      speed: 1.5
+      drop: 1.5
+      dropped: 1.5
+      meters: 1.5
+      metres: 1.5
+      metros: 1.5
+      seconds: 1.5
+      segundos: 1.5
+      kg: 1.5
+      water: 1.5
+      agua: 1.5
+      salt: 1.5
+      luna: 1.5
+      frecuencia: 1.5
+      weather: 1.5
+      ocean: 1.5
+      oceans: 1.5
+      océano: 1.5
+      océanos: 1.5
+      rain: 1.5
+      lluvia: 1.5
+      storm: 1.5
+      tormenta: 1.5
+      sal: 1
+      ball: 1
+      rock: 1
+      rocks: 1
+      roca: 1
+      rocas: 1
+      masa: 1
+      # earth and space
+      climate change: 4
+      cambio climático: 4
+      global warming: 4
+      calentamiento global: 4
+      hurricane: 4
+      hurricanes: 4
+      huracán: 4
+      huracanes: 4
+      tornado: 4
+      tsunami: 4
+      earthquake: 4
+      earthquakes: 4
+      terremoto: 4
+      terremotos: 4
+      seismic: 4
+      sísmico: 4
+      sismo: 4
+      volcano: 4
+      volcanoes: 4
+      volcán: 4
+      volcanes: 4
+      volcanic: 4
+      volcánico: 4
+      tectonic: 4
+      tectónica: 4
+      geology: 4
+      geología: 4
+      geological: 4
+      geológico: 4
+      erosion: 4
+      glacier: 4
+      glaciers: 4
+      glaciar: 4
+      glaciares: 4
+      ozone: 4
+      ozono: 4
+      mineral: 3
+      minerals: 3
+      minerales: 3
+      tide: 3
+      tides: 3
+      marea: 3
+      mareas: 3
+      # chemistry
+      periodic table: 4
+      tabla periódica: 4
+      covalent: 4
+      covalente: 4
+      ionic: 4
+      iónico: 4
+      molar: 4
+      molarity: 4
+      molaridad: 4
+      masa molar: 4
+      molecular weight: 4
+      solute: 4
+      soluto: 4
+      solubility: 4
+      solubilidad: 4
+      evaporation: 4
+      evaporación: 4
+      boiling point: 4
+      punto de ebullición: 4
+      ebullición: 4
+      freezing point: 4
+      punto de congelación: 4
+      carbon dioxide: 4
+      dióxido de carbono: 4
+      hydrogen: 4
+      hidrógeno: 4
+      h2o: 4
+      nacl: 4
+      helium: 4
+      helio: 4
+      oxidation: 4
+      oxidación: 4
+      redox: 4
+      catalyst: 4
+      catalysts: 4
+      catalizador: 4
+      titration: 4
+      distillation: 4
+      destilación: 4
+      alkaline: 4
+      alcalino: 4
+      chemical bond: 4
+      enlace químico: 4
+      chemical: 3
+      chemicals: 3
+      químico: 3
+      químicos: 3
+      ion: 3
+      ions: 3
+      iones: 3
+      acid: 3
+      acids: 3
+      ácido: 3
+      ácidos: 3
+      solvent: 3
+      disolvente: 3
+      dissolve: 3
+      dissolves: 3
+      dissolved: 3
+      disolver: 3
+      disuelve: 3
+      disolución: 3
+      evaporate: 3
+      evaporar: 3
+      condensation: 3
+      condensación: 3
+      gases: 3
+      oxygen: 3
+      oxígeno: 3
+      nitrogen: 3
+      nitrógeno: 3
+      co2: 3
+      sodium: 3
+      sodio: 3
+      chlorine: 3
+      cloro: 3
+      oxidize: 3
+      oxidar: 3
+      liquids: 3
+      líquidos: 3
+      mol: 3
+      ph: 3
+      rusting: 3
+      boiling: 2
+      melting: 2
+      freezing: 2
+      calcium: 2
+      calcio: 2
+      freeze: 1.5
+      congelar: 1.5
+      congela: 1.5
+      congelarse: 1.5
+      ice: 1.5
+      hielo: 1.5
+      liquid: 1.5
+      líquido: 1.5
+      solid: 1.5
+      sólido: 1.5
+      solids: 1.5
+      gas: 1.5
+      carbon: 1.5
+      carbono: 1.5
+      element: 1.5
+      elements: 1.5
+      # biology
+      dna: 4
+      adn: 4
+      rna: 4
+      arn: 4
+      gene: 4
+      genes: 4
+      genome: 4
+      genoma: 4
+      chromosome: 4
+      cromosoma: 4
+      mutation: 4
+      mutación: 4
+      enzyme: 4
+      enzymes: 4
+      enzima: 4
+      enzimas: 4
+      amino acid: 4
+      aminoácido: 4
+      photosynthesis: 4
+      fotosíntesis: 4
+      mitochondria: 4
+      mitocondria: 4
+      mitosis: 4
+      meiosis: 4
+      chlorophyll: 4
+      clorofila: 4
+      pollination: 4
+      polinización: 4
+      biodiversity: 4
+      biodiversidad: 4
+      ecosystem: 4
+      ecosistema: 4
+      ecology: 4
+      ecología: 4
+      natural selection: 4
+      selección natural: 4
+      fossil: 4
+      fossils: 4
+      fósil: 4
+      fósiles: 4
+      evolution: 3
+      evolución: 3
+      evolutionary: 3
+      species: 3
+      especies: 3
+      darwin: 3
+      dinosaur: 3
+      dinosaurs: 3
+      dinosaurio: 3
+      dinosaurios: 3
+      mutations: 3
+      mutaciones: 3
+      protein: 3
+      proteins: 3
+      proteína: 3
+      proteínas: 3
+      organism: 3
+      organisms: 3
+      organismo: 3
+      organismos: 3
+      microbe: 3
+      microbio: 3
+      mammal: 3
+      mammals: 3
+      mamífero: 3
+      mamíferos: 3
+      reptile: 3
+      reptil: 3
+      habitat: 3
+      gen: 3
+      cells: 2
+      células: 2
+      tissue: 2
+      tejido: 2
+      insect: 2
+      insects: 2
+      insecto: 2
+      insectos: 2
+      respiration: 2
+      respiración: 2
+      bacteria: 2
+      bacterias: 2
+      plant: 1.5
+      plants: 1.5
+      planta: 1.5
+      plantas: 1.5
+      animals: 1.5
+      animales: 1.5
+      specie: 1.5
+      especie: 1.5
+      # science in general
+      scientist: 3
+      scientists: 3
+      scientific: 3
+      científico: 3
+      científica: 3
+      científicos: 3
+      microscope: 3
+      microscopio: 3
+      scientific method: 3
+      método científico: 3
+      science: 2.5
+      ciencia: 2.5
+      ciencias: 2.5
+      experiment: 2.5
+      experiments: 2.5
+      experimento: 2.5
+      experimentos: 2.5
+      hypothesis: 2.5
+      hipótesis: 2.5
+      lab: 1.5
+      laboratorio: 1.5
+      laboratory: 1.5
+      # physics, chemistry, biology, earth
+      law of motion: 4
+      heat transfer: 4
+      doppler: 4
+      prism: 4
+      semiconductor: 4
+      diode: 4
+      transistor: 4
+      string theory: 4
+      reagent: 4
+      reactant: 4
+      stoichiometry: 4
+      exothermic: 4
+      endothermic: 4
+      exotérmica: 4
+      endotérmica: 4
+      endotérmico: 4
+      exotérmico: 4
+      polymer: 4
+      polímero: 4
+      inorganic: 4
+      cell division: 4
+      división celular: 4
+      neuron: 4
+      neurons: 4
+      neurona: 4
+      neuronas: 4
+      food chain: 4
+      cadena alimentaria: 4
+      germinate: 4
+      germinar: 4
+      conduction: 3
+      convection: 3
+      laser: 3
+      molecular: 3
+      nervous system: 3
+      sistema nervioso: 3
+      metabolism: 3
+      metabolismo: 3
+      hormone: 3
+      hormones: 3
+      hormona: 3
+      hormonas: 3
+      immune system: 3
+      sistema inmune: 3
+      sistema inmunitario: 3
+      predator: 2.5
+      depredador: 2.5
+      equilibrium: 2
+      metal: 1.5
+      metals: 1.5
+      metales: 1.5
+      organic: 1.5
+      orgánica: 1.5
+      orgánico: 1.5
+      desert: 1.5
+      desierto: 1.5
+      continent: 1.5
+      continente: 1.5
+      flower: 1.5
+      flor: 1.5
+      seed: 1.5
+      seeds: 1.5
+      semilla: 1.5
+      semillas: 1.5
     system_prompt: |
       You are Spike Science, a scientist across physics, chemistry and biology. Solve problems with explicit, checkable steps,
       keep track of units, and verify numerical results with the calculator or python tools. When a
@@ -300,7 +2419,7 @@ specialists:
       query: 2
       database: 3
       table: 1
-      join: 3
+      join: 1.5
       csv: 3
       dataset: 3
       dashboard: 3
@@ -311,10 +2430,280 @@ specialists:
       kpi: 3
       regression: 3
       base de datos: 3
-      consulta: 2
+      consulta: 1.5
       hoja de cálculo: 3
       datos: 2
       análisis de datos: 4
+      # databases and modeling
+      group by: 4
+      order by: 4
+      subquery: 4
+      subconsulta: 4
+      cte: 4
+      window function: 4
+      window functions: 4
+      stored procedure: 4
+      procedimiento almacenado: 4
+      postgres: 4
+      postgresql: 4
+      mysql: 4
+      sqlite: 4
+      mongodb: 4
+      nosql: 4
+      duckdb: 4
+      bigquery: 4
+      redshift: 4
+      etl: 4
+      data pipeline: 4
+      data lake: 4
+      data warehouse: 4
+      almacén de datos: 4
+      data model: 4
+      data modeling: 4
+      modelo de datos: 4
+      modelado de datos: 4
+      primary key: 4
+      foreign key: 4
+      clave primaria: 4
+      clave foránea: 4
+      clave externa: 4
+      bases de datos: 4
+      star schema: 4
+      fact table: 4
+      tabla de hechos: 4
+      running total: 4
+      schema: 3
+      schemas: 3
+      aggregation: 3
+      agregación: 3
+      aggregate: 3
+      normalization: 3
+      normalización: 3
+      tablas: 2.5
+      esquema: 2.5
+      esquemas: 2.5
+      warehouse: 2
+      tables: 2
+      column: 2
+      columns: 2
+      columna: 2
+      columnas: 2
+      rows: 2
+      filas: 2
+      indexes: 2
+      índices: 2
+      anomalies: 2
+      anómalos: 2
+      anomalía: 2
+      acumuladas: 2
+      acumulado: 2
+      row: 1.5
+      fila: 1.5
+      registros: 1.5
+      tabla: 1.5
+      celdas: 1.5
+      celda: 1.5
+      filter: 1.5
+      filters: 1.5
+      filtro: 1.5
+      sort: 1.5
+      importe: 1.5
+      listado: 1.5
+      top: 1.5
+      # spreadsheets
+      pivot table: 4
+      tabla dinámica: 4
+      tablas dinámicas: 4
+      vlookup: 4
+      xlookup: 4
+      hlookup: 4
+      buscarv: 4
+      buscarx: 4
+      index match: 4
+      google sheets: 4
+      hojas de google: 4
+      hojas de cálculo: 4
+      power bi: 4
+      tableau: 4
+      looker: 4
+      vba: 4
+      xlsx: 4
+      xls: 4
+      tsv: 4
+      parquet: 4
+      jupyter: 4
+      outlier: 4
+      outliers: 4
+      pivot: 3
+      macro: 3
+      macros: 3
+      workbook: 3
+      libro de excel: 3
+      hoja de excel: 3
+      duplicates: 3
+      duplicados: 3
+      deduplicate: 3
+      dedupe: 3
+      nulls: 3
+      nulos: 3
+      valores nulos: 3
+      missing values: 3
+      valores perdidos: 3
+      valores atípicos: 3
+      atípicos: 3
+      duplicate: 2
+      duplicado: 2
+      fórmula: 2
+      fórmulas: 2
+      # analysis, statistics and metrics
+      data analyst: 4
+      analista de datos: 4
+      data scientist: 4
+      científico de datos: 4
+      data science: 4
+      ciencia de datos: 4
+      big data: 4
+      data quality: 4
+      calidad de datos: 4
+      data cleaning: 4
+      limpieza de datos: 4
+      limpiar datos: 4
+      moving average: 4
+      media móvil: 4
+      rolling average: 4
+      time series: 4
+      series temporales: 4
+      serie temporal: 4
+      a/b test: 4
+      a/b testing: 4
+      ab testing: 4
+      test a/b: 4
+      statistical significance: 4
+      significancia estadística: 4
+      significación estadística: 4
+      confidence interval: 4
+      intervalo de confianza: 4
+      cohort: 4
+      cohorts: 4
+      cohorte: 4
+      cohortes: 4
+      churn: 4
+      tasa de abandono: 4
+      daily active users: 4
+      usuarios activos: 4
+      business intelligence: 4
+      dataframe: 4
+      numpy: 4
+      feature engineering: 4
+      sample size: 4
+      tamaño de la muestra: 4
+      survey data: 4
+      p-value: 4
+      year over year: 4
+      month over month: 4
+      interanual: 4
+      cuadro de mandos: 4
+      correlation: 3
+      correlación: 3
+      correlations: 3
+      covariance: 3
+      covarianza: 3
+      standard deviation: 3
+      desviación estándar: 3
+      desviación típica: 3
+      median: 3
+      mediana: 3
+      percentile: 3
+      percentil: 3
+      histogram: 3
+      histograma: 3
+      visualization: 3
+      visualización: 3
+      visualisation: 3
+      bar chart: 3
+      pie chart: 3
+      scatter plot: 3
+      scatterplot: 3
+      diagrama de dispersión: 3
+      diagrama de barras: 3
+      gráfico circular: 3
+      forecast: 3
+      forecasting: 3
+      pronóstico: 3
+      metrics: 3
+      métricas: 3
+      kpis: 3
+      cohort analysis: 3
+      sampling: 3
+      muestreo: 3
+      machine learning: 3
+      aprendizaje automático: 3
+      yoy: 3
+      dau: 3
+      mau: 3
+      estadísticamente: 3
+      chart: 2.5
+      charts: 2.5
+      gráfico: 2.5
+      gráficos: 2.5
+      data: 2
+      analyze: 2
+      analizar: 2
+      promedio: 2
+      metric: 2
+      métrica: 2
+      reporting: 2
+      survey: 2
+      encuesta: 2
+      encuestas: 2
+      statistics: 2
+      estadística: 2
+      estadísticas: 2
+      statistical: 2
+      estadístico: 2
+      significance: 2
+      significativo: 2
+      significativa: 2
+      conversions: 2
+      conversiones: 2
+      dato: 1.5
+      analyst: 1.5
+      analista: 1.5
+      analysis: 1.5
+      análisis: 1.5
+      variance: 1.5
+      varianza: 1.5
+      average: 1.5
+      trend: 1.5
+      trends: 1.5
+      tendencia: 1.5
+      insights: 1.5
+      retention: 1.5
+      retención: 1.5
+      plot: 1.5
+      previsión: 1.5
+      predicción: 1.5
+      azar: 1.5
+      casualidad: 1.5
+      sample: 1.5
+      muestra: 1.5
+      indicadores: 1.5
+      correlated: 1.5
+      # sql, bi and big data tooling
+      left join: 4
+      inner join: 4
+      outer join: 4
+      matplotlib: 4
+      seaborn: 4
+      plotly: 4
+      airflow: 4
+      dbt: 4
+      hadoop: 4
+      where clause: 4
+      funnel analysis: 4
+      arpu: 4
+      select: 1.5
+      spark: 1
     system_prompt: |
       You are Spike Data, a data analyst and database engineer. Every number about the user's data comes
       from a tool, never from your own arithmetic: look at a file first with data_describe, compute with
@@ -338,7 +2727,7 @@ specialists:
       equation: 4
       integral: 4
       derivative: 4
-      limit: 2
+      limit: 1.5
       proof: 3
       prove: 3
       theorem: 4
@@ -361,6 +2750,329 @@ specialists:
       polinomio: 4
       álgebra: 4
       geometría: 4
+      # algebra, calculus, analysis
+      maths: 4
+      calculus: 4
+      cálculo diferencial: 4
+      trigonometry: 4
+      trigonometría: 4
+      trigonometric: 4
+      logarithm: 4
+      logarithms: 4
+      logaritmo: 4
+      logaritmos: 4
+      square root: 4
+      raíz cuadrada: 4
+      factorial: 4
+      factorize: 4
+      factorizar: 4
+      factorización: 4
+      quadratic: 4
+      cuadrática: 4
+      ecuaciones: 4
+      determinant: 4
+      determinante: 4
+      eigenvector: 4
+      eigenvectors: 4
+      autovalores: 4
+      autovectores: 4
+      valores propios: 4
+      differentiate: 4
+      differentiation: 4
+      integrate: 4
+      integrals: 4
+      integrales: 4
+      derivatives: 4
+      derivadas: 4
+      derivar: 4
+      derivo: 4
+      antiderivative: 4
+      primitiva: 4
+      chain rule: 4
+      regla de la cadena: 4
+      product rule: 4
+      taylor: 4
+      convergence: 4
+      convergencia: 4
+      converges: 4
+      converge: 4
+      asymptote: 4
+      asíntota: 4
+      continuity: 4
+      continuidad: 4
+      invertible: 4
+      summation: 4
+      sumatorio: 4
+      sumatoria: 4
+      laplace: 4
+      fourier: 4
+      linear algebra: 4
+      álgebra lineal: 4
+      differential equation: 4
+      ecuación diferencial: 4
+      inequality: 4
+      inequalities: 4
+      inecuación: 4
+      matrices: 4
+      cube root: 4
+      sine: 3
+      cosine: 3
+      seno: 3
+      coseno: 3
+      vector: 3
+      vectors: 3
+      vectores: 3
+      scalar: 3
+      escalar: 3
+      infinity: 3
+      infinito: 3
+      diverge: 3
+      diverges: 3
+      divergente: 3
+      polynomials: 3
+      polinomios: 3
+      despejar: 3
+      despeja: 3
+      solve for: 3
+      multiplication: 3
+      multiplicación: 3
+      differential: 2.5
+      diferencial: 2.5
+      exponential: 2.5
+      exponent: 2.5
+      exponents: 2.5
+      exponente: 2.5
+      exponentes: 2.5
+      solve: 2
+      resuelve: 2
+      resuelvo: 2
+      gradient: 2
+      gradiente: 2
+      fraction: 2
+      fractions: 2
+      fracción: 2
+      fracciones: 2
+      angle: 2
+      angles: 2
+      ángulo: 2
+      ángulos: 2
+      cálculo: 2
+      demostrar: 2
+      demuestre: 2
+      multiply: 2
+      multiplicar: 2
+      divide: 2
+      dividir: 2
+      digit: 2
+      digits: 2
+      dígito: 2
+      dígitos: 2
+      tangent: 1.5
+      tangente: 1.5
+      resolver: 1.5
+      simplify: 1.5
+      simplifica: 1.5
+      simplificar: 1.5
+      límite: 1.5
+      límites: 1.5
+      ratio: 1.5
+      proportion: 1.5
+      proporción: 1.5
+      series: 1.5
+      serie: 1.5
+      integration: 1.5
+      integración: 1.5
+      sequence: 1.5
+      sequences: 1.5
+      sucesión: 1.5
+      sucesiones: 1.5
+      circle: 1.5
+      circles: 1.5
+      círculo: 1.5
+      círculos: 1.5
+      coordinates: 1.5
+      coordenadas: 1.5
+      optimization: 1.5
+      optimización: 1.5
+      paralelas: 1.5
+      percentage: 1.5
+      porcentaje: 1.5
+      área: 1.5
+      cuadrado: 1.5
+      square: 1.5
+      suma: 1.5
+      sum: 1.5
+      calculate: 1
+      calcula: 1
+      calcular: 1
+      compute: 1
+      domain: 1
+      dominio: 1
+      parallel: 1
+      cone: 1
+      cono: 1
+      # proofs, discrete math, number theory
+      induction: 4
+      inducción: 4
+      lemma: 4
+      lema: 4
+      corollary: 4
+      corolario: 4
+      axiom: 4
+      axioma: 4
+      conjecture: 4
+      conjetura: 4
+      prime number: 4
+      prime numbers: 4
+      número primo: 4
+      números primos: 4
+      divisible: 4
+      divisibility: 4
+      divisibilidad: 4
+      gcd: 4
+      lcm: 4
+      mcd: 4
+      mcm: 4
+      congruence: 4
+      congruencia: 4
+      rational number: 4
+      número racional: 4
+      irrational: 4
+      irracional: 4
+      real numbers: 4
+      números reales: 4
+      complex number: 4
+      complex numbers: 4
+      número complejo: 4
+      números complejos: 4
+      graph theory: 4
+      teoría de grafos: 4
+      set theory: 4
+      teoría de conjuntos: 4
+      subset: 4
+      subconjunto: 4
+      venn diagram: 4
+      diagrama de venn: 4
+      truth table: 4
+      tabla de verdad: 4
+      number theory: 4
+      teoría de números: 4
+      linear programming: 4
+      programación lineal: 4
+      regla de tres: 4
+      contradiction: 3
+      contradicción: 3
+      divisor: 3
+      divisores: 3
+      integers: 3
+      enteros: 3
+      modulo: 3
+      modular: 3
+      imaginary: 3
+      imaginario: 3
+      arithmetic: 3
+      aritmética: 3
+      múltiplo: 3
+      múltiplos: 3
+      vértices: 3
+      grafo: 3
+      grafos: 3
+      random number: 3
+      aleatorio: 3
+      primos: 2
+      vértice: 2
+      # combinatorics and probability
+      permutation: 4
+      permutations: 4
+      permutación: 4
+      permutaciones: 4
+      binomial: 4
+      bayes: 4
+      bayesian: 4
+      bayesiano: 4
+      normal distribution: 4
+      distribución normal: 4
+      random variable: 4
+      variable aleatoria: 4
+      expected value: 4
+      valor esperado: 4
+      esperanza matemática: 4
+      chi-square: 4
+      chi cuadrado: 4
+      t-test: 4
+      anova: 4
+      least squares: 4
+      mínimos cuadrados: 4
+      combinations: 3
+      combinaciones: 3
+      marbles: 3
+      canicas: 3
+      coin flip: 3
+      odds: 3
+      baraja: 3
+      deck of cards: 3
+      dados: 2
+      combination: 1.5
+      combinación: 1.5
+      expectation: 1.5
+      chance: 1.5
+      probable: 1
+      coin: 1
+      moneda: 1
+      # geometry
+      perpendicular: 4
+      polygon: 4
+      polígono: 4
+      pythagorean: 4
+      pythagoras: 4
+      pitágoras: 4
+      hypotenuse: 4
+      hipotenusa: 4
+      circumference: 4
+      circunferencia: 4
+      right angle: 4
+      ángulo recto: 4
+      triangle: 3
+      triangles: 3
+      triángulo: 3
+      triángulos: 3
+      perimeter: 3
+      perímetro: 3
+      sphere: 3
+      esfera: 3
+      cylinder: 3
+      cilindro: 3
+      radius: 3
+      diameter: 3
+      diámetro: 3
+      # functions, statistics theory, notation
+      vector space: 4
+      espacio vectorial: 4
+      central limit: 4
+      law of large numbers: 4
+      markov: 4
+      poisson: 4
+      gaussian: 4
+      gaussiana: 4
+      hypothesis test: 4
+      fibonacci: 4
+      sqrt: 3
+      ln: 3
+      sen: 3
+      dx: 3
+      dy: 3
+      lim: 3
+      z-score: 3
+      standard deviation: 2
+      desviación estándar: 2
+      desviación típica: 2
+      variance: 2
+      varianza: 2
+      median: 2
+      mediana: 2
+      distribution: 2
+      distribución: 2
+      derive: 2
     system_prompt: |
       You are Spike Math, a mathematician and patient tutor. Solve problems with explicit, checkable steps,
       state the method before applying it, and verify numerical results with the calculator or python
@@ -388,7 +3100,7 @@ specialists:
       flashcards: 4
       learn: 2
       enséñame: 4
-      explícame: 2
+      explícame: 1.5
       plan de estudio: 4
       examen: 3
       deberes: 3
@@ -396,6 +3108,282 @@ specialists:
       alumno: 3
       temario: 4
       aprender: 2
+      # learners, teachers and schools
+      tutor: 4
+      tutoring: 4
+      classroom: 4
+      aula: 4
+      syllabus: 4
+      kindergarten: 4
+      middle school: 4
+      elementary school: 4
+      primary school: 4
+      high school: 4
+      highschool: 4
+      learner: 4
+      learners: 4
+      alumna: 4
+      alumnas: 4
+      docente: 4
+      docentes: 4
+      pedagogía: 4
+      pedagogical: 4
+      pedagógico: 4
+      didáctica: 4
+      didáctico: 4
+      unidad didáctica: 4
+      plan de clase: 4
+      clase particular: 4
+      clases particulares: 4
+      asignatura: 4
+      asignaturas: 4
+      bachillerato: 4
+      selectividad: 4
+      oposiciones: 4
+      opositor: 4
+      tfg: 4
+      tfm: 4
+      toefl: 4
+      ielts: 4
+      gmat: 4
+      gre: 4
+      mcat: 4
+      lsat: 4
+      gcse: 4
+      a-levels: 4
+      rubric: 4
+      rúbrica: 4
+      worksheet: 4
+      worksheets: 4
+      dyslexia: 4
+      dislexia: 4
+      study guide: 4
+      practice problems: 4
+      guía de estudio: 4
+      freshman: 4
+      sophomore: 4
+      undergrad: 4
+      campus: 4
+      semester: 4
+      semestre: 4
+      scholarship: 4
+      beca: 4
+      becas: 4
+      students: 3
+      alumnos: 3
+      teach: 3
+      teacher: 3
+      teachers: 3
+      teaching: 3
+      tutorial: 3
+      colegio: 3
+      primaria: 3
+      secundaria: 3
+      profesor: 3
+      profesora: 3
+      profesores: 3
+      enseñar: 3
+      enseñanza: 3
+      enseña: 3
+      enseño: 3
+      tesis: 3
+      thesis: 3
+      dissertation: 3
+      grading: 3
+      graded: 3
+      calificación: 3
+      calificaciones: 3
+      calificar: 3
+      assignment: 3
+      assignments: 3
+      assessment: 3
+      memorize: 3
+      memorise: 3
+      memorization: 3
+      memorizar: 3
+      mnemonic: 3
+      mnemonics: 3
+      mnemotecnia: 3
+      mnemotécnica: 3
+      spaced repetition: 3
+      repetición espaciada: 3
+      vocabulary: 3
+      vocabulario: 3
+      pronunciation: 3
+      pronunciación: 3
+      conjugation: 3
+      conjugación: 3
+      conjugar: 3
+      apuntes: 3
+      repasar: 3
+      repaso: 3
+      cuestionario: 3
+      cuestionarios: 3
+      quizzes: 3
+      exámenes: 3
+      ejercicios: 3
+      exercises: 3
+      comprensión lectora: 3
+      reading comprehension: 3
+      eli5: 3
+      aprendizaje: 3
+      aprendiendo: 3
+      school: 2.5
+      schools: 2.5
+      college: 2.5
+      university: 2.5
+      universidad: 2.5
+      grammar: 2.5
+      gramática: 2.5
+      learning: 2.5
+      estudiantes: 2.5
+      study: 2.5
+      studying: 2.5
+      estudiar: 2.5
+      estudiando: 2.5
+      practicar: 2.5
+      practice: 2.5
+      drill: 2.5
+      undergraduate: 2.5
+      lecture: 2.5
+      lectures: 2.5
+      lecturer: 2.5
+      revise: 2.5
+      revision: 2.5
+      instituto: 2
+      máster: 2
+      exercise: 2
+      ejercicio: 2
+      curso: 2
+      cursos: 2
+      course: 2
+      courses: 2
+      clases: 2
+      classes: 2
+      matrícula: 2
+      enroll: 2
+      diploma: 2
+      degree: 2
+      expliques: 2
+      explicarle: 2
+      explicarles: 2
+      explícamelo: 2
+      explicanos: 2
+      beginner: 1.5
+      beginners: 1.5
+      principiante: 1.5
+      principiantes: 1.5
+      test: 1.5
+      tests: 1.5
+      class: 1.5
+      clase: 1.5
+      tarea: 1.5
+      tareas: 1.5
+      estudio: 1.5
+      grade: 1.5
+      grades: 1.5
+      notas: 1.5
+      kid: 1.5
+      kids: 1.5
+      niño: 1.5
+      niños: 1.5
+      understand: 1.5
+      entender: 1.5
+      entiende: 1.5
+      entiendo: 1.5
+      comprender: 1.5
+      struggling: 1.5
+      confused: 1.5
+      confundo: 1.5
+      explicar: 1.5
+      explicación: 1.5
+      explicaciones: 1.5
+      explico: 1.5
+      forget: 1.5
+      forgetting: 1.5
+      olvidar: 1.5
+      feedback: 1.5
+      marking: 1.5
+      studies: 1
+      estudios: 1
+      child: 1
+      children: 1
+      teenager: 1
+      teenagers: 1
+      adolescente: 1
+      adolescentes: 1
+      preguntas: 1
+      respuestas: 1
+      questions: 1
+      answers: 1
+      hijo: 1
+      hija: 1
+      my son: 1
+      my daughter: 1
+      remember: 1
+      recordar: 1
+      read: 1
+      reading: 1
+      leer: 1
+      lectura: 1
+      first-year: 1
+      # lessons, exams and study skills
+      practice test: 4
+      mock exam: 4
+      past papers: 4
+      exam prep: 4
+      revision notes: 4
+      mind map: 4
+      mapa mental: 4
+      mapa conceptual: 4
+      study habits: 4
+      hábitos de estudio: 4
+      speed reading: 4
+      lectura rápida: 4
+      homeschool: 4
+      homeschooling: 4
+      educación en casa: 4
+      preschool: 4
+      preescolar: 4
+      fifth grade: 4
+      "5th grade": 4
+      curso escolar: 4
+      classroom management: 4
+      report card: 4
+      boletín de notas: 4
+      learning objectives: 4
+      objetivos de aprendizaje: 4
+      sopa de letras: 4
+      simulacro: 3
+      cheat sheet: 3
+      chuleta: 3
+      graders: 3
+      crossword: 3
+      crucigrama: 3
+      word search: 3
+      didactic: 3
+      lesson: 2.5
+      lessons: 2.5
+      lección: 2.5
+      lecciones: 2.5
+      pomodoro: 2.5
+      educational: 2.5
+      educativo: 2.5
+      profe: 2.5
+      educación: 2.5
+      education: 2.5
+      maestro: 2
+      maestra: 2
+      procrastination: 2
+      procrastinar: 2
+      analogy: 2
+      analogía: 2
+      habits: 1.5
+      concentrate: 1.5
+      concentración: 1.5
+      toddler: 1.5
+      evaluación: 1.5
+      trivia: 1.5
     system_prompt: |
       You are Spike Education, an expert teacher. Find out (or infer) the learner's level, explain with
       clear structure, concrete examples and analogies, and check understanding with short questions.
@@ -419,10 +3407,10 @@ specialists:
       translate: 3
       email: 2
       blog post: 4
-      article: 2
-      story: 3
+      article: 1.5
+      story: 2.5
       poem: 4
-      tone: 2
+      tone: 1.5
       redacta: 4
       reescribe: 4
       corrige el texto: 4
@@ -430,10 +3418,292 @@ specialists:
       resumen: 3
       traduce: 3
       correo: 2
-      artículo: 2
-      cuento: 3
+      artículo: 1.5
+      cuento: 2.5
       poema: 4
       ensayo: 4
+      # drafting and editing
+      paraphrase: 4
+      paraphrasing: 4
+      rephrase: 4
+      reword: 4
+      proofreading: 4
+      redactar: 4
+      redáctame: 4
+      redacción: 4
+      borrador: 4
+      borradores: 4
+      reformula: 4
+      reformular: 4
+      parafrasear: 4
+      parafrasea: 4
+      reescribir: 4
+      reescríbelo: 4
+      reescríbeme: 4
+      reescribirlo: 4
+      corrector: 4
+      ortografía: 4
+      faltas de ortografía: 4
+      resúmeme: 4
+      "tl;dr": 4
+      tldr: 4
+      word count: 4
+      writing: 3
+      writer: 3
+      writers: 3
+      escritor: 3
+      escritora: 3
+      drafting: 3
+      draft: 3
+      drafts: 3
+      first draft: 3
+      editing: 3
+      editor: 3
+      edit: 3
+      spelling: 3
+      punctuation: 3
+      typos: 3
+      typo: 3
+      wording: 3
+      phrasing: 3
+      paragraph: 3
+      paragraphs: 3
+      párrafo: 3
+      párrafos: 3
+      wordy: 3
+      concise: 3
+      conciso: 3
+      concisa: 3
+      shorten: 3
+      lengthen: 3
+      acortar: 3
+      alargar: 3
+      polish: 3
+      rewording: 3
+      escríbeme: 3
+      escríbele: 3
+      escribirle: 3
+      resumir: 3
+      resumirlo: 3
+      sintetiza: 3
+      sintetizar: 3
+      summarise: 3
+      summarizing: 3
+      summaries: 3
+      summarising: 3
+      condense: 3
+      puntuación: 3
+      errata: 3
+      erratas: 3
+      tildes: 3
+      edita: 3
+      correo electrónico: 3
+      memo: 3
+      memos: 3
+      memorando: 3
+      sinopsis: 3
+      transcribe: 3
+      transcripción: 3
+      transcribir: 3
+      corrige: 2.5
+      corregir: 2.5
+      gramática: 2.5
+      grammar: 2.5
+      relato: 2.5
+      relatos: 2.5
+      sentence: 2
+      sentences: 2
+      frase: 2
+      frases: 2
+      corrección: 2
+      revise: 2
+      mail: 2
+      mails: 2
+      e-mail: 2
+      emails: 2
+      suene: 2
+      tono: 2
+      write: 1.5
+      writes: 1.5
+      escribir: 1.5
+      escribe: 1.5
+      texto: 1.5
+      textos: 1.5
+      formal: 1.5
+      informal: 1.5
+      polite: 1.5
+      politely: 1.5
+      cortés: 1.5
+      style: 1.5
+      estilo: 1.5
+      revisar: 1.5
+      revisión: 1.5
+      suena: 1.5
+      mensaje: 1.5
+      mensajes: 1.5
+      aggressive: 1.5
+      agresivo: 1.5
+      agresiva: 1.5
+      novel: 1.5
+      novela: 1.5
+      text: 1
+      voice: 1
+      voz: 1
+      inglés: 1
+      english: 1
+      español: 1
+      spanish: 1
+      francés: 1
+      french: 1
+      # documents and letters
+      curriculum vitae: 4
+      cover letter: 4
+      carta de presentación: 4
+      motivation letter: 4
+      personal statement: 4
+      statement of purpose: 4
+      letter of recommendation: 4
+      carta de recomendación: 4
+      thank you note: 4
+      nota de agradecimiento: 4
+      complaint letter: 4
+      carta de reclamación: 4
+      wedding speech: 4
+      eulogy: 4
+      vows: 4
+      discurso de boda: 4
+      brindis: 4
+      screenplay: 4
+      guion: 4
+      lyrics: 4
+      letra de canción: 4
+      haiku: 4
+      sonnet: 4
+      soneto: 4
+      rhyme: 4
+      rhymes: 4
+      rima: 4
+      rimas: 4
+      limerick: 4
+      short story: 4
+      narrator: 4
+      narrador: 4
+      poesía: 4
+      poeta: 4
+      poemas: 4
+      cv: 3
+      dialogue: 3
+      diálogo: 3
+      diálogos: 3
+      verso: 3
+      versos: 3
+      tweet: 3
+      tweets: 3
+      tuit: 3
+      tuits: 3
+      letter: 2.5
+      carta: 2.5
+      speech: 2.5
+      discurso: 2.5
+      discursos: 2.5
+      caption: 2.5
+      captions: 2.5
+      pie de foto: 2.5
+      fiction: 2.5
+      ficción: 2.5
+      cuentos: 2.5
+      comunicado: 2.5
+      abstract: 2.5
+      letters: 2
+      cartas: 2
+      toast: 2
+      chapter: 2
+      capítulo: 2
+      bio: 2
+      biografía: 2
+      announcement: 2
+      anuncio: 2
+      outline: 2
+      esquema: 2
+      introduction: 2
+      introducción: 2
+      conclusion: 2
+      plot: 2
+      trama: 2
+      funny: 2
+      humorous: 2
+      gracioso: 2
+      apology: 2
+      disculpa: 2
+      disculpas: 2
+      agradecimiento: 2
+      queja: 2
+      quejas: 2
+      complaint: 2
+      felicitación: 2
+      dedicatoria: 2
+      character: 1.5
+      characters: 1.5
+      personaje: 1.5
+      personajes: 1.5
+      localization: 1.5
+      # translation
+      translation: 4
+      translations: 4
+      translating: 4
+      translator: 4
+      traducción: 4
+      traducciones: 4
+      traducir: 4
+      tradúceme: 4
+      traducirlo: 4
+      traductor: 4
+      traduciendo: 4
+      into english: 3
+      into spanish: 3
+      into french: 3
+      into german: 3
+      al inglés: 3
+      al español: 3
+      al francés: 3
+      al alemán: 3
+      en inglés: 2
+      en español: 2
+      # documents, creative writing and replies
+      thesis statement: 4
+      condolence: 4
+      condolencias: 4
+      pésame: 4
+      obituary: 4
+      esquela: 4
+      birthday message: 4
+      mensaje de cumpleaños: 4
+      fanfic: 4
+      worldbuilding: 4
+      poetry: 4
+      about me: 3
+      persuasive: 2.5
+      persuasivo: 2.5
+      narrative: 2.5
+      narrativa: 2.5
+      invitation: 2.5
+      invitación: 2.5
+      reply: 2
+      pun: 2
+      congratulations: 2
+      felicitaciones: 2
+      respond: 1.5
+      responder: 1.5
+      template: 1.5
+      plantilla: 1.5
+      song: 1.5
+      canción: 1.5
+      joke: 1.5
+      chiste: 1.5
+      script: 1.5
+      wedding: 1.5
+      boda: 1.5
+      títulos: 1.5
     system_prompt: |
       You are Spike Writing, an editor and writer. Match the requested audience, purpose, tone and length.
       Prefer clear, concrete, active sentences. When editing, preserve the author's voice and meaning and
@@ -454,11 +3724,11 @@ specialists:
       startup: 3
       pricing: 3
       competitor: 3
-      competitive: 2
+      competitive: 1.5
       swot: 4
       okr: 4
-      operations: 2
-      management: 2
+      operations: 1.5
+      management: 1.5
       hiring: 3
       negotiation: 3
       supply chain: 4
@@ -467,11 +3737,344 @@ specialists:
       modelo de negocio: 4
       estrategia: 2
       empresa: 2
-      competencia: 2
-      precios: 2
+      competencia: 1.5
+      precios: 1.5
       dafo: 4
       negociación: 3
       contratación: 2
+      # starting and running a business
+      entrepreneur: 4
+      entrepreneurs: 4
+      entrepreneurship: 4
+      emprender: 4
+      emprendedor: 4
+      emprendedora: 4
+      emprendedores: 4
+      emprendimiento: 4
+      cofounder: 4
+      co-founder: 4
+      side hustle: 4
+      dropshipping: 4
+      dropship: 4
+      franchise: 4
+      franchising: 4
+      franquicia: 4
+      franquicias: 4
+      wholesale: 4
+      mayorista: 4
+      procurement: 4
+      logistics: 4
+      logística: 4
+      inventory: 4
+      inventario: 4
+      fulfillment: 4
+      mvp: 4
+      product-market fit: 4
+      market fit: 4
+      encaje producto-mercado: 4
+      cuota de mercado: 4
+      market share: 4
+      market size: 4
+      tamaño de mercado: 4
+      revenue stream: 4
+      revenue streams: 4
+      monetize: 4
+      monetization: 4
+      monetizar: 4
+      monetización: 4
+      unit economics: 4
+      break-even: 4
+      breakeven: 4
+      punto de equilibrio: 4
+      cost structure: 4
+      estructura de costes: 4
+      estructura de costos: 4
+      hourly rate: 4
+      precio por hora: 4
+      gross margin: 4
+      margen bruto: 4
+      fundraising: 4
+      seed round: 4
+      series a: 4
+      ronda de financiación: 4
+      ronda semilla: 4
+      cap table: 4
+      vesting: 4
+      due diligence: 4
+      exit strategy: 4
+      joint venture: 4
+      pitch deck: 4
+      elevator pitch: 4
+      business case: 4
+      hoja de ruta: 4
+      five forces: 4
+      cinco fuerzas: 4
+      value chain: 4
+      cadena de valor: 4
+      quality control: 4
+      control de calidad: 4
+      project management: 4
+      gestión de proyectos: 4
+      project manager: 4
+      jefe de proyecto: 4
+      product manager: 4
+      scrum: 4
+      kanban: 4
+      agile: 4
+      onboarding: 4
+      offboarding: 4
+      performance review: 4
+      evaluación de desempeño: 4
+      employee retention: 4
+      rotación de personal: 4
+      clima laboral: 4
+      work culture: 4
+      trabajo en equipo: 4
+      teamwork: 4
+      plan de empresa: 4
+      plan de viabilidad: 4
+      viabilidad: 4
+      market analysis: 4
+      análisis de mercado: 4
+      idea de negocio: 4
+      business idea: 4
+      business: 3
+      businesses: 3
+      negocio: 3
+      negocios: 3
+      founder: 3
+      founders: 3
+      fundador: 3
+      fundadores: 3
+      startups: 3
+      start-up: 3
+      freelance: 3
+      freelancer: 3
+      freelancing: 3
+      autónomo: 3
+      autónoma: 3
+      autónomos: 3
+      customer base: 3
+      cartera de clientes: 3
+      customer service: 3
+      atención al cliente: 3
+      employee: 3
+      employees: 3
+      empleado: 3
+      empleados: 3
+      gerente: 3
+      gerentes: 3
+      leadership: 3
+      liderazgo: 3
+      delegate: 3
+      delegar: 3
+      delegación: 3
+      stakeholder: 3
+      stakeholders: 3
+      roadmap: 3
+      recruit: 3
+      recruiting: 3
+      recruitment: 3
+      recruiter: 3
+      reclutamiento: 3
+      reclutar: 3
+      hire: 3
+      hires: 3
+      employer: 3
+      employers: 3
+      empleador: 3
+      remote work: 3
+      outsourcing: 3
+      outsource: 3
+      externalizar: 3
+      subcontratar: 3
+      investors: 3
+      funding: 3
+      tarifa: 3
+      tarifas: 3
+      consultant: 2.5
+      consulting: 2.5
+      consultor: 2.5
+      consultoría: 2.5
+      supplier: 2.5
+      suppliers: 2.5
+      proveedor: 2.5
+      proveedores: 2.5
+      retail: 2.5
+      retailer: 2.5
+      minorista: 2.5
+      manager: 2.5
+      managers: 2.5
+      workflow: 2.5
+      subscription: 2.5
+      subscriptions: 2.5
+      suscripción: 2.5
+      suscripciones: 2.5
+      profitable: 2.5
+      partnership: 2.5
+      partnerships: 2.5
+      niche: 2.5
+      nicho: 2.5
+      workplace: 2.5
+      coworker: 2.5
+      coworkers: 2.5
+      ecommerce: 2
+      e-commerce: 2
+      online store: 2
+      tienda online: 2
+      staff: 2
+      plantilla: 2
+      directivo: 2
+      directivos: 2
+      overhead: 2
+      pitch: 2
+      alianza: 2
+      alianzas: 2
+      benchmark: 2
+      benchmarking: 2
+      productivity: 2
+      productividad: 2
+      cobrar: 2
+      gestiono: 2
+      gestionarlo: 2
+      membership: 2
+      memberships: 2
+      hired: 2
+      contratar: 2
+      prioritization: 2
+      priorización: 2
+      decision making: 2
+      toma de decisiones: 2
+      scalability: 2
+      escalabilidad: 2
+      scaling: 2
+      owner: 1.5
+      owners: 1.5
+      dueño: 1.5
+      dueños: 1.5
+      boss: 1.5
+      jefe: 1.5
+      jefa: 1.5
+      team: 1.5
+      equipo: 1.5
+      agency: 1.5
+      agencia: 1.5
+      efficiency: 1.5
+      eficiencia: 1.5
+      growth: 1.5
+      crecimiento: 1.5
+      price: 1.5
+      prices: 1.5
+      precio: 1.5
+      charging: 1.5
+      fee: 1.5
+      fees: 1.5
+      margin: 1.5
+      margins: 1.5
+      margen: 1.5
+      costs: 1.5
+      costes: 1.5
+      costos: 1.5
+      gestión: 1.5
+      gestionar: 1.5
+      manage: 1.5
+      managing: 1.5
+      scale: 1.5
+      escalar: 1.5
+      cafetería: 1.5
+      cancellations: 1.5
+      cancelaciones: 1.5
+      interview: 1.5
+      interviews: 1.5
+      entrevista: 1.5
+      entrevistas: 1.5
+      contractor: 1.5
+      contractors: 1.5
+      meeting: 1.5
+      meetings: 1.5
+      reunión: 1.5
+      reuniones: 1.5
+      plazos: 1.5
+      deadlines: 1.5
+      deadline: 1.5
+      processes: 1.5
+      procesos: 1.5
+      mercado: 1.5
+      market: 1.5
+      markets: 1.5
+      mercados: 1.5
+      sales: 1.5
+      ventas: 1.5
+      prioritize: 1.5
+      priorizar: 1.5
+      leader: 1.5
+      líder: 1.5
+      pivot: 1.5
+      bakery: 1.5
+      panadería: 1.5
+      cost: 1
+      coste: 1
+      charge: 1
+      demand: 1
+      process: 1
+      restaurant: 1
+      restaurants: 1
+      restaurante: 1
+      restaurantes: 1
+      shop: 1
+      store: 1
+      tienda: 1
+      tiendas: 1
+      clients: 1
+      clientes: 1
+      customers: 1
+      customer: 1
+      cliente: 1
+      client: 1
+      # startups, operations and people
+      pestel: 4
+      lean canvas: 4
+      customer discovery: 4
+      market validation: 4
+      bootstrapping: 4
+      bootstrapped: 4
+      mrr: 4
+      sales pipeline: 4
+      crm: 4
+      demand forecasting: 4
+      last mile: 4
+      recursos humanos: 4
+      human resources: 4
+      licitación: 4
+      rfp: 4
+      print on demand: 4
+      subscription box: 4
+      rrhh: 3
+      teletrabajo: 3
+      sla: 3
+      compensation: 2.5
+      standup: 2.5
+      retrospective: 2.5
+      arr: 2
+      hr: 2
+      sprint: 2
+      marketplace: 2
+      vendor: 2
+      canvas: 1.5
+      proposal: 1.5
+      shipping: 1.5
+      warehouse: 1.5
+      propuesta: 1.5
+      validar: 1.5
+      validate: 1.5
+      remote: 1.5
+      envíos: 1.5
+      returns: 1.5
+      devoluciones: 1.5
+      deal: 1.5
+      unicorn: 1
+      lean: 1
+      culture: 1
     system_prompt: |
       You are Spike Business, a seasoned strategy and operations advisor. Structure problems clearly,
       quantify where possible, compare options with their trade-offs and risks, and finish with concrete
@@ -506,8 +4109,308 @@ specialists:
       ciberseguridad: 4
       vulnerabilidad: 4
       cifrado: 3
-      contraseña: 2
+      contraseña: 3
       ataque: 2
+      # attacks and malware
+      ransomware: 4
+      ransom: 4
+      secuestro de datos: 4
+      trojan: 4
+      troyano: 4
+      spyware: 4
+      botnet: 4
+      rootkit: 4
+      keylogger: 4
+      backdoor: 4
+      zero-day: 4
+      brute force: 4
+      fuerza bruta: 4
+      ddos: 4
+      denial of service: 4
+      denegación de servicio: 4
+      man-in-the-middle: 4
+      mitm: 4
+      injection: 4
+      inyección: 4
+      inyección sql: 4
+      remote code execution: 4
+      rce: 4
+      privilege escalation: 4
+      escalada de privilegios: 4
+      social engineering: 4
+      ingeniería social: 4
+      spoofing: 4
+      suplantación: 4
+      suplantación de identidad: 4
+      smishing: 4
+      vishing: 4
+      clickjacking: 4
+      directory traversal: 4
+      path traversal: 4
+      ssrf: 4
+      xxe: 4
+      deserialization: 4
+      session hijacking: 4
+      secuestro de sesión: 4
+      account takeover: 4
+      identity theft: 4
+      robo de identidad: 4
+      robo de datos: 4
+      data breach: 4
+      data leak: 4
+      brecha de seguridad: 4
+      cyberattack: 4
+      ciberataque: 4
+      ciberataques: 4
+      cyber attack: 4
+      intrusion: 4
+      unauthorized access: 4
+      acceso no autorizado: 4
+      attack surface: 4
+      red team: 4
+      blue team: 4
+      bug bounty: 4
+      ctf: 4
+      nmap: 4
+      metasploit: 4
+      wireshark: 4
+      open port: 4
+      open ports: 4
+      puerto abierto: 4
+      puertos abiertos: 4
+      antivirus: 4
+      anti-virus: 4
+      malicious: 4
+      malicioso: 4
+      captcha: 4
+      hack: 3
+      hacked: 3
+      hacker: 3
+      hackers: 3
+      hacking: 3
+      hackeo: 3
+      hackear: 3
+      hackeado: 3
+      hackeada: 3
+      hackearon: 3
+      breached: 3
+      compromised: 3
+      comprometida: 3
+      comprometido: 3
+      scam: 3
+      scams: 3
+      scammer: 3
+      estafa: 3
+      estafas: 3
+      estafador: 3
+      estafadores: 3
+      fraudulent: 3
+      fraudulento: 3
+      cyber: 3
+      intruder: 3
+      intruso: 3
+      unauthorized: 3
+      no autorizado: 3
+      impersonation: 3
+      public wifi: 3
+      wifi pública: 3
+      flood: 3
+      flooded: 3
+      fraud: 2.5
+      fraude: 2.5
+      threat: 2.5
+      threats: 2.5
+      amenaza: 2.5
+      amenazas: 2.5
+      attacker: 2.5
+      attackers: 2.5
+      atacante: 2.5
+      atacantes: 2.5
+      suspicious: 2.5
+      sospechoso: 2.5
+      sospechosa: 2.5
+      stolen: 2.5
+      attack: 2.5
+      attacks: 2.5
+      virus: 2.5
+      breach: 2
+      spam: 2
+      leaked: 2
+      filtración: 2
+      accedido: 2
+      accedió: 2
+      accessed: 2
+      ip address: 2
+      dirección ip: 2
+      bots: 2
+      leak: 1.5
+      entrado: 1.5
+      acceso: 1.5
+      requests: 1.5
+      router: 1.5
+      proxy: 1.5
+      bot: 1.5
+      laptop: 1
+      # hardening and defence
+      zero trust: 4
+      confianza cero: 4
+      least privilege: 4
+      mínimo privilegio: 4
+      defense in depth: 4
+      access control: 4
+      control de acceso: 4
+      rbac: 4
+      two-factor: 4
+      doble factor: 4
+      verificación en dos pasos: 4
+      "2fa": 4
+      mfa: 4
+      multi-factor: 4
+      password manager: 4
+      gestor de contraseñas: 4
+      bcrypt: 4
+      argon2: 4
+      md5: 4
+      sha1: 4
+      sha256: 4
+      sha-256: 4
+      plaintext: 4
+      encrypt: 4
+      encrypting: 4
+      decrypt: 4
+      descifrar: 4
+      cifrar: 4
+      criptografía: 4
+      cryptography: 4
+      cryptographic: 4
+      criptográfico: 4
+      tls: 4
+      ssl: 4
+      public key: 4
+      private key: 4
+      clave pública: 4
+      clave privada: 4
+      pgp: 4
+      gpg: 4
+      vpn: 4
+      cortafuegos: 4
+      siem: 4
+      incident response: 4
+      respuesta a incidentes: 4
+      forensics: 4
+      forensic: 4
+      forense: 4
+      api key: 4
+      api keys: 4
+      clave de api: 4
+      input validation: 4
+      validación de entradas: 4
+      prepared statement: 4
+      sanitizar: 4
+      sanitización: 4
+      sanitize: 4
+      sanitization: 4
+      parameterized: 4
+      jwt: 4
+      cors: 4
+      penetration testing: 4
+      pen test: 4
+      prueba de penetración: 4
+      pruebas de penetración: 4
+      dark web: 4
+      password: 3
+      passwords: 3
+      passphrase: 3
+      contraseñas: 3
+      ssh: 3
+      insecure: 3
+      authenticate: 3
+      autenticar: 3
+      autenticación: 3
+      encrypted: 3
+      cifrada: 3
+      descifra: 3
+      decryption: 3
+      copia de seguridad: 3
+      copias de seguridad: 3
+      ciberdelincuente: 3
+      ciberdelincuentes: 3
+      backup: 3
+      backups: 3
+      hash: 2.5
+      hashing: 2.5
+      hashed: 2.5
+      hasheo: 2.5
+      authorization: 2.5
+      autorización: 2.5
+      sandbox: 2.5
+      sandboxing: 2.5
+      privilege: 2.5
+      privilegios: 2.5
+      secure: 2
+      securing: 2
+      inseguro: 2
+      certificate: 2
+      certificates: 2
+      certificado: 2
+      certificados: 2
+      patching: 2
+      parchear: 2
+      patch: 2
+      parche: 2
+      parches: 2
+      mitigation: 2
+      mitigate: 2
+      incident: 2
+      incidente: 2
+      secrets: 2
+      secretos: 2
+      privacidad: 2
+      privacy: 2
+      robo: 2
+      robado: 2
+      robada: 2
+      theft: 2
+      https: 2
+      seguridad: 2
+      disaster recovery: 2
+      recuperación ante desastres: 2
+      safe: 1.5
+      wifi: 1.5
+      wi-fi: 1.5
+      login: 1.5
+      inicio de sesión: 1.5
+      token: 1.5
+      tokens: 1.5
+      permisos: 1.5
+      permissions: 1.5
+      trackers: 1.5
+      tracking: 1.5
+      # identity, access and tooling
+      oauth: 4
+      saml: 4
+      openid: 4
+      kerberos: 4
+      hsts: 4
+      content security policy: 4
+      edr: 4
+      endpoint protection: 4
+      nessus: 4
+      threat intelligence: 4
+      phish: 4
+      sextortion: 4
+      doxxing: 4
+      stalkerware: 4
+      sso: 3
+      ldap: 3
+      active directory: 3
+      csp: 3
+      audit log: 3
+      deepfake: 2.5
+      catfish: 2
+      parental control: 2
+      privacy settings: 2
+      ioc: 2
     system_prompt: |
       You are Spike Security, a defensive security engineer. Identify vulnerabilities and their impact,
       explain root causes, and give concrete fixes and hardening steps that follow current best practice
