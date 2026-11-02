@@ -14,24 +14,44 @@ def strip_think(text: str) -> str:
 
 
 def extract_choice(text: str, n_options: int = 10) -> str | None:
-    """Return the final option letter, trying in order: the last 'Answer: X' (markdown allowed, letters are
-    upper case only so 'the answer is a ...' is not read as A), a last line that is only the letter
-    ('**B**'), the last 'option is X' or 'Option: X', and the last standalone 'X.' or 'X)'."""
+    """Return the final option letter (upper case only, so 'the answer is a ...' is not read as A), trying in order:
+    the last 'Answer: X' (markdown allowed; 'Answer: Option X' and 'the correct answer is choice (X)' too); the last
+    line that is only the letter ('**B**'), looked for through up to three short trailing note lines
+    ('Confidence: moderate', a clinician disclaimer) that name no letter; the last 'option is X' or 'Option: X'; the
+    last 'option X is (the) correct/right/best/answer', 'we select option X' or 'correct letter: X'; and the last
+    standalone 'X.' or 'X)'. A verdict against a letter ('option X is wrong', 'Answer: Option X is not ...') never
+    counts for the option rules, and letters beyond `n_options` are ignored."""
     letters = "ABCDEFGHIJ"[:n_options]
     body = strip_think(text)
     deco = r"[\s*_(\[]*"
-    explicit = re.findall(rf"(?i:\banswer)(?:\s+(?i:is))?\s*[:：]?{deco}([{letters}])(?![A-Za-z])", body)
-    if explicit:
-        return explicit[-1]
+    letter = rf"([{letters}])(?![A-Za-z])"
+    opt = rf"(?i:option|choice)\b{deco}{letter}"
+    against = r"(?!\s+(?i:is|are)(?i:n't|\s+(?:not|incorrect|wrong|false))\b)"
+    # 'Answer: Option X' needs the ':' or 'is' first, so 'the answer choice B is wrong' is not read as B
+    explicit = re.finditer(rf"(?i:\banswer)[*_]*(?:(?:\s+(?i:is))?\s*[:：]?{deco}{letter}"
+                           rf"|(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}{opt}{against})", body)
+    if found := [m.group(m.lastindex) for m in explicit]:
+        return found[-1]
+    stated = rf"(?i:\b(?:option|choice))(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}{letter}"
+    # affirmative picks only ('option X is the answer', 'we select option X', 'correct letter: X'), never a verdict
+    affirmed = (rf"(?i:\b(?:option|choice)){deco}{letter}[*_)\]]*\s+(?i:is)\s+(?i:the\s+)?"
+                r"(?:(?i:answer)\b|(?i:correct|right|best)\b(?!\s+(?i:about|in|for|that|only|if|but|when|as)\b))"
+                rf"|(?i:\b(?:we|i)\s+(?:(?:would|will|should|therefore|thus|then|now)\s+)*(?:select|choose|pick)\b)"
+                rf"{deco}{opt}{against}"
+                rf"|(?i:\bcorrect\s+letter)(?:\s+(?i:is))?\s*[:：]?{deco}{letter}{against}")
+    loose = rf"\b([{letters}])[\.\)]\s"
     lines = [ln.strip() for ln in body.splitlines() if ln.strip()]
-    if lines and (m := re.fullmatch(rf"{deco}([{letters}])[\s*_)\].:]*", lines[-1])):
-        return m.group(1)
-    stated = re.findall(rf"(?i:\b(?:option|choice))(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}([{letters}])(?![A-Za-z])",
-                        body)
-    if stated:
-        return stated[-1]
-    loose = re.findall(rf"\b([{letters}])[\.\)]\s", body + " ")
-    return loose[-1] if loose else None
+    for ln in reversed(lines[-4:]):
+        if m := re.fullmatch(rf"{deco}([{letters}])[\s*_)\].:]*", ln):
+            return m.group(1)
+        if len(ln) > 300 or any(re.search(rule, ln + " ") for rule in (stated, affirmed, loose)):
+            break
+    if found := re.findall(stated, body):
+        return found[-1]
+    if found := [m.group(m.lastindex) for m in re.finditer(affirmed, body)]:
+        return found[-1]
+    found = re.findall(loose, body + " ")
+    return found[-1] if found else None
 
 
 def extract_yes_no(text: str) -> str | None:
