@@ -184,3 +184,11 @@ grants no trademark rights (section 6), so they may not be used as another produ
 - Taglines in the images are set in Nunito, SIL Open Font License 1.1 (`brand/tools/Nunito-OFL.txt`).
 - The web app ships derived copies: favicons and app icons, the 13 specialist avatars and three state
   illustrations in `web/public/`.
+
+## Optional desktop release components
+
+- **llama.cpp b11709** (ggml-org, MIT): the desktop packaging recipe bundles the official CPU prebuilt archive for
+  the build's OS/architecture, its runtime libraries and the upstream MIT LICENSE supplied during offline staging.
+  Source/release: https://github.com/ggml-org/llama.cpp/releases/tag/b11709. No upstream binaries are checked in.
+- **pywebview** (BSD-3-Clause): detected only when already installed in the build/runtime environment; SPIKE's
+  launcher otherwise uses the standard-library browser opener. Source: https://github.com/r0x0r/pywebview.

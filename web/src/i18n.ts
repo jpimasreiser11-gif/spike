@@ -65,6 +65,14 @@ const es = {
     error: "No se pudo buscar. Revisa la conexión local y usa entre 1 y 12 palabras.",
     openError: "No se pudo abrir el chat. Puede haber sido eliminado; vuelve a buscar.",
   },
+  setup: {
+    title: "Preparar SPIKE", intro: "Descarga el modelo base y los adaptadores publicados que elijas desde Hugging Face. Se comprueban licencia y SHA-256. Las descargas interrumpidas se pueden reanudar; no se inicia el modelo.",
+    disk: "Disco libre", ram: "RAM total", available: "Disponible", required: "Reserva necesaria",
+    resources: "No hay suficiente disco o RAM para esta instalación.", specialists: "Especialistas",
+    unavailable: "Adaptador aún no publicado; disponible como perfil de instrucciones", download: "Descargar todo",
+    downloading: "Descargando…", failed: "La instalación falló. Comprueba la conexión y el espacio y vuelve a pulsar Descargar todo para reanudar.",
+    later: "Más tarde", quit: "Salir de SPIKE",
+  },
 
   bundledSkillDescriptions: {
     "landing-page": "Crea una landing page con mensajes verificables, secciones accesibles y una llamada a la acción clara.",
@@ -461,6 +469,14 @@ const en: Dict = {
     result: "match", results: "matches", moreAvailable: "more results available", more: "Load more", chatTitle: "Title",
     error: "Search failed. Check the local connection and use between 1 and 12 words.",
     openError: "Could not open the chat. It may have been deleted; search again.",
+  },
+  setup: {
+    title: "Set up SPIKE", intro: "Download the base model and your selected published adapters from Hugging Face. Licenses and SHA-256 are checked. Interrupted downloads can resume; the model is not started.",
+    disk: "Free disk", ram: "Total RAM", available: "Available", required: "Required reservation",
+    resources: "There is not enough disk space or RAM for this installation.", specialists: "Specialists",
+    unavailable: "Adapter not yet published; available as an instruction profile", download: "Download all",
+    downloading: "Downloading…", failed: "Installation failed. Check your connection and disk space, then click Download all again to resume.",
+    later: "Later", quit: "Quit SPIKE",
   },
 
   bundledSkillDescriptions: {

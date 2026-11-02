@@ -1,0 +1,4 @@
+.setup-backdrop { position: fixed; inset: 0; z-index: 150; background: #10251d99; display: grid; place-items: center; padding: 24px; }
+.setup-wizard { width: min(620px, 100%); max-height: 85vh; overflow: auto; border: 1px solid var(--border); border-radius: 20px; padding: 28px; background: var(--bg, #fff); color: var(--text, #152b23); box-shadow: 0 16px 64px #0003; }
+.setup-option { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+.launcher-quit { position: fixed; right: 16px; bottom: 12px; z-index: 151; }
