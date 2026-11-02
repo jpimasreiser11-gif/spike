@@ -30,7 +30,7 @@ SECRET = "s3cr3t-token-value-123"
 # A stand-in for the installed app: the endpoints the check uses, behaving like the launcher's (same-origin JSON for
 # mutations), with a "download" that writes PAYLOAD into SPIKE_HOME/models. FAKE_MODE picks what goes wrong.
 FAKE_APP = r'''
-import json, os, sys, threading, time
+import json, os, socketserver, sys, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -159,7 +159,13 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(b"data: [DONE]\n\n")
 
 
-server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+class Server(ThreadingHTTPServer):
+    def server_bind(self):  # HTTPServer.server_bind also calls socket.getfqdn, which can stall for seconds on macOS
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = "127.0.0.1", self.server_address[1]
+
+
+server = Server(("127.0.0.1", 0), Handler)
 server.daemon_threads = True
 PORT = server.server_address[1]
 server.serve_forever()
@@ -389,7 +395,8 @@ def test_output_never_carries_secrets_or_paths_outside_the_work_directory(world,
     saved = (tmp_path / "out" / "result.json").read_text(encoding="utf-8")
     for text in (shown.out, shown.err, saved, json.dumps(result)):
         assert SECRET not in text and "alicetester" not in text and str(home) not in text and home.as_posix() not in text
-    assert "<work>/install" in saved and "~/.spike/x" in saved and "***" in saved
+    install = json.dumps(f"<work>{os.sep}install")[1:-1]  # the root is a native path; JSON escapes a backslash
+    assert install in saved and "~/.spike/x" in saved and "***" in saved
     # and a successful default-profile run prints only profile-relative model paths
     world.run(default_profile=True, work=tmp_path / "w2", out=tmp_path / "o2.json")
     again = capsys.readouterr().out + (tmp_path / "o2.json").read_text(encoding="utf-8")
@@ -457,7 +464,7 @@ def test_dmg_is_mounted_read_only_copied_and_always_detached(tmp_path, monkeypat
     installed = rmc.install_dmg(tmp_path / "SPIKE.dmg", tmp_path / "root")
     assert calls[0][:2] == ["hdiutil", "attach"] and "-readonly" in calls[0] and "-nobrowse" in calls[0]
     assert calls[-1][:2] == ["hdiutil", "detach"]
-    assert installed.argv[0].endswith("SPIKE.app/Contents/MacOS/SPIKE") and not installed.removed()
+    assert Path(installed.argv[0]).as_posix().endswith("SPIKE.app/Contents/MacOS/SPIKE") and not installed.removed()
     installed.remove()
     assert installed.removed()
     # an image without the app is an error, and the volume is still ejected
@@ -540,8 +547,10 @@ def test_listening_ports_and_peak_rss_are_measured_for_real_processes():
         sock.bind(("127.0.0.1", 0))
         sock.listen()
         assert sock.getsockname()[1] in rmc.listening_ports(os.getpid())
-    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    child = subprocess.Popen([sys.executable, "-c", "import time; print(1, flush=True); time.sleep(30)"],
+                             stdout=subprocess.PIPE)
     try:
+        child.stdout.readline()  # running Python code: past the exec of a macOS framework launcher, which renames it
         name = psutil.Process(child.pid).name().lower()
         meter = rmc.PeakRss(os.getpid(), name=name, interval=0.05)
         meter.start()
