@@ -637,6 +637,21 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_marketplace(args: argparse.Namespace) -> int:
+    from spike.skills.marketplace import MarketplaceError, install, read_index
+
+    try:
+        if args.action == "list":
+            print(json.dumps(read_index(Path(args.index), Path.cwd()), ensure_ascii=True, indent=2))
+        else:
+            names = install(Path(args.index), args.pack, Path(args.destination), Path.cwd(), approved=args.yes)
+            print(json.dumps({"installed": names}, ensure_ascii=True))
+    except MarketplaceError as exc:
+        print(exc.message(args.lang), file=sys.stderr)
+        return 1
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="spike", description="SPIKE local AI system")
     p.add_argument("--version", action="version", version=f"spike {__version__}")
@@ -649,6 +664,16 @@ def build_parser() -> argparse.ArgumentParser:
         validate.add_argument("paths", nargs="*" if kind == "skills" else "?", default=[])
         validate.add_argument("--lang", choices=("es", "en"), default="en", help="language / idioma")
         validate.set_defaults(func=cmd_validate)
+        if kind == "skills":
+            for action in ("list", "install"):
+                market = actions.add_parser(action, help="local marketplace / marketplace local")
+                market.add_argument("index", help="local index JSON / índice JSON local")
+                market.add_argument("--lang", choices=("es", "en"), default="en")
+                if action == "install":
+                    market.add_argument("pack", help="pack identifier / identificador de paquete")
+                    market.add_argument("--destination", required=True, help="skills folder / carpeta de skills")
+                    market.add_argument("--yes", action="store_true", help="approve writing / permitir escritura")
+                market.set_defaults(func=cmd_marketplace)
 
     s = sub.add_parser("serve", help="run the SPIKE app")
     s.add_argument("--host", default="127.0.0.1")
