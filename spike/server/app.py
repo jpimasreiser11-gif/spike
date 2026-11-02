@@ -56,6 +56,7 @@ from spike.server.media_api import create_media_router
 from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
+from spike.server.research_api import create_research_router
 from spike.server.state import AppState
 from spike.server.workspace_api import create_workspace_router
 from spike.server.subtitles_api import create_subtitles_router
@@ -380,6 +381,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_lab_router(st))
     app.include_router(create_workspace_router(st))
     app.include_router(create_data_app_router(st))
+    app.include_router(create_research_router(st))
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)
