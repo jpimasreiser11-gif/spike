@@ -401,6 +401,7 @@ const en: Dict = {
     create: "Create local app (writes app.html)", busy: "Preparing…", hint: "Query and edit the table. Propose changes to review them here before writing the original. UTF-8 CSV tables or the first XLSX sheet only; at most 2000 rows and 20000 cells. XLSX requires installed openpyxl. Use plain tables: advanced workbook features may be lost on save. Sessions expire after an hour or a restart.",
     review: "Review changes", row: "Row", column: "Column", approve: "Approve write", cancel: "Discard proposal",
     saved: "Original file updated. Create the app again to load the changes.", failed: "Could not complete. Check the file, format and whether it changed; create the app again if the session expired.",
+  },
   subtitles: {
     title: "Audio and subtitles", close: "Close", workspace: "Personal workspace",
     intro: "Transcribe locally, review every line and prepare editable subtitles. No provider calls or model downloads.",
