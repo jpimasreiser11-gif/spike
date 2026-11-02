@@ -148,6 +148,8 @@ Crear (Create) turns a template (web page, app, dashboard, data to app, Word doc
 Spike Motion makes videos from code: the model writes an animated HTML/SVG scene and SPIKE renders it frame by frame to MP4, WebM or GIF, in the chat or with `spike render escena.html` (needs ffmpeg and Chrome or Chromium; `spike render --install-browser` downloads Chromium).
 SPIKE improves from your use, on your computer: it tries the rules from your corrections on each specialist's prompt and keeps them only if more of your eval questions pass (`spike evolve optimize medicine`); with your consent, approved corrections become retraining data (`spike evolve dataset`).
 To code in a folder from the terminal: `spike dev [folder]` (edits and commands ask first; `/undo` puts files back).
+Use `--plan` or `/plan` for read-only planning, `/act` to return to action mode, and `/skills` or `/skill <name> <task>`
+for explicit skills. See [the Dev workflow guide (EN/ES)](docs/DEV-WORKFLOW.md) for behavior and limits.
 Connectors (MCP servers) can bring their own views (MCP Apps), which SPIKE shows isolated next to the tool's result.
 Other agents can use SPIKE too: as an OpenAI-compatible endpoint (`/v1`) or as an MCP server (`spike mcp`, for
 Claude Code, Cursor or Codex); see [integrations](docs/INTEGRATIONS.md).

@@ -23,6 +23,10 @@ from spike.store.checkpoints import CheckpointError
 HELP = """/undo   put back the files of the latest change (repeat to go further back)
 /steps  list the file changes SPIKE made in this folder
 /sessions  list saved sessions in this folder / ver sesiones guardadas de esta carpeta
+/plan [task]  read-only planning; optional task / planificar sin modificar; tarea opcional
+/act    leave planning; does not run anything / salir del plan; no ejecuta nada
+/skills list installed skills / ver skills instaladas
+/skill <name> <task>  use one skill for this turn / usar una skill en este turno
 /clear  start a new conversation (the changes stay undoable)
 /help   this list
 /exit   leave (also Ctrl-D); Ctrl-C stops the current request"""
@@ -229,12 +233,12 @@ def undo(session: DevSession, out: Out, read: Callable[[str], str] | None) -> No
 
 
 def run_turn(loop: asyncio.AbstractEventLoop, session: DevSession, text: str, render: Callable[[Event], None],
-             out: Out) -> bool:
+             out: Out, *, skills: list[str] | None = None) -> bool:
     """One request; False when it failed or was stopped (Ctrl-C)."""
 
     async def consume() -> bool:
         ok = True
-        async for ev in session.turn(text):
+        async for ev in session.turn(text, skills=skills):
             render(ev)
             if ev["type"] == "error" or (ev["type"] == "done" and ev.get("error")):
                 ok = False
@@ -243,6 +247,9 @@ def run_turn(loop: asyncio.AbstractEventLoop, session: DevSession, text: str, re
     task = loop.create_task(consume())
     try:
         return loop.run_until_complete(task)
+    except ValueError as exc:
+        out(str(exc), style="yellow")
+        return False
     except (KeyboardInterrupt, SystemExit) as exc:  # Ctrl-C, or the terminal closed: stop the request cleanly
         task.cancel()
         with contextlib.suppress(BaseException):
@@ -273,6 +280,27 @@ def repl(loop: asyncio.AbstractEventLoop, session: DevSession, out: Out, read: C
                 return 0
             if command == "/help":
                 out(HELP)
+            elif command == "/plan":
+                session.plan_mode = True
+                out("Planning: read-only. / Plan: solo lectura. /act to leave / para salir.", style="dim")
+                if task := line[len(command):].strip():
+                    run_turn(loop, session, task, render, out)
+            elif command == "/act":
+                session.plan_mode = False
+                out("Action mode: send the reviewed task; permissions still apply. / "
+                    "Modo acción: envía la tarea revisada; se mantienen los permisos.", style="dim")
+            elif command == "/skills":
+                settings = session.state.settings()
+                for skill in session.state.skills.all():
+                    disabled = settings["skill_mode"] == "off" or skill.name in settings["disabled_skills"]
+                    out(f"{skill.name} ({'disabled / desactivada' if disabled else 'enabled / activa'})")
+                out("Import / Importar: Settings > Skills (.zip); spike skills --help")
+            elif command == "/skill":
+                parts = line.split(maxsplit=2)
+                if len(parts) != 3:
+                    out("/skill <name/nombre> <task/tarea>", style="yellow")
+                else:
+                    run_turn(loop, session, parts[2], render, out, skills=[parts[1]])
             elif command == "/steps":
                 for row in steps_text(session):
                     out(row)
@@ -317,6 +345,8 @@ def main(session: DevSession, loop: asyncio.AbstractEventLoop, prompt: str | Non
     edits = "edits without asking" if session.broker.policies.get("edit_file") == "allow" else "edits ask first"
     out(f"SPIKE dev · {session.root}", style="bold")
     out(f"Session / Sesión: {session.conversation_id}", style="dim")
+    if session.plan_mode:
+        out("Planning: read-only / Plan: solo lectura. /act to leave / para salir.", style="dim")
     out(f"{session.specialist} on {provider}{f' ({model})' if model else ''} · {edits} · commands ask first · "
         f"sandbox: {session.state.sandbox.isolation(command=True).line()} · /help", style="dim")
     if session.root in (Path.home(), Path(session.root.anchor)):
