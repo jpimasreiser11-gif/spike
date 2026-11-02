@@ -2,8 +2,8 @@ Third-party code inside llama.cpp's llama-server (tag b11709, commit 62318cd57dc
 
 llama.cpp's own MIT license is in llama.txt. The libraries below are vendored in llama.cpp's `vendor/` folder
 at that tag and compiled into the binary; each text is copied from the file named under its heading.
-Not covered here: the web UI that llama-server embeds (tools/ui, built with npm packages listed in its
-package-lock.json); SPIKE does not use that UI. See docs/release/REVIEW-v0.1.md, section 4.
+The npm packages of the web UI that llama-server embeds (tools/ui; SPIKE does not use that UI) are in
+llama-ui-npm.txt.
 
 ===============================================================================
 cpp-httplib

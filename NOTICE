@@ -24,7 +24,7 @@ Material in this distribution that comes from others, under its own license:
   Font License 1.1; the notices and the license text are in web/public/FONT-LICENSES.txt, served as /FONT-LICENSES.txt.
 
 * A desktop build includes llama.cpp (llama-server and its libraries), MIT License, Copyright (c) 2023-2026 The ggml
-  authors (packaging/licenses/llama.txt; the libraries it vendors in packaging/licenses/llama-vendored.txt), and on Linux the AppImage runtime (packaging/licenses/type2-runtime.txt).
+  authors (packaging/licenses/llama.txt; the libraries it vendors in packaging/licenses/llama-vendored.txt; the npm packages of its embedded web UI in packaging/licenses/llama-ui-npm.txt), and on Linux the AppImage runtime (packaging/licenses/type2-runtime.txt).
 
 * training/spike_train/resume.py adapts the training loop of mlx-lm (mlx_lm/tuner/trainer.py), Copyright (c) 2023-2024
   Apple Inc., under the MIT License, whose text follows. This file is part of the repository and the source package;

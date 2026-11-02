@@ -146,3 +146,71 @@ def test_llama_servers_vendored_notices_match_the_staged_tag():
                  "subprocess.h"):
         assert f"\n{name}" in text
     assert "Copyright (c) 2017 yhirose" in text and "Copyright (c) 2012-2021 Yann Collet" in text
+
+
+def fake_ui(tmp_path: Path) -> Path:
+    """A tiny tools/ui: source imports, an installed tree with a nested dependency, a CSS plugin and a vendored lib."""
+    ui = tmp_path / "ui"
+    src = ui / "src" / "lib"
+    src.mkdir(parents=True)
+    (src / "a.ts").write_text("import { x } from 'alpha';\nimport type { T } from 'typesonly';\n"
+                              "const m = await import('@scope/beta/sub');\nimport './local';\n", encoding="utf-8")
+    (src / "a.test.ts").write_text("import 'testonly';\n", encoding="utf-8")
+    (src / "types.d.ts").write_text("import 'dtsonly';\n", encoding="utf-8")
+    (ui / "src" / "app.css").write_text("@import 'tailwindcss';\n", encoding="utf-8")
+    vendor = src / "vendors" / "tool"
+    vendor.mkdir(parents=True)
+    (vendor / "LICENSE").write_text("Vendored tool license", encoding="utf-8")
+    nm = ui / "node_modules"
+
+    def pkg(where: Path, name, license="MIT", deps=(), text="", author="Ann Author <a@x>"):
+        where.mkdir(parents=True)
+        (where / "package.json").write_text(json.dumps({"name": name, "version": "1.0.0", "license": license,
+                                                        "author": author, "dependencies": dict.fromkeys(deps, "*")}))
+        if text:
+            (where / "LICENSE").write_text(text, encoding="utf-8")
+
+    pkg(nm / "alpha", "alpha", deps=["gamma"], text="MIT alpha text")
+    pkg(nm / "alpha" / "node_modules" / "gamma", "gamma", license="ISC", text="ISC nested gamma")
+    pkg(nm / "gamma", "gamma", license="ISC", text="ISC top gamma")
+    pkg(nm / "@scope" / "beta", "@scope/beta", deps=["delta"], text="MIT alpha text")
+    pkg(nm / "delta", "delta")  # MIT, no license file
+    pkg(nm / "tailwindcss", "tailwindcss", deps=["buildtool"], text="MIT tailwind")
+    pkg(nm / "buildtool", "buildtool", text="build only")
+    for name in ("svelte", "@sveltejs/kit", "katex", "workbox-core", "workbox-build"):
+        pkg(nm / name, name, text=f"text of {name}")
+    return ui
+
+
+def test_ui_notices_follow_runtime_imports_and_node_resolution(tmp_path):
+    notices = runpy.run_path(str(ROOT / "packaging" / "llama_ui_notices.py"))
+    ui = fake_ui(tmp_path)
+    roots = notices["runtime_roots"](ui)
+    assert {"alpha", "@scope/beta", "tailwindcss", "svelte", "@sveltejs/kit", "katex", "workbox-core"} == set(roots)
+    names = {(p["name"], p["dir"].parent.parent.name) for p in notices["closure"](ui, roots)}
+    assert ("gamma", "alpha") in names and ("gamma", "ui") not in names  # the nested copy is the one alpha loads
+    assert "buildtool" not in {n for n, _ in names}  # a CSS plugin ships only its CSS
+    text = notices["render"](ui, tag="bX", commit="c" * 40)
+    assert text.startswith("npm packages in the web UI that llama-server embeds (llama.cpp tag bX,")
+    assert text.count("MIT alpha text") == 1 and "Packages: @scope/beta@1.0.0, alpha@1.0.0" in text
+    assert "ISC nested gamma" in text and "ISC top gamma" not in text
+    assert "delta@1.0.0: MIT, no license file in the package; Copyright (c) Ann Author" in text
+    assert "Permission is hereby granted" in text and "Vendored tool license" in text
+    for left_out in ("testonly", "typesonly", "dtsonly", "workbox-build", "build only"):
+        assert left_out not in text
+
+
+def test_ui_notices_refuse_a_package_without_a_license_file_that_is_not_mit(tmp_path):
+    notices = runpy.run_path(str(ROOT / "packaging" / "llama_ui_notices.py"))
+    ui = fake_ui(tmp_path)
+    data = json.loads((ui / "node_modules/delta/package.json").read_text())
+    (ui / "node_modules/delta/package.json").write_text(json.dumps({**data, "license": "SEE LICENSE IN EULA"}))
+    with pytest.raises(ValueError, match="delta@1.0.0 has no license file and is not MIT"):
+        notices["render"](ui, tag="bX", commit="c" * 40)
+
+
+def test_the_committed_ui_notices_match_the_staged_tag():
+    stage = runpy.run_path(str(ROOT / "packaging" / "stage_llama.py"))
+    text = (ROOT / "packaging" / "licenses" / "llama-ui-npm.txt").read_text(encoding="utf-8")
+    assert text.splitlines()[0].startswith(f"npm packages in the web UI that llama-server embeds (llama.cpp tag {stage['TAG']},")
+    assert "GPL" not in text.split("\n=====", 1)[0]  # the header's license summary

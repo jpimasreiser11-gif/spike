@@ -215,8 +215,11 @@ grants no trademark rights (section 6), so they may not be used as another produ
   subprocess.h (Unlicense), plus sha1 (public domain, Steve Reid). The b11709 archive's only license file is the
   top-level MIT LICENSE (61 entries listed), so the vendored libraries' texts, copied from the `vendor/` folder of tag
   b11709 (commit 62318cd), are in `packaging/licenses/llama-vendored.txt` and ship as
-  `licenses/native/llama-vendored.txt`. llama-server also embeds llama.cpp's own web UI (`tools/ui`, built with npm
-  packages); SPIKE does not use it and its packages' notices are not reproduced (open item, `docs/release/REVIEW-v0.1.md`).
+  `licenses/native/llama-vendored.txt`. llama-server also embeds llama.cpp's own web UI (`tools/ui`, a SvelteKit app;
+  SPIKE does not use it): `packaging/llama_ui_notices.py` reads the tag's UI source and lockfile and writes the notices
+  of its 396 npm packages and 3 vendored libraries (MIT, ISC, BSD, Apache-2.0, Unlicense; dompurify taken under
+  Apache-2.0) to `packaging/licenses/llama-ui-npm.txt`, shipped as `licenses/native/llama-ui-npm.txt`. The list is a
+  static superset of the bundle (run-time imports and their production dependencies; the UI was not built).
 - **pywebview** (BSD-3-Clause): detected only when already installed in the build/runtime environment; SPIKE's
   launcher otherwise uses the standard-library browser opener. Source: https://github.com/r0x0r/pywebview.
 - **PyInstaller 6.22.3**: build tool/bootloader, GPL-2.0 with its distribution exception; see

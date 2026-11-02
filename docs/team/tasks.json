@@ -694,7 +694,7 @@
    "accept": [
     "checklist all ticked with evidence"
    ],
-   "note": "2026-11-02: review, 4 medium + 7 low fixes, licenses in the bundle (Native installers run 41501251258 counted 199/198/194 files), llama.cpp b11709 vendored notices (6e1b2b0). Waits on: L1 demo, M2 adapter, founder decisions on libfuse LGPL and llama-server's embedded web UI notices, final release notes."
+   "note": "2026-11-02: review, 4 medium + 7 low fixes, licenses in the bundle (Native installers run 41501251258 counted 199/198/194 files), llama.cpp b11709 vendored and embedded-UI npm notices. Waits on: L1 demo, M2 adapter, founder decision on libfuse LGPL, final release notes."
   },
   {
    "id": "L3",
