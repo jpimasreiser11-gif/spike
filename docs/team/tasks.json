@@ -711,7 +711,7 @@
   {
    "id": "N1",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "negocio",
    "title": "Estudio de monetización",
    "depends": [
@@ -721,7 +721,8 @@
    "spec": "Options with evidence and what each license allows (app Apache-2.0, base model license, every dataset's commercial terms): open-core with a Pro edition, paid specialist packs trained only on commercially licensed data, support and custom specialists for companies, sponsorships, marketplace revenue share, hosted API; costs, risks, recommendation.",
    "accept": [
     "document with sources"
-   ]
+   ],
+   "note": "2026-11-02: Claude Doc \"SPIKE: estudio de monetización\" (https://claude.ai/artifact/BU3X4LoQFuU3Cbz6864tCL): recommendation Sponsors at launch, services first, Pro only after interviews via a merchant of record; fees, EU VAT/OSS, autónomo, license table, sources."
   },
   {
    "id": "N2",

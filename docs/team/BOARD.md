@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 5 | 1 | 0 | 0 | 14 | 0 | 20 |
+| Claude | 4 | 1 | 0 | 0 | 15 | 0 | 20 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **12** | **2** | **0** | **0** | **31** | **0** | **45** |
+| **Total** | **11** | **2** | **0** | **0** | **32** | **0** | **45** |
 
 ## Fase: equipo
 
@@ -88,6 +88,6 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
-| N1 | Claude | pendiente | Estudio de monetización | L2 |
+| N1 | Claude | hecha | Estudio de monetización | L2 |
 | N2 | joan | pendiente | Elegir cómo monetizar | N1 |
 | N3 | Claude | pendiente | Implementar la monetización elegida | N2 |
