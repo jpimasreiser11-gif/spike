@@ -30,6 +30,7 @@ from spike.finance.market import EXCHANGES, ccxt_exchange
 from spike.finance.tools import Finance, finance_tools
 from spike.forge import prototypes
 from spike.forge.blueprint import Blueprint, make_blueprint
+from spike.maker.tools import maker_tools
 from spike.memory.extract import extract_text
 from spike.memory.learn import correction_rule, explicit_memories
 from spike.memory.service import Embedder, MemoryService, scopes_for
@@ -156,6 +157,7 @@ class AppState:
         workspace = Workspace(workspace_dir())
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                     *maker_tools(workspace, self.sandbox),
                      *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
@@ -318,6 +320,7 @@ class AppState:
         workspace = Workspace(folder)
         for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace),
+                     *maker_tools(workspace, self.sandbox),
                      *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
             registry.register(tool)
         registry.shared = self.connectors.tools

@@ -28,9 +28,12 @@ specialists:
     adapter: spike-code
     adapter_status: planned
     sensitive: false
-    tools: [dependency_doctor, visual_critic, ask_user, read_file, list_dir, write_file, render_video, python, calculator]
+    tools: [dependency_doctor, visual_critic, ask_user, read_file, list_dir, write_file, render_video, blender_render, godot_scaffold, godot_check, python, calculator]
     keywords:
       code: 3
+      blender: 4
+      godot: 4
+      gdscript: 4
       bug: 3
       function: 2
       python: 3

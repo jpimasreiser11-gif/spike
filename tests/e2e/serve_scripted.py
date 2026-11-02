@@ -22,6 +22,7 @@ from spike.desktop.driver import Availability  # noqa: E402
 from spike.providers.base import Provider  # noqa: E402
 from spike.server.app import create_app  # noqa: E402
 from spike.server.state import AppState  # noqa: E402
+from tests import helpers_programs  # noqa: E402
 from tests.helpers_desktop import FakeDriver, instant  # noqa: E402
 
 # An artifact that probes its sandbox: it reports whether it could read storage, reach the parent page or call
@@ -61,6 +62,12 @@ body{background:var(--bg,#fff);color:var(--fg,#111);font-family:var(--font-body,
 <svg width="320" height="140" role="img" aria-label="Ingresos por región"><rect x="20" y="20" width="270" height="40"/>
 <rect x="20" y="80" width="210" height="40"/><text x="296" y="46">90</text><text x="236" y="106">70</text></svg>
 </body></html>"""
+# A18: a Godot game whose player script has a bug the fake `godot` reports (it flags the marker comment).
+GODOT_PLAN = {"folder": "juego", "name": "Salto", "root_script": "main.gd",
+              "scripts": [{"path": "main.gd", "code": "extends Node2D\n\n\nfunc _ready() -> void:\n\tprint(\"listo\")\n"},
+                          {"path": "jugador.gd", "code": "extends CharacterBody2D\n# FAKE_PARSE_ERROR\nvar velocidad = oops\n"}],
+              "nodes": [{"name": "Jugador", "type": "CharacterBody2D", "script": "jugador.gd",
+                         "properties": {"position": "=Vector2(576, 324)"}}]}
 SENT_BACK: set[str] = set()  # Forge tasks whose first check already sent work back
 CONTRACT = "# Contrato\n\nEl cliente Norte paga a 60 días.\nLos demás clientes pagan a 30 días.\n"
 # After read_file on CONTRACT: a quote that is in it, a citation with a changed number, and two claims nothing backs.
@@ -156,6 +163,20 @@ class DemoProvider(Provider):
         tools = {t.name for t in request.tools or []}
         if last.role == "user" and "dependency doctor" in last.content.lower() and "dependency_doctor" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="a5", name="dependency_doctor", arguments={}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "blender" in last.content.lower() and "blender_render" in tools:  # A18
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c16", name="blender_render", arguments={
+                "starter": "studio_scene", "params": {"sun_strength": 6}}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "godot" in last.content.lower() and "godot_scaffold" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c17", name="godot_scaffold", arguments=GODOT_PLAN))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "tool" and last.name == "godot_scaffold" and "godot_check" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c18", name="godot_check",
+                                                                   arguments={"folder": "juego"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
         if last.role == "user" and "vídeo animado" in last.content.lower() and "render_video" in tools:  # Motion
@@ -261,6 +282,10 @@ class DemoProvider(Provider):
             answer = "En la vista veo: " + system.split("## Precios\n", 1)[1].split("\n", 1)[0]
         elif last.role == "tool" and last.name == "data_chart":
             answer = "El **norte** ingresa 90 € y el sur 70 €, según la consulta de la tarjeta."
+        elif last.role == "tool" and last.name == "blender_render":
+            answer = "Aquí tienes la vista previa de la escena en la tarjeta; el script queda guardado en `blender/`."
+        elif last.role == "tool" and last.name == "godot_check":
+            answer = "La comprobación de Godot encontró un error en **jugador.gd**: corrígelo y vuelve a comprobar."
         elif last.role == "tool" and last.name == "render_video":
             answer = "Aquí tienes **video.webm**: el punto verde cae, el título aparece y el fondo termina en verde (2 s)."
         elif last.role == "tool" and last.name == "data_sql":
@@ -399,6 +424,10 @@ def main() -> None:
     os.environ["SPIKE_HOME"] = str(home)
     os.environ["SPIKE_WORKSPACE"] = str(home / "ws")
     os.environ["SPIKE_NO_KEYRING"] = "1"
+    fakes = home / "fakebin"  # A18: Blender and Godot are the user's own programs; here they are fakes (tests/helpers_programs.py)
+    helpers_programs.install(fakes, "blender", helpers_programs.BLENDER)
+    helpers_programs.install(fakes, "godot", helpers_programs.GODOT)
+    os.environ["PATH"] = f"{fakes}{os.pathsep}{os.environ.get('PATH', '')}"
     state = AppState(home=home, provider_factory=lambda cfg: DemoProvider(cfg), market_factory=ScriptedExchange)
     (home / "ws").mkdir(parents=True, exist_ok=True)
     (home / "ws" / "contrato.md").write_text(CONTRACT, encoding="utf-8")

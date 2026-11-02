@@ -106,7 +106,7 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
-  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi; // something to act on or look at next to the result
+  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi | MakerUi; // something to act on or look at next to the result
 };
 
 /** Spike Data: a data file loaded as a table for a query. */
@@ -124,6 +124,14 @@ export type CodeRunUi = { kind: "code_run"; language: string; code: string; outp
 /** A video render_video made from a scene file (Spike Motion). */
 export type VideoUi = { kind: "video"; path: string; scene: string; format: string; codec: string; width: number; height: number;
   fps: number; seconds: number; frames: number; bytes: number };
+
+/** A Blender preview blender_render made (A18): the script and the PNG SPIKE chose for it, both in the workspace. */
+export type BlenderUi = { kind: "blender_render"; script: string; preview: string; width: number; height: number; engine: string;
+  samples: number; seconds: number; bytes: number; version: string; log: string };
+/** What godot_check found (A18): each script and the main scene, with the errors Godot printed for them. */
+export type GodotUi = { kind: "godot_check"; project: string; passed: boolean; version: string; scripts: number; not_checked: number;
+  seconds: number; checks: { kind: "script" | "scene"; name: string; ok: boolean; problems: string[] }[] };
+export type MakerUi = BlenderUi | GodotUi;
 
 export type DataUi = DataTableUi | ChartUi | CodeRunUi | { kind: "data_tables"; items: DataTableUi[] };
 
