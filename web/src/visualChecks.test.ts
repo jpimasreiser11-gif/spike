@@ -51,4 +51,19 @@ describe('original in-page visual checks on fixture DOM (explicit layout rectang
     expect(issues).toContainEqual({ code: 'contrast_unchecked', selector: '#gradient' });
     expect(issues.filter(i => ['#black', '#with-label', '#with-ref'].includes(i.selector))).toEqual([]);
   });
+  it('avoids false overflow inside bounded horizontal scrollers, skips 1px sr-only clips, and reads SVG icon labels', () => {
+    const issues = fixture(`
+      <div id="scroller" style="left:0px;width:780px;overflow-x:auto;background:white">
+        <div id="in-scroller" style="left:900px;width:120px;color:black;background:white">Wide table cell</div>
+      </div>
+      <div id="real-overflow" style="left:820px;width:100px;color:black;background:white">Escaped layout</div>
+      <button id="sr-btn" style="width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Skip to main</button>
+      <button id="svg-aria" style="width:32px;height:32px"><svg aria-label="Settings"></svg></button>
+      <a id="svg-title" href="#home" style="width:32px;height:32px"><svg><title>Home</title></svg></a>
+      <button id="empty-svg" style="width:32px;height:32px"><svg></svg></button>
+    `);
+    expect(issues).toContainEqual(expect.objectContaining({ code: 'overflow', selector: '#real-overflow' }));
+    expect(issues).toContainEqual(expect.objectContaining({ code: 'label', selector: '#empty-svg' }));
+    expect(issues.filter(i => ['#in-scroller', '#sr-btn', '#svg-aria', '#svg-title'].includes(i.selector))).toEqual([]);
+  });
 });

@@ -16,12 +16,26 @@
   const rgba = value => {
     const m = value.match(/^rgba?\(([^)]+)\)$/);
     if (!m) return null;
-    const n = m[1].split(/[,\s/]+/).map(Number);
-    return n.length >= 3 && n.every(Number.isFinite) ? [...n.slice(0, 3), n[3] ?? 1] : null;
+    const raw = m[1].trim().split(/[,\s/]+/).filter(Boolean);
+    if (raw.length < 3) return null;
+    const rgb = raw.slice(0, 3).map(s => s.endsWith('%') ? (Number(s.slice(0, -1)) * 255) / 100 : Number(s));
+    const a = raw[3] === undefined ? 1 : raw[3].endsWith('%') ? Number(raw[3].slice(0, -1)) / 100 : Number(raw[3]);
+    return rgb.every(Number.isFinite) && Number.isFinite(a) ? [...rgb, a] : null;
   };
   const over = (fg, bg) => fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3]));
   const luminance = rgb => rgb.map(v => v / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
     .reduce((v, c, i) => v + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const clippedX = el => {
+    const vw = document.documentElement.clientWidth;
+    for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+      const ox = getComputedStyle(p).overflowX;
+      if (ox === 'auto' || ox === 'scroll' || ox === 'hidden' || ox === 'clip') {
+        const pr = p.getBoundingClientRect();
+        if (pr.left >= -1 && pr.right <= vw + 1) return true;
+      }
+    }
+    return false;
+  };
   const name = el => {
     const refs = (el.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean);
     if (refs.some(id => document.getElementById(id)?.textContent.trim())) return true;
@@ -30,7 +44,8 @@
     if (el.matches('input[type=button],input[type=submit],input[type=reset]')) return !!el.value.trim();
     if (el.matches('input[type=image]')) return !!el.alt.trim();
     return !el.matches('input,select,textarea') && (!!el.textContent.trim() ||
-      [...el.querySelectorAll('img[alt]')].some(img => img.alt.trim()));
+      [...el.querySelectorAll('img[alt]')].some(img => img.alt.trim()) ||
+      [...el.querySelectorAll('[aria-label]:not([aria-hidden="true"])')].some(n => (n.getAttribute('aria-label') || '').trim()));
   };
   for (const el of document.querySelectorAll('body *')) {
     const style = getComputedStyle(el), rect = el.getBoundingClientRect();
@@ -41,8 +56,11 @@
     if (el.matches('img') && !el.hasAttribute('alt')) add('alt', el);
     const control = el.matches('button,input:not([type=hidden]),select,textarea,a[href],[role=button],[role=checkbox],[role=switch],[role=textbox]');
     if (control && !name(el)) add('label', el);
+    const srClipped = rect.width <= 1 && rect.height <= 1 && style.overflow === 'hidden' &&
+      ((style.clip && style.clip !== 'auto') || (style.clipPath && style.clipPath !== 'none'));
+    if (srClipped) continue;
     if (control && (rect.width < 24 || rect.height < 24)) add('tap', el, {width: rect.width, height: rect.height});
-    if (rect.left < -1 || rect.right > document.documentElement.clientWidth + 1)
+    if ((rect.left < -1 || rect.right > document.documentElement.clientWidth + 1) && !clippedX(el))
       add('overflow', el, {left: rect.left, right: rect.right});
     const hasText = [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
     if (!hasText) continue;

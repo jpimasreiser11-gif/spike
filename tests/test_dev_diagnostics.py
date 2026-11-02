@@ -239,3 +239,92 @@ async def test_denial_and_headless_call_never_run_auditors(ws, monkeypatch):
             if ev['type'] == 'tool_result':
                 results.append(ev)
         assert len(results) == 1 and not results[0]['ok']
+
+
+def test_license_report_handles_utf8_bom_trimmed_strings_legacy_objects_and_non_dict_entries(ws):
+    payload = {
+        'packages': {
+            'a': {'license': ' MIT '},
+            'b': {'license': '   '},
+            'c': {'license': {'type': 'Apache-2.0'}},
+            'd': {'license': {'type': 'GPL-3.0-only'}},
+            'e': None,
+        }
+    }
+    (ws.root / 'package-lock.json').write_bytes(b'\xef\xbb\xbf' + json.dumps(payload).encode('utf-8'))
+    rows = {r['package']: (r['license'], r['status']) for r in license_report(ws)}
+    assert rows == {
+        'a': ('MIT', 'allowed'),
+        'b': ('', 'unknown'),
+        'c': ('Apache-2.0', 'allowed'),
+        'd': ('GPL-3.0-only', 'review'),
+        'e': ('', 'unknown'),
+    }
+
+
+async def test_doctor_accepts_utf8_bom_requirements_crlf_output_and_rejects_non_string_path(ws, monkeypatch):
+    from spike.dev.tools import RunCommand
+    from spike.tools.base import ToolResult
+
+    (ws.root / 'requirements.txt').write_bytes(b'\xef\xbb\xbfdemo==1.0.0\r\n')
+    monkeypatch.setattr('spike.dev.diagnostics.shutil.which', lambda name: 'pip-audit' if name == 'pip-audit' else None)
+
+    async def run(self, args):
+        return ToolResult(ok=True, content='exit code 0\r\n{"dependencies": []}\r\n')
+
+    monkeypatch.setattr(RunCommand, 'run', run)
+    doctor = DependencyDoctor(ws)
+    ok_res = await doctor.run({})
+    assert ok_res.ok and ok_res.data['ui']['audits'][0]['status'] == 'complete'
+
+    for bad_path in (['..'], 123, {'dir': 'web'}):
+        bad_res = await doctor.run({'path': bad_path})
+        assert not bad_res.ok
+
+
+@pytest.mark.parametrize('wrapped', [
+    '### Result\r\n{"url":"about:blank","issues":[{"code":"alt","selector":"#x"}]}\r\n### Ran Playwright code\r\n',
+    '### Result\n```json\n{"url":"about:blank","issues":[{"code":"alt","selector":"#x"}]}\n```\n### Page state\n',
+    'Evaluation complete\n### Result\n{"url":"about:blank","issues":[{"code":"alt","selector":"#x"}]}\n### Next\n',
+])
+async def test_critic_parses_crlf_fenced_and_prefixed_mcp_evaluation_results(ws, wrapped):
+    class WrappedBrowser:
+        async def call_tool(self, name, args):
+            if name == 'browser_evaluate':
+                return CallResult(wrapped, False)
+            return CallResult('', False, {'content': [{'type': 'image', 'mimeType': 'image/png', 'data': 'cG5n'}]})
+
+    manager = SimpleNamespace(
+        connections={'playwright': SimpleNamespace(status='running', client=WrappedBrowser())},
+        config=lambda _: {'enabled': True, 'policy': 'ask'},
+    )
+    res = await VisualCritic(ws, manager).run({})
+    assert res.ok and res.data['ui']['issues'] == [{'code': 'alt', 'selector': '#x'}]
+
+
+async def test_critic_handles_scrollers_sr_only_svg_labels_and_percent_alpha_in_real_chromium():
+    from spike.dev.diagnostics import CHECKS
+
+    playwright = pytest.importorskip('playwright.async_api')
+    async with playwright.async_playwright() as pw:
+        executable = os.environ.get('SPIKE_CHROMIUM') or pw.chromium.executable_path
+        if not Path(executable).is_file():
+            pytest.skip('needs installed Chromium or SPIKE_CHROMIUM; never downloaded by tests')
+        browser = await pw.chromium.launch(headless=True, executable_path=executable)
+        try:
+            page = await browser.new_page(viewport={'width': 400, 'height': 600})
+            await page.route('**/*', lambda route: route.abort())
+            await page.set_content('''<body style="margin:0;background:white;color:black">
+<div id="table-wrap" style="width:380px;overflow-x:auto">
+  <table style="width:900px"><tr><td id="wide-cell">Wide scrollable cell</td></tr></table>
+</div>
+<button id="sr-skip" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);border:0">Skip</button>
+<button id="svg-btn" style="width:32px;height:32px"><svg width="16" height="16" aria-label="Settings"></svg></button>
+<div style="background:black"><span id="pct-alpha" style="color:rgb(255 255 255 / 10%)">Low alpha</span></div>
+</body>''')
+            result = await page.evaluate(CHECKS)
+            by_sel = {(i['code'], i['selector']) for i in result['issues']}
+            assert ('contrast', '#pct-alpha') in by_sel
+            assert not any(sel in {'#wide-cell', '#sr-skip', '#svg-btn'} for _, sel in by_sel)
+        finally:
+            await browser.close()

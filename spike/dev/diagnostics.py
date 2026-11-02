@@ -29,6 +29,30 @@ CHECKS = Path(__file__).with_name('visual_checks.js').read_text(encoding='utf-8'
 LICENSES = ALLOWED_LICENSES | {'bsd-2-clause', 'isc'}
 
 
+def _normalize_license(raw: Any) -> tuple[str, str]:
+    value = raw.get('type') if isinstance(raw, dict) else raw
+    text = value.strip() if isinstance(value, str) else ''
+    if not text:
+        return '', 'unknown'
+    return text, ('allowed' if text.lower() in LICENSES else 'review')
+
+
+def _extract_mcp_json(raw_text: str) -> Any:
+    normalized = raw_text.replace('\r\n', '\n')
+    if normalized.startswith('### Result\n'):
+        section = normalized.removeprefix('### Result\n')
+    elif '\n### Result\n' in normalized:
+        section = normalized.split('\n### Result\n', 1)[1]
+    else:
+        section = normalized
+    text = section.split('\n### ', 1)[0].strip()
+    if text.startswith('```'):
+        lines = text.splitlines()
+        if len(lines) >= 2 and lines[-1].strip() == '```':
+            text = '\n'.join(lines[1:-1]).strip()
+    return json.loads(text)
+
+
 def license_report(workspace: Workspace) -> list[dict[str, Any]]:
     """Review npm lock metadata locally using SPIKE's existing license allowlist; unknown is never approved.
 
@@ -40,12 +64,15 @@ def license_report(workspace: Workspace) -> list[dict[str, Any]]:
     try:
         lock = workspace.resolve('package-lock.json')
         if lock.is_file():
-            packages = json.loads(lock.read_text(encoding='utf-8')).get('packages', {})
+            parsed = json.loads(lock.read_text(encoding='utf-8-sig'))
+            if not isinstance(parsed, dict):
+                raise ValueError
+            packages = parsed.get('packages', {})
+            if not isinstance(packages, dict):
+                raise ValueError
             for name, package in sorted(packages.items()):
-                value = package.get('license')
-                rows.append({'package': name or '.', 'license': value if isinstance(value, str) else '',
-                             'status': 'unknown' if not value else
-                             'allowed' if isinstance(value, str) and value.lower() in LICENSES else 'review'})
+                lic, status = _normalize_license(package.get('license') if isinstance(package, dict) else None)
+                rows.append({'package': name or '.', 'license': lic, 'status': status})
         requirements = workspace.resolve('requirements.txt')
         if requirements.is_file():
             rows.append({'package': 'requirements.txt', 'license': '', 'status': 'unknown'})
@@ -73,7 +100,10 @@ class DependencyDoctor(RunCommand):
 
     async def run(self, args: dict[str, Any]) -> ToolResult:
         try:
-            workspace = Workspace(self.workspace.resolve(str(args.get('path') or '.')))
+            raw_path = args.get('path')
+            if raw_path is not None and not isinstance(raw_path, str):
+                raise ValueError
+            workspace = Workspace(self.workspace.resolve(raw_path or '.'))
             if not workspace.root.is_dir():
                 raise ValueError
         except (PermissionError, ValueError, OSError):
@@ -92,7 +122,7 @@ class DependencyDoctor(RunCommand):
                     continue
                 if name == 'pip-audit':
                     # No includes, local paths, editable installs or URLs: audit exact pins without invoking pip.
-                    lines = [line.split('#', 1)[0].strip() for line in path.read_text(encoding='utf-8').splitlines()]
+                    lines = [line.split('#', 1)[0].strip() for line in path.read_text(encoding='utf-8-sig').splitlines()]
                     if any(line and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*==[A-Za-z0-9][A-Za-z0-9_.+!-]*', line)
                            for line in lines):
                         row['status'] = 'unsupported_requirements'
@@ -106,7 +136,7 @@ class DependencyDoctor(RunCommand):
                                            shlex.join(command), 'timeout_s': 120})
                 output = strip_note(result.content)
                 first, _, body = output.partition('\n')
-                if first not in ('exit code 0', 'exit code 1'):
+                if first.strip() not in ('exit code 0', 'exit code 1'):
                     row['status'] = 'error'
                     continue
                 payload = json.loads(body)
@@ -147,9 +177,8 @@ class VisualCritic(Tool):
             result = await conn.client.call_tool('browser_evaluate', {'function': CHECKS})
             if result.is_error:
                 raise ValueError
-            # MCP versions wrap the JSON in a "### Result" section; keep only that section.
-            text = result.text.removeprefix('### Result\n').split('\n### ')[0].strip()
-            report = json.loads(text)
+            # MCP versions wrap the JSON in a "### Result" section (with LF/CRLF or code fences); keep only that JSON.
+            report = _extract_mcp_json(result.text)
             if not isinstance(report, dict) or not isinstance(report.get('issues'), list):
                 raise ValueError
             shot = await conn.client.call_tool('browser_take_screenshot', {'type': 'png', 'fullPage': True})

@@ -47,11 +47,11 @@ def test_each_write_can_be_undone_back_to_the_start(env):
     evs = chat(client)
     results = [e for e in evs if e["type"] == "tool_result"]
     assert [r["ok"] for r in results] == [True, True] and all(r.get("checkpoint") for r in results)
-    assert (ws / "notas.md").read_text() == "dos"
+    assert (ws / "notas.md").read_text(encoding="utf-8") == "dos"
 
     second, first = results[1]["checkpoint"], results[0]["checkpoint"]
     assert client.post(f"/api/checkpoints/{second}/undo", json={}).json()["ok"]
-    assert (ws / "notas.md").read_text() == "uno"
+    assert (ws / "notas.md").read_text(encoding="utf-8") == "uno"
     assert client.post(f"/api/checkpoints/{second}/undo", json={}).status_code == 400  # already undone
     assert client.post(f"/api/checkpoints/{first}/undo", json={}).json()["ok"]
     assert not (ws / "notas.md").exists()  # the file did not exist before the answer
@@ -65,15 +65,15 @@ def test_each_write_can_be_undone_back_to_the_start(env):
 def test_a_file_changed_later_is_only_overwritten_when_asked(env):
     client, _, local, ws = env
     ws.mkdir(parents=True, exist_ok=True)
-    (ws / "plan.md").write_text("mío")
+    (ws / "plan.md").write_text("mío", encoding="utf-8")
     local._script = [call("write_file", {"path": "plan.md", "content": "del modelo"}), text("Hecho")]
     cp = next(e for e in chat(client) if e["type"] == "tool_result")["checkpoint"]
-    (ws / "plan.md").write_text("editado después por el usuario")
+    (ws / "plan.md").write_text("editado después por el usuario", encoding="utf-8")
     r = client.post(f"/api/checkpoints/{cp}/undo", json={})
     assert r.status_code == 409 and r.json()["detail"]["changed"] == [str(ws / "plan.md")]
-    assert (ws / "plan.md").read_text() == "editado después por el usuario"
+    assert (ws / "plan.md").read_text(encoding="utf-8") == "editado después por el usuario"
     assert client.post(f"/api/checkpoints/{cp}/undo", json={"force": True}).json()["ok"]
-    assert (ws / "plan.md").read_text() == "mío"
+    assert (ws / "plan.md").read_text(encoding="utf-8") == "mío"
 
 
 def test_document_tools_keep_a_copy_and_failed_calls_offer_no_undo(env):
@@ -91,12 +91,12 @@ def test_document_tools_keep_a_copy_and_failed_calls_offer_no_undo(env):
 def test_deleting_a_chat_deletes_its_copies(env):
     client, state, local, ws = env
     ws.mkdir(parents=True, exist_ok=True)
-    (ws / "a.txt").write_text("antes")
+    (ws / "a.txt").write_text("antes", encoding="utf-8")
     local._script = [call("write_file", {"path": "a.txt", "content": "después"}), text("ok")]
     evs = chat(client)
     cid = next(e["id"] for e in evs if e["type"] == "conversation")
     cp = next(e for e in evs if e["type"] == "tool_result")["checkpoint"]
-    assert (state.home / "checkpoints" / cp / "0.bin").read_text() == "antes"
+    assert (state.home / "checkpoints" / cp / "0.bin").read_text(encoding="utf-8") == "antes"
     client.delete(f"/api/conversations/{cid}")
     assert not (state.home / "checkpoints" / cp).exists() and state.store.get_checkpoint(cp) is None
 
@@ -117,7 +117,7 @@ def test_old_copies_and_copies_of_deleted_chats_are_pruned(tmp_path):
     store = Store(tmp_path / "s.db")
     cps = Checkpoints(store, tmp_path / "cp")
     conv = store.create_conversation()
-    (tmp_path / "f.txt").write_text("x")
+    (tmp_path / "f.txt").write_text("x", encoding="utf-8")
     keep = cps.before(conv["id"], "c1", "write_file", [tmp_path / "f.txt"])
     orphan = cps.before("gone", "c2", "write_file", [tmp_path / "f.txt"])
     cps.prune()
