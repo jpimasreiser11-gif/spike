@@ -1,0 +1,39 @@
+name: Training sources evidence
+
+# Manual only. Reads the Hugging Face Hub (public metadata, dataset cards, rows) for the training sources marked
+# `license_status: unverified` and uploads the evidence as a run artifact for review. It changes nothing in the
+# repository, uses no secrets and never marks a source verified: a reviewer does that in training/datasets.yaml.
+on:
+  workflow_dispatch:
+    inputs:
+      names:
+        description: "Registry names, space-separated (empty: every unverified source)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install datasets httpx pyyaml
+      - name: Read the Hub and stream every row of each source
+        env:
+          NAMES: ${{ inputs.names }}
+        run: |
+          # shellcheck disable=SC2086
+          python training/verify_sources.py ${NAMES:+--names $NAMES} --out sources-report.json || echo "some sources failed; see the report"
+          pip freeze | grep -iE '^(datasets|huggingface.hub|httpx)==' > versions.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sources-report
+          path: |
+            sources-report.json
+            versions.txt
