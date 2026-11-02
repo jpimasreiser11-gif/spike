@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {"Darwin-arm64": "dmg", "Windows-AMD64": "exe", "Linux-x86_64": "AppImage"}
-CHECKS = ("ok", "frozen", "health", "ui", "catalog", "skills", "inference", "runtime_stopped")
+CHECKS = ("ok", "frozen", "health", "ui", "catalog", "skills", "inference", "runtime_stopped", "licenses")
 TOOLS = {
     "appimagetool": ("https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage",
                      "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"),

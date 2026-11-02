@@ -27,7 +27,7 @@ def evidence(folder, target, **changes):
     data = {"version": "0.1.0", "commit": SHA, "target": target, "artifact": name,
             "sha256": hashlib.sha256(b"fake installer").hexdigest(),
             "smoke": {"ok": True, "frozen": True, "health": True, "ui": True, "catalog": True,
-                      "skills": True, "inference": True, "runtime_stopped": True,
+                      "skills": True, "inference": True, "runtime_stopped": True, "licenses": True,
                       "fixture_sha256": "b" * 64, "quality_measured": False}}
     data.update(changes)
     (folder / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
@@ -49,7 +49,8 @@ def test_assemble_requires_all_platforms_and_same_source(tmp_path):
     assert len(lines) == 6 and lines == sorted(lines, key=lambda x: x.split("  ")[1])
 
 
-@pytest.mark.parametrize("flag", ["ok", "frozen", "health", "ui", "catalog", "skills", "inference", "runtime_stopped"])
+@pytest.mark.parametrize("flag", ["ok", "frozen", "health", "ui", "catalog", "skills", "inference", "runtime_stopped",
+                                  "licenses"])
 def test_release_rejects_failed_or_unfrozen_smoke(tmp_path, flag):
     mod = helper()
     for target in TARGETS:
@@ -268,3 +269,19 @@ def test_smoke_rejects_incomplete_packaged_outputs(tmp_path, missing):
     with (httpx.Client(transport=httpx.MockTransport(handle), base_url="http://127.0.0.1:8740") as client,
           pytest.raises(ValueError)):
         package_smoke.probe(client, tmp_path / "tiny.gguf", 8737)
+
+
+def test_smoke_requires_the_bundled_license_texts(tmp_path):
+    import package_smoke
+    folder = tmp_path / "licenses"
+    (folder / "third-party" / "pkg").mkdir(parents=True)
+    for name in ("LICENSE", "NOTICE", "THIRD_PARTY.md"):
+        (folder / name).write_text("text", encoding="utf-8")
+    with pytest.raises(ValueError, match="third-party/INDEX.md"):
+        package_smoke.bundled_licenses(tmp_path)
+    (folder / "third-party" / "INDEX.md").write_text("index", encoding="utf-8")
+    (folder / "third-party" / "pkg" / "LICENSE").write_text("MIT", encoding="utf-8")
+    assert package_smoke.bundled_licenses(tmp_path) == {"licenses": True, "license_files": 2}
+    (folder / "NOTICE").unlink()
+    with pytest.raises(ValueError, match="NOTICE"):
+        package_smoke.bundled_licenses(tmp_path)

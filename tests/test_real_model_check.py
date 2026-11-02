@@ -175,7 +175,7 @@ def write_evidence(folder: Path, target="Linux-x86_64", payload=b"fake installer
     data = {"version": "0.1.0", "commit": SHA, "target": target, "artifact": name,
             "sha256": hashlib.sha256(b"fake installer").hexdigest(),
             "smoke": {"ok": True, "frozen": True, "health": True, "ui": True, "catalog": True, "skills": True,
-                      "inference": True, "runtime_stopped": True, "fixture_sha256": "b" * 64, "quality_measured": False}}
+                      "inference": True, "runtime_stopped": True, "licenses": True, "fixture_sha256": "b" * 64, "quality_measured": False}}
     data.update(changes)
     (folder / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
     return folder / name

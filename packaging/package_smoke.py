@@ -68,6 +68,17 @@ def probe(client: httpx.Client, model: Path, port: int) -> dict:
     return result
 
 
+def bundled_licenses(base: Path) -> dict:
+    """The license texts the release must carry (LICENSE, NOTICE, THIRD_PARTY.md and every bundled package's own text
+    from collect_licenses.py, listed in INDEX.md); ValueError when any is missing from the frozen bundle."""
+    folder = base / "licenses"
+    missing = [name for name in ("LICENSE", "NOTICE", "THIRD_PARTY.md", "third-party/INDEX.md")
+               if not (folder / name).is_file()]
+    if missing:
+        raise ValueError(f"Bundled license texts missing: {', '.join(missing)}")
+    return {"licenses": True, "license_files": sum(1 for path in (folder / "third-party").rglob("*") if path.is_file())}
+
+
 def run(model: Path, report: Path) -> int:
     from spike.launcher.app import launch
 
@@ -84,6 +95,7 @@ def run(model: Path, report: Path) -> int:
         binary = Path(sys._MEIPASS) / "llama" / ("llama-server.exe" if os.name == "nt" else "llama-server")
         if not binary.is_file():
             raise ValueError("Bundled llama-server missing; a system installation cannot satisfy this test")
+        result.update(bundled_licenses(Path(sys._MEIPASS)))
         # SQLite handles may remain until process exit on Windows; the CI runner owns this disposable directory.
         with tempfile.TemporaryDirectory(prefix="spike-package-smoke-", ignore_cleanup_errors=True) as folder:
             home = Path(folder)
