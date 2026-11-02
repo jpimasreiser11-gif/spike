@@ -110,20 +110,20 @@ def test_recipe_sources_disjoint_selection_and_fail_closed_before_network(domain
     assert reg[name + '-train']['split'] != reg[name + '-eval']['split']
     for suffix, role in (('-train', 'train'), ('-eval', 'eval')):
         src = reg[name + suffix]
-        assert src['role'] == role and src['license_status'] == 'unverified'
+        review = src['license_review']  # M7 (2026-11-02): Hub license and commit, every row streamed and formatted
+        assert src['role'] == role and src['license_status'] == 'verified' and review['hub_license'] == src['license']
+        assert review['rows'] == review['rows_formatted'] > 0 and review['evidence'].startswith('https://github.com/')
         assert src['license'] in licenses.TRAIN_ALLOWLIST and src['license_url'] and src['provenance']
         assert src['format'] == fmt
-    monkeypatch.setattr(licenses, 'hub_license', lambda *a: pytest.fail('network attempted before review'))
-    monkeypatch.setattr(prepare, 'load_rows', lambda *a, **kw: pytest.fail('dataset attempted before review'))
-    for offline in (False, True):
-        monkeypatch.setattr(sys, 'argv', ['prepare.py', str(ROOT / f'training/configs/{domain}.yaml'),
-                                         '--out', str(tmp_path)] + (['--skip-license-check'] if offline else []))
-        with pytest.raises(SystemExit, match='unverified'):
-            prepare.main()
+        # Verified sources still pass the gate on the license the Hub publishes at download time.
+        monkeypatch.setattr(licenses, 'hub_license', lambda repo, lic=src['license']: lic)
+        assert prepare.gate_source(name + suffix, src, role, False) == src['license']
+        monkeypatch.setattr(licenses, 'hub_license', lambda repo: 'cc-by-nc-4.0')
+        if role == 'train':
+            with pytest.raises(SystemExit, match='not allowed'):
+                prepare.gate_source(name + suffix, src, role, False)
     task, = suites[domain]['tasks']
     select, = suites[domain + '-select']['tasks']
-    with pytest.raises(SystemExit, match='unverified'):
-        run_eval.load_items(task, reg, 0, None)
     assert select['skip'] == task['n']
     # Simulate license review ONLY for these inline fixtures, then exercise the actual seeded sampler.
     monkeypatch.setattr(licenses, 'source_license', lambda src: src['license'])
@@ -177,13 +177,15 @@ def test_writing_export_is_seeded_separate_and_contains_no_gold(monkeypatch, tmp
         export_prompts.export_suite('writing', paths[0])
     assert paths[0].read_bytes() == original
     # The exporter relies on the same license gate as load_items, not a separate unchecked path.
-    assert reg['billsum-eval']['license_status'] == 'unverified'
+    assert reg['billsum-eval']['license_status'] == 'verified'
 
 
-def test_writing_export_blocks_unreviewed_sources_without_output(monkeypatch, tmp_path):
-    monkeypatch.setattr(licenses, 'hub_license', lambda *a: pytest.fail('network attempted before review'))
+def test_writing_export_refuses_a_source_the_hub_declares_no_license_for_without_output(monkeypatch, tmp_path):
+    monkeypatch.setattr(licenses, 'hub_license', lambda *a: None)
+    monkeypatch.setitem(sys.modules, 'datasets', types.SimpleNamespace(
+        load_dataset=lambda *a, **kw: pytest.fail('rows read before the license gate')))
     out = tmp_path / 'pairs.jsonl'
-    with pytest.raises(SystemExit, match='unverified'):
+    with pytest.raises(SystemExit, match='no license declared'):
         export_prompts.export_suite('writing', out)
     assert not out.exists()
     with pytest.raises(ValueError, match='unknown suite'):

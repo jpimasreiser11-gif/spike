@@ -31,7 +31,6 @@ suites:
   science:
     specialist: science
     tasks:
-      - {name: openbookqa-test, source: openbookqa-test, n: 300}
       - {name: mmlu-pro-physics, source: mmlu-pro, categories: [physics], n: 400}
       - {name: mmlu-pro-chemistry, source: mmlu-pro, categories: [chemistry], n: 400}
       - {name: mmlu-pro-biology, source: mmlu-pro, categories: [biology], n: 400}
@@ -65,7 +64,9 @@ suites:
   science-select:
     specialist: science
     tasks:
-      - {name: openbookqa-test-select, source: openbookqa-test, skip: 300, n: 150}
+      - {name: mmlu-pro-physics-select, source: mmlu-pro, categories: [physics], skip: 400, n: 200}
+      - {name: mmlu-pro-chemistry-select, source: mmlu-pro, categories: [chemistry], skip: 400, n: 200}
+      - {name: mmlu-pro-biology-select, source: mmlu-pro, categories: [biology], skip: 400, n: 200}
   math-select:
     specialist: math
     tasks:
@@ -74,14 +75,7 @@ suites:
     specialist: code
     tasks:
       - {name: mbpp-test-select, source: mbpp-test, skip: 300, n: 150}
-  data:
-    specialist: data
-    tasks:
-      - {name: wikisql-test, source: wikisql-test, n: 600}
-  data-select:
-    specialist: data
-    tasks:
-      - {name: wikisql-test-select, source: wikisql-test, skip: 600, n: 300}
+  # data / data-select: none until an eval set passes the license review (WikiSQL was rejected, M7)
 
   # M6: writing is a literal diagnostic/export pool; writing acceptance is pairwise, never exact-title accuracy.
   education:

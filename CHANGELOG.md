@@ -119,8 +119,9 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - With the user's consent, approved corrections (from SPIKE's local model only) export as SFT and DPO data.
 
 ### Training and evaluation
-- Candidate data recipes for the other 10 specialists (M5, M6, Codex); every new source stays blocked until
-  its license is verified.
+- Data recipes for the other 10 specialists (M5, M6, Codex) and their license review (M7): 15 sources verified
+  on the Hub (license, commit, every row counted and formatted, `training/verify_sources.py`); OpenBookQA and
+  WikiSQL rejected, so the Science and Data recipes stay blocked until they have seeds and verified distillation.
 - Recipe per specialist with acceptance criteria written before training; mlx-lm LoRA on Apple silicon
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.

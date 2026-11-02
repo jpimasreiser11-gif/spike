@@ -58,12 +58,13 @@ def test_main_reports_every_unverified_source_and_fails_on_any_error(tmp_path, m
     assert verify_sources.main(["--registry", str(reg), "--out", str(out)]) == 1
 
 
-def test_every_unverified_source_in_the_registry_has_a_formatter():
+def test_every_reviewed_source_in_the_registry_can_be_verified_again():
     registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
     from spike_train.data import FORMATTERS
 
-    unverified = {n: s for n, s in registry.items() if s.get("license_status") == "unverified"}
-    assert unverified and all(s["format"] in FORMATTERS and "hub" in s for s in unverified.values())
+    reviewed = {n: s for n, s in registry.items() if s.get("license_status")}
+    assert reviewed and all(s["format"] in FORMATTERS and "hub" in s for s in reviewed.values())
+    assert {s["license_status"] for s in reviewed.values()} <= {"unverified", "verified", "rejected"}
 
 
 def test_probe_reads_candidates_that_are_not_in_the_registry(tmp_path, monkeypatch):

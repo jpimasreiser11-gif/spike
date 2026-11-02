@@ -25,11 +25,21 @@ def check(license_id: str | None, role: str) -> tuple[bool, str]:
     return True, lic
 
 
+BLOCKED_STATUS = {"unverified": "license is unverified; Claude must review license and provenance before use",
+                  "rejected": "license review rejected this source (see its provenance in datasets.yaml)"}
+
+
+def blocked(src: dict, name: str = "source") -> None:
+    """SystemExit, before any network access, for a source whose license review is pending or was rejected."""
+    reason = BLOCKED_STATUS.get(src.get("license_status", ""))
+    if reason:
+        raise SystemExit(f"refusing {name}: {reason}")
+
+
 def source_license(src: dict) -> str | None:
     """The license to gate a registry source on: as published on the Hub for a Hub source; for a URL source, which
     the Hub cannot be asked about, the one recorded in datasets.yaml (with the LICENSE file's URL)."""
-    if src.get("license_status") == "unverified":
-        raise SystemExit("source license is unverified; Claude must review license and provenance before use")
+    blocked(src)
     return hub_license(src["hub"]) if "hub" in src else src.get("license")
 
 

@@ -1,22 +1,25 @@
-# Candidate recipe only. Claude must verify every license and provenance before preparation or training.
-# Hyperparameters and acceptance thresholds are hypotheses; not measured with real weights.
+# BLOCKED by the license review of 2026-11-02 (M7). The human-written source this recipe was built on,
+# WikiSQL (no license on the Hub, a loading script that current `datasets` cannot run, and tables from
+# Wikipedia under CC BY-SA), was rejected,
+# and no candidate on the Hub under a license on the training allowlist was found (docs/TRAINING.md lists
+# what was probed). It needs hand-written seed tasks and verified distillation from an open teacher, as
+# marketing does; until then prepare.py stops with no domain data. Hyperparameters and thresholds are hypotheses.
+# The `data` acceptance suite is empty until an eval set passes the review (evals/suites.yaml).
 specialist: data
 base_model: Qwen/Qwen3.5-4B
 hypothesis: >
   Human-authored data examples may improve held-out data accuracy without degrading general knowledge.
-  This recipe has only been tested with inline fixtures; licenses and real-source schemas remain unverified.
 acceptance:
   primary: {suite: data, min_gain_points: 3.0, max_p_value: 0.05}
   regression: {suite: general, max_drop_points: 1.5}
-domain_sources:
-  - {source: wikisql-train}
+domain_sources: []
 replay:
   ratio: 0.3
   sources:
     - {source: oasst2, max: 13000}
 eval:
   max_tokens: 2048
-decontaminate_against: [mmlu-pro, wikisql-test]
+decontaminate_against: [mmlu-pro]
 valid_fraction: 0.02
 seed: 0
 train:

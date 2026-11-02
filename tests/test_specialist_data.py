@@ -32,10 +32,10 @@ ROWS = {
                 "sql": {"sel": 0, "agg": 3, "conds": {"column_index": [1], "operator_index": [1], "condition": ["20"]}}},
 }
 DOMAINS = {"law": ("casehold-train", "casehold-test", "case_hold"),
-           "science": ("openbookqa-train", "openbookqa-test", "openbookqa"),
            "math": ("gsm8k-train", "gsm8k", "gsm8k"),
-           "code": ("mbpp-train", "mbpp-test", "mbpp"),
-           "data": ("wikisql-train", "wikisql-test", "wikisql")}
+           "code": ("mbpp-train", "mbpp-test", "mbpp")}
+# Rejected by the license review of 2026-11-02 (M7): their recipes have no domain source until seeds and distillation.
+REJECTED = {"science": ("openbookqa-train", "openbookqa-test"), "data": ("wikisql-train", "wikisql-test")}
 
 
 def read_yaml(path):
@@ -103,7 +103,9 @@ def test_candidate_metadata_recipe_and_disjoint_selection(domain, monkeypatch):
         src = reg[name]
         assert src["license"] in licenses.TRAIN_ALLOWLIST
         assert src["provenance"] and src["role"] == ("train" if name == train else "eval")
-    assert reg[train]["license_status"] == "unverified"
+    review = reg[train]["license_review"]  # M7: Hub license, commit, every row streamed and formatted
+    assert reg[train]["license_status"] == "verified" and review["hub_license"] == reg[train]["license"]
+    assert review["rows"] == review["rows_formatted"] > 0 and review["evidence"].startswith("https://github.com/")
     assert reg[train]["split"] != reg[heldout]["split"]
     assert reg[train]["hub"] == reg[heldout]["hub"]
     assert reg[train]["format"] == reg[heldout]["format"] == fmt
@@ -128,28 +130,50 @@ def test_candidate_metadata_recipe_and_disjoint_selection(domain, monkeypatch):
         assert len(select) == task["n"]
 
 
-def test_unverified_sources_stop_before_network_even_with_offline_override(monkeypatch):
-    src = read_yaml("training/datasets.yaml")["sources"]["casehold-train"]
+@pytest.mark.parametrize("status,reason", [("unverified", "unverified"), ("rejected", "rejected")])
+def test_unreviewed_or_rejected_sources_stop_before_network_even_with_offline_override(status, reason, monkeypatch):
+    src = {**read_yaml("training/datasets.yaml")["sources"]["casehold-train"], "license_status": status}
     monkeypatch.setattr(licenses, "hub_license", lambda *a: pytest.fail("network must not be attempted"))
     for offline in (True, False):
-        with pytest.raises(SystemExit, match="unverified"):
+        with pytest.raises(SystemExit, match=reason):
             prepare.gate_source("candidate", src, "train", offline)
-    with pytest.raises(SystemExit, match="unverified"):
+    with pytest.raises(SystemExit, match=reason):
         licenses.source_license(src)
+
+
+@pytest.mark.parametrize("domain", REJECTED)
+def test_rejected_sources_are_excluded_and_their_recipes_stop_before_network(domain, tmp_path, monkeypatch):
+    reg = read_yaml("training/datasets.yaml")["sources"]
+    cfg = read_yaml(f"training/configs/{domain}.yaml")
+    suites = read_yaml("evals/suites.yaml")["suites"]
+    for name in REJECTED[domain]:
+        assert reg[name]["license_status"] == "rejected" and reg[name]["role"] == "excluded"
+        assert reg[name]["provenance"].startswith("REJECTED")
+    used = [e["source"] for e in cfg["domain_sources"] + cfg["replay"]["sources"]] + cfg["decontaminate_against"]
+    assert cfg["domain_sources"] == [] and not set(used) & set(REJECTED[domain])
+    assert not {t["source"] for s in suites.values() for t in s["tasks"]} & set(REJECTED[domain])
+    monkeypatch.setattr(licenses, "hub_license", lambda *a: pytest.fail("no Hub access for a blocked recipe"))
+    monkeypatch.setattr(prepare, "load_rows", lambda *a, **kw: pytest.fail("no dataset access for a blocked recipe"))
+    monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training" / "configs" / f"{domain}.yaml"),
+                                      "--out", str(tmp_path)])
+    with pytest.raises(SystemExit, match="no domain training data"):
+        prepare.main()
+    task = {"name": "x", "source": REJECTED[domain][1], "n": 1}
+    with pytest.raises(SystemExit, match="rejected"):
+        run_eval.load_items(task, reg, 0, None)
 
 
 @pytest.mark.parametrize("domain", DOMAINS)
 def test_prepare_decontaminates_candidate_recipe_with_inline_rows(domain, tmp_path, monkeypatch):
     train, heldout, fmt = DOMAINS[domain]
     reg = read_yaml("training/datasets.yaml")["sources"]
-    # Only the fixture's license review is simulated; production entries stay unverified.
+    # The Hub license check is skipped for these inline fixtures only; the registry records the real review.
     monkeypatch.setattr(prepare, "gate_source", lambda name, src, role, offline: src["license"])
     cfg = read_yaml(f"training/configs/{domain}.yaml")
     cfg["replay"]["ratio"] = 0
     cfg["replay"]["sources"] = []
     leak = {**ROWS[fmt]}
-    qkey = {"case_hold": "context", "openbookqa": "question_stem", "gsm8k": "question",
-            "mbpp": "text", "wikisql": "question"}[fmt]
+    qkey = {"case_hold": "context", "gsm8k": "question", "mbpp": "text"}[fmt]
     leak[qkey] = "This held out question has more than thirteen unique words to detect leakage across the entire recipe"
     clean = {**ROWS[fmt], qkey: "An unrelated training question with a different topic"}
     if fmt == "case_hold":
@@ -169,18 +193,24 @@ def test_prepare_decontaminates_candidate_recipe_with_inline_rows(domain, tmp_pa
     assert manifest["dropped"]["contaminated"] == 1
     assert manifest["sources"][heldout]["indexed_prompts"] == 1
     assert manifest["sources"][train]["kept"] == 1
-    assert manifest["sources"][train]["license_status"] == "unverified"
-    assert reg[train]["license_status"] == "unverified"
+    assert manifest["sources"][train]["license_status"] == reg[train]["license_status"] == "verified"
 
 
 @pytest.mark.parametrize("domain", DOMAINS)
-def test_real_candidate_recipe_refuses_before_any_hub_or_dataset_access(domain, tmp_path, monkeypatch):
-    monkeypatch.setattr(licenses, "hub_license", lambda *a: pytest.fail("no Hub access before candidate review"))
-    monkeypatch.setattr(prepare, "load_rows", lambda *a, **kw: pytest.fail("no dataset access before review"))
+def test_verified_recipe_still_asks_the_hub_for_each_license_before_any_row(domain, tmp_path, monkeypatch):
+    asked = []
+
+    def hub_license(repo):
+        asked.append(repo)
+        raise RuntimeError("stop after the first Hub license read")
+
+    monkeypatch.setattr(licenses, "hub_license", hub_license)
+    monkeypatch.setattr(prepare, "load_rows", lambda *a, **kw: pytest.fail("rows read before the license gate"))
     monkeypatch.setattr(sys, "argv", ["prepare.py", str(ROOT / "training" / "configs" / f"{domain}.yaml"),
-                                      "--out", str(tmp_path), "--skip-license-check"])
-    with pytest.raises(SystemExit, match="unverified"):
+                                      "--out", str(tmp_path)])
+    with pytest.raises(RuntimeError, match="first Hub license read"):
         prepare.main()
+    assert len(asked) == 1
 
 
 @pytest.mark.parametrize("agg,expected", list(enumerate(["\"name\"", 'MAX("name")', 'MIN("name")',

@@ -173,223 +173,242 @@ sources:
     format: gsm8k
     provenance: 1,319 grade-school math word problems with numeric answers.
 
-  # ------------------------------------------------------------------ M5 candidates (NOT cleared for use)
-  # All licenses below are claims pending Claude review, including underlying text/table rights.
-  # license_status: unverified blocks preparation (also offline) and evaluation before network access.
+  # ------------------------------------------------------------------ M5 and M6 sources (reviewed 2026-11-02, M7)
+  # Evidence per source: Hub license metadata and card, the Hub commit read, every row streamed and counted, and how
+  # many the formatter accepts (training/verify_sources.py on a GitHub runner; run linked in license_review).
+  # license_status: unverified or rejected blocks preparation (also offline) and evaluation before network access;
+  # verified sources are still re-checked against the Hub license at download time.
   casehold-train:
     hub: coastalcph/lex_glue
     config: case_hold
     split: train
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: c23fdff1a6bf74e0e1a71cb86f1e781d37da888c, rows: 45000, rows_formatted: 45000, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/coastalcph/lex_glue
     role: train
     format: case_hold
-    provenance: 'UNVERIFIED candidate. CaseHOLD: legal citing contexts and candidate holdings from US judicial opinions,
-      with human labels. Verify the dataset grant, underlying opinion rights, upstream schema and absence of generated
-      text before use.'
+    provenance: 'CaseHOLD (LexGLUE): citing contexts from US judicial opinions with the holding the court cited and four other
+      holdings; labels come from the opinions, not from a model. Hub metadata cc-by-4.0; court opinions are
+      public-domain government works.'
   casehold-test:
     hub: coastalcph/lex_glue
     config: case_hold
     split: test
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: c23fdff1a6bf74e0e1a71cb86f1e781d37da888c, rows: 3600, rows_formatted: 3600, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/coastalcph/lex_glue
     role: eval
     format: case_hold
-    provenance: 'UNVERIFIED candidate. CaseHOLD: legal citing contexts and candidate holdings from US judicial opinions,
-      with human labels. Verify the dataset grant, underlying opinion rights, upstream schema and absence of generated
-      text before use.'
+    provenance: 'CaseHOLD (LexGLUE): citing contexts from US judicial opinions with the holding the court cited and four other
+      holdings; labels come from the opinions, not from a model. Hub metadata cc-by-4.0; court opinions are
+      public-domain government works.'
   openbookqa-train:
     hub: allenai/openbookqa
     config: main
     split: train
     license: apache-2.0
-    license_status: unverified
+    license_status: rejected
     license_url: https://huggingface.co/datasets/allenai/openbookqa
-    role: train
+    role: excluded
     format: openbookqa
-    provenance: 'UNVERIFIED candidate. OpenBookQA: crowdworker-written elementary science questions and answer options,
-      based on science facts. Use the original main configuration, no generated explanations or fact1 in prompts.'
+    provenance: 'REJECTED in the 2026-11-02 review: the Hub metadata declares license ''unknown'' and the card''s licensing
+      section is empty, so the license gate (which reads the Hub metadata) cannot clear it. Not used for training or
+      evaluation.'
   openbookqa-test:
     hub: allenai/openbookqa
     config: main
     split: test
     license: apache-2.0
-    license_status: unverified
+    license_status: rejected
     license_url: https://huggingface.co/datasets/allenai/openbookqa
-    role: eval
+    role: excluded
     format: openbookqa
-    provenance: 'UNVERIFIED candidate. OpenBookQA: crowdworker-written elementary science questions and answer options,
-      based on science facts. Use the original main configuration, no generated explanations or fact1 in prompts.'
+    provenance: 'REJECTED in the 2026-11-02 review: the Hub metadata declares license ''unknown'' and the card''s licensing
+      section is empty, so the license gate (which reads the Hub metadata) cannot clear it. Not used for training or
+      evaluation.'
   gsm8k-train:
     hub: openai/gsm8k
     config: main
     split: train
     license: mit
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: mit, hub_sha: 740312add88f781978c0658806c59bc2815b9866, rows: 7473, rows_formatted: 7473, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/openai/gsm8k
     role: train
     format: gsm8k
-    provenance: UNVERIFIED candidate. GSM8K original human-written grade-school problems and human step-by-step solutions
-      (not model outputs). Verify the original data grant and authorship; no synthetic derivatives.
+    provenance: 'GSM8K: grade-school problems and step-by-step solutions written by human contractors (card: crowdsourced), not
+      model outputs. MIT in the Hub metadata and the card.'
   mbpp-train:
     hub: google-research-datasets/mbpp
     config: full
     split: train
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: 4bb6404fdc6cacfda99d4ac4205087b89d32030c, rows: 374, rows_formatted: 374, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/google-research-datasets/mbpp
     role: train
     format: mbpp
-    provenance: UNVERIFIED candidate. MBPP original crowdworker-written Python problems, reference programs and tests.
-      No model-generated augmentations. Recipes train only on the train split; the test split is eval-only. Tests are neither exposed in prompts nor executed.
+    provenance: 'MBPP: crowdworker-written Python problems, reference programs and tests (card: crowdsourced, expert-generated);
+      no model-generated augmentations. Train split for training, test split eval-only; tests are neither shown in
+      prompts nor executed. CC-BY-4.0 in the Hub metadata and the card.'
   mbpp-test:
     hub: google-research-datasets/mbpp
     config: full
     split: test
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: 4bb6404fdc6cacfda99d4ac4205087b89d32030c, rows: 500, rows_formatted: 500, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/google-research-datasets/mbpp
     role: eval
     format: mbpp
-    provenance: UNVERIFIED candidate. MBPP original crowdworker-written Python problems, reference programs and tests.
-      No model-generated augmentations. Recipes train only on the train split; the test split is eval-only. Tests are neither exposed in prompts nor executed.
+    provenance: 'MBPP: crowdworker-written Python problems, reference programs and tests (card: crowdsourced, expert-generated);
+      no model-generated augmentations. Train split for training, test split eval-only; tests are neither shown in
+      prompts nor executed. CC-BY-4.0 in the Hub metadata and the card.'
   wikisql-train:
     hub: Salesforce/wikisql
     split: train
     license: bsd-3-clause
-    license_status: unverified
+    license_status: rejected
     license_url: https://huggingface.co/datasets/Salesforce/wikisql
-    role: train
+    role: excluded
     format: wikisql
-    provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
-      SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
-      repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
+    provenance: 'REJECTED in the 2026-11-02 review: the Hub metadata declares license ''unknown'', the dataset is a loading script
+      that current `datasets` (5.1.0) no longer runs, and its tables come from Wikipedia (CC BY-SA), which the training
+      allowlist does not cover. Not used for training or evaluation.'
   wikisql-test:
     hub: Salesforce/wikisql
     split: test
     license: bsd-3-clause
-    license_status: unverified
+    license_status: rejected
     license_url: https://huggingface.co/datasets/Salesforce/wikisql
-    role: eval
+    role: excluded
     format: wikisql
-    provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
-      SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
-      repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
-
-  # M6 candidates. Source cards inspected; full license/provenance review remains required before any load.
+    provenance: 'REJECTED in the 2026-11-02 review: the Hub metadata declares license ''unknown'', the dataset is a loading script
+      that current `datasets` (5.1.0) no longer runs, and its tables come from Wikipedia (CC BY-SA), which the training
+      allowlist does not cover. Not used for training or evaluation.'
 
   qasc-train:
     hub: allenai/qasc
     split: train
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, rows: 8134, rows_formatted: 8134, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/allenai/qasc
     role: train
     format: qasc
-    provenance: UNVERIFIED candidate. Crowd-authored eight-choice elementary science questions. No fact1, fact2,
-      combinedfact or formatted_question is exposed. Education coverage is science QA, not interactive tutoring.
+    provenance: 'QASC: crowd-authored eight-choice elementary science questions; fact1, fact2, combinedfact and formatted_question
+      are never shown. CC BY 4.0 in the Hub metadata and the card.'
 
   qasc-eval:
     hub: allenai/qasc
     split: validation
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, rows: 926, rows_formatted: 926, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/allenai/qasc
     role: eval
     format: qasc
-    provenance: UNVERIFIED candidate. Crowd-authored eight-choice elementary science questions. No fact1, fact2,
-      combinedfact or formatted_question is exposed. Education coverage is science QA, not interactive tutoring.
+    provenance: 'QASC: crowd-authored eight-choice elementary science questions; fact1, fact2, combinedfact and formatted_question
+      are never shown. CC BY 4.0 in the Hub metadata and the card.'
 
   commonsenseqa-train:
     hub: tau/commonsense_qa
     split: train
     license: mit
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: mit, hub_sha: 94630fe30dad47192a8546eb75f094926d47e155, rows: 9741, rows_formatted: 9741, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/tau/commonsense_qa
     role: train
     format: commonsense_qa
-    provenance: UNVERIFIED candidate. Original crowd-authored CommonsenseQA questions and annotated answers. Review
-      upstream ConceptNet attribution. Common-sense QA only, not evidence of general agent capability.
+    provenance: 'CommonsenseQA: crowd-authored questions and answers built around ConceptNet concepts (single words;
+      question_concept is never shown). MIT in the Hub metadata and the card (authors'' statement in the upstream issue
+      tracker).'
 
   commonsenseqa-eval:
     hub: tau/commonsense_qa
     split: validation
     license: mit
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: mit, hub_sha: 94630fe30dad47192a8546eb75f094926d47e155, rows: 1221, rows_formatted: 1221, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/tau/commonsense_qa
     role: eval
     format: commonsense_qa
-    provenance: UNVERIFIED candidate. Original crowd-authored CommonsenseQA questions and annotated answers. Review
-      upstream ConceptNet attribution. Common-sense QA only, not evidence of general agent capability.
+    provenance: 'CommonsenseQA: crowd-authored questions and answers built around ConceptNet concepts (single words;
+      question_concept is never shown). MIT in the Hub metadata and the card (authors'' statement in the upstream issue
+      tracker).'
 
   banking77-train:
     hub: PolyAI/banking77
     split: train
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: 1846984189f2bc0ac51c6fc3a600fa9e1714e0c6, rows: 10003, rows_formatted: 10003, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/PolyAI/banking77
     role: train
     format: banking77
-    provenance: UNVERIFIED candidate. Human banking-support queries and expert intent labels. Labels are schema
-      identifiers, not approved customer advice or bank policies. No synthetic instruction derivatives.
+    provenance: 'BANKING77: human banking-support queries with expert intent labels (card: expert-generated); labels are intent
+      identifiers, not advice. CC-BY-4.0 in the Hub metadata.'
 
   banking77-eval:
     hub: PolyAI/banking77
     split: test
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: 1846984189f2bc0ac51c6fc3a600fa9e1714e0c6, rows: 3080, rows_formatted: 3080, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/PolyAI/banking77
     role: eval
     format: banking77
-    provenance: UNVERIFIED candidate. Human banking-support queries and expert intent labels. Labels are schema
-      identifiers, not approved customer advice or bank policies. No synthetic instruction derivatives.
+    provenance: 'BANKING77: human banking-support queries with expert intent labels (card: expert-generated); labels are intent
+      identifiers, not advice. CC-BY-4.0 in the Hub metadata.'
 
   phishing-url-train:
     hub: pirocheto/phishing-url
     split: train
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: 1375d450d4540205ac11781b807249c9509739cd, rows: 7658, rows_formatted: 7658, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/pirocheto/phishing-url
     role: train
     format: phishing_url
-    provenance: UNVERIFIED candidate. Mirror of Hannousse and Yahiouche (2021) historical phishing/legitimate URLs.
-      URL text only, never fetch URLs or compute live features. Review original grant, mirror split, duplicates
-      and same-domain leakage; not a live security verdict.
+    provenance: 'Mirror of Hannousse and Yahiouche (2021) phishing/legitimate URLs (card: found; CC-BY-4.0 in the metadata and the
+      card). URL text only, never fetched; not a live security verdict. Train/test leakage is removed at preparation
+      (decontamination against the eval split).'
 
   phishing-url-eval:
     hub: pirocheto/phishing-url
     split: test
     license: cc-by-4.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc-by-4.0, hub_sha: 1375d450d4540205ac11781b807249c9509739cd, rows: 3772, rows_formatted: 3772, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/pirocheto/phishing-url
     role: eval
     format: phishing_url
-    provenance: UNVERIFIED candidate. Mirror of Hannousse and Yahiouche (2021) historical phishing/legitimate URLs.
-      URL text only, never fetch URLs or compute live features. Review original grant, mirror split, duplicates
-      and same-domain leakage; not a live security verdict.
+    provenance: 'Mirror of Hannousse and Yahiouche (2021) phishing/legitimate URLs (card: found; CC-BY-4.0 in the metadata and the
+      card). URL text only, never fetched; not a live security verdict. Train/test leakage is removed at preparation
+      (decontamination against the eval split).'
 
   billsum-train:
     hub: FiscalNote/billsum
     split: train
     license: cc0-1.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc0-1.0, hub_sha: 3d8510441c06a3d9dfb32eb0d7f80151730bcc4f, rows: 18949, rows_formatted: 18949, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/FiscalNote/billsum
     role: train
     format: billsum_title
-    provenance: UNVERIFIED candidate. US congressional summaries and titles from BillSum, originally sourced from
-      GPO. Human summary-to-title supervision, not full-bill summarization. ca_test is excluded. Verify originating
-      public-domain grant and attribution. Exact title matching is diagnostic only; use pairwise acceptance.
+    provenance: 'BillSum: US bill summaries and titles (card: found), public-domain government works; CC0-1.0 in the Hub metadata.
+      Summary-to-title supervision; exact title match is diagnostic only, acceptance is pairwise.'
 
   billsum-eval:
     hub: FiscalNote/billsum
     split: test
     license: cc0-1.0
-    license_status: unverified
+    license_status: verified
+    license_review: {date: '2026-11-02', by: Claude, hub_license: cc0-1.0, hub_sha: 3d8510441c06a3d9dfb32eb0d7f80151730bcc4f, rows: 3269, rows_formatted: 3269, evidence: 'https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157'}
     license_url: https://huggingface.co/datasets/FiscalNote/billsum
     role: eval
     format: billsum_title
-    provenance: UNVERIFIED candidate. US congressional summaries and titles from BillSum, originally sourced from
-      GPO. Human summary-to-title supervision, not full-bill summarization. ca_test is excluded. Verify originating
-      public-domain grant and attribution. Exact title matching is diagnostic only; use pairwise acceptance.
+    provenance: 'BillSum: US bill summaries and titles (card: found), public-domain government works; CC0-1.0 in the Hub metadata.
+      Summary-to-title supervision; exact title match is diagnostic only, acceptance is pairwise.'

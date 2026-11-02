@@ -533,7 +533,7 @@
   {
    "id": "M7",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "modelos",
    "title": "Verificar licencias y conteos de las recetas nuevas",
    "depends": [
@@ -575,6 +575,26 @@
    "spec": "Held-out test must not drop below 0.92.",
    "accept": [
     "router eval record"
+   ]
+  },
+  {
+   "id": "M10",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "models",
+   "title": "Ciencia y Datos: semillas y destilación verificada (sin dataset con licencia válida)",
+   "depends": [
+    "M7"
+   ],
+   "paths": [
+    "training/",
+    "evals/"
+   ],
+   "spec": "OpenBookQA and WikiSQL were rejected in M7 and no Hub candidate passes the training allowlist. Write original seed tasks (science: explanations and multiple choice at several levels; data: SQL over small SQLite schemas written here, pandas questions) and enable distill like marketing.yaml, with an open teacher whose license allows training (check with licenses.teacher_license). Data answers are verified by executing the SQL against the seed database, not by a rubric only. Add held-out eval sets written separately (never from the teacher) and the data/data-select suites.",
+   "accept": [
+    "seed and eval files original and disjoint",
+    "SQL answers executed and checked",
+    "teacher license gate test"
    ]
   },
   {

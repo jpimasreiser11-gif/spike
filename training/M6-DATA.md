@@ -1,9 +1,9 @@
 # M6: five remaining candidate recipes
 
-These are **candidate data contracts**, not trained specialists or measured improvements. Source cards and metadata
-were inspected on 2026-10-30; each new source remains `license_status: unverified` until Claude reviews the original
-grant, authorship, attribution, mirror and actual rows. Preparation and evaluation refuse these sources before a Hub
-request, including with `--skip-license-check`. Nothing was trained or downloaded beyond source-card metadata.
+These are **data contracts**, not trained specialists or measured improvements. Source cards and metadata were
+inspected on 2026-10-30; Claude reviewed every source on 2026-11-02 (M7: license, card, Hub commit and every row; see
+docs/TRAINING.md, "License review of the M5 and M6 sources") and all ten below are `license_status: verified`. Nothing
+was trained.
 
 | Specialist | Candidate / original provenance | Published license | Scope and held-out pool |
 |---|---|---|---|

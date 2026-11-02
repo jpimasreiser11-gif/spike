@@ -119,6 +119,36 @@ do nothing), and everything stays on this computer.
   learning rate 5e-5, 2 epochs, effective batch 4 against 16 for the specialists: 40 examples plus their replay make about
   25 optimizer updates, about 6 with a batch of 16) are conservative guesses, and nothing says yet how large or small the effect is.
 
+### 2c. License review of the M5 and M6 sources (M7, 2026-11-02)
+
+The sources Codex proposed for the other specialists were reviewed with evidence gathered on a GitHub runner,
+because the cloud session cannot reach the Hub: `training/verify_sources.py` (workflow `sources.yml`, manual)
+records the Hub license metadata, the dataset card, the Hub commit, every row of the split streamed and counted and
+how many the formatter accepts. Run: https://github.com/jpimasreiser11-gif/spike/actions/runs/41407296157
+(`datasets` 5.1.0). Each entry of `training/datasets.yaml` keeps its numbers in `license_review`.
+
+| Specialist | Source | Hub license | Rows (train / eval), all formatted | Decision |
+|---|---|---|---|---|
+| Law | coastalcph/lex_glue, case_hold | cc-by-4.0 | 45,000 / 3,600 | verified: holdings come from the citing opinions; court opinions are public-domain works |
+| Math | openai/gsm8k | mit | 7,473 / (eval `gsm8k`) | verified: written by human contractors, not model outputs |
+| Code | google-research-datasets/mbpp | cc-by-4.0 | 374 / 500 | verified: crowd-written problems, programs and tests |
+| Education | allenai/qasc | cc-by-4.0 | 8,134 / 926 | verified |
+| Core | tau/commonsense_qa | mit | 9,741 / 1,221 | verified: ConceptNet concepts are single words and never shown |
+| Business | PolyAI/banking77 | cc-by-4.0 | 10,003 / 3,080 | verified |
+| Security | pirocheto/phishing-url | cc-by-4.0 | 7,658 / 3,772 | verified: URL text only; leakage removed by decontamination |
+| Writing | FiscalNote/billsum | cc0-1.0 | 18,949 / 3,269 | verified: US bills are public-domain works |
+| Science | allenai/openbookqa | unknown | 4,957 / 500 | **rejected**: the Hub declares no license and the gate reads the Hub |
+| Data | Salesforce/wikisql | unknown | does not load | **rejected**: no license on the Hub, a loading script `datasets` 5 no longer runs, tables from Wikipedia under CC BY-SA |
+
+Candidates probed for Science and Data (`verify_sources.py --probe`, run 41407299426), none usable for training:
+allenai/scitail (no license), allenai/sciq and bigbio/sciq (cc-by-nc-3.0), allenai/ai2_arc,
+derek-thomas/ScienceQA and xlangai/spider (cc-by-sa-4.0), Idavidrein/gpqa (cc-by-4.0 but gated, 448 questions,
+meant for evaluation), b-mc2/sql-create-context (cc-by-4.0 but built from WikiSQL and Spider) and
+gretelai/synthetic_text_to_sql (apache-2.0 but written by a model whose generator is not named). The Science and Data
+recipes therefore have `domain_sources: []` and stop in `prepare.py` until they get hand-written seeds and verified
+distillation from an open teacher, as Marketing does. Science keeps its MMLU-Pro physics, chemistry and biology evals;
+Data has no eval set yet.
+
 ## 3. What makes a result valid
 
 - The eval compares the base model **with the same system prompt** against base + adapter, same items,

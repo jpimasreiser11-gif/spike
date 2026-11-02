@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 6 | 3 | 0 | 0 | 10 | 0 | 19 |
+| Claude | 6 | 3 | 0 | 0 | 11 | 0 | 20 |
 | Codex | 0 | 1 | 0 | 0 | 15 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **13** | **5** | **0** | **0** | **26** | **0** | **44** |
+| **Total** | **13** | **5** | **0** | **0** | **27** | **0** | **45** |
 
 ## Fase: equipo
 
@@ -57,9 +57,15 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M4 | Mac | pendiente | Entrenar marketing | M3 |
 | M5 | Codex | hecha | Recetas de datos: derecho, ciencia, matemáticas, código y datos | - |
 | M6 | Codex | hecha | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
-| M7 | Claude | pendiente | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
+| M7 | Claude | hecha | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
 | M9 | Claude | hecha | Router con los 13 especialistas | M8 |
+
+## Fase: models
+
+| ID | Quién | Estado | Tarea | Depende de |
+|---|---|---|---|---|
+| M10 | Claude | pendiente | Ciencia y Datos: semillas y destilación verificada (sin dataset con licencia válida) | M7 |
 
 ## Fase: instalador
 
