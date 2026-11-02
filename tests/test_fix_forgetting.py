@@ -61,6 +61,7 @@ class Fake:
         self.kill: set[str] = set()
         self.die_after: int | None = None
         self.kept, self.ratio = 1200, 0.3    # self_replay.py's kept answers; the replay share prepare.py reports
+        self.domain_before_fit = 100         # the domain chats before prepare.py --fit-domain sampled them
         self.sweeps: list[str] = []          # ROUND of the adapter each sweep judged
         self.generated = self.trained = 0    # finished replay files, finished trainings
         self.server_up = False
@@ -120,8 +121,8 @@ class Fake:
         (data / "valid.jsonl").write_text(f"valid from {digest(replay)}\n", encoding="utf-8")
         (data / "manifest.json").write_text(json.dumps(
             {"files": {f: digest(data / f) for f in ("train.jsonl", "valid.jsonl")},
-             "counts": {"domain": 100, "train": 140, "valid": 3, "iters": 140, "replay_ratio_target": 0.3,
-                        "replay_ratio_actual": self.ratio},
+             "counts": {"domain": 100, "domain_before_fit": self.domain_before_fit, "train": 140, "valid": 3, "iters": 140,
+                        "replay_ratio_target": 0.3, "replay_ratio_actual": self.ratio},
              "sources": {"oasst2": {"role": "train"}, f"self_replay:{replay.name}": {"role": "train"}}}), encoding="utf-8")
         return code
 
@@ -293,7 +294,7 @@ def test_a_rejected_sweep_archives_serves_the_base_alone_generates_prepares_trai
                       "--base-url", "http://127.0.0.1:18091/v1", "--base-repo", "Qwen/Qwen3.5-4B",
                       "--out", str(world.data / "self_replay.jsonl"), "--concurrency", "4"]
     assert prepare == [sys.executable, str(world.root / "training" / "prepare.py"), str(world.recipe),
-                       "--self-replay", str(world.data / "self_replay.jsonl")]
+                       "--self-replay", str(world.data / "self_replay.jsonl"), "--fit-domain"]
     assert train == ["bash", str(world.root / "training" / "scripts" / "train_supervised.sh"), "medicine"]
 
     # the recipe is not edited, nothing is installed, committed or pushed
@@ -483,6 +484,18 @@ def test_a_replay_share_below_the_recipes_stops_before_training_and_is_prepared_
     world.fake.calls.clear()
     assert world.go() == 0
     assert world.fake.scripts() == [PREPARE, TRAIN, SWEEP]
+
+
+def test_a_domain_sampled_below_the_floor_stops_before_training(world):
+    """A --limit smoke file would otherwise pass the ratio check by shrinking the domain to almost nothing."""
+    world.fake.domain_before_fit = 400                                      # the 100 kept are a quarter
+    with pytest.raises(SystemExit, match=r"only 25% of the 400 domain chats"):
+        world.go()
+    assert world.fake.scripts() == [SWEEP, REPLAY, PREPARE] and "prepare" not in world.state()["steps"]
+    world.fake.domain_before_fit = 190                                      # 53 %, like the real medicine run
+    world.fake.calls.clear()
+    assert world.go() == 0
+    assert world.state()["steps"]["prepare"]["domain_before_fit"] == 190
 
 
 def test_a_manifest_that_does_not_name_the_replay_file_stops_before_training(world, monkeypatch):

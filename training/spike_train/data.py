@@ -620,6 +620,15 @@ def passes_quality(chat: Chat, min_answer_chars: int = 2, max_chars: int = 24_00
     return len(answer) >= min_answer_chars and total <= max_chars and "�" not in answer
 
 
+def fit_domain_to_replay(domain: list[Chat], n_replay: int, replay_ratio: float, seed: int = 0) -> list[Chat]:
+    """A seeded sample of the domain chats small enough for `n_replay` general chats to be `replay_ratio` of the mix.
+    The domain is returned unchanged when the replay already reaches the ratio, or when the recipe has no replay."""
+    if replay_ratio <= 0:
+        return domain
+    keep = int(n_replay * (1 - replay_ratio) / replay_ratio)
+    return domain if keep >= len(domain) else random.Random(seed).sample(domain, keep)
+
+
 def mix_and_split(domain: list[Chat], replay: list[Chat], replay_ratio: float, valid_fraction: float,
                   seed: int = 0) -> tuple[list[Chat], list[Chat]]:
     """Blend domain data with general replay data so that replay is `replay_ratio` of the training set."""

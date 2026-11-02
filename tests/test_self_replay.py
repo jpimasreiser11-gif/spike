@@ -523,3 +523,42 @@ def test_prepare_refuses_a_file_that_is_not_what_the_recipe_asked_for(tmp_path, 
     with pytest.raises(SystemExit, match=message):
         prepare_with(tmp_path, monkeypatch, "--self-replay", str(path))
     assert not (tmp_path / "data" / "medicine" / "train.jsonl").exists()
+
+
+def test_fit_domain_samples_the_domain_data_so_the_replay_ratio_holds(tmp_path, monkeypatch):
+    """Long base-model answers can leave too few replay rows; --fit-domain keeps the recipe's ratio by sampling the domain."""
+    server = FakeServer()
+    code, replay = generate(tmp_path, monkeypatch, server, "--limit", "14")
+    assert code == 0
+    cfg = self_generated_config(tmp_path)
+    code, out = prepare_with(tmp_path, monkeypatch, "--self-replay", str(replay), cfg=cfg)
+    assert code == 0
+    assert json.loads((out / "manifest.json").read_text())["counts"]["replay_ratio_actual"] < 0.25  # 14 rows against 50
+
+    code, out = prepare_with(tmp_path, monkeypatch, "--self-replay", str(replay), "--fit-domain", cfg=cfg)
+    assert code == 0
+    counts = json.loads((out / "manifest.json").read_text())["counts"]
+    assert counts["domain_before_fit"] == 50 and counts["domain"] == 32      # int(14 * 0.7 / 0.3)
+    assert abs(counts["replay_ratio_actual"] - 0.3) <= 0.02
+
+
+def test_fit_domain_is_seeded_and_leaves_enough_data_alone():
+    from spike_train.data import fit_domain_to_replay
+
+    domain = [{"messages": [{"role": "user", "content": str(i)}]} for i in range(100)]
+    assert fit_domain_to_replay(domain, 60, 0.3, seed=0) == domain                 # 60 rows already cover 100 at 0.3
+    fitted = fit_domain_to_replay(domain, 30, 0.3, seed=0)
+    assert len(fitted) == 70 and fitted == fit_domain_to_replay(domain, 30, 0.3, seed=0)
+    assert fitted != domain[:70] and all(chat in domain for chat in fitted)
+    assert fit_domain_to_replay(domain, 0, 0.0, seed=0) == domain                  # a recipe without replay
+
+
+def test_prepare_exits_without_waiting_for_streaming_threads(monkeypatch, capsys):
+    """A streamed dataset left half-read kept prepare.py alive for four days after its files were written (2026-10-26)."""
+    import prepare
+
+    codes = []
+    monkeypatch.setattr(prepare.os, "_exit", codes.append)
+    prepare.finish(0)
+    prepare.finish(2)
+    assert codes == [0, 2]

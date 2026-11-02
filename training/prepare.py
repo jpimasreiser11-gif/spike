@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
 import time
 from collections.abc import Iterator
@@ -35,6 +36,7 @@ from spike_train.data import (  # noqa: E402
     FORMATTERS,
     ContaminationIndex,
     dedupe,
+    fit_domain_to_replay,
     mix_and_split,
     passes_quality,
     text_of,
@@ -191,6 +193,9 @@ def main() -> int:
                     help="approved corrections from `spike evolve dataset` (spike-training.jsonl); only this specialist's")
     ap.add_argument("--self-replay", help="the base model's own answers to general prompts (training/self_replay.py), "
                                           "used as the replay data instead of the human-written replay sources")
+    ap.add_argument("--fit-domain", action="store_true",
+                    help="too few replay chats for the recipe's ratio: sample the domain chats (seeded) instead of lowering "
+                         "the ratio; the count before sampling is recorded as counts.domain_before_fit")
     ap.add_argument("--skip-license-check", action="store_true", help="only for offline dry runs; never for releases")
     args = ap.parse_args()
 
@@ -353,6 +358,9 @@ def main() -> int:
     before = len(domain)
     domain = list(dedupe(domain))
     manifest["dropped"]["duplicate"] += before - len(domain)
+    before_fit = len(domain)
+    if args.fit_domain:
+        domain = fit_domain_to_replay(domain, len(replay), cfg.get("replay", {}).get("ratio", 0.0), seed=cfg.get("seed", 0))
     train, valid = mix_and_split(domain, replay, cfg.get("replay", {}).get("ratio", 0.0), cfg.get("valid_fraction", 0.02),
                                  seed=cfg.get("seed", 0))
     n_train = write_jsonl(out / "train.jsonl", train)
@@ -361,6 +369,8 @@ def main() -> int:
     actual = round(1 - len(domain) / max(1, n_train + n_valid), 4)
     manifest["counts"] = {"domain": len(domain), "replay_available": len(replay), "train": n_train, "valid": n_valid,
                           "replay_ratio_target": ratio, "replay_ratio_actual": actual}
+    if args.fit_domain:
+        manifest["counts"]["domain_before_fit"] = before_fit
     if ratio - actual > 0.02:
         print(f"warning: replay is {actual:.1%} of the mix, below the {ratio:.0%} target; add replay sources",
               file=sys.stderr)
@@ -378,5 +388,13 @@ def main() -> int:
     return 0
 
 
+def finish(code: int) -> None:
+    """Exit now: every file is written, and a streamed dataset left half-read keeps retrying from its threads during a
+    normal interpreter exit (it held prepare.py open for four days after its files were written, 2026-10-26)."""
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    finish(main())
