@@ -183,6 +183,11 @@ class DemoProvider(Provider):
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="a5", name="dependency_doctor", arguments={}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "device lab" in last.content.lower() and "device_lab" in tools:  # A21: tests this very app
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="a21", name="device_lab", arguments={
+                "url": f"http://127.0.0.1:{os.environ.get('PORT', '8741')}/", "profiles": ["small-phone", "desktop"]}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "blender" in last.content.lower() and "blender_render" in tools:  # A18
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c16", name="blender_render", arguments={
                 "starter": "studio_scene", "params": {"sun_strength": 6}}))
@@ -304,6 +309,8 @@ class DemoProvider(Provider):
             return
         if last.role == "tool" and last.name == "dependency_doctor":
             answer = "Diagnóstico listo en la tarjeta."
+        elif last.role == "tool" and last.name == "device_lab":
+            answer = "El informe de Device Lab está en la tarjeta."
         elif last.role == "tool" and last.name == "ask_user":
             answer = f"Entendido ({last.content}). Para España, el IVA general es del **21 %**."
         elif last.role == "tool" and last.name == "read_file":

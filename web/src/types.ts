@@ -107,7 +107,7 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
-  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi | MakerUi | ExplorerUi; // something to act on or look at next to the result
+  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi | MakerUi | ExplorerUi | DeviceLabUi; // something to act on or look at next to the result
 };
 
 /** Spike Data: a data file loaded as a table for a query. */
@@ -599,4 +599,25 @@ export type ViewReplay = { state: "idle" | "running" | "waiting" | "done" | "sto
 export type ViewStatus = {
   running: boolean; scripts: ViewScript[]; replay: ViewReplay;
   recording: { recording: boolean; name: string; steps: ViewStep[]; ignored: Record<string, number>; truncated: boolean };
+};
+/** What device_lab and /api/device-lab return (A21): one entry per profile, emulated in a desktop browser engine. */
+export type DeviceLabFindings = { total: number; items: Record<string, unknown>[] };
+export type DeviceLabProfile = {
+  id: string; name: string; kind: string; builtin: boolean; viewport: { width: number; height: number }; scale: number;
+  touch: boolean; mobile: boolean; user_agent: string; status: "pass" | "fail" | "error"; reasons: string[]; reason: string;
+  http_status: number | null; title: string; notes: string[]; seconds: number; screenshot: string;
+  layout: { viewport_width: number; viewport_height: number; document_width: number; document_height: number; viewport_meta: boolean;
+    touch_points: number; scale: number } | null;
+  overflow: DeviceLabFindings & { px: number }; tap_targets: DeviceLabFindings; small_text: DeviceLabFindings;
+  console_errors: DeviceLabFindings; failed_requests: DeviceLabFindings; blocked_requests: DeviceLabFindings;
+};
+export type DeviceLabAndroid = {
+  status: "ok" | "no_adb" | "no_device" | "error"; serial: string; model: string; kind: string; opened: boolean;
+  steps: { step: string; ok: boolean }[]; screenshot: string; error: string;
+};
+export type DeviceLabUi = {
+  kind: "device_lab"; version: number; url: string; started: string; seconds: number; browser: string; emulated: boolean;
+  allow_hosts: string[]; limits: { min_tap: number; min_font: number };
+  summary: { profiles: number; pass: number; fail: number; error: number };
+  profiles: DeviceLabProfile[]; android: DeviceLabAndroid | null;
 };

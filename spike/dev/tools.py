@@ -227,7 +227,8 @@ def stop_commands() -> None:
 
 
 def dev_tools(workspace: Workspace, sandbox: Sandbox | None = None, connectors=None) -> list[Tool]:
+    from spike.dev.device_lab import DeviceLab
     from spike.dev.diagnostics import DependencyDoctor, VisualCritic
 
     return [EditFile(workspace), SearchFiles(workspace), FindFiles(workspace), RunCommand(workspace, sandbox),
-            DependencyDoctor(workspace, sandbox), VisualCritic(workspace, connectors)]
+            DependencyDoctor(workspace, sandbox), VisualCritic(workspace, connectors), DeviceLab()]

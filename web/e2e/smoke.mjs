@@ -768,6 +768,51 @@ await page.frameLocator(".artifact-frame").getByRole("heading", { name: "Depende
 await page.frameLocator(".artifact-frame").getByText("Sin manifiesto compatible").first().waitFor();
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
 
+// A21: Device Lab opens a page on this computer (the app itself) in phone and desktop profiles. The agent's run asks first
+// and its report opens as an isolated artifact; the window never starts anything before its approval. Needs a Chromium
+// for the server, which CI installs for Spike Motion.
+const labRequests = [];
+page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/device-lab/")) labRequests.push(r.url()); });
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
+await page.locator("#composer-input").fill("Ejecuta Device Lab");
+await submitChat();
+const labPermission = page.locator(".permission", { hasText: "device_lab" });
+await labPermission.getByText("Abrirá esta página local en un navegador sin ventana").waitFor();
+await labPermission.getByRole("button", { name: "Permitir una vez" }).click();
+const labCard = page.getByRole("region", { name: "Informe de Device Lab" });
+await labCard.getByText(/de 2 perfiles sin problemas/).waitFor({ timeout: 60000 });
+await labCard.getByRole("button", { name: "Ver informe de Device Lab" }).click();
+const labFrame = page.frameLocator(".artifact-frame");
+await labFrame.getByRole("heading", { name: "Informe de Device Lab" }).waitFor();
+if (await labFrame.locator("tbody tr").count() !== 2) fail("the Device Lab report must list both profiles");
+await labFrame.locator("img").first().waitFor();
+if (await labFrame.locator("img").evaluateAll((imgs) => imgs.some((i) => i.naturalWidth === 0))) fail("a Device Lab screenshot did not decode");
+await page.screenshot({ path: `${out}/07v-device-lab-report.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
+await page.getByTestId("device-lab-open-btn").click();
+const labDialog = page.getByRole("dialog", { name: "Device Lab" });
+await labDialog.waitFor();
+await labDialog.getByTestId("device-lab-run").waitFor();
+if (labRequests.length) fail("opening Device Lab must not start anything: " + labRequests.join(", "));
+if (!await labDialog.getByTestId("device-lab-run").isDisabled()) fail("Device Lab must wait for the approval");
+await labDialog.locator('[name="device-lab-url"]').fill(`${base}/`);
+for (const id of ["small-phone", "large-phone", "tablet-portrait", "tablet-landscape"]) await labDialog.locator(`[name="profile-${id}"]`).uncheck();
+await labDialog.locator('[name="custom-name"]').fill("Quiosco");
+await labDialog.getByTestId("device-lab-add").click();
+await labDialog.locator('[name="device-lab-approve"]').check();
+await labDialog.getByTestId("device-lab-run").click();
+const labResults = labDialog.getByTestId("device-lab-results");
+await labResults.waitFor({ timeout: 60000 });
+if (await labResults.locator("tbody tr").count() !== 3) fail("Device Lab must report the two chosen profiles and the custom one");
+await labResults.getByText("Quiosco").waitFor();
+if (labRequests.length !== 1 || !labRequests[0].endsWith("/api/device-lab/run")) fail("one approved run, nothing else: " + labRequests.join(", "));
+await page.screenshot({ path: `${out}/07v-device-lab-window.png` });
+await labDialog.getByTestId("device-lab-open").click();
+await page.frameLocator(".artifact-frame").getByRole("heading", { name: "Informe de Device Lab" }).waitFor();
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
 // A18: Blender renders a preview and Godot checks a game, both with fake programs on the server's PATH (the real ones
 // are the user's own). Every run is approved first; the preview and the check open in the artifacts panel.
 await page.getByRole("button", { name: "Nuevo chat" }).click();

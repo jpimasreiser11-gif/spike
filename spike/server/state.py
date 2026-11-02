@@ -175,7 +175,7 @@ class AppState:
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *maker_tools(workspace, self.sandbox),
-                     *diagnostic_tools(workspace, self.sandbox, self.connectors), *geo_tools(workspace),
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors, self.jobs), *geo_tools(workspace),
                      *architecture_tools(workspace)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
@@ -342,7 +342,7 @@ class AppState:
         for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *maker_tools(workspace, self.sandbox),
-                     *diagnostic_tools(workspace, self.sandbox, self.connectors), *geo_tools(workspace),
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors, self.jobs), *geo_tools(workspace),
                      *architecture_tools(workspace)]:
             registry.register(tool)
         registry.shared = self.connectors.tools

@@ -18,7 +18,7 @@ specialists:
     adapter: null
     adapter_status: none
     sensitive: false
-    tools: [dependency_doctor, visual_critic, ask_user, calculator, current_time, web_fetch, read_file, list_dir, write_file, render_video, python, create_docx, create_xlsx, create_pptx, create_pdf, remember, recall, data_sql, data_chart, geo_map, geo_measure, architecture_graph]
+    tools: [dependency_doctor, visual_critic, device_lab, ask_user, calculator, current_time, web_fetch, read_file, list_dir, write_file, render_video, python, create_docx, create_xlsx, create_pptx, create_pdf, remember, recall, data_sql, data_chart, geo_map, geo_measure, architecture_graph]
     keywords: {}
     system_prompt: |
       You are Spike Core, the general assistant of the SPIKE system. Be accurate, direct and useful.
@@ -32,7 +32,7 @@ specialists:
     adapter: spike-code
     adapter_status: planned
     sensitive: false
-    tools: [dependency_doctor, visual_critic, ask_user, read_file, list_dir, write_file, render_video, blender_render, godot_scaffold, godot_check, python, calculator,
+    tools: [dependency_doctor, visual_critic, device_lab, ask_user, read_file, list_dir, write_file, render_video, blender_render, godot_scaffold, godot_check, python, calculator,
             architecture_graph]
     keywords:
       code: 3

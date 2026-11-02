@@ -199,10 +199,10 @@ def scene_html(text: str, suffix: str) -> str:
     return text
 
 
-async def launch(pw, extra_args: tuple[str, ...] = ()):
-    """SPIKE_CHROMIUM, else Playwright's Chromium, else an installed Chrome or Edge."""
+async def launch(pw, args: tuple[str, ...] = ()):
+    """SPIKE_CHROMIUM, else Playwright's Chromium, else an installed Chrome or Edge; `args` are extra browser flags."""
     root = hasattr(os, "geteuid") and os.geteuid() == 0  # Chromium's sandbox refuses to start as root
-    options = {"chromium_sandbox": not root, "args": ["--disable-gpu", "--mute-audio", *extra_args]}
+    options = {"chromium_sandbox": not root, "args": ["--disable-gpu", "--mute-audio", *args]}
     if os.environ.get("SPIKE_CHROMIUM"):
         return await pw.chromium.launch(executable_path=os.environ["SPIKE_CHROMIUM"], **options)
     first: Exception | None = None
