@@ -1,0 +1,27 @@
+.history-dialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow); }
+.history-dialog::backdrop { background: rgba(5, 20, 12, .55); }
+.history-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.history-header h2 { font-size: 20px; margin: 0; }
+.history-note, .history-status { color: var(--text-2); font-size: 13px; line-height: 1.5; }
+.history-dialog label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-2); }
+.history-query { display: flex; gap: 8px; margin: 8px 0 16px; }
+.history-query input { flex: 1; min-width: 0; font-size: 16px; }
+.history-dialog input, .history-dialog select { width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px;
+  border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); background: var(--bg); }
+.history-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.history-results { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.history-hit { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 14px; text-align: left;
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; overflow-wrap: anywhere; }
+.history-hit:hover { border-color: var(--green-dark); }
+.history-hit-title { font-size: 14px; font-weight: 600; }
+.history-hit-meta { font-size: 12px; color: var(--text-2); }
+.history-excerpt { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+.history-excerpt mark { color: #052e1e; background: #e3fada; border-radius: 3px; }
+.history-more { margin-top: 16px; width: 100%; }
+.history-dialog button { min-height: 36px; }
+.history-dialog :focus-visible, .history-launch:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+.history-message:focus { outline: 3px solid var(--text); outline-offset: 4px; border-radius: 8px; }
+.history-launch { display: flex; gap: 8px; justify-content: space-between; }
+.history-launch kbd { font: 11px var(--mono); color: var(--text-2); }
+@media (max-width: 480px) { .history-dialog { padding: 16px; } .history-filters { grid-template-columns: 1fr; } }

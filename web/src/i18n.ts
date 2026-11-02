@@ -53,6 +53,19 @@ const es = {
     review: "Revisar plan en Forge", export: "Descargar evidencias JSON", back: "Volver a las evidencias", model: "Modelo", local: "local", external: "externo",
     errors: { invalid_path: "La ruta debe ser un archivo de esta carpeta, sin enlaces simbólicos ni saltos fuera de ella.", invalid_format: "Usa PDF, TXT o MD.", invalid_sources: "Revisa el número y tipo de documentos; no repitas archivos.", too_large: "Los documentos superan los límites. Selecciona un extracto más pequeño.", encrypted_pdf: "El PDF está cifrado. Proporciona una copia accesible.", invalid_document: "No se pudo extraer el documento como PDF o texto UTF-8.", no_text: "No hay texto extraíble; no se dispone de OCR para escaneos.", unknown_project: "El proyecto ya no existe.", unknown_provider: "El proveedor ya no existe.", unknown_conversation: "El chat ya no existe.", files_blocked: "El proveedor no tiene permiso para recibir archivos.", provider_blocked: "El proveedor está bloqueado por permisos de pago o límites de uso.", context_limit: "El texto supera el contexto declarado del proveedor.", expired_preview: "La vista previa caducó o ya se utilizó. Genera otra.", changed_preview: "El archivo, proyecto o proveedor cambió. Revisa una nueva vista previa.", invalid_analysis: "El modelo devolvió un formato no válido. No se aceptó ninguna evidencia.", invalid_quote: "Una cita no coincide exactamente con su fuente. No se aceptó ninguna evidencia.", analysis_failed: "Falló el proveedor. No hay resultados comprobados; crea una nueva vista previa para reintentar." } as Record<string, string>,
   },
+  history: {
+    title: "Buscar conversaciones", close: "Cerrar", query: "Palabras o frase", placeholder: "¿Dónde hablamos de…?",
+    note: "Búsqueda local en títulos y mensajes guardados. No incluye chats temporales, archivos ni memoria. No consulta modelos.",
+    search: "Buscar", scope: "Dónde buscar", workspace: "Sin proyecto", everywhere: "Todos los proyectos y chats",
+    match: "Coincidencia", words: "Todas las palabras", phrase: "Frase en orden", sender: "Contenido",
+    allContent: "Títulos y mensajes", user: "Tú", date: "Fecha del mensaje o título", anyDate: "Cualquier fecha",
+    days7: "Últimos 7 días", days30: "Últimos 30 días", days90: "Últimos 90 días", searching: "Buscando…",
+    empty: "Sin coincidencias. Prueba otras palabras o amplía los filtros.", ready: "Escribe hasta 12 palabras y pulsa Buscar.",
+    result: "coincidencia", results: "coincidencias", moreAvailable: "hay más resultados", more: "Cargar más", chatTitle: "Título",
+    error: "No se pudo buscar. Revisa la conexión local y usa entre 1 y 12 palabras.",
+    openError: "No se pudo abrir el chat. Puede haber sido eliminado; vuelve a buscar.",
+  },
+
   bundledSkillDescriptions: {
     "landing-page": "Crea una landing page con mensajes verificables, secciones accesibles y una llamada a la acción clara.",
     "report-creator": "Crea un informe ejecutivo que distingue hechos, interpretación, incertidumbre y próximos pasos.",
@@ -436,6 +449,19 @@ const en: Dict = {
     review: "Review plan in Forge", export: "Download evidence JSON", back: "Back to evidence", model: "Model", local: "local", external: "external",
     errors: { invalid_path: "The path must be a file in this folder, without symlinks or escaping paths.", invalid_format: "Use PDF, TXT or MD.", invalid_sources: "Check document count and type; do not repeat files.", too_large: "Documents exceed the limits. Select a smaller extract.", encrypted_pdf: "The PDF is encrypted. Provide an accessible copy.", invalid_document: "Could not extract this document as PDF or UTF-8 text.", no_text: "No extractable text; OCR for scans is unavailable.", unknown_project: "The project no longer exists.", unknown_provider: "The provider no longer exists.", unknown_conversation: "The chat no longer exists.", files_blocked: "This provider is not allowed to receive files.", provider_blocked: "The provider is blocked by paid-call permissions or usage limits.", context_limit: "Text exceeds the provider's declared context.", expired_preview: "The preview expired or was already used. Create another.", changed_preview: "The file, project or provider changed. Review a new preview.", invalid_analysis: "The model returned an invalid format. No evidence was accepted.", invalid_quote: "A quote does not match its source exactly. No evidence was accepted.", analysis_failed: "The provider failed. There are no checked results; create a new preview to retry." } as Record<string, string>,
   },
+  history: {
+    title: "Search conversations", close: "Close", query: "Words or phrase", placeholder: "Where did we discuss…?",
+    note: "Local search of saved titles and messages. Excludes temporary chats, files and memory. No model calls.",
+    search: "Search", scope: "Search in", workspace: "No project", everywhere: "All projects and chats",
+    match: "Match", words: "All words", phrase: "Phrase in order", sender: "Content",
+    allContent: "Titles and messages", user: "You", date: "Message or title date", anyDate: "Any date",
+    days7: "Last 7 days", days30: "Last 30 days", days90: "Last 90 days", searching: "Searching…",
+    empty: "No matches. Try different words or broaden the filters.", ready: "Enter up to 12 words and press Search.",
+    result: "match", results: "matches", moreAvailable: "more results available", more: "Load more", chatTitle: "Title",
+    error: "Search failed. Check the local connection and use between 1 and 12 words.",
+    openError: "Could not open the chat. It may have been deleted; search again.",
+  },
+
   bundledSkillDescriptions: {
     "landing-page": "Create a product landing page with evidence-backed copy, accessible sections and a focused call to action.",
     "report-creator": "Create an executive report separating source facts, interpretation, uncertainty and recommended next steps.",
