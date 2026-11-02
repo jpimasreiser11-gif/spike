@@ -1,4 +1,10 @@
 const es = {
+  dataApp: {
+    search: "Buscar", propose: "Proponer cambios", localHint: "Los cambios requieren aprobación en SPIKE.",
+    create: "Crear app local (escribe app.html)", busy: "Preparando…", hint: "Consulta y edita la tabla. Propón los cambios para revisarlos aquí antes de escribir el original. Solo tablas CSV UTF-8 o la primera hoja de XLSX; máximo 2000 filas y 20000 celdas. XLSX requiere openpyxl instalado. Usa tablas simples: las funciones avanzadas del libro pueden perderse al guardar. La sesión caduca tras una hora o al reiniciar.",
+    review: "Revisar cambios", row: "Fila", column: "Columna", approve: "Aprobar escritura", cancel: "Descartar propuesta",
+    saved: "Archivo original actualizado. Vuelve a crear la app para cargar los cambios.", failed: "No se pudo completar. Comprueba el archivo, el formato y que no haya cambiado; vuelve a crear la app si la sesión caducó.",
+  },
   bundledSkillDescriptions: {
     "landing-page": "Crea una landing page con mensajes verificables, secciones accesibles y una llamada a la acción clara.",
     "report-creator": "Crea un informe ejecutivo que distingue hechos, interpretación, incertidumbre y próximos pasos.",
@@ -329,6 +335,13 @@ const es = {
 type Dict = typeof es;
 
 const en: Dict = {
+  dataApp: {
+    search: "Search", propose: "Propose changes", localHint: "Changes require approval in SPIKE.",
+    create: "Create local app (writes app.html)", busy: "Preparing…", hint: "Query and edit the table. Propose changes to review them here before writing the original. UTF-8 CSV tables or the first XLSX sheet only; at most 2000 rows and 20000 cells. XLSX requires installed openpyxl. Use plain tables: advanced workbook features may be lost on save. Sessions expire after an hour or a restart.",
+    review: "Review changes", row: "Row", column: "Column", approve: "Approve write", cancel: "Discard proposal",
+    saved: "Original file updated. Create the app again to load the changes.", failed: "Could not complete. Check the file, format and whether it changed; create the app again if the session expired.",
+  },
+
   bundledSkillDescriptions: {
     "landing-page": "Create a product landing page with evidence-backed copy, accessible sections and a focused call to action.",
     "report-creator": "Create an executive report separating source facts, interpretation, uncertainty and recommended next steps.",

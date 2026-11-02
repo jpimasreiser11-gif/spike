@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { api } from "../api";
-import { lang } from "../i18n";
+import { lang, t } from "../i18n";
 import type { Blueprint, DesignSystemInfo, ProviderInfo, Specialist } from "../types";
+import { ArtifactContext } from "./Artifact";
 import { Forge } from "./Forge";
 
 const C = lang === "es"
@@ -49,6 +50,7 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
   onRun: (task: string, blueprint: Blueprint, providerId: string | null, extra: CreatorExtra) => void;
   onClose: () => void;
 }) {
+  const openArtifact = useContext(ArtifactContext);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [chosen, setChosen] = useState<Template | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -79,9 +81,15 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
     setBusy(true);
     setError("");
     try {
-      setBuilt(await api.post<Built>("/api/creator/blueprint", { template: chosen.id, fields: answers, lang }));
+      if (chosen.id === "data_app") {
+        const doc = await api.post<{ id: string; html: string; title: string; filename: string }>("/api/creator/data-app", {
+          file: answers.file, title: answers.about, project_id: projectId, lang, approved: true,
+          labels: { search: t.dataApp.search, propose: t.dataApp.propose, hint: t.dataApp.localHint },
+        });
+        openArtifact?.({ ...doc, dataAppId: doc.id });
+      } else setBuilt(await api.post<Built>("/api/creator/blueprint", { template: chosen.id, fields: answers, lang }));
     } catch (e2) {
-      setError((e2 as Error).message);
+      setError(chosen.id === "data_app" ? t.dataApp.failed : (e2 as Error).message);
     }
     setBusy(false);
   };
@@ -146,7 +154,7 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
               ) : <p className="muted small">{C.noFiles}</p>)}
             </div>
           ))}
-          {chosen.design && (
+          {chosen.design && chosen.id !== "data_app" && (
             <label className="field inline"><span>{C.design}</span>
               <select value={design} onChange={(e) => setDesign(e.target.value)} aria-label={C.design}>
                 <option value="">{C.noDesign}</option>
@@ -156,12 +164,13 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
           )}
           <p className="small muted">
             {C.makes} {chosen.deliverables.map((d) => <code key={d}>{d}</code>).reduce<React.ReactNode[]>((acc, el, i) => (i ? [...acc, ", ", el] : [el]), [])}
-            {chosen.skills.length > 0 && <> · {C.skills} <code>{chosen.skills.join(", ")}</code></>}
+            {chosen.skills.length > 0 && chosen.id !== "data_app" && <> · {C.skills} <code>{chosen.skills.join(", ")}</code></>}
           </p>
+          {chosen.id === "data_app" && <p>{t.dataApp.hint}</p>}
           {error && <div className="error-box" role="alert">{error}</div>}
           <div className="row end"><div className="spacer" />
             <button className="btn" type="button" onClick={() => setChosen(null)}>{C.back}</button>
-            <button className="btn primary" type="submit" disabled={busy}>{busy ? C.preparing : C.plan}</button>
+            <button className="btn primary" type="submit" disabled={busy}>{busy ? C.preparing : chosen.id === "data_app" ? t.dataApp.create : C.plan}</button>
           </div>
         </form>
       )}
