@@ -9,6 +9,7 @@ import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
 import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
 import { SubtitleStudio } from "./components/SubtitleStudio";
+import { DeviceLab } from "./components/DeviceLab";
 import { HistorySearch, type HistoryHit } from "./components/HistorySearch";
 import { Lab } from "./components/Lab";
 import { Markdown } from "./components/Markdown";
@@ -117,6 +118,7 @@ export default function App() {
   useEffect(() => { setCommentThreads([]); }, [activeId, project?.id]);
   const [forgeOpen, setForgeOpen] = useState(false);
   const [subtitlesOpen, setSubtitlesOpen] = useState(false);
+  const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTarget, setSearchTarget] = useState<string | null>(null);
   const [labOpen, setLabOpen] = useState(false);
@@ -387,6 +389,7 @@ export default function App() {
         <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
         <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
         <button className="side-btn" disabled={busy} onClick={() => setSubtitlesOpen(true)}>{t.subtitles.title}</button>
+        <button className="side-btn" disabled={busy} data-testid="device-lab-open-btn" onClick={() => setDeviceLabOpen(true)}>{t.deviceLab.title}</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
@@ -509,6 +512,7 @@ export default function App() {
       {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
 
       {subtitlesOpen && <SubtitleStudio projectId={project?.id} projectName={project?.name} onClose={() => setSubtitlesOpen(false)} />}
+      {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
       {searchOpen && <HistorySearch projects={projects} projectId={project?.id} onClose={() => setSearchOpen(false)} onSelect={openSearchResult} />}
 
       {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}

@@ -166,7 +166,7 @@ class AppState:
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *maker_tools(workspace, self.sandbox),
-                     *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors, self.jobs)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -332,7 +332,7 @@ class AppState:
         for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *maker_tools(workspace, self.sandbox),
-                     *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors, self.jobs)]:
             registry.register(tool)
         registry.shared = self.connectors.tools
         return registry

@@ -18,6 +18,7 @@ from typing import Any
 
 from spike.connectors.manager import ConnectorManager
 from spike.connectors.mcp import McpError
+from spike.dev.device_lab import DeviceLab
 from spike.dev.tools import RunCommand
 from spike.runtime.models import ALLOWED_LICENSES
 from spike.tools.base import Review, Tool, ToolResult
@@ -162,5 +163,5 @@ class VisualCritic(Tool):
 
 
 def diagnostic_tools(workspace: Workspace, sandbox: Sandbox | None = None,
-                     connectors: ConnectorManager | None = None) -> list[Tool]:
-    return [DependencyDoctor(workspace, sandbox), VisualCritic(workspace, connectors)]
+                     connectors: ConnectorManager | None = None, jobs=None) -> list[Tool]:
+    return [DependencyDoctor(workspace, sandbox), VisualCritic(workspace, connectors), DeviceLab(jobs)]

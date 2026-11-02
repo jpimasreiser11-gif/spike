@@ -6,6 +6,7 @@ import { teamSteps } from "../run";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState, VideoUi } from "../types";
 import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { DataView, ReportActions, isData } from "./DataViews";
+import { DeviceLabCard } from "./DeviceLab";
 import { DiagnosticCard } from "./DevDiagnostics";
 import { DesktopRecordView } from "./Desktop";
 import { LiveOrderCard } from "./Finance";
@@ -423,6 +424,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
         ? <LiveOrderCard key={tool.ui.order.id} initial={tool.ui.order} readOnly={replay} />
         : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} />
           : tool.ui?.kind === "dev_diagnostic" ? <DiagnosticCard key={`${tool.id}-${i}`} ui={tool.ui} />
+          : tool.ui?.kind === "device_lab" ? <DeviceLabCard key={`${tool.id}-${i}`} ui={tool.ui} />
           : (tool.ui?.kind === "blender_render" && !replay) || tool.ui?.kind === "godot_check" ? <MakerCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} />
           : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} />
             : tool.ui?.kind === "video" && !replay ? <VideoCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} /> : null)}
