@@ -126,9 +126,9 @@ THIRD_PARTY.md differ from the build environment for two packages (`duckdb` 1.5.
 
 ## 5. Open items before the repository goes public
 
-1. A real PyInstaller build with the new spec: `packaging/collect_licenses.py` was run on its own (155 entries,
-   `tests/test_collect_licenses.py`), but PyInstaller is not installed offline, so the bundle containing
-   `licenses/third-party/` is unverified. Run `Native installers` and look at `_internal/licenses/`.
+1. ~~A real PyInstaller build with the new spec~~ Done: `Native installers` run 41501251258 (2026-11-02, ee555f0)
+   built all three; the installed-app smoke, which now refuses a bundle without LICENSE, NOTICE, THIRD_PARTY.md and
+   `third-party/INDEX.md`, counted 199 (macOS), 198 (Windows) and 194 (Linux) license files.
 2. Founder's decision on the LGPL libfuse inside the AppImage runtime (section 4).
 3. Append the vendored-library notices of llama.cpp tag b11709 to `packaging/licenses/llama.txt`.
 4. Green CI on the release commit, and `pip-audit` and `npm audit` with network.
