@@ -37,8 +37,8 @@ from spike.forge import prototypes
 from spike.forge.blueprint import from_user as blueprint_from_user
 from spike.forge.prototypes import PrototypeError
 from spike.media import MediaError, validate_images
-from spike.orchestrator.minds import Mind, plan_minds, run_minds
 from spike.memory.service import Recall
+from spike.orchestrator.minds import Mind, plan_minds, run_minds
 from spike.packs import MAX_BYTES as MAX_PACK_BYTES
 from spike.packs import export_pack, install_skills_zip, read_pack
 from spike.projects import MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, ProjectError, export_project, import_project
@@ -60,8 +60,8 @@ from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.research_api import create_research_router
 from spike.server.setup_api import create_setup_router
 from spike.server.state import AppState
-from spike.server.workspace_api import create_workspace_router
 from spike.server.subtitles_api import create_subtitles_router
+from spike.server.workspace_api import create_workspace_router
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
 from spike.tools.documents import MissingLibrary

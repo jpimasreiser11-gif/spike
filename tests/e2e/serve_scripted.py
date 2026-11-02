@@ -353,9 +353,6 @@ class ScriptedApp:
                "structuredContent": {"symbol": args.get("symbol"), "price": price}, "isError": False}
         return CallResult(text=raw["content"][0]["text"], is_error=False, raw=raw)
 
-    async def close(self):
-        pass
-
     async def read_resource(self, uri):
         return {"contents": [{"uri": uri, "mimeType": APP_MIME, "text": APP_PAGE,
                               "_meta": {"ui": {"csp": {"connectDomains": ["https://api.example.com"]},
