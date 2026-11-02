@@ -1,0 +1,98 @@
+name: Installers with the real model
+
+# Manual only (I3). Takes the installers a successful "Native installers" run built, installs each one on a fresh
+# runner (a clean machine: nothing is cached between runs), has the installed app download the real default model
+# through its own first-run setup, asks one question and records measured numbers, then uninstalls and checks that the
+# user's profile was kept. Nothing is published and no secret is used; the run's own token only reads that run's
+# artifacts. The result JSON is printed in the log and also uploaded. See packaging/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Id of a successful "Native installers" run (its native-* artifacts are kept for 7 days)'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify pinned actionlint and check this workflow
+        run: |
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/actionlint.tar.gz" https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" .github/workflows/installers-real-model.yml
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Harness dependencies (the versions SPIKE's own tests run with)
+        run: python -m pip install --no-cache-dir 'httpx==0.28.1' 'psutil==7.2.2'
+      - name: Require a successful "Native installers" run whose installers are still downloadable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          case "$RUN_ID" in ''|*[!0-9]*) echo "run_id must be the numeric id of a workflow run"; exit 1 ;; esac
+          gh api "repos/$REPO/actions/runs/$RUN_ID" > "$RUNNER_TEMP/run.json"
+          gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/artifacts.json"
+          python packaging/real_model_check.py source --run "$RUNNER_TEMP/run.json" --artifacts "$RUNNER_TEMP/artifacts.json"
+  check:
+    needs: [lint, source]
+    name: Real model (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-latest, target: Darwin-arm64}  # measured 14 GB on 2026-10-18 (installers.yml); macos-14 has 7 GB, under the 8 GiB setup guard
+          - {os: windows-2022, target: Windows-AMD64}
+          - {os: ubuntu-24.04, target: Linux-x86_64}
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Harness dependencies (the versions SPIKE's own tests run with)
+        run: python -m pip install --no-cache-dir 'httpx==0.28.1' 'psutil==7.2.2'
+      - name: Download the installer and its build evidence from that run
+        uses: actions/download-artifact@v4
+        with:
+          name: native-${{ matrix.target }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/native
+      - name: Verify, install like a user, set up with the real model, ask one question, uninstall
+        timeout-minutes: 100
+        env:
+          TARGET: ${{ matrix.target }}
+          SOURCE_RUN: ${{ inputs.run_id }}
+        run: |
+          python packaging/real_model_check.py run --target "$TARGET" --artifacts "$RUNNER_TEMP/native" --work "$RUNNER_TEMP/real-model" --default-profile --source-run "$SOURCE_RUN" --out "$RUNNER_TEMP/real-model-result.json"
+      - name: The result in the log too (artifact downloads are blocked for the reviewer)
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/real-model-result.json" ]; then cat "$RUNNER_TEMP/real-model-result.json"; else echo "no result file was written"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-model-${{ matrix.target }}
+          path: ${{ runner.temp }}/real-model-result.json
+          if-no-files-found: warn
+          retention-days: 7
