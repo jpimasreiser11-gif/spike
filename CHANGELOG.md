@@ -131,6 +131,19 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Desktop builds carry the license text of every bundled Python and web package, NOTICE and THIRD_PARTY.md
   (`licenses/third-party/`); the web app serves the OFL text of its fonts as `/FONT-LICENSES.txt`.
 - `docs/release/REVIEW-v0.1.md`: v0.1 checklist with evidence, findings, secrets scan and license table.
+- `web_fetch` resolves a name once, checks every address and connects to a checked one (the `Host` header, TLS
+  server name and certificate check stay those of the name), so DNS rebinding after the check cannot move the request;
+  behind an HTTP proxy in the environment it looks the name up again and refuses a changed answer.
+- `spike models pull` refuses when the Hub publishes no SHA-256; `--allow-unverified` downloads anyway with a warning.
+  Each download writes `<model>.gguf.manifest.json` and `spike doctor` shows unverified files.
+- Proof packages, the call log, provider error messages and exported packs keep only scheme, host, port and path of
+  any address; userinfo, query and fragment are dropped.
+- A connector header with a credential-looking name and a literal value moves to the key store (older rows on first
+  read); the settings database keeps a placeholder.
+- Design tokens are checked after CSS escapes are decoded, and `image-set(` is refused.
+- A project path with a `:` in any part is refused (Windows alternate data streams).
+- Every GitHub Action is pinned to a full commit SHA with its tag in a comment; the real-model installer check only
+  accepts a "Native installers" run of `main` or of a version tag push.
 
 ### Learning from use (Evolution)
 - Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the
