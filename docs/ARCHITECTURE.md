@@ -544,6 +544,61 @@ shows a table of what happened. The person picks; nothing is merged without thei
   whether two plans give better code than one, what a real build of each costs, and how often a model-written approach
   passes the person's tests; nothing here says either approach is better than a single run.
 
+## Geo, the Spike View recorder and the Architecture Explorer (A16)
+
+Three independent pieces that share one UI pattern: a tool puts a drawing in `data["ui"]`, the chat shows it as a card,
+and the artifacts panel opens the same drawing as an isolated page. No new dependency, no network, no tile server.
+
+- **Geo** (`spike/geo/`): tools `geo_map` and `geo_measure` (risk `read`) for a GeoJSON or CSV (lat/lon columns) file
+  inside the workspace. `data.py` reads it with size limits (8 MiB, 5000 features, 200000 positions; what was cut is in
+  `Dataset.truncated`, what could not be read in `skipped`); `measure.py` has the haversine distance, the spherical-excess
+  polygon area (holes subtracted) and the perimeter; `project.py` an equirectangular projection (data that crosses the
+  antimeridian is centred on it) around a standard parallel; `render.py` the SVG (choropleth by a numeric property in equal-interval classes plus a "no
+  data" class, legend, scale bar, graticule; colours are CSS variables with a `prefers-color-scheme: dark` set, and the
+  map has its own background, so it reads in either theme). **Accuracy:** everything is computed on a sphere of radius
+  6371.0088 km, the mean Earth radius: distances can differ from a WGS 84 ellipsoid by up to about 0.5 % and areas by
+  about 1 %. The tool result, the card and the page all say so. Tests (`tests/test_geo.py`): haversine against closed
+  forms and published city distances (within 0.5 %), areas against closed forms (an octant is 1/8 of the sphere, a
+  lat/lon box is R²·Δλ·Δsin φ) and Wyoming's published area (within 0.5 %), holes, data across the antimeridian,
+  malformed input, size limits, the equal-interval classes and legend, and the SVG's escaping.
+- **Architecture Explorer** (`spike/architecture/`): tool `architecture_graph` (risk `read`). `scan.py` reads Python with
+  `ast` and JavaScript/TypeScript with the tokenizer in `jsimports.py` (ES `import`/`export … from`, `import()` with a
+  string literal, `require("…")`, `import type`; comments, strings, template literals and regex literals are skipped),
+  resolves relative imports to files, and never reads `node_modules`, virtual environments, `.git`, build folders or
+  symbolic links that leave the folder. `cycles.py` is an iterative Tarjan (no recursion limit) and gives, for each
+  strongly connected component, the shortest path back to its first module. `render.py` lays the graph out in layers,
+  deterministically (same input, same bytes), draws cycle edges and modules in red, and when there are more modules than
+  `max_nodes` (10 to 200) draws the cycles first and says how many were left out. **Limits, stated in the card:**
+  2500 files, 1 MB per file (400 KB for JavaScript), 20 s; dynamic imports with a computed name, `tsconfig` paths,
+  aliases and `package.json` `exports` are not followed; imports inside functions and type-only imports are drawn dashed
+  and do not make a cycle unless `lazy` is set. Tests: `tests/test_architecture.py`.
+- **Spike View recorder and replay** (`spike/connectors/scripts.py`, `recorder.py`, `replay.py`, routes in
+  `spike/server/view_api.py`, UI in `web/src/components/ViewRecorder.tsx`). The recorder is an *observer* of the Playwright
+  connector (`ConnectorManager.observers`): it only watches calls that really succeeded and sends nothing to the browser.
+  A step's selector is what Playwright reported it ran (`### Ran Playwright code`, e.g. `getByRole('button', { name: 'Send' })`),
+  because the `e12` references the model uses are valid for one snapshot only. Scripts are local JSON files
+  (`$SPIKE_HOME/view-scripts/<id>.json`, format `spike-view-script` v1, at most 500 steps); a script holds only
+  navigate, click, type, select and named-key steps, never code. **What is never stored:** text typed into a password-like
+  field (the step is `secret` and the replay asks for the text, which is used once and not kept), keys typed one letter at
+  a time, the user name and password in an address, anything from failed calls or from tools that run code in the page.
+  The replay calls the connector's own tools and asks first, each time, before: a step that may submit (typing with submit,
+  Enter, a click on a button whose name is a send/buy/sign-in/delete word, or any step the recording marked as submitting),
+  a navigation to a domain the browser settings do not allow (a blocked domain is never opened), a secret field, and, in
+  "step by step" mode, every step. Stop ends it at once, even inside a step; an unanswered question ends it after 30 minutes;
+  one replay at a time. All its routes are `this_computer`-guarded like the desktop ones.
+  **Not covered:** the secret detection goes by the field's name and the selector (the browser tools do not reveal
+  `type="password"`), so a secret in a field with an ordinary name is kept unless the user marks the step as secret in the
+  panel; a click on a link that opens another domain is not seen coming, as in live use; nothing here is a security boundary
+  against a page that behaves differently the second time.
+- **How it is tested.** The recorder, the replay and the routes run in Python against a fake backend that stands in for
+  the Playwright MCP server (`tests/test_recorder.py`, `tests/test_view_api.py`, `tests/helpers_view.py`), including that
+  every submitting step asks and no secret text reaches a script, a log or the status. One test (skipped unless
+  `SPIKE_PLAYWRIGHT_MCP` and `SPIKE_CHROMIUM` are set) records and replays against the real Playwright MCP server and a
+  headless Chromium with a local web server, and checks that only one POST reaches it. `web/e2e/smoke.mjs` drives the
+  panel, a recording, the saved file, a replay with its questions and Stop, the map and the diagram cards (light, dark, a
+  phone) against `tests/e2e/serve_scripted.py`, whose browser is a scripted stand-in: it checks the UI and the guard, not
+  real pages. Nothing here was run in a headed browser or on a real login form.
+
 ## Training and evaluation (offline, on the developer Mac)
 
 `training/` builds data, trains mlx-lm LoRA adapters and exports them to GGUF; `evals/` measures base vs.

@@ -61,6 +61,7 @@ from spike.server.research_api import create_research_router
 from spike.server.setup_api import create_setup_router
 from spike.server.state import AppState
 from spike.server.subtitles_api import create_subtitles_router
+from spike.server.view_api import create_view_router
 from spike.server.workspace_api import create_workspace_router
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
@@ -1426,6 +1427,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_desktop_router(st, this_computer))
     app.include_router(create_media_router(st, this_computer))
     app.include_router(create_subtitles_router(st, this_computer))
+    app.include_router(create_view_router(st, this_computer))  # A16 browser recorder and replay
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")

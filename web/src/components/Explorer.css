@@ -1,0 +1,7 @@
+.explorer-svg { display: block; width: 100%; max-width: 760px; height: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.explorer-card .row { gap: 8px; flex-wrap: wrap; }
+.explorer-card .data-grid td.num, .explorer-card .data-grid th.num { text-align: right; }
+.explorer-card .data-grid td code { white-space: normal; overflow-wrap: anywhere; }
+.explorer-rows summary { cursor: pointer; font-size: 13px; }
+.explorer-cycles { display: grid; gap: 4px; }
+.explorer-card .data-grid td { white-space: normal; max-width: none; overflow: visible; }

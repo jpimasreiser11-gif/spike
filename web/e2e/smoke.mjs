@@ -975,6 +975,22 @@ const docBytes = fs.readFileSync(await doc_dl.path());
 if (docBytes.subarray(0, 2).toString() !== "PK") fail("downloaded .docx is not a zip package");
 await page.screenshot({ path: `${out}/07d-document.png` });
 
+// Recorder (A16): start recording what Spike View does as a local script. The scripted server stands in for the browser,
+// so these steps check the panel and the guard (what is asked, what is kept); tests/test_recorder.py records and replays
+// against a real Chromium.
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Conectores" }).click();
+const recorder = () => page.getByRole("dialog").locator('[data-connector="playwright"] .view-recorder');
+await recorder().getByLabel("Nombre del guion").fill("Pedido BOE");
+await recorder().getByRole("button", { name: "Grabar", exact: true }).click();
+await recorder().getByText("Grabando", { exact: true }).waitFor({ timeout: 5000 });
+await page.keyboard.press("Escape");
+// a specialist chip toggles, and the choice stays across chats: click one only when it is not the one chosen
+const pick = async (name) => {
+  const chip = page.locator(".spec-chips .chip", { hasText: name });
+  if (!(await chip.evaluate((el) => el.classList.contains("selected")))) await chip.click();
+};
+
 // browser (Spike View): a new site asks with its domain; "always" saves the domain, which Settings lists and removes
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Law" }).click();
@@ -996,6 +1012,128 @@ await page.screenshot({ path: `${out}/07f-browser-domains.png` });
 await domains.getByRole("button", { name: "Eliminar boe.es" }).click();
 await domains.getByText("Aún no hay dominios con regla.").waitFor();
 await page.keyboard.press("Escape");
+
+// Recorder: typing into a password field and clicking a button that submits are recorded too
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await pick("Law");
+await page.locator("#composer-input").fill("Escribe la clave en el formulario");
+await page.keyboard.press("Enter");
+await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
+await page.getByText("Hecho en el navegador.").first().waitFor({ timeout: 10000 });
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Pulsa enviar el pedido");
+await page.keyboard.press("Enter");
+await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 }); // a click that submits asks every time
+await page.getByText("Hecho en el navegador.").first().waitFor({ timeout: 10000 });
+const browserCalls = async () => (await (await page.request.get(`${base}/__e2e/browser`)).json()).calls;
+const named = (calls, name) => calls.filter((c) => c[0] === name).length;
+let calls = await browserCalls();
+if (named(calls, "browser_navigate") !== 1 || named(calls, "browser_type") !== 1 || named(calls, "browser_click") !== 1) fail("the chats should have made one call each: " + JSON.stringify(calls));
+
+await page.getByRole("button", { name: "Ajustes" }).click();
+await page.getByRole("tab", { name: "Conectores" }).click();
+await recorder().getByText("Grabando", { exact: true }).waitFor({ timeout: 5000 });
+const recorded = recorder().locator(".view-recording .view-steps li");
+await recorded.nth(2).waitFor({ timeout: 5000 });
+if (await recorded.count() !== 3) fail("the recorder should hold 3 steps, it holds " + await recorded.count());
+await recorded.filter({ hasText: "Abrir https://www.boe.es/buscar" }).waitFor();
+await recorded.filter({ hasText: "«Clave»" }).getByText("secreto", { exact: true }).waitFor(); // a password field: its text is not kept
+await recorded.filter({ hasText: "«Enviar pedido»" }).getByText("envía", { exact: true }).waitFor();
+if ((await recorder().textContent()).includes("clave-e2e-secreta")) fail("the recorder panel shows what was typed into the password field");
+await recorder().scrollIntoViewIfNeeded();
+await page.screenshot({ path: `${out}/a16-1-recorder-recording.png` });
+await recorder().getByRole("button", { name: "Terminar y guardar" }).click();
+await recorder().getByText("Guion guardado: 3 pasos").waitFor({ timeout: 5000 });
+const stored = await page.request.get(`${base}/api/browser/scripts/pedido-boe`);
+const storedText = await stored.text();
+if (storedText.includes("clave-e2e-secreta")) fail("the saved script holds what was typed into the password field");
+const script = JSON.parse(storedText);
+if (script.steps.length !== 3 || script.steps[1].secret !== true || "text" in script.steps[1]) fail("the password step should be a secret without text: " + storedText);
+
+// Replay: the scripted browser has no rule for boe.es now, so the replay asks about the domain, asks for the secret
+// text (which it never kept), and asks before the click that submits
+const row = recorder().locator(".view-scripts li").filter({ hasText: "Pedido BOE" });
+await row.getByRole("button", { name: "Reproducir", exact: true }).click();
+const viewReplay = recorder().locator(".view-replay");
+await viewReplay.getByText("Va a abrir boe.es, un dominio que no tienes permitido.").waitFor({ timeout: 10000 });
+await viewReplay.getByRole("button", { name: "Permitir solo esta vez" }).click();
+await viewReplay.getByText("Este campo es secreto: escribe su texto. No se guarda.").waitFor({ timeout: 10000 });
+await viewReplay.getByLabel("Texto del campo (no se guarda)").fill("otra-clave-e2e");
+await viewReplay.getByRole("button", { name: "Usar este texto" }).click();
+await viewReplay.getByText("Va a hacer clic en algo que puede enviar un formulario.").waitFor({ timeout: 10000 });
+calls = await browserCalls();
+if (named(calls, "browser_click") !== 1) fail("the replay clicked a button that submits before asking");
+await page.screenshot({ path: `${out}/a16-2-recorder-replay-asks.png` });
+await viewReplay.getByRole("button", { name: "Omitir este paso" }).click();
+await viewReplay.getByText("Terminada", { exact: true }).waitFor({ timeout: 10000 });
+calls = await browserCalls();
+if (named(calls, "browser_navigate") !== 2 || named(calls, "browser_type") !== 2 || named(calls, "browser_click") !== 1) fail("after the replay: " + JSON.stringify(calls));
+if (JSON.stringify(calls).includes("otra-clave-e2e")) fail("the secret text reached a place that logs calls");
+if ((await page.request.get(`${base}/api/browser/scripts/pedido-boe`).then((r) => r.text())).includes("otra-clave-e2e")) fail("the replay saved the secret text");
+
+// step by step: it asks before each step, and Stop ends it at once
+await row.getByRole("button", { name: "Paso a paso" }).click();
+await viewReplay.getByText("¿Ejecutar el siguiente paso?").waitFor({ timeout: 10000 });
+await viewReplay.getByRole("button", { name: "Ejecutar el paso" }).click();
+await viewReplay.getByText("Va a abrir boe.es, un dominio que no tienes permitido.").waitFor({ timeout: 10000 });
+await viewReplay.getByRole("button", { name: "Permitir solo esta vez" }).click();
+await viewReplay.getByText("¿Ejecutar el siguiente paso?").waitFor({ timeout: 10000 });
+await viewReplay.getByRole("button", { name: "Parar", exact: true }).click();
+await viewReplay.getByText("Detenida", { exact: true }).waitFor({ timeout: 10000 });
+calls = await browserCalls();
+if (named(calls, "browser_navigate") !== 3 || named(calls, "browser_type") !== 2 || named(calls, "browser_click") !== 1) fail("after stopping step by step: " + JSON.stringify(calls));
+await page.screenshot({ path: `${out}/a16-3-recorder-stopped.png` });
+await row.getByRole("button", { name: "Borrar" }).click();
+await recorder().getByText("No hay guiones guardados.").waitFor({ timeout: 5000 });
+await page.keyboard.press("Escape");
+
+// Spike Geo (A16): a map of regions coloured by a number, drawn without any tile server, with its measures and legend
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await pick("Data");
+await page.locator("#composer-input").fill("Dibuja el mapa de las regiones");
+await page.keyboard.press("Enter");
+const geoCard = page.getByRole("region", { name: "Regiones por habitantes" });
+await geoCard.locator("img.explorer-svg").waitFor({ timeout: 15000 });
+if (!(await geoCard.locator("img.explorer-svg").evaluate((img) => img.complete && img.naturalWidth > 0))) fail("the map did not load as an image");
+if (await geoCard.locator("svg").count()) fail("the map must be an image, not inline markup");
+await geoCard.getByText("Proyección equirrectangular").waitFor();
+await geoCard.getByText("Medidas por elemento").click();
+const geoRows = geoCard.locator("tbody tr");
+if (await geoRows.count() !== 3) fail("the map should list 3 regions, it lists " + await geoRows.count());
+await geoRows.filter({ hasText: "Centro" }).getByText("540").waitFor();
+await page.screenshot({ path: `${out}/a16-4-geo-map.png` });
+await geoCard.getByRole("button", { name: "Abrir en el panel" }).click();
+const geoFrame = page.frameLocator(".artifact-frame");
+await geoFrame.locator("svg").first().waitFor({ timeout: 10000 });
+if (await geoFrame.locator("table tbody tr").count() !== 3) fail("the map's page should hold the table of 3 regions");
+await page.screenshot({ path: `${out}/a16-5-geo-panel.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator("#composer-input").fill("Dibuja el mapa de las ciudades");
+await page.keyboard.press("Enter");
+const cityCard = page.getByRole("region", { name: "Ciudades" });
+await cityCard.locator("img.explorer-svg").waitFor({ timeout: 15000 });
+await cityCard.getByText("3 elementos").first().waitFor();
+
+// Architecture Explorer (A16): the modules of a project, import loops highlighted and listed
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await pick("Code");
+await page.locator("#composer-input").fill("Dame la arquitectura del proyecto");
+await page.keyboard.press("Enter");
+const archCard = page.getByRole("region", { name: "Arquitectura del proyecto: proyecto" });
+await archCard.locator("img.explorer-svg").waitFor({ timeout: 15000 });
+if (!(await archCard.locator("img.explorer-svg").evaluate((img) => img.complete && img.naturalWidth > 0))) fail("the diagram did not load as an image");
+const cycleRows = archCard.locator(".explorer-cycles tbody tr");
+if (await cycleRows.count() !== 2) fail("the project has 2 import loops, the card lists " + await cycleRows.count());
+await cycleRows.filter({ hasText: "app/models.py → app/util.py → app/models.py" }).waitFor();
+await cycleRows.filter({ hasText: "web/a.js → web/b.js → web/a.js" }).waitFor();
+await page.screenshot({ path: `${out}/a16-6-architecture.png` });
+await archCard.getByRole("button", { name: "Abrir en el panel" }).click();
+await page.frameLocator(".artifact-frame").locator("table tbody tr").nth(1).waitFor({ timeout: 10000 });
+await page.screenshot({ path: `${out}/a16-7-architecture-panel.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await pick("Law"); // the choice before this block, which the sections below were written with
 
 // Forge: the task becomes a blueprint the user edits and approves; the team runs it, the checker sends the writer
 // back once, and the report lists the criteria and the saved file
@@ -1271,6 +1409,19 @@ await enMinds.locator("[data-minds-multiplier]").getByText("×3 time and tokens"
 await enMinds.locator("[data-minds-why]").getByText("Mind 2 was chosen by its labels", { exact: false }).waitFor({ timeout: 5000 });
 await enMinds.locator('[data-mind="1"] [data-mind-labels]').getByText("1 verified · 2 unchecked").waitFor({ timeout: 5000 });
 await dp.screenshot({ path: `${out}/08d-minds-dark-en.png` });
+// the stored map and diagram cards come back rebuilt, in English and the dark theme (the drawings read in both)
+await dp.locator(".conv-title", { hasText: "Dame la arquitectura del proyecto" }).first().click();
+const darkGraph = dp.getByRole("region", { name: "Project architecture: proyecto" });
+await darkGraph.locator("img.explorer-svg").waitFor({ timeout: 10000 });
+await darkGraph.getByText("Import cycles", { exact: true }).waitFor();
+await darkGraph.locator(".explorer-cycles tbody tr").nth(1).waitFor();
+await dp.screenshot({ path: `${out}/a16-8-architecture-dark-en.png` });
+await dp.locator(".conv-title", { hasText: "Dibuja el mapa de las regiones" }).first().click();
+const darkMap = dp.getByRole("region", { name: "Regiones por habitantes" });
+await darkMap.locator("img.explorer-svg").waitFor({ timeout: 10000 });
+await darkMap.getByText("Measures per feature").click();
+await darkMap.locator("tbody tr").nth(2).waitFor();
+await dp.screenshot({ path: `${out}/a16-9-geo-dark-en.png` });
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: "es-ES", isMobile: true, hasTouch: true });
 const mp = await mobile.newPage();
 await mp.goto(base);
@@ -1284,6 +1435,14 @@ await mp.getByRole("button", { name: "Investigación", exact: true }).click();
 await mp.getByRole("heading", { name: "Investigación", exact: true }).waitFor();
 if (await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) fail("Research overflows mobile");
 await mp.screenshot({ path: `${out}/09-research-mobile.png` });
+// the diagram card on a phone: the picture shrinks to the screen and the table of cycles scrolls inside its card
+const openSidebar = mp.getByRole("button", { name: "Open sidebar" });
+if (await openSidebar.count()) await openSidebar.click();
+await mp.locator(".conv-title", { hasText: "Dame la arquitectura del proyecto" }).first().click();
+await mp.locator("img.explorer-svg").waitFor({ timeout: 10000 });
+if (await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) fail("horizontal overflow on mobile with the diagram card");
+await mp.waitForTimeout(500); // the sidebar slides away first
+await mp.screenshot({ path: `${out}/a16-10-architecture-mobile.png` });
 
 await dataAppFlow(page, ctx.request, base);
 
