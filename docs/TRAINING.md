@@ -173,7 +173,9 @@ teacher. Be aware of two limits. A teacher-written task may use the same ordinar
 but it does not forbid a shared phrase. The system prompt of each specialist (`spike/specialists/catalog.yaml`, repository
 text that every recipe's rows already carried) and the layout (lettered options, a fenced schema) are the only text in a
 row that the teacher did not write; the answer-format requests sent with a question ("finish with `Answer: <letter>`") are
-not stored. Whether the catalog's system prompts fall under the rule is for the owner to decide.
+not stored. Decision (builder, 2026-11-02): the catalog's system prompts stay. They are the same instructions the app
+sends at run time, and every recipe trains with `mask_prompt: true`, so no loss is computed on them and the model is
+not trained to write them.
 
 **The teacher.** `distill.teacher` in each recipe: `Qwen/Qwen3.6-35B-A3B`, served as
 `mlx-community/Qwen3.6-35B-A3B-4bit` (the teacher the docs, ADR 0001 and 0002 and `THIRD_PARTY.md` already name). Its Hub
