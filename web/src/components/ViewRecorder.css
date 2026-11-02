@@ -1,0 +1,12 @@
+.view-recorder { display: grid; gap: 8px; margin-top: 8px; }
+.view-recorder .row { align-items: center; gap: 8px; flex-wrap: wrap; }
+.view-steps { margin: 0; padding-left: 22px; display: grid; gap: 4px; font-size: 13px; }
+.view-steps li { overflow-wrap: anywhere; }
+.view-steps li > * + * { margin-left: 8px; }
+.view-steps .step-note { color: var(--text-3); font-size: 12.5px; }
+.view-steps .step-done { color: var(--text-2); }
+.view-steps .step-skipped { color: var(--text-3); text-decoration: line-through; }
+.view-scripts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.view-scripts > li { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; }
+.view-replay, .view-recording { border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.view-question { border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; background: var(--surface-2); }

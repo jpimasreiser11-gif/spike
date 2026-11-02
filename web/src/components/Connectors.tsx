@@ -3,6 +3,7 @@ import { api } from "../api";
 import { lang } from "../i18n";
 import type { BrowserSettings, ConnectorInfo } from "../types";
 import { IconTrash } from "./Icons";
+import { ViewRecorder } from "./ViewRecorder";
 
 const C = lang === "es"
   ? {
@@ -99,6 +100,7 @@ function ConnectorCard({ c, onChange, onRemoved }: { c: ConnectorInfo; onChange:
       </label>
       {(err || c.error) && <div className="error-box small-pre" role="alert">{err || c.error}</div>}
       {c.id === "playwright" && !c.custom && <BrowserDomains />}
+      {c.id === "playwright" && !c.custom && <ViewRecorder />}
       {c.tools.length > 0 && <p className="small muted">{c.tools.length} {C.tools}: {c.tools.map((t) => t.remote_name + (t.visibility && !t.visibility.includes("model") ? ` (${C.appOnly})` : "")).join(", ")}</p>}
       {(c.views ?? []).length > 0 && <p className="small muted">{C.views}: {c.views!.join(", ")}</p>}
       {c.custom && <div className="row end"><div className="spacer" /><button className="btn danger" onClick={() => api.del(`/api/connectors/${c.id}`).then(onRemoved)}><IconTrash size={14} /> {C.remove}</button></div>}

@@ -8,6 +8,7 @@ import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { DataView, ReportActions, isData } from "./DataViews";
 import { DiagnosticCard } from "./DevDiagnostics";
 import { DesktopRecordView } from "./Desktop";
+import { ArchitectureCard, GeoCard } from "./Explorer";
 import { LiveOrderCard } from "./Finance";
 import { MakerCard } from "./Maker";
 import { McpAppView } from "./McpApp";
@@ -424,6 +425,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
         : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} />
           : tool.ui?.kind === "dev_diagnostic" ? <DiagnosticCard key={`${tool.id}-${i}`} ui={tool.ui} />
           : (tool.ui?.kind === "blender_render" && !replay) || tool.ui?.kind === "godot_check" ? <MakerCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} />
+          : tool.ui?.kind === "geo_map" ? <GeoCard key={`${tool.id}-${i}`} ui={tool.ui} />
+          : tool.ui?.kind === "architecture" ? <ArchitectureCard key={`${tool.id}-${i}`} ui={tool.ui} />
           : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} />
             : tool.ui?.kind === "video" && !replay ? <VideoCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} /> : null)}
 

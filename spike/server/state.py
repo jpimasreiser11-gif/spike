@@ -14,9 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from spike.analytics.tools import analytics_tools
+from spike.architecture.tools import architecture_tools
 from spike.artifact_comments import ArtifactComments
 from spike.connectors import browser
 from spike.connectors.manager import ConnectorManager
+from spike.connectors.recorder import Recorder
+from spike.connectors.replay import ConnectorBackend, Replayer
+from spike.connectors.scripts import ScriptStore
 from spike.core.context import estimate_tokens
 from spike.core.types import ChatRequest, Message, ProviderError
 from spike.design.library import DesignLibrary
@@ -31,6 +35,7 @@ from spike.finance.market import EXCHANGES, ccxt_exchange
 from spike.finance.tools import Finance, finance_tools
 from spike.forge import prototypes
 from spike.forge.blueprint import Blueprint, make_blueprint
+from spike.geo.tools import geo_tools
 from spike.jobs import JobQueue
 from spike.maker.tools import maker_tools
 from spike.memory.extract import extract_text
@@ -150,6 +155,10 @@ class AppState:
         self.broker = PermissionBroker(self.settings()["tool_policies"])
         self.connectors = ConnectorManager(self.store, self.secrets, workspace_dir(), self.home / "connectors")
         self.broker.on_domain = lambda domain, rule: self.connectors.set_domain(domain, rule)
+        self.scripts = ScriptStore(self.home / "view-scripts")  # recorded Spike View scripts (A16), local JSON files
+        self.recorder = Recorder(self.scripts)
+        self.connectors.observers.append(self.recorder.observe)
+        self.replayer = Replayer(ConnectorBackend(self.connectors, self.broker), self.scripts)
         self.memory = MemoryService(MemoryStore(self.home / "memory.db"), self._embedder, lambda: [self.home])
         self.memory.folders.job_queue = self.jobs
         self.memory.job_queue = self.jobs
@@ -166,7 +175,8 @@ class AppState:
         for tool in [*memory_tools(self.memory, None), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *maker_tools(workspace, self.sandbox),
-                     *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors), *geo_tools(workspace),
+                     *architecture_tools(workspace)]:
             self.tools.register(tool)
         self.tools.shared = self.connectors.tools
         self.project_files = ProjectFiles(self.home / "projects")
@@ -332,7 +342,8 @@ class AppState:
         for tool in [*memory_tools(self.memory, project_id), *finance_tools(self.finance, workspace),
                      *analytics_tools(workspace, self.sandbox), *motion_tools(workspace, self.jobs),
                      *maker_tools(workspace, self.sandbox),
-                     *diagnostic_tools(workspace, self.sandbox, self.connectors)]:
+                     *diagnostic_tools(workspace, self.sandbox, self.connectors), *geo_tools(workspace),
+                     *architecture_tools(workspace)]:
             registry.register(tool)
         registry.shared = self.connectors.tools
         return registry
@@ -958,6 +969,7 @@ class AppState:
 
     async def close(self) -> None:
         await self.jobs.close()
+        self.replayer.stop()
         for task in list(self._background):
             task.cancel()
         if self.embed_server:

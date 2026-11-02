@@ -244,6 +244,32 @@ class DemoProvider(Provider):
                               arguments={"url": "https://www.boe.es/buscar"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "escribe la clave" in last.content.lower() and "mcp__playwright__browser_type" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c16", name="mcp__playwright__browser_type", arguments={
+                "element": "Clave textbox", "target": "e4", "text": "clave-e2e-secreta"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "pulsa enviar el pedido" in last.content.lower() and "mcp__playwright__browser_click" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c17", name="mcp__playwright__browser_click", arguments={
+                "element": "Enviar pedido button", "target": "e12"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "mapa de las regiones" in last.content.lower() and "geo_map" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c18", name="geo_map", arguments={
+                "path": "regiones.geojson", "label": "nombre", "value": "habitantes", "bins": 3, "lang": "es",
+                "title": "Regiones por habitantes"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "mapa de las ciudades" in last.content.lower() and "geo_map" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c19", name="geo_map", arguments={
+                "path": "ciudades.csv", "lang": "en", "title": "Ciudades"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
+        if last.role == "user" and "arquitectura del proyecto" in last.content.lower() and "architecture_graph" in tools:
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c20", name="architecture_graph", arguments={
+                "path": "proyecto", "lang": "es", "title": "proyecto"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "en paper" in last.content.lower() and "paper_order" in tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c6", name="paper_order", arguments={
                 "symbol": "BTC/USDT", "side": "buy", "amount": 0.01}))
@@ -292,6 +318,10 @@ class DemoProvider(Provider):
             answer = "Aquí tienes el precio en la vista de la app."
         elif last.role == "user" and "# What the user sees in app views" in system:
             answer = "En la vista veo: " + system.split("## Precios\n", 1)[1].split("\n", 1)[0]
+        elif last.role == "tool" and last.name in ("geo_map", "architecture_graph"):
+            answer = "Lo tienes dibujado en la tarjeta: ábrelo en el panel para verlo grande."
+        elif last.role == "tool" and last.name.startswith("mcp__playwright__browser_"):
+            answer = "Hecho en el navegador."
         elif last.role == "tool" and last.name == "data_chart":
             answer = "El **norte** ingresa 90 € y el sur 70 €, según la consulta de la tarjeta."
         elif last.role == "tool" and last.name == "blender_render":
@@ -365,6 +395,20 @@ Promise.allSettled([fetch("/api/health"), fetch("http://127.0.0.1:" + (location.
   .then((x) => { r.push(x.every((y) => y.status === "rejected") ? "api:blocked" : "api:open"); document.getElementById("probe").textContent = r.join(" "); });
 </script></body></html>"""
 
+# Spike Geo and the Architecture Explorer (A16): a few regions to colour by a number, cities as a CSV, and a small project
+# whose modules import each other in a loop (Python and JavaScript).
+REGIONES = {"type": "FeatureCollection", "features": [
+    {"type": "Feature", "properties": {"nombre": "Norte", "habitantes": 120_000},
+     "geometry": {"type": "Polygon", "coordinates": [[[-4.0, 41.0], [-2.0, 41.0], [-2.0, 43.0], [-4.0, 43.0], [-4.0, 41.0]]]}},
+    {"type": "Feature", "properties": {"nombre": "Centro", "habitantes": 540_000},
+     "geometry": {"type": "Polygon", "coordinates": [[[-4.0, 39.0], [-2.0, 39.0], [-2.0, 41.0], [-4.0, 41.0], [-4.0, 39.0]]]}},
+    {"type": "Feature", "properties": {"nombre": "Sur", "habitantes": 310_000},
+     "geometry": {"type": "Polygon", "coordinates": [[[-4.0, 37.0], [-2.0, 37.0], [-2.0, 39.0], [-4.0, 39.0], [-4.0, 37.0]]]}}]}
+CIUDADES = "ciudad,lat,lon\nMadrid,40.4168,-3.7038\nBarcelona,41.3851,2.1734\nSevilla,37.3891,-5.9845\n"
+PROYECTO = {"app/__init__.py": "", "app/main.py": "from app import util\nfrom app import solo\n",
+            "app/util.py": "from app import models\n", "app/models.py": "from app import util\n", "app/solo.py": "",
+            "web/a.js": 'import "./b";\n', "web/b.js": 'import "./a";\n'}
+
 
 class ScriptedApp:
     """Stands in for an MCP server with an app (the real protocol is tested in tests/test_mcp_apps.py)."""
@@ -385,11 +429,25 @@ class ScriptedApp:
 
 
 class ScriptedBrowser:
-    """Stands in for the Playwright MCP server, so the browser guard's questions can be seen in the UI (the real
-    browser is exercised in tests/test_browser.py)."""
+    """Stands in for the Playwright MCP server, so the browser guard's questions can be seen in the UI and the recorder
+    has something to record and replay (the real browser, recorded and replayed, is in tests/test_recorder.py). It words
+    its results like the real server: the code it says it ran, and the page address."""
+
+    CODE = {"browser_click": "await page.getByRole('button', {{ name: 'Enviar pedido' }}).click();",
+            "browser_type": "await page.getByRole('textbox', {{ name: 'Clave' }}).fill('{text}');"}
+
+    def __init__(self):
+        self.calls: list[list[str]] = []
 
     async def call_tool(self, name, args):
-        return CallResult(text=f"Page URL: {args.get('url')}\nPage Title: BOE", is_error=False)
+        self.calls.append([name, str(args.get("url") or args.get("element") or "")])  # never what was typed
+        url = args.get("url") or "https://www.boe.es/buscar"
+        code = f"await page.goto('{url}');" if name == "browser_navigate" else self.CODE[name].format(text=args.get("text", ""))
+        return CallResult(text=f"### Ran Playwright code\n```js\n{code}\n```\n### Page\n- Page URL: {url}\n- Page Title: BOE\n",
+                          is_error=False)
+
+    async def close(self):
+        pass
 
 
 class ScriptedExchange:
@@ -504,14 +562,22 @@ def main() -> None:
                                             "2024-01-20,sur,B,4,10.00\n2024-02-03,norte,B,6,10.00\n"
                                             "2024-02-10,sur,A,8,2.50\n2024-02-28,norte,A,2,2.50\n"
                                             "2024-03-05,sur,B,1,10.00\n", encoding="utf-8")
+    (home / "ws" / "regiones.geojson").write_text(json.dumps(REGIONES), encoding="utf-8")
+    (home / "ws" / "ciudades.csv").write_text(CIUDADES, encoding="utf-8")
+    for name, text in PROYECTO.items():
+        (home / "ws" / "proyecto" / name).parent.mkdir(parents=True, exist_ok=True)
+        (home / "ws" / "proyecto" / name).write_text(text, encoding="utf-8")
     model = home / "models" / "scripted.gguf"  # only checked for existence: the tuner below is scripted too
     model.parent.mkdir(parents=True, exist_ok=True)
     model.write_bytes(b"GGUF")
     state.update_settings({"local_runtime": {**state.settings()["local_runtime"], "model": str(model)}})
     playwright = state.connectors.get("playwright")
-    state.connectors.connections["playwright"] = Connection(status="running", tools=[McpTool(
-        playwright, ScriptedBrowser(), {"name": "browser_navigate", "inputSchema": {"type": "object"}},
-        "mcp__playwright__browser_navigate", "ask", state.connectors._guard(playwright))])
+    browser = ScriptedBrowser()
+    browser_tools = [state.connectors.make_tool(playwright, browser, {"name": n, "inputSchema": {"type": "object"}},
+                                                f"mcp__playwright__{n}", "ask")
+                     for n in ("browser_navigate", "browser_click", "browser_type")]
+    state.connectors.connections["playwright"] = Connection(
+        client=browser, status="running", tools=browser_tools, by_remote={t.remote_name: t for t in browser_tools})
     prices = state.connectors.add_custom({"id": "prices", "name": "Precios", "transport": "stdio",
                                           "command": "scripted"})  # never started: its connection is scripted
     client = ScriptedApp()
@@ -537,6 +603,12 @@ def main() -> None:
 
     app.add_api_route("/__e2e/desktop", desktop_calls, methods=["GET"], include_in_schema=False)
     app.router.routes.insert(0, app.router.routes.pop())  # before the web app's catch-all
+
+    async def browser_calls() -> dict:  # tests only: what the scripted browser was asked to do (never what was typed)
+        return {"calls": browser.calls}
+
+    app.add_api_route("/__e2e/browser", browser_calls, methods=["GET"], include_in_schema=False)
+    app.router.routes.insert(0, app.router.routes.pop())
     delay = min(2.0, max(0.0, float(os.environ.get("SPIKE_E2E_STREAM_END_DELAY", "0"))))
     uvicorn.run(StreamEndDelay(app, delay), host="127.0.0.1", port=int(os.environ.get("PORT", "8741")), log_level="warning")
 

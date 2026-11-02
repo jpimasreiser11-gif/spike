@@ -7,6 +7,7 @@ default) applies to each of its tools, and a per-tool policy in Settings → Too
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import re
 from collections.abc import Callable
@@ -72,8 +73,10 @@ class McpTool(Tool):
     risk = "network"
 
     def __init__(self, connector: ConnectorDef, client: McpClient, spec: dict[str, Any], name: str, policy: str,
-                 guard: Callable[[str, dict[str, Any]], Review | None] | None = None):
+                 guard: Callable[[str, dict[str, Any]], Review | None] | None = None,
+                 observers: list[Callable[[str, str, dict[str, Any], str, bool], None]] | None = None):
         self.connector, self.client, self.remote_name = connector, client, spec["name"]
+        self.observers = observers  # told (connector id, tool, arguments, result text, is error) after each call
         self.name = name
         self.description = f"[{connector.name}] {spec.get('description') or spec['name']}"[:1024]
         self.parameters = spec.get("inputSchema") or {"type": "object", "properties": {}}
@@ -89,6 +92,9 @@ class McpTool(Tool):
             result = await self.client.call_tool(self.remote_name, args)
         except McpError as exc:
             return ToolResult(ok=False, content=f"error: {self.connector.name}: {exc}")
+        for observer in self.observers or ():  # a watcher (the browser recorder) must never break the tool call
+            with contextlib.suppress(Exception):
+                observer(self.connector.id, self.remote_name, args, result.text, result.is_error)
         content = result.text[:100_000]
         ui = {"kind": "mcp_app", "connector": self.connector.id, "connector_name": self.connector.name,
               "tool": self.remote_name, "uri": self.ui_uri, "result": result_for_view(result.raw)} \
@@ -115,6 +121,7 @@ class ConnectorManager:
         self.connections: dict[str, Connection] = {}
         self._lock = asyncio.Lock()
         self.audit = AuditLog(data_dir / "apps-audit.jsonl")
+        self.observers: list[Callable[[str, str, dict[str, Any], str, bool], None]] = []  # see McpTool.observers
 
     # ------------------------------------------------------------------ definitions and settings
     def definitions(self) -> list[ConnectorDef]:
@@ -218,6 +225,11 @@ class ConnectorManager:
             args += ["--blocked-origins", ";".join(blocked)]
         return McpClient(StdioTransport(definition.command, args, env=env, cwd=str(self.workspace)))
 
+    def make_tool(self, definition: ConnectorDef, client: McpClient, spec: dict[str, Any], name: str,
+                  policy: str) -> McpTool:
+        """A connector's tool with this manager's guard and observers (the browser recorder)."""
+        return McpTool(definition, client, spec, name, policy, self._guard(definition), self.observers)
+
     async def start(self, cid: str) -> Connection:
         definition = self.get(cid)
         if definition is None:
@@ -244,7 +256,7 @@ class ConnectorManager:
             while name in names:
                 name = name[:60] + f"_{len(names)}"
             names.add(name)
-            tool = McpTool(definition, conn.client, spec, name, policy, self._guard(definition))
+            tool = self.make_tool(definition, conn.client, spec, name, policy)
             conn.by_remote[tool.remote_name] = tool
             if "model" in tool.visibility:  # app-only tools never reach the model (SEP-1865 visibility)
                 conn.tools.append(tool)
