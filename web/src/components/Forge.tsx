@@ -4,6 +4,7 @@ import { lang, t } from "../i18n";
 import type { Blueprint, BlueprintStep, ProtoRun, ProviderInfo, Specialist } from "../types";
 import { IconPlus, IconTrash } from "./Icons";
 import { Prototypes } from "./Prototypes";
+import { ForgeSkills } from "./ForgeSkills";
 
 const F = lang === "es"
   ? {
@@ -117,7 +118,7 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
   title?: string;
   intro?: string;
   onBack?: () => void; // "Back" from the review, when the plan was not drafted here
-  onRun: (task: string, blueprint: Blueprint, providerId: string | null) => void;
+  onRun: (task: string, blueprint: Blueprint, providerId: string | null, extra?: { skills: string[] }) => void;
   onClose: () => void;
 }) {
   const [task, setTask] = useState(initialTask);
@@ -130,6 +131,8 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
   const [two, setTwo] = useState(false); // Parallel Prototypes: off unless the user ticks it
   const [protoOpen, setProtoOpen] = useState<"new" | "list" | null>(null);
   const [pending, setPending] = useState(0); // earlier prototype runs still waiting for the user's choice
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [skillsReady, setSkillsReady] = useState(false);
 
   useEffect(() => {
     if (initialBlueprint) return;
@@ -153,7 +156,9 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
 
   const approve = () => {
     if (!bp) return;
-    onRun(task, { ...bp, requirements: lines(requirements), criteria: lines(criteria) }, providerId);
+    if (!initialBlueprint && !skillsReady) return;
+    onRun(task, { ...bp, requirements: lines(requirements), criteria: lines(criteria) }, providerId,
+      selectedSkills.length ? { skills: selectedSkills } : undefined);
   };
 
   const executor = (
@@ -178,6 +183,8 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
         <button className="btn" onClick={onClose}>{F.close}</button>
       </div>
       <p className="muted">{intro ?? F.intro}</p>
+      {!initialBlueprint && <ForgeSkills selected={selectedSkills} onChange={setSelectedSkills}
+        onReady={setSkillsReady} disabled={busy || two} />}
       {!bp ? (
         <form className="form" onSubmit={draft}>
           <label className="field"><span>{F.task}</span>
@@ -206,7 +213,8 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
           {error && <div className="error-box" role="alert">{error}</div>}
           <div className="row end"><div className="spacer" />
             <button className="btn" onClick={() => (onBack ? onBack() : setBp(null))}>{F.back}</button>
-            <button className="btn primary" onClick={approve} disabled={bp.steps.some((s) => !s.instruction.trim())}>{F.run}</button>
+            <button className="btn primary" data-forge-approve onClick={approve}
+              disabled={(!initialBlueprint && !skillsReady) || bp.steps.some((s) => !s.instruction.trim())}>{F.run}</button>
           </div>
         </div>
       )}

@@ -433,7 +433,7 @@ def cmd_dev(args: argparse.Namespace) -> int:
         print(f"error: {root} is not a folder", file=sys.stderr)
         return 2
     if (not args.sessions and (args.limit is not None or args.offset is not None)) or (
-        args.sessions and (args.start_local or args.prompt is not None or args.accept_edits or args.provider)
+        args.sessions and (args.start_local or args.prompt is not None or args.accept_edits or args.provider or args.plan)
     ):
         print("error: --sessions only lists history; --limit/--offset require --sessions / "
               "--sessions solo lista el historial; --limit/--offset requieren --sessions", file=sys.stderr)
@@ -470,7 +470,8 @@ def cmd_dev(args: argparse.Namespace) -> int:
             signal.signal(getattr(signal, name), leave)
     try:
         session = DevSession(state, root, provider_id=args.provider, specialist=args.specialist,
-                             accept_edits=args.accept_edits, resume=args.resume, resume_id=args.resume_id)
+                             accept_edits=args.accept_edits, resume=args.resume, resume_id=args.resume_id,
+                             plan=True if args.plan else None)
         if args.start_local:
             loop.run_until_complete(state.start_runtime())
         for pid in state.providers_for_run(args.provider):
@@ -808,6 +809,7 @@ def build_parser() -> argparse.ArgumentParser:
     dv.add_argument("--provider", help="provider for every specialist (default: the app's bindings)")
     dv.add_argument("--specialist", default="code", help="who answers: a specialist id, or auto (default: code)")
     dv.add_argument("-p", "--print", dest="prompt", help="run one request without questions and print the answer")
+    dv.add_argument("--plan", action="store_true", help="start in read-only planning mode / empezar planificando sin modificar")
     dv.add_argument("--accept-edits", action="store_true", help="edit and create files without asking (commands "
                                                                  "still ask)")
     history = dv.add_mutually_exclusive_group()

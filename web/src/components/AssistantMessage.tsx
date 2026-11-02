@@ -1,10 +1,11 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { ApiError, api } from "../api";
 import { t } from "../i18n";
 import { isolationText } from "../isolation";
 import { teamSteps } from "../run";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState, VideoUi } from "../types";
-import { ArtifactContext, artifactFromCode } from "./Artifact";
+import { ArtifactFiles, fileUrl } from "./ArtifactFiles";
+export { fileUrl } from "./ArtifactFiles";
 import { DataView, ReportActions, isData } from "./DataViews";
 import { DeviceLabCard } from "./DeviceLab";
 import { DiagnosticCard } from "./DevDiagnostics";
@@ -14,7 +15,7 @@ import { LiveOrderCard } from "./Finance";
 import { MakerCard } from "./Maker";
 import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
-import { IconChevron, IconCopy, IconFile, IconLock, IconRetry, IconTool } from "./Icons";
+import { IconChevron, IconCopy, IconLock, IconRetry, IconTool } from "./Icons";
 import { VoiceOutput } from "./VoiceOutput";
 import { Markdown } from "./Markdown";
 import { MindsPanel } from "./Minds";
@@ -242,16 +243,7 @@ function ForgeReportCard({ report, projectId, replay }: { report: ForgeReport; p
           ))}
         </ul>
       )}
-      {report.deliverables.length > 0 && (
-        <ul className="deliverables">
-          {report.deliverables.map((d) => (
-            <li key={d.path}>
-              {d.ok ? "✓" : "✕"} {d.ok && !replay ? <a href={fileUrl(d.path, projectId)} download>{d.path}</a> : <code>{d.path}</code>}
-              <span className="muted small"> {d.ok ? `${d.bytes} B` : t.fileMissing}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {report.deliverables.length > 0 && <ArtifactFiles files={report.deliverables} projectId={projectId} replay={replay} />}
       {report.unresolved.length > 0 && <p className="small bad">{t.unresolved}: {report.unresolved.map((r) => r.fix).join(" · ")}</p>}
     </div>
   );
@@ -270,29 +262,6 @@ function VideoCard({ ui, projectId }: { ui: VideoUi; projectId?: string }) {
         <a href={src} download>{name}</a> · {ui.width}×{ui.height} · {ui.seconds} s · {ui.fps} fps · {Math.max(1, Math.round(ui.bytes / 1024))} KB · {t.fromScene} <code>{ui.scene}</code>
       </figcaption>
     </figure>
-  );
-}
-
-/** Download URL of a file a tool wrote: in the project's folder, or in the workspace. */
-export const fileUrl = (path: string, projectId?: string) =>
-  `${projectId ? `/api/projects/${projectId}/files` : "/api/workspace/files"}/${path.split("/").map(encodeURIComponent).join("/")}`;
-
-function Files({ files, projectId }: { files: string[]; projectId?: string }) {
-  const openArtifact = useContext(ArtifactContext);
-  const preview = async (path: string) => {
-    const r = await fetch(fileUrl(path, projectId));
-    if (r.ok && openArtifact) openArtifact({ ...artifactFromCode(await r.text(), path.endsWith(".svg") ? "svg" : "html"), filename: path.split("/").pop() || path });
-  };
-  return (
-    <div className="file-chips" aria-label={t.filesCreated}>
-      {files.map((path) => (
-        <span key={path} className="file-chip">
-          <IconFile size={15} />
-          <a href={fileUrl(path, projectId)} download title={path}>{path.split("/").pop()}</a>
-          {/\.(html?|svg)$/i.test(path) && <button type="button" className="link-btn" onClick={() => preview(path)}>{t.preview}</button>}
-        </span>
-      ))}
-    </div>
   );
 }
 
@@ -355,7 +324,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   const sensitive = routeSpecs.some((r) => specialists.find((s) => s.id === r.id)?.sensitive);
   const pending = [...run.permissions.filter((p) => p.status === "pending" || p.status === "sending"),
     ...(run.questions ?? []).filter((q) => q.status === "pending")];
-  const files = [...new Set(run.tools.filter((x) => x.ok && x.file).map((x) => x.file as string))];
+  const reported = new Set(run.forge?.report?.deliverables.map((d) => d.path) ?? []);
+  const files = [...new Set(run.tools.filter((x) => x.ok && x.file && !reported.has(x.file)).map((x) => x.file as string))];
 
   return (
     <div className="msg assistant">
@@ -465,7 +435,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
 
       {run.forge?.report && <ForgeReportCard report={run.forge.report} projectId={projectId} replay={replay} />}
 
-      {files.length > 0 && !replay && <Files files={files} projectId={projectId} />}
+      {files.length > 0 && !replay && <ArtifactFiles files={files.map((path) => ({ path, ok: true }))} projectId={projectId} />}
 
       {!live && !replay && run.tools.some((x) => isData(x.ui)) && <ReportActions question={question} answer={run.text} tools={run.tools} />}
 

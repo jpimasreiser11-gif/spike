@@ -1032,7 +1032,7 @@ await page.locator(".spec-chips .chip", { hasText: "Writing" }).click();
 await page.locator("#composer-input").fill("Redacta el informe en Word");
 await submitChat();
 await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10000 });
-const docLink = page.locator(".file-chip a", { hasText: "informe.docx" });
+const docLink = page.locator(".artifact-files a", { hasText: "informe.docx" });
 await docLink.waitFor({ timeout: 10000 });
 const [doc_dl] = await Promise.all([page.waitForEvent("download"), docLink.click()]);
 const docBytes = fs.readFileSync(await doc_dl.path());
@@ -1203,6 +1203,8 @@ await pick("Law"); // the choice before this block, which the sections below wer
 // back once, and the report lists the criteria and the saved file
 await page.getByRole("button", { name: "Forge", exact: true }).click();
 await page.getByLabel("Tarea").fill("Calcula el IVA de 120 € y escribe un informe");
+await page.locator(".forge-skills summary").click();
+await page.locator('[data-forge-skill="writing-plans"]').check();
 await page.screenshot({ path: `${out}/07g-forge.png` });
 // Parallel Prototypes is opt-in: the "two approaches" box starts unticked and only changes the button when ticked
 // (building two git branches is covered by tests/test_prototypes.py against real git repositories)
@@ -1218,6 +1220,7 @@ await step2.getByLabel("Archivos que guarda (separados por comas)").waitFor({ ti
 if (await step2.getByLabel("Archivos que guarda (separados por comas)").inputValue() !== "informe.md") fail("blueprint deliverable not shown");
 if (await page.locator('[data-step="t1"]').getByLabel("Papel").inputValue() !== "research") fail("blueprint role not shown");
 const criteriaBox = page.getByLabel("Criterios de aceptación (uno por línea)");
+if (!await page.locator('[data-forge-skill="writing-plans"]').isChecked()) fail("Forge lost the selected skill on drafting");
 await criteriaBox.fill((await criteriaBox.inputValue()) + "\nMenciona el IVA del 21 %");
 await page.screenshot({ path: `${out}/07h-blueprint.png`, fullPage: true });
 await page.getByRole("button", { name: "Aprobar y ejecutar" }).click();
@@ -1228,6 +1231,14 @@ for (let i = 0; i < 2; i++) { // the writer saves informe.md, is sent back once,
 const report = page.locator(".forge-report");
 await report.getByText("2/2 criterios cumplidos").waitFor({ timeout: 10000 });
 await report.getByRole("link", { name: "informe.md" }).waitFor();
+await page.locator(".skill-chip", { hasText: "writing-plans" }).waitFor({ timeout: 5000 });
+// Read the checked output directly in the report; Markdown remains literal text.
+await report.getByRole("button", { name: "Vista previa: informe.md", exact: true }).click();
+await report.getByRole("region", { name: "Archivos creados" }).locator("pre").waitFor();
+const savedReport = await (await page.request.get(`${base}/api/workspace/files/informe.md`)).text();
+if ((await report.locator("pre").textContent()) !== savedReport || !savedReport.includes("145,20")) fail("Forge text preview did not match the saved report");
+await page.screenshot({ path: `${out}/07i-forge-text-preview.png`, fullPage: true });
+await report.getByRole("button", { name: "Cerrar", exact: true }).click();
 if (!(await page.locator(".trace").getByText("ronda 2").count())) fail("the sent-back step is not shown");
 if ((await page.locator(".trace .role-verify").count()) < 2) fail("expected two checker passes in the trace");
 await page.screenshot({ path: `${out}/07i-forge-report.png`, fullPage: true });
@@ -1254,7 +1265,7 @@ await page.getByRole("button", { name: "Permitir una vez" }).click({ timeout: 10
 const dashReport = page.locator(".forge-report");
 await dashReport.getByText("2/2 criterios cumplidos").waitFor({ timeout: 10000 });
 await dashReport.getByRole("link", { name: "dashboard.html" }).waitFor();
-await page.locator(".file-chip", { hasText: "dashboard.html" }).getByRole("button", { name: "Vista previa" }).click();
+await dashReport.getByRole("button", { name: "Vista previa: dashboard.html", exact: true }).click();
 const bar = page.frameLocator(".artifact-frame").locator("rect").first();
 await bar.waitFor({ timeout: 5000 });
 const barColour = await bar.evaluate((el) => getComputedStyle(el).fill);

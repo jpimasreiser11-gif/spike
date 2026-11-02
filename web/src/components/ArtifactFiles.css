@@ -1,0 +1,11 @@
+.artifact-files { margin: 10px 0; min-width: 0; }
+.artifact-files ul { list-style: none; display: grid; gap: 6px; padding: 0; margin: 0; }
+.artifact-files li { min-width: 0; border: 1px solid var(--border); border-radius: 9px; padding: 10px; background: var(--surface); }
+.artifact-file-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.artifact-file-row > svg { flex: 0 0 auto; }
+.artifact-file-row > a, .artifact-file-row > code { overflow-wrap: anywhere; flex: 1; min-width: 80px; }
+.artifact-file-text { margin-top: 10px; }
+.artifact-file-text .row { justify-content: space-between; }
+.artifact-file-text pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; font-size: 13px; }
+.artifact-file-text pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.artifact-file-hint { margin: 6px 0 0; }

@@ -32,6 +32,10 @@ real output. Never say something passes without running it.
 - Keep changes small and on the request; do not touch unrelated files or reformat code you did not change.
 - If the request is unclear or a step is risky, ask with ask_user before acting.
 - When you finish, list the files you changed and what you ran to check them."""
+PLAN_INSTRUCTIONS = """You are planning a change in {root}. Read and search the relevant files, then propose a plan
+with the affected paths, ordered steps, assumptions and checks. This is a read-only planning turn: do not edit,
+run commands or claim to have implemented or tested anything. The user must leave planning mode and request
+execution before changes can start. Clearly separate observations from proposed work."""
 
 
 def project_instructions(root: Path) -> str:
@@ -57,7 +61,7 @@ class DevSession:
     the user; `None` means nobody can answer and the model is told to go on with its best assumption."""
 
     def __init__(self, state: AppState, root: Path, *, provider_id: str | None = None, specialist: str = "code",
-                 accept_edits: bool = False, resume: bool = False, resume_id: str | None = None,
+                 accept_edits: bool = False, resume: bool = False, resume_id: str | None = None, plan: bool | None = None,
                  decide: Callable[[Event], str] = no_decision, answer: Callable[[Event], str | None] = no_answer):
         self.state = state
         self.root = Workspace(root).root
@@ -87,9 +91,12 @@ class DevSession:
         self.orchestrator = Orchestrator(state.catalog, base.resolve, tools, self.broker, skills=state.skills)
         self.title = session_titles(self.root)[0]
         self.conversation_id = latest["id"] if latest else self._new_conversation()
+        messages = self.store.messages(self.conversation_id)
+        last_mode = next((m["meta"].get("dev_mode", "act") for m in reversed(messages) if m["role"] == "user"), "act")
+        self.plan_mode = plan if plan is not None else last_mode == "plan"
         self.history = [Message(role=m["role"], content=m["content"],
                                 private=[m["content"]] if m["meta"].get("private") else [])
-                        for m in self.store.messages(self.conversation_id)
+                        for m in messages
                         if m["role"] in ("user", "assistant") and m["content"]]
 
     def _new_conversation(self) -> str:
@@ -102,23 +109,33 @@ class DevSession:
         b = self.orchestrator.resolve(spec)
         return b.provider.config.name, b.model or b.provider.config.model or ""
 
-    def options(self) -> OrchestratorOptions:
+    def options(self, skills: list[str] | None = None) -> OrchestratorOptions:
         s = self.state.settings()
         return OrchestratorOptions(
             mode=self.specialist, custom_instructions=s["custom_instructions"],
             specialist_instructions=s["specialist_instructions"], project_instructions=project_instructions(self.root),
-            app_instructions=DEV_INSTRUCTIONS.format(root=self.root), skill_mode=s["skill_mode"],
-            disabled_skills=list(s["disabled_skills"]), use_planner=s["use_planner"], parallel=False,
+            app_instructions=(PLAN_INSTRUCTIONS if self.plan_mode else DEV_INSTRUCTIONS).format(root=self.root),
+            skill_mode=s["skill_mode"], skills=list(skills or []), read_only=self.plan_mode,
+            disabled_skills=list(s["disabled_skills"]), use_planner=s["use_planner"] and not self.plan_mode, parallel=False,
             temperature=s["temperature"], max_tokens=s["max_tokens"], reasoning=s["reasoning"], tools_enabled=True,
             checkpoints=RunCheckpoints(self.checkpoints, self.conversation_id), max_steps=MAX_STEPS)
 
-    async def turn(self, text: str) -> AsyncIterator[Event]:
+    async def turn(self, text: str, *, skills: list[str] | None = None) -> AsyncIterator[Event]:
         """Run one request; asks are settled through `decide` / `answer` before the run goes on."""
-        self.store.add_message(self.conversation_id, "user", text)
+        settings = self.state.settings()
+        chosen = list(dict.fromkeys(skills or []))
+        for name in chosen:
+            if not self.state.skills.get(name):
+                raise ValueError(f"unknown skill / skill desconocida: {name}")
+            if settings["skill_mode"] == "off" or name in settings["disabled_skills"]:
+                raise ValueError(f"skill disabled in settings / skill desactivada en ajustes: {name}")
+        options = self.options(chosen)
+        self.store.add_message(self.conversation_id, "user", text,
+                               {"dev_mode": "plan" if self.plan_mode else "act", "skills": chosen})
         parts: list[str] = []
         done: Event | None = None
         try:
-            async for ev in self.orchestrator.run(self.history, text, self.options()):
+            async for ev in self.orchestrator.run(self.history, text, options):
                 kind = ev["type"]
                 if kind == "permission_request":
                     decision = self.decide(ev)
