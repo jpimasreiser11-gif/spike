@@ -71,6 +71,38 @@ training/configs/writing.yaml --general-eval ...` with the reviewed model, adapt
 uses the existing marketing pattern: win rate ≥ 0.60, paired sign-test p ≤ 0.05, general drop ≤ 1.5 points. None of
 these numbers is a measured result. The other four candidate recipes inherit M5's hypotheses unchanged.
 
+## Science, Data and Marketing: distilled, seeded by topic labels (M10)
+
+These three have no human-written domain source (OpenBookQA and WikiSQL were rejected by the M7 license review; Marketing
+never had one), so their recipes keep `domain_sources: []` and take their domain data from verified distillation by an open
+teacher (`training/distill.py`, `Qwen/Qwen3.6-35B-A3B` unless told otherwise; its Hub license is read before any task is
+sent). The five recipes above add no teacher-generated answers; these three are the exception.
+
+No text written by Claude, GPT, Gemini or Llama may become training data, and seeds or prompts written by an AI assistant
+count as such text. None of the three therefore has seed prompts. Each has a file of short topic labels
+(`training/topics/marketing.yaml`, `science.yaml`, `data.yaml`; 90, 107 and 64 labels) under a provenance saying that an
+AI assistant chose them and that they are instructions to the teacher only: the teacher writes every task from a label and
+then the answers, and no label is copied into a task, an answer, a row or its `meta`. The 24 AI-written marketing seeds
+(`training/seeds/marketing.jsonl`) are removed. `distill.seeds` still exists, only for a file whose first line declares a
+human author; `distill.py` and `prepare.py` refuse a seeds file without it.
+
+- **Science** (`kinds: {mcq: 0.6, explanation: 0.4}`): multiple-choice rows are kept only when two independent teacher
+  answers (the second with the options in another order) agree with the keyed option and the rubric passes; explanation
+  rows when the rubric passes. Evaluated on MMLU-Pro physics, chemistry and biology as before, with
+  `evals/data/science_eval.jsonl` (60 hand-written questions, suite `science-local`) beside them.
+- **Data** (`kinds: {sql: 1}`): the teacher writes a SQLite schema with INSERT rows, a question and the query; a row is kept
+  only when everything runs in an in-memory `sqlite3` database (no ATTACH, no extension, time limit), the result is not
+  empty and an independent second answer returns the same rows. Python and pandas are out of scope (running model-written
+  Python needs a real sandbox). Evaluated by executing the model's SQL on the 5 databases of `evals/data/data_eval.jsonl`
+  (suite `data`: 40 questions; `data-select`: the other 20); 40 questions need at least 6 net improved questions for
+  p ≤ 0.05.
+- **Marketing** (`kinds: {open: 1}`): rubric-filtered answers to tasks the teacher wrote from the labels; evaluated by the
+  pairwise judge as before.
+
+The evaluation files are written by hand for this repository, never by the teacher, and evaluation only. The recipes are
+tested with a fake teacher (`tests/test_distill_topics.py`); no real teacher run, distillation or training has happened.
+Details and limits: docs/TRAINING.md, 2d.
+
 ## Candidates not selected
 
 - WikiSplit has CC BY-SA 4.0, outside SPIKE's current training allowlist; that policy was not expanded.

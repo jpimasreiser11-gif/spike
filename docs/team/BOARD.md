@@ -6,11 +6,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 4 | 0 | 0 | 0 | 16 | 0 | 20 |
+| Claude | 3 | 0 | 0 | 0 | 17 | 0 | 20 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **11** | **1** | **0** | **0** | **33** | **0** | **45** |
+| **Total** | **10** | **1** | **0** | **0** | **34** | **0** | **45** |
 
 ## Fase: equipo
 
@@ -65,7 +65,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
-| M10 | Claude | pendiente | Ciencia y Datos: semillas y destilación verificada (sin dataset con licencia válida) | M7 |
+| M10 | Claude | hecha | Ciencia y Datos: semillas y destilación verificada (sin dataset con licencia válida) | M7 |
 
 ## Fase: instalador
 

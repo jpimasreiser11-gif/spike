@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "training"))
 sys.path.insert(0, str(ROOT))
 
-from spike_train import licenses  # noqa: E402
+from spike_train import evalfiles, licenses  # noqa: E402
 from spike_train.evaluation import (  # noqa: E402
     Client,
     Item,
@@ -47,7 +47,9 @@ def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list
     ok, reason = licenses.check(licenses.source_license(src), "eval")  # Hub: as published; URL source: as recorded
     if not ok or src["role"] != "eval":
         raise SystemExit(f"source '{task['source']}' is not an eval source: {reason}")
-    if "urls" in src:  # pinned files instead of the Hub (spike_train/sources.py)
+    if "file" in src:  # a hand-written held-out file of this repository (spike_train/evalfiles.py)
+        ds = evalfiles.FORMATS[src["format"]](ROOT / src["file"])
+    elif "urls" in src:  # pinned files instead of the Hub (spike_train/sources.py)
         ds = url_rows(src)
     else:
         from datasets import load_dataset

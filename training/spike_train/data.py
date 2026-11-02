@@ -39,9 +39,24 @@ def content_text(text: str) -> str:
     return text
 
 
-def mcq_prompt(question: str, options: list[str]) -> str:
+def mcq_block(question: str, options: list[str]) -> str:
+    """The question and its lettered options, without an instruction: the layout of distilled multiple-choice rows."""
     opts = "\n".join(f"{LETTERS[i]}. {o}" for i, o in enumerate(options))
-    return f"{question.strip()}\n\n{opts}\n\n{MCQ_INSTRUCTION}"
+    return f"{question.strip()}\n\n{opts}"
+
+
+def mcq_prompt(question: str, options: list[str]) -> str:
+    return f"{mcq_block(question, options)}\n\n{MCQ_INSTRUCTION}"
+
+
+# Held-out SQL questions (evals/data/data_eval.jsonl) are scored by executing the answer (sqlsandbox.py); the schema
+# is shown as a fenced SQL block, the same layout as the distilled rows, and the instruction only asks for the format.
+SQL_EXEC_INSTRUCTION = "Return only the SQLite query in a fenced code block."
+
+
+def sql_block(schema: str, question: str) -> str:
+    """The schema script (CREATE TABLE and INSERT statements) in a fenced block, then the question."""
+    return f"```sql\n{schema.strip()}\n```\n\n{question.strip()}"
 
 
 # ------------------------------------------------------------------ formatters (source row -> chat)
@@ -381,7 +396,7 @@ def fmt_wikisql(row: dict[str, Any], system: str) -> Chat | None:
     ]}
 
 
-TEMPLATES += (CODE_INSTRUCTION, SQL_INSTRUCTION)
+TEMPLATES += (CODE_INSTRUCTION, SQL_INSTRUCTION, SQL_EXEC_INSTRUCTION)
 
 
 # Schema labels from BANKING77 (CC BY 4.0); source and attribution in training/M6-DATA.md.

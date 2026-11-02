@@ -3,7 +3,8 @@
 # refuses anything that is not on the allowlist (training/spike_train/licenses.py).
 # A source is either `hub:` (+ config, split) or `urls: [{url, sha256}]` with `revision`, `license` and `license_url`
 # (files fetched at a pinned commit and verified against their sha256 on every load; the Hub is not asked, so the
-# recorded license is what the gate checks; see training/spike_train/sources.py).
+# recorded license is what the gate checks; see training/spike_train/sources.py), or `file:` (a held-out evaluation
+# file written for this repository, role eval only; see training/spike_train/evalfiles.py).
 # `filter: {column: [values]}` keeps only the rows of a Hub source whose column has one of the values.
 #
 # role: train  -> may be used for training data
@@ -412,3 +413,25 @@ sources:
     format: billsum_title
     provenance: 'BillSum: US bill summaries and titles (card: found), public-domain government works; CC0-1.0 in the Hub metadata.
       Summary-to-title supervision; exact title match is diagnostic only, acceptance is pairwise.'
+
+  # ------------------------------------------------------------------ held-out files written for SPIKE (not from the Hub)
+  # `file:` is a path in this repository, read by training/spike_train/evalfiles.py. They are written by hand for evaluation
+  # only, never by a distillation teacher, and carry a header saying so. Apache-2.0 like every file written for this
+  # repository (THIRD_PARTY.md). Training data is decontaminated against them (`decontaminate_files` of the configs).
+  science-heldout:
+    file: evals/data/science_eval.jsonl
+    license: apache-2.0
+    role: eval
+    format: science_local
+    provenance: 60 four-option physics, chemistry and biology questions written for SPIKE (an AI assistant, by hand, at the
+      maintainer's request; not by the teacher) on topics that are not among the labels of training/topics/science.yaml.
+      Evaluation only.
+  data-heldout:
+    file: evals/data/data_eval.jsonl
+    license: apache-2.0
+    role: eval
+    format: sql_exec
+    provenance: Five small SQLite databases with twelve questions each (60), written for SPIKE (an AI assistant, by hand, at the
+      maintainer's request; not by the teacher) about subjects that are not among the labels of training/topics/data.yaml.
+      Scored by executing the answer and comparing result sets with the gold query (training/spike_train/sqlsandbox.py).
+      Evaluation only.

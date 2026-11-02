@@ -1,5 +1,6 @@
 """Unit tests for the training and evaluation utilities (no downloads, no model)."""
 
+import hashlib
 import json
 import os
 import shlex
@@ -342,8 +343,9 @@ def distill_run(tmp_path, monkeypatch, teacher, *flags: str, hub=None):
     import distill
     import yaml
 
-    seeds = tmp_path / "seeds.jsonl"
-    seeds.write_text("".join(json.dumps({"prompt": x}) + "\n" for x in SEEDS))
+    seeds = tmp_path / "seeds.jsonl"   # a fixture: its first line declares a human author, as a seeds file must
+    seeds.write_text(json.dumps({"declaration": {"authored_by": "human", "author": "test fixture"}}) + "\n"
+                     + "".join(json.dumps({"prompt": x}) + "\n" for x in SEEDS))
     cfg = tmp_path / "marketing.yaml"
     cfg.write_text(yaml.safe_dump({"specialist": "marketing", "seed": 0,
                                    "distill": {"enabled": True, "seeds": str(seeds), "expand_to": 30, "min_score": 8}}))
@@ -359,9 +361,12 @@ def distill_run(tmp_path, monkeypatch, teacher, *flags: str, hub=None):
 def test_distill_records_the_teacher_and_its_license_on_every_row(tmp_path, monkeypatch, capsys):
     rows = distill_run(tmp_path, monkeypatch, ScriptedTeacher(fresh_tasks))
     assert len(rows) == 30
+    seeding = {"mode": "seeds", "file": str(tmp_path / "seeds.jsonl"), "author": "human",
+               "sha256": hashlib.sha256((tmp_path / "seeds.jsonl").read_bytes()).hexdigest()}
     for row in rows:
         assert row["meta"] == {"task_id": row["meta"]["task_id"], "verified": False, "source": "distill",
-                               "teacher": "mlx-community/Qwen3.6-35B-A3B-4bit", "teacher_license": "apache-2.0"}
+                               "teacher": "mlx-community/Qwen3.6-35B-A3B-4bit", "teacher_license": "apache-2.0",
+                               "seeding": seeding}
     summary = json.loads(capsys.readouterr().out)
     assert summary["teacher_license"] == "apache-2.0" and summary["kept"] == 30
 
@@ -827,7 +832,8 @@ def test_prepare_builds_the_personal_adapter_set_under_spike_cores_prompt(tmp_pa
 def distilled_file(tmp_path, n: int = 40, **meta) -> Path:
     """What training/distill.py writes for marketing: open-ended chats with the teacher recorded on every row."""
     meta = {"task_id": "marketing-0", "verified": False, "source": "distill", "teacher": TEACHER,
-            "teacher_license": "apache-2.0", **meta}
+            "teacher_license": "apache-2.0",
+            "seeding": {"mode": "topics", "file": "training/topics/marketing.yaml", "sha256": "0" * 64}, **meta}
     rows = [{"messages": [{"role": "system", "content": "marketing system prompt"},
                           {"role": "user", "content": f"Task {i}: plan the launch of product number {i} for a bakery "
                                                       f"chain with a budget of {i * 100 + 500} euros"},
@@ -862,7 +868,8 @@ def test_prepare_records_the_real_teacher_license_of_distilled_data(tmp_path, mo
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     record = manifest["sources"]["distilled:distilled.jsonl"]
     lic = {"license_hub": "apache-2.0", "license_recorded": "apache-2.0"}
-    assert record == {"role": "train", "teachers": {TEACHER: lic}, "kept": 40}
+    seeding_record = {"mode": "topics", "file": "training/topics/marketing.yaml", "sha256": "0" * 64}
+    assert record == {"role": "train", "teachers": {TEACHER: lic}, "kept": 40, "tasks_made_by": [seeding_record]}
     assert "Apache-2.0 teacher" not in json.dumps(manifest) and manifest["counts"]["domain"] == 40
     trained = [json.loads(line) for line in (out / "train.jsonl").read_text(encoding="utf-8").splitlines()]
     assert all("meta" not in chat for chat in trained)  # the provenance stays in the manifest

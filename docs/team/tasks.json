@@ -580,7 +580,7 @@
   {
    "id": "M10",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "models",
    "title": "Ciencia y Datos: semillas y destilación verificada (sin dataset con licencia válida)",
    "depends": [
@@ -595,7 +595,8 @@
     "seed and eval files original and disjoint",
     "SQL answers executed and checked",
     "teacher license gate test"
-   ]
+   ],
+   "note": "2026-11-02: pipeline, topics, SQL sandbox and held-out evals built and tested with a fake teacher; the real teacher run happens on the Mac in the M8 rounds."
   },
   {
    "id": "I1",

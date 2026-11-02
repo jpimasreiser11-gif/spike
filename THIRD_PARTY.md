@@ -24,7 +24,7 @@ non-commercial or undeclared.
 | Qwen3.5-2B (GGUF) | `unsloth/Qwen3.5-2B-GGUF` | Apache-2.0 | optional smaller base |
 | Qwen3.5-4B (safetensors) | `Qwen/Qwen3.5-4B` | Apache-2.0 | LoRA training base (mlx-lm) and adapter export |
 | Qwen3-Embedding-0.6B (GGUF Q8_0) | `Qwen/Qwen3-Embedding-0.6B-GGUF` (official) | Apache-2.0 | Neural Memory search by meaning (optional) |
-| Qwen3.6-35B-A3B (MLX 4-bit) | `mlx-community/Qwen3.6-35B-A3B-4bit` | Apache-2.0 | local teacher for marketing distillation (optional) |
+| Qwen3.6-35B-A3B (MLX 4-bit) | `mlx-community/Qwen3.6-35B-A3B-4bit` | Apache-2.0 | local teacher for marketing, science and data distillation (optional; its Hub license is read before every run) |
 
 SPIKE adapters trained from these bases are derivative works and are released under Apache-2.0 together
 with the data attributions below. No adapter has been released yet.
@@ -45,8 +45,9 @@ with the data attributions below. No adapter has been released yet.
 | GSM8K | `openai/gsm8k` | MIT | eval only | Cobbe et al., 2021 |
 | medical-o1-reasoning-SFT | `FreedomIntelligence/medical-o1-reasoning-SFT` | Apache-2.0 | **excluded** | generated with GPT-4o; OpenAI's terms restrict using outputs to build competing models |
 
-Files written by SPIKE contributors and shipped in this repository (`training/seeds/`, `evals/data/`,
-`evals/router/`) are Apache-2.0.
+Files written by SPIKE contributors and shipped in this repository (`training/topics/`, `evals/data/`,
+`evals/router/`) are Apache-2.0. The topic labels are instructions to a distillation teacher and never appear in training
+data; the files under `evals/data/` are evaluation only, written by hand and never by a teacher.
 
 ## Inference and training tools (installed separately, not redistributed)
 

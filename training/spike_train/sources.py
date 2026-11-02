@@ -5,6 +5,8 @@ A source with `urls: [{url, sha256}]` records its own `license`, `license_url` (
 question. The Hub cannot be asked about such a source, so the license gate checks the recorded license. Every
 load checks every file against its registry sha256, cached or not; a mismatch is a hard error and is never
 retried or repaired. Downloaded files are untrusted data: they are only ever parsed as JSON.
+A source with `file:` is neither: it is a held-out file written by hand for this repository (evals/data, read by
+spike_train/evalfiles.py), evaluation only.
 """
 
 from __future__ import annotations
@@ -113,6 +115,8 @@ def filtered(src: dict, rows: Iterable[dict], per_value: int | None = None) -> I
 
 def origin(src: dict) -> dict:
     """Where a source's rows come from, as written to the training manifest and the model card."""
+    if "file" in src:  # a held-out file written for this repository (evals/data), not fetched from anywhere
+        return {"file": src["file"]}
     out = {"hub": src["hub"]} if "hub" in src else {
         "urls": src["urls"], "revision": src["revision"], "repo": src.get("repo"), "license_url": src["license_url"]}
     if src.get("filter"):

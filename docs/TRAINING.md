@@ -27,9 +27,9 @@ was trained but **rejected** by its acceptance criteria: keep the specialist as 
 
 | Step | Command | Output |
 |---|---|---|
-| (marketing only) start the teacher | `mlx_lm.server --model mlx-community/Qwen3.6-35B-A3B-4bit --port 8090` | OpenAI-compatible endpoint |
-| (marketing only) distill | `python training/distill.py training/configs/marketing.yaml --out training/data/marketing/distilled.jsonl` | rubric-filtered chats + summary; refuses a teacher whose Hub license is not on the training allowlist and records the teacher's repo and license on every row; stops if the teacher cannot produce `expand_to` distinct tasks |
-| prepare | `python training/prepare.py training/configs/medicine.yaml [--distilled FILE]` | `training/data/<id>/{train,valid}.jsonl, mlx_lora.yaml, manifest.json` (teacher licenses included); stops when there is no domain data, e.g. marketing without `--distilled` |
+| (marketing, science, data) start the teacher | `mlx_lm.server --model mlx-community/Qwen3.6-35B-A3B-4bit --port 8090` | OpenAI-compatible endpoint |
+| (marketing, science, data) distill | `python training/distill.py training/configs/science.yaml --out training/data/science/distilled.jsonl` (marketing and data the same way; `run_specialist.sh` does it for any recipe with `distill.enabled`) | chats + a summary (kept per kind, dropped per reason). The teacher writes every task from the recipe's topic labels, and then the answers (2d); the Hub license of the teacher must be on the training allowlist, checked before any task is sent; every row records the teacher's repo and license and how its tasks were made; `distill.seeds` that do not declare a human author are refused; stops if the teacher cannot produce `expand_to` distinct tasks |
+| prepare | `python training/prepare.py training/configs/medicine.yaml [--distilled FILE]` | `training/data/<id>/{train,valid}.jsonl, mlx_lora.yaml, manifest.json` (teacher licenses and the recipe's `task_source` included); stops when there is no domain data, e.g. marketing, science or data without `--distilled`, and when the recipe's task source is not valid or a row says nothing about how its tasks were made (2d) |
 | (optional) your corrections | `spike evolve dataset out/` then `prepare.py … --corrections out/spike-training.jsonl` | only approved examples of that specialist, from SPIKE's local model, with consent; counted in the manifest |
 | (optional) self-generated replay | start the base model alone, `llama-server -m ~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf --port 8091 --jinja -c 4096 --parallel 4` (**no `--lora`**), then `python training/self_replay.py training/configs/medicine.yaml --base-url http://127.0.0.1:8091/v1 --base-repo Qwen/Qwen3.5-4B --out training/data/medicine/self_replay.jsonl [--limit N] [--concurrency 4] [--resume]`, stop the server, then `python training/prepare.py training/configs/medicine.yaml --self-replay training/data/medicine/self_replay.jsonl` | `self_replay.jsonl` and `self_replay.summary.json` (kept and dropped by reason); replay answers written by the base model itself (first user turn of each replay-source chat, specialist system prompt, greedy, thinking off) in place of the human-written ones, so replay keeps the base's own style; before sending anything it refuses a base model whose Hub license is not on the training allowlist and a server with any LoRA adapter at a non-zero scale; drops answers that hit the token budget (prompt and answer fit `train.max_seq_length`), are empty, came with reasoning or repeat a sentence or loop; each row records the generator, its license, the server build and the settings. `prepare.py` checks the license again and puts the file's sha256, row count and generator in the manifest, with `mix_and_split` and the replay ratio unchanged; a recipe with `replay: {self_generated: true}` stops without `--self-replay`. An interrupted run leaves `self_replay.jsonl.partial`; `--resume` continues it |
 | train | `training/scripts/train_supervised.sh medicine` (what `run_specialist.sh` runs; `SPIKE_UNSUPERVISED=1` runs plain `training/train.sh medicine`) | `training/runs/<id>/{adapter/, train.log, run.json, ramguard.log}` |
@@ -145,9 +145,105 @@ allenai/scitail (no license), allenai/sciq and bigbio/sciq (cc-by-nc-3.0), allen
 derek-thomas/ScienceQA and xlangai/spider (cc-by-sa-4.0), Idavidrein/gpqa (cc-by-4.0 but gated, 448 questions,
 meant for evaluation), b-mc2/sql-create-context (cc-by-4.0 but built from WikiSQL and Spider) and
 gretelai/synthetic_text_to_sql (apache-2.0 but written by a model whose generator is not named). The Science and Data
-recipes therefore have `domain_sources: []` and stop in `prepare.py` until they get hand-written seeds and verified
-distillation from an open teacher, as Marketing does. Science keeps its MMLU-Pro physics, chemistry and biology evals;
-Data has no eval set yet.
+recipes therefore have `domain_sources: []`; their domain data is verified distillation from an open teacher, seeded by
+topic labels (2d), and `prepare.py` still stops without it. Science keeps its MMLU-Pro physics, chemistry and biology
+acceptance suite and gains a local one; Data gets a held-out file of its own (2d).
+
+### 2d. Distillation seeded by topic labels (M10, 2026-11-02): Marketing, Science and Data
+
+**The rule.** No text written by Claude, GPT, Gemini or Llama may become training data, and seeds or prompts written by
+an AI assistant count as such text. The 24 "hand-written" marketing seeds (`training/seeds/marketing.jsonl`) were written
+by an AI assistant, and `expand_seeds` put the seeds themselves into the task list, so they would have been trained on.
+The file is removed. Nothing had been distilled or trained from it: no real teacher run has happened for any recipe.
+
+**Where the tasks of a recipe come from.** The `distill` block names exactly one source (`spike_train/seeding.py`):
+
+| Source | What it is | Enforcement |
+|---|---|---|
+| `topics: FILE` | A YAML file of short topic labels (at most 8 words, no sentence punctuation, not starting like a request) under a `provenance:` text that says who chose them. The open teacher writes every task from the labels, and then the answers. A label is an instruction to the teacher: it is never copied into a task, an answer, a row or its `meta` | `distill.py` and `prepare.py` refuse a file without a provenance or with a label that reads as a task; rows and the manifest record the file and its sha256 (and, in the manifest, the provenance and the number of labels, never the labels) |
+| `seeds: FILE` | Example tasks the teacher expands, **only for a human author**: the first line of the JSONL must be `{"declaration": {"authored_by": "human", "author": "..."}}` | `distill.py` and `prepare.py` refuse a file without it (the message points to `topics`); `prepare.py` also refuses a distilled file whose rows say their seeds had no human author, or say nothing about how their tasks were made. Nothing can detect AI text: the declaration is the maintainer's statement, kept in the manifest |
+| `tasks_from: {source: …}` | Training-split questions with gold answers from a registry source, verified by exact match (as before) | the registry's license gate |
+
+The topic files are `training/topics/{marketing,science,data}.yaml`: 90 labels in 7 groups, 107 labels in 6 groups
+(physics, chemistry and biology, each at secondary-school and undergraduate level) and 64 labels in 6 groups (what a
+database is about: bookstore orders, ferry bookings...). The labels were chosen by an AI assistant (Claude) at the
+maintainer's request and say so in their provenance: they are AI-written text that is used only as an instruction to the
+teacher. Be aware of two limits. A teacher-written task may use the same ordinary words as its label (a question about
+"projectile motion" may say so); the pipeline never copies a label and drops a task or question that is only the label,
+but it does not forbid a shared phrase. The system prompt of each specialist (`spike/specialists/catalog.yaml`, repository
+text that every recipe's rows already carried) and the layout (lettered options, a fenced schema) are the only text in a
+row that the teacher did not write; the answer-format requests sent with a question ("finish with `Answer: <letter>`") are
+not stored. Decision (builder, 2026-11-02): the catalog's system prompts stay. They are the same instructions the app
+sends at run time, and every recipe trains with `mask_prompt: true`, so no loss is computed on them and the model is
+not trained to write them.
+
+**The teacher.** `distill.teacher` in each recipe: `Qwen/Qwen3.6-35B-A3B`, served as
+`mlx-community/Qwen3.6-35B-A3B-4bit` (the teacher the docs, ADR 0001 and 0002 and `THIRD_PARTY.md` already name). Its Hub
+license is read live before any task is sent and must be on the training allowlist; `prepare.py` reads it again.
+This document claims no license for it beyond what those records say. `openai/gpt-oss-20b` is the alternative named in
+`docs/PLAN.md`: `distill.py … --teacher-model <served name> --teacher-repo openai/gpt-oss-20b` licenses it under that repo,
+whatever its Hub page says on the day (a served name with no `--teacher-repo` is licensed under its own name, never under
+the recipe's).
+
+**Science.** `kinds: {mcq: 0.6, explanation: 0.4}`, `expand_to: 6000` tasks (rows kept will be fewer; not measured).
+*mcq*: the teacher writes a question, the correct option and three wrong ones from a label; the options are shuffled
+here. A row is kept only when two independent teacher answers agree with the keyed option (the second sees the options in
+another order and must name the same option; each must end with `Answer: <letter>`) and the rubric review passes. The
+row is the question with lettered options and the teacher's own answer. *explanation*: requests for an explanation, a
+derivation or a worked calculation, kept when the rubric passes. Decontamination: MMLU-Pro (all categories) and
+`evals/data/science_eval.jsonl`.
+
+**Data.** `kinds: {sql: 1}`, `expand_to: 4000`. The teacher writes, from a label, a small SQLite schema with INSERT rows,
+a question and the query. Everything runs with the standard library's `sqlite3` on an in-memory database
+(`spike_train/sqlsandbox.py`): no file, no ATTACH, no extension, no PRAGMA but `foreign_keys`, a 2 s limit for building
+and querying together, caps on the size of a value, the database, the script, the query and the result, one statement,
+query phase read-only. A row is kept only when the schema and the query run, the result is not empty, a second teacher
+answer to the same schema and question runs and returns the same result set (as a multiset; in order when either query
+has a top-level ORDER BY), and the rubric passes. The row is the schema and question, then the query and the teacher's
+short explanation. The sandbox stops the usual failures of model output (a runaway recursive query, a huge value, an
+ATTACH); it is not a boundary against a hostile program. **Python and pandas are out of scope**: running model-written
+Python needs a real sandbox, and no recipe asks for it. Rows longer than `max_seq_length` (768) are dropped by
+`prepare.py`, which may remove the schemas with the most rows.
+
+**Held-out evaluation.** Written by hand for this repository, never by the teacher, evaluation only (the first record of
+each file says so and the loaders refuse a file without that header): `evals/data/science_eval.jsonl` has 60 four-option
+questions (20 physics, 20 chemistry, 20 biology; 35 at secondary and 25 at undergraduate level; the keys are balanced, 15
+per letter; every figure was recomputed when the file was written), `evals/data/data_eval.jsonl` has 5 small SQLite
+databases (an observatory log, marathon results, greenhouse sensors, a bicycle repair shop, a ferry timetable; two or
+three tables each) with 12 questions and a gold query each (60 in all). These files were written by an AI assistant (Claude) by hand at the
+maintainer's request; they are not training data and are removed from training by 13-gram decontamination
+(`decontaminate_files`). A SQL answer is scored by running it on the question's database and comparing the rows with the
+gold query's (floats to six decimals; row order counts only when the gold query sorts). Suites in `evals/suites.yaml`:
+`data` (40 questions, the acceptance suite of the Data recipe), `data-select` (the other 20, by `skip: 40` at the same
+seed), and `science-local` (the 60 science questions, reported beside `science`, which stays the MMLU-Pro acceptance suite;
+`science` and `science-select` are unchanged). `run_specialist.sh` runs `science,general` and `data,general`; add
+`--suites science-local` or `data-select` by hand.
+
+**Disjoint from training.** Each science question carries a `topic` and each database a `domain`; none is one of the
+training labels or a close rewording of one (`tests/test_heldout_evals.py`: no label inside the other's content words, or
+half of the words shared; no label appears as a phrase in any question), and a test finds any declared human seeds file
+that shares a 13-gram with an eval prompt (none exists). That is a check on wording: the questions are still in the same
+broad subjects as the labels (a question about the density of a gas is held out, "gas laws" is a label), which is what
+measuring the specialist needs. The 13-gram decontamination at `prepare.py` removes overlapping text.
+
+**What 40 data questions can show.** Acceptance asks for a gain of at least 3 points with McNemar's exact p ≤ 0.05 on
+the `data` suite, and the general suite not dropping by more than 1.5 points. With 40 paired questions the exact test
+needs at least 6 improved questions and no regression (p = 0.031; 5 gains give p = 0.0625): a gain of 15 points. A smaller
+real improvement cannot be told from noise on this file, and a recipe rejected on it may not be a bad recipe. The
+thresholds were not changed.
+
+**Tested (no network, no model).** `tests/test_sql_sandbox.py` (limits, refusals, extraction, comparison),
+`tests/test_distill_topics.py` (topic files and the lockdown of `seeds` in `distill.py` and `prepare.py`; a fake teacher
+through every drop reason of the multiple-choice and SQL checks; no label in any row, `meta` or answer request; the license
+gate on a fake Hub response for each recipe's teacher; marketing, science and data from `distill.py` to the training files
+and the manifest with the real recipes and topic files), and `tests/test_heldout_evals.py` (the files, their disjointness
+from the labels, the scorer, the suites, a scripted run of the harness, and one dry run of `evals/run_eval.py` on the
+`science-local` suite against a real `llama-server` with the random-weight GGUF of the integration tests; the data prompts
+are longer than that model's 2,048-token context, so the SQL path is the scripted run). **Not done:** no real teacher
+was run, nothing was distilled and nothing trained, so how many rows a teacher keeps, the quality of its questions and
+whether any recipe improves its suite are all unmeasured. That run is for the Mac:
+`mlx_lm.server --model mlx-community/Qwen3.6-35B-A3B-4bit --port 8090`, then
+`training/scripts/run_specialist.sh science ~/src/llama.cpp ~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf` (and `data`, `marketing`).
 
 ## 3. What makes a result valid
 

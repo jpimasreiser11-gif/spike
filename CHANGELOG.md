@@ -138,7 +138,13 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 ### Training and evaluation
 - Data recipes for the other 10 specialists (M5, M6, Codex) and their license review (M7): 15 sources verified
   on the Hub (license, commit, every row counted and formatted, `training/verify_sources.py`); OpenBookQA and
-  WikiSQL rejected, so the Science and Data recipes stay blocked until they have seeds and verified distillation.
+  WikiSQL rejected, so Science and Data get their data by distillation instead (next bullet).
+- Science and Data have training recipes: an open teacher writes the tasks from short topic labels and then the
+  answers, keeping a multiple-choice answer only when two independent answers agree with the key and a SQL exercise
+  only when it runs in a sandboxed in-memory SQLite database and a second answer returns the same rows. No AI-written
+  seed prompts are used (Marketing's 24 were removed) and `distill.seeds` now needs a declared human author.
+  Hand-written held-out evals (60 science questions; 5 small databases with 60 SQL questions scored by execution)
+  back the acceptance suites. Nothing has been distilled or trained yet. (M10)
 - Recipe per specialist with acceptance criteria written before training; mlx-lm LoRA on Apple silicon
   (chunked gated delta rule, 5.7x faster, measured); export to GGUF; exact-answer evals with confidence
   intervals and McNemar tests; model cards generated from the eval run.
