@@ -1,16 +1,30 @@
-# BLOCKED by the license review of 2026-11-02 (M7). The human-written source this recipe was built on,
-# OpenBookQA (the Hub declares its license as 'unknown'), was rejected,
-# and no candidate on the Hub under a license on the training allowlist was found (docs/TRAINING.md lists
-# what was probed). It needs hand-written seed tasks and verified distillation from an open teacher, as
-# marketing does; until then prepare.py stops with no domain data. Hyperparameters and thresholds are hypotheses.
+# Spike Science adapter recipe. The human-written source this recipe was first built on, OpenBookQA (the Hub declares its
+# license as 'unknown'), was rejected by the license review of 2026-11-02 (M7) and no candidate under a license on the
+# training allowlist was found (docs/TRAINING.md lists what was probed). The domain data is therefore produced by verified
+# distillation from an open teacher. No text written by an AI assistant may become training data, so the recipe has no
+# seed prompts: it has short topic labels (training/topics/science.yaml) and the teacher writes every task from them:
+#   mcq          kept only when two independent teacher answers (the second with the options reordered) both choose the
+#                keyed option and the rubric passes
+#   explanation  explanations, derivations and worked calculations, kept when the rubric passes
+# prepare.py then removes anything that overlaps MMLU-Pro or evals/data/science_eval.jsonl (13-gram). Nothing has been
+# distilled or trained yet: the hyperparameters and thresholds are hypotheses.
 specialist: science
 base_model: Qwen/Qwen3.5-4B
 hypothesis: >
-  Human-authored science examples may improve held-out science accuracy without degrading general knowledge.
+  Verified distillation from a stronger open teacher on science tasks the teacher wrote from topic labels (multiple-choice
+  questions keyed by two agreeing answers, and rubric-filtered explanations) improves held-out science accuracy (MMLU-Pro
+  physics, chemistry and biology) without degrading general knowledge.
 acceptance:
   primary: {suite: science, min_gain_points: 3.0, max_p_value: 0.05}
   regression: {suite: general, max_drop_points: 1.5}
 domain_sources: []
+distill:
+  enabled: true
+  teacher: {repo: Qwen/Qwen3.6-35B-A3B, served_as: mlx-community/Qwen3.6-35B-A3B-4bit}   # license read from the Hub first
+  topics: training/topics/science.yaml    # labels are instructions to the teacher only; none is ever in a training row
+  kinds: {mcq: 0.6, explanation: 0.4}
+  expand_to: 6000                         # tasks the teacher writes from the labels; fewer rows are kept
+  min_score: 8
 replay:
   ratio: 0.3
   sources:
@@ -18,6 +32,7 @@ replay:
 eval:
   max_tokens: 2048
 decontaminate_against: [mmlu-pro]
+decontaminate_files: [evals/data/science_eval.jsonl]   # held-out questions written by hand, never by the teacher
 valid_fraction: 0.02
 seed: 0
 train:

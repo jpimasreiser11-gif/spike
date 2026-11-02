@@ -6,8 +6,10 @@
 Steps: license check per source (and per distillation teacher) -> download -> format to chat -> quality filter ->
 dedupe -> 13-gram decontamination against every eval set -> blend with general replay data -> split ->
 write train/valid JSONL, an mlx-lm config and a manifest with counts, licenses and file hashes.
-A recipe with no domain_sources (marketing) needs --distilled data: with none, the run stops instead of writing
-an empty training set.
+A recipe with no domain_sources (marketing, science, data) needs --distilled data: with none, the run stops instead of
+writing an empty training set. Before anything else the recipe's `distill` block is checked (spike_train/seeding.py):
+`topics` needs a provenance, `seeds` a declared human author, otherwise the run is refused; each distilled row must say
+how its tasks were made, and the manifest records the topic file or seed file, its hash and provenance (never the labels).
 A recipe with `replay: {self_generated: true}` takes its replay from the base model's own answers (--self-replay FILE,
 made by training/self_replay.py); with no file the run stops. Without it, replay is the human-written sources.
 """
@@ -29,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "training"))
 sys.path.insert(0, str(ROOT))
 
-from spike_train import licenses  # noqa: E402
+from spike_train import evalfiles, licenses, seeding  # noqa: E402
 from spike_train.data import (  # noqa: E402
     BUILDERS,
     FORMATTERS,
@@ -149,11 +151,13 @@ def load_self_replay(path: Path, system: str,
     return rows, generators
 
 
-def load_distilled(path: Path) -> tuple[list[dict], dict[str, str | None]]:
-    """Chats of a distill.py file, and the teachers (repo -> license recorded when it wrote them) behind them.
-    A row without a teacher record stops the run: its license would be unknown."""
+def load_distilled(path: Path) -> tuple[list[dict], dict[str, str | None], list[dict]]:
+    """Chats of a distill.py file, the teachers (repo -> license recorded when it wrote them) behind them and the distinct
+    records of how their tasks were made. A row without a teacher record stops the run: its license would be unknown;
+    so does a row without a seeding record or whose seeds do not declare a human author."""
     chats: list[dict] = []
     teachers: dict[str, str | None] = {}
+    made: dict[str, dict] = {}
     for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
@@ -162,9 +166,11 @@ def load_distilled(path: Path) -> tuple[list[dict], dict[str, str | None]]:
         if not meta.get("teacher"):
             raise SystemExit(f"{path.name}:{n} has no teacher record; make it again with training/distill.py "
                              "(it records the teacher's repo and license)")
+        record = seeding.check_record(meta.get("seeding"), f"{path.name}:{n}")
+        made[json.dumps(record, sort_keys=True)] = record
         teachers[meta["teacher"]] = meta.get("teacher_license")
         chats.append(chat)
-    return chats, teachers
+    return chats, teachers, list(made.values())
 
 
 def training_schedule(train: dict, n_train: int) -> dict:
@@ -223,6 +229,17 @@ def main() -> int:
                           f"domain sources, {len(args.distilled)} distilled and {len(args.corrections)} correction "
                           f"files gave no usable chats; {fix}")
 
+    dcfg = cfg.get("distill") or {}
+    if any(dcfg.get(m) for m in seeding.MODES) or dcfg.get("enabled"):  # the task source of a recipe is checked first
+        try:
+            plan = seeding.resolve(dcfg, ROOT)
+        except seeding.SeedingError as exc:
+            raise SystemExit(str(exc)) from exc
+        manifest["task_source"] = dict(plan.record)
+        if plan.topics:  # the labels themselves stay out of the manifest too
+            manifest["task_source"] |= {"provenance": plan.topics.provenance, "labels": len(plan.topics.items)}
+        elif plan.seeds:
+            manifest["task_source"] |= {"author": plan.seeds.author, "prompts": len(plan.seeds.prompts)}
     if not (cfg.get("domain_sources") or args.distilled or args.corrections):
         raise no_domain_data()  # marketing without distilled data: stop now, not after the eval sets are downloaded
     if (cfg.get("replay") or {}).get("self_generated") and not args.self_replay:  # same: no human-written fallback
@@ -247,11 +264,12 @@ def main() -> int:
         checked(entry["source"], "train")
     distilled: dict[str, list[dict]] = {}
     for path in args.distilled:  # a teacher's terms travel with every example it wrote: same allowlist as datasets
-        chats, teachers = load_distilled(Path(path))
+        chats, teachers, made = load_distilled(Path(path))
         distilled[path] = chats
         # offline: trust the license distill.py recorded, still on the allowlist; otherwise live from the Hub
         manifest["sources"][f"distilled:{Path(path).name}"] = {
-            "role": "train", "teachers": check_generators(path, teachers, "teacher", args.skip_license_check)}
+            "role": "train", "teachers": check_generators(path, teachers, "teacher", args.skip_license_check),
+            "tasks_made_by": made}
     self_rows: list[tuple[str, dict]] = []
     if args.self_replay:  # the base model's answers: its terms travel with them like a teacher's (the model card reads `teachers`)
         self_path = Path(args.self_replay)
@@ -274,10 +292,10 @@ def main() -> int:
                 n += 1
         manifest["sources"][name]["indexed_prompts"] = n
     for rel in cfg.get("decontaminate_files", []):  # local held-out prompts, e.g. evals/data/*.jsonl
-        rows = [json.loads(line) for line in (ROOT / rel).read_text(encoding="utf-8").splitlines() if line.strip()]
-        for row in rows:
-            index.add(row["prompt"])
-        manifest["sources"][f"file:{rel}"] = {"role": "eval", "indexed_prompts": len(rows), "sha256": sha256(ROOT / rel)}
+        texts = evalfiles.prompts(ROOT / rel)
+        for text in texts:
+            index.add(text)
+        manifest["sources"][f"file:{rel}"] = {"role": "eval", "indexed_prompts": len(texts), "sha256": sha256(ROOT / rel)}
 
     # mlx-lm would truncate longer chats, cutting off the answer (or all of it, giving a NaN loss): drop them
     max_len = cfg["train"].get("max_seq_length")

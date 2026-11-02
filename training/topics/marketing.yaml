@@ -1,0 +1,112 @@
+# Topic labels for Spike Marketing (distill.topics of training/configs/marketing.yaml; spike_train/seeding.py).
+provenance: >
+  Short topic labels (plain noun phrases) chosen by an AI assistant (Claude) at the maintainer's request as an outline of
+  the field. They are instructions to the open teacher and nothing else: the teacher writes every task from them and then
+  the answers; no label is copied into a task, an answer or a training row (tests/test_distill_topics.py). The earlier
+  hand-written-looking seed prompts of this recipe (training/seeds/marketing.jsonl) were also written by an AI assistant and
+  were removed, because no AI-written text may become training data.
+groups:
+  - context: strategy and positioning
+    labels:
+      - brand positioning statements
+      - value proposition design
+      - go-to-market planning
+      - market segmentation
+      - buyer personas
+      - competitive positioning
+      - product launch planning
+      - brand naming
+      - rebranding projects
+      - brand voice and tone guidelines
+      - messaging hierarchies
+      - unique selling propositions
+      - customer journey mapping
+      - pricing page messaging
+  - context: content and copywriting
+    labels:
+      - landing page copy
+      - headline writing
+      - product descriptions
+      - email subject lines
+      - blog editorial calendars
+      - customer case studies
+      - press releases
+      - video script hooks
+      - calls to action
+      - search ad copy
+      - social media captions
+      - newsletter editorial planning
+      - microcopy for sign-up flows
+      - sales page structure
+  - context: channels and campaigns
+    labels:
+      - search engine optimization audits
+      - keyword research
+      - local search visibility
+      - content marketing for software products
+      - paid search campaigns
+      - paid social campaigns
+      - retargeting audiences
+      - influencer partnerships
+      - affiliate programs
+      - podcast sponsorships
+      - email onboarding sequences
+      - lifecycle email programs
+      - text message campaigns
+      - community building
+      - event and trade show marketing
+      - webinar funnels
+      - referral programs
+      - co-marketing partnerships
+      - out-of-home advertising
+  - context: analytics and growth
+    labels:
+      - conversion rate optimization
+      - A/B test design
+      - funnel drop-off analysis
+      - customer acquisition cost
+      - customer lifetime value
+      - retention and churn reduction
+      - attribution models
+      - marketing dashboards
+      - campaign budget allocation
+      - return on ad spend
+      - cohort analysis
+      - customer survey design
+      - net promoter score programs
+      - email deliverability
+      - growth experiment backlogs
+      - lead scoring
+      - sales and marketing alignment
+  - context: business types
+    labels:
+      - local bakery marketing
+      - restaurant promotions
+      - online store growth
+      - direct-to-consumer skincare brands
+      - business-to-business software startups
+      - professional services firms
+      - nonprofit fundraising campaigns
+      - real estate listings
+      - tourism and hospitality marketing
+      - online course businesses
+      - mobile app user acquisition
+      - two-sided marketplace growth
+      - freelancer personal branding
+      - fitness studio memberships
+      - craft and artisan products
+  - context: compliance and ethics
+    labels:
+      - consent and email marketing rules
+      - substantiating advertising claims
+      - cookie consent and tracking
+      - influencer disclosure rules
+      - accessible marketing content
+  - context: mercado hispanohablante
+    labels:
+      - campañas estacionales en España
+      - marketing para pequeños comercios
+      - publicidad en redes sociales para pymes
+      - estrategia de contenidos en español
+      - correo electrónico para tiendas en línea
+      - posicionamiento local en Google

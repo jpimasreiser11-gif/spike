@@ -34,7 +34,8 @@ ROWS = {
 DOMAINS = {"law": ("casehold-train", "casehold-test", "case_hold"),
            "math": ("gsm8k-train", "gsm8k", "gsm8k"),
            "code": ("mbpp-train", "mbpp-test", "mbpp")}
-# Rejected by the license review of 2026-11-02 (M7): their recipes have no domain source until seeds and distillation.
+# Rejected by the license review of 2026-11-02 (M7): their recipes have no human-written domain source; the domain data
+# is verified teacher distillation from topic labels (docs/TRAINING.md, 2d), and prepare.py stops without it.
 REJECTED = {"science": ("openbookqa-train", "openbookqa-test"), "data": ("wikisql-train", "wikisql-test")}
 
 

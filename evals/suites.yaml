@@ -75,7 +75,21 @@ suites:
     specialist: code
     tasks:
       - {name: mbpp-test-select, source: mbpp-test, skip: 300, n: 150}
-  # data / data-select: none until an eval set passes the license review (WikiSQL was rejected, M7)
+  # Hand-written held-out files of this repository (evals/data, never written by a distillation teacher), scored locally:
+  # `science-local` are four-option questions (reported next to `science`, which stays the MMLU-Pro acceptance suite);
+  # `data` runs the model's SQL on small SQLite databases and compares result sets with the gold query's.
+  science-local:
+    specialist: science
+    tasks:
+      - {name: science-local, source: science-heldout}
+  data:
+    specialist: data
+    tasks:
+      - {name: data-sql-exec, source: data-heldout, n: 40}
+  data-select:
+    specialist: data
+    tasks:
+      - {name: data-sql-exec-select, source: data-heldout, skip: 40, n: 20}
 
   # M6: writing is a literal diagnostic/export pool; writing acceptance is pairwise, never exact-title accuracy.
   education:
