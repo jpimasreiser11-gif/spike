@@ -16,6 +16,7 @@ import re
 import socket
 import sys
 import tempfile
+import urllib.request
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -293,19 +294,51 @@ def _is_public_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> boo
     return ip.is_global and not (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast)
 
 
-def _is_public_host(host: str) -> bool:
+def _resolve_public(host: str) -> list[str] | None:
+    """The addresses a name resolves to (looked up once), or None when it does not resolve or any one of them is not
+    public: the caller connects to these, so a later answer for the same name cannot change where the request goes."""
     try:
         infos = socket.getaddrinfo(host, None)
-    except socket.gaierror:
-        return False
+    except (socket.gaierror, UnicodeError):
+        return None
+    found: list[str] = []
     for info in infos:
+        address = info[4][0].split("%", 1)[0]  # a scope id (fe80::1%eth0) is not part of the address
         try:
-            ip = ipaddress.ip_address(info[4][0].split("%", 1)[0])  # a scope id (fe80::1%eth0) is not part of the address
+            ip = ipaddress.ip_address(address)
         except ValueError:
-            return False
+            return None
         if not _is_public_address(ip):
-            return False
+            return None
+        if address not in found:
+            found.append(address)
+    return found or None
+
+
+MAX_ADDRESSES = 4  # how many of a name's checked addresses web_fetch tries, in the resolver's order
+
+
+def _is_ip_literal(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return False
     return True
+
+
+def _via_proxy(url: httpx.URL) -> bool:
+    """Whether the environment sends this request through an HTTP proxy (then the proxy makes the connection, and
+    resolves the name itself)."""
+    proxies = urllib.request.getproxies()
+    return bool(proxies.get(url.scheme) or proxies.get("all")) and not urllib.request.proxy_bypass(url.host)
+
+
+def _pinned(url: httpx.URL, address: str) -> tuple[httpx.URL, dict[str, str], dict[str, str]]:
+    """The same request addressed to an IP that was checked: the Host header keeps the name (and port), and an https
+    handshake still sends the name as SNI and verifies the certificate against it."""
+    name = url.raw_host.decode("ascii")
+    extensions = {"sni_hostname": name} if url.scheme == "https" else {}
+    return url.copy_with(host=address), {"Host": url.netloc.decode("ascii")}, extensions
 
 
 def html_to_text(raw: str) -> str:
@@ -334,29 +367,56 @@ class WebFetch(Tool):
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname:
             return ToolResult(ok=False, content="error: only absolute http(s) URLs are allowed")
-        if not self.allow_private and not await asyncio.to_thread(_is_public_host, parsed.hostname):
-            return ToolResult(ok=False, content="error: private, local or unresolvable addresses are blocked")
-        client = self.client or httpx.AsyncClient(timeout=20.0, follow_redirects=False)
         try:
-            async with client.stream("GET", url, headers={"User-Agent": "SPIKE/0.1 (+https://github.com/)"}) as resp:
-                if resp.is_redirect:
-                    return ToolResult(ok=False, content=f"redirect to {resp.headers.get('location')} (call again with that URL)")
-                body = b""
-                async for chunk in resp.aiter_bytes():
-                    body += chunk
-                    if len(body) > self.max_bytes:
-                        break
-                ctype = resp.headers.get("content-type", "")
-                status = resp.status_code
-        except httpx.HTTPError as exc:
-            return ToolResult(ok=False, content=f"error: {exc.__class__.__name__}: {exc}")
+            target = httpx.URL(url)
+        except httpx.InvalidURL:
+            return ToolResult(ok=False, content="error: only absolute http(s) URLs are allowed")
+        attempts = [(target, {}, {})]  # (address to connect to, headers to add, request extensions)
+        if not self.allow_private:
+            blocked = ToolResult(ok=False, content="error: private, local or unresolvable addresses are blocked")
+            addresses = await asyncio.to_thread(_resolve_public, parsed.hostname)
+            if addresses is None:
+                return blocked
+            if self.client is None and _via_proxy(target):
+                # The proxy makes the connection and resolves the name itself, so it cannot be pinned here: look the
+                # name up again right before and refuse a changed answer (a window remains inside the proxy).
+                if set(await asyncio.to_thread(_resolve_public, parsed.hostname) or ()) != set(addresses):
+                    return blocked
+            elif not _is_ip_literal(parsed.hostname):
+                attempts = [_pinned(target, address) for address in addresses[:MAX_ADDRESSES]]
+        client = self.client or httpx.AsyncClient(timeout=20.0, follow_redirects=False)
+        failure: httpx.HTTPError | None = None
+        try:
+            for address, headers, extensions in attempts:
+                try:
+                    return await self._get(client, url, address, headers, extensions)
+                except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
+                    failure = exc  # nothing was sent: the next address that was checked
+                except httpx.HTTPError as exc:
+                    return ToolResult(ok=False, content=f"error: {exc.__class__.__name__}: {exc}")
         finally:
             if self.client is None:
                 await client.aclose()
+        return ToolResult(ok=False, content=f"error: {failure.__class__.__name__}: {failure}")
+
+    async def _get(self, client: httpx.AsyncClient, shown: str, url: httpx.URL, headers: dict[str, str],
+                   extensions: dict[str, str]) -> ToolResult:
+        """One GET to `url` (the address or name to connect to); results name `shown`, the address the model gave."""
+        async with client.stream("GET", url, headers={"User-Agent": "SPIKE/0.1 (+https://github.com/)", **headers},
+                                 extensions=extensions) as resp:
+            if resp.is_redirect:  # never followed here: fetching the target is a new call, through the same checks
+                return ToolResult(ok=False, content=f"redirect to {resp.headers.get('location')} (call again with that URL)")
+            body = b""
+            async for chunk in resp.aiter_bytes():
+                body += chunk
+                if len(body) > self.max_bytes:
+                    break
+            ctype = resp.headers.get("content-type", "")
+            status = resp.status_code
         text = body.decode("utf-8", "replace")
         if "html" in ctype:
             text = html_to_text(text)
-        return ToolResult(ok=200 <= status < 300, content=f"[HTTP {status}] {url}\n\n{text[:30_000]}")
+        return ToolResult(ok=200 <= status < 300, content=f"[HTTP {status}] {shown}\n\n{text[:30_000]}")
 
 
 def default_registry(workspace_root: Path, sandbox: Sandbox | None = None) -> ToolRegistry:

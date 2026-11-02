@@ -122,8 +122,14 @@ nothing below is a result. Dispatch it with the id of a successful "Native insta
 kept 7 days), for example `gh workflow run installers-real-model.yml -f run_id=RUN_ID`; the workflow file must be on the
 default branch first. Each of macOS 14 arm64, Windows Server 2022 and Ubuntu 24.04 is a fresh runner: nothing is cached
 between runs and the profile starts absent. The job fails, rather than guesses, when the run is not a successful
-"Native installers" run, an artifact has expired, or the machine already has a `~/.spike`. No secret is used; the run's own
-token only reads that run's artifacts, and nothing is published.
+"Native installers" run **of `main` or of a version tag push** (a run of any other branch, a pull request, or one started
+by hand on a tag is refused, because the installers of such a run are built from code nobody has merged or released), an
+artifact has expired, or the machine already has a `~/.spike`. No secret is used; the run's own token only reads that
+run's artifacts, and nothing is published. Every `uses:` in `.github/workflows/` is pinned to a full commit SHA with the
+tag it was taken from in a trailing comment (`tests/test_security_review_low.py` checks it); to move an action, look up
+the commit of the new tag (`git ls-remote https://github.com/actions/NAME refs/tags/vN`, and `refs/tags/vN^{}` if the
+tag is annotated), change the SHA and the comment together in every workflow, and run
+`python scripts/compat_matrix.py` if a job changed.
 
 The driver is `packaging/real_model_check.py` (tested without a network by `tests/test_real_model_check.py`, with a fake
 app process and a fake download). On each runner it:

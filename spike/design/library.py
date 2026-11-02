@@ -47,14 +47,32 @@ def check_design(text: str) -> str:
     return text
 
 
+CSS_ESCAPE = re.compile(r"\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|(.|\n)?)")  # hex digits (and one space), or any other character
+
+
+def _unescape(match: re.Match[str]) -> str:
+    if match[1]:
+        code = int(match[1], 16)
+        return chr(code) if 0 < code <= 0x10FFFF and not 0xD800 <= code <= 0xDFFF else "\ufffd"
+    return "" if match[2] in (None, "\n") else match[2]  # `\x` is x; a backslash before a line break is dropped
+
+
+def css_text(css: str) -> str:
+    """The text a CSS parser sees once escapes are decoded (`u\\72l(` is `url(`, `\\40import` is `@import`), with line
+    breaks and NUL normalised as CSS does first. Comments are kept on purpose: a comment marker inside a string or
+    after an escaped slash is not a comment, so reading through them can only find more, never hide a call."""
+    return CSS_ESCAPE.sub(_unescape, re.sub(r"\r\n?|\f", "\n", css).replace("\0", "\ufffd"))
+
+
 def check_tokens(css: str) -> str:
     """Tokens are pasted into pages: CSS custom properties only, nothing that loads from the network or ends the
-    page's <style>."""
+    page's <style>. The check reads the text the way CSS does, so escapes cannot spell what it refuses."""
     if len(css.encode("utf-8")) > MAX_TEXT:
         raise DesignError("tokens.css is larger than 64 KB")
     low = css.lower()
-    for bad in ("</style", "@import", "url(", "expression(", "javascript:"):
-        if bad in low:
+    seen = css_text(css).lower()
+    for bad in ("</style", "@import", "url(", "expression(", "javascript:", "image-set("):
+        if bad in low or bad in seen:
             raise DesignError(f"tokens.css may not contain '{bad}'")
     if "--" not in css:
         raise DesignError("tokens.css has no custom properties (--name: value)")

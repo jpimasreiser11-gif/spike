@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -58,6 +59,10 @@ EMBEDDING_MODEL = "qwen3-embedding-0.6b"
 ALLOWED_LICENSES = {"apache-2.0", "mit", "bsd-3-clause", "cc-by-4.0"}
 
 
+class UnverifiedDownload(ValueError):
+    """The Hub published no SHA-256 for the file, so the download could not be checked."""
+
+
 async def remote_file_info(client: httpx.AsyncClient, repo: str, filename: str) -> dict:
     """Return {'size', 'sha256', 'license'} for a file in a Hub repo."""
     model = (await client.get(f"{HF}/api/models/{repo}")).raise_for_status().json()
@@ -71,6 +76,20 @@ async def remote_file_info(client: httpx.AsyncClient, repo: str, filename: str) 
     return {"size": lfs.get("size") or entry.get("size"), "sha256": lfs.get("oid"), "license": license_id}
 
 
+def manifest_path(model: Path) -> Path:
+    return model.with_name(model.name + ".manifest.json")
+
+
+def model_manifest(model: Path) -> dict | None:
+    """What was recorded when this file was downloaded (see `download`), or None for a file with no record (one from an
+    earlier version, or put there by hand): nothing is claimed about it either way."""
+    try:
+        record = json.loads(manifest_path(model).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return record if isinstance(record, dict) else None
+
+
 async def download(
     model_id: str,
     quant: str | None = None,
@@ -78,8 +97,11 @@ async def download(
     progress: Callable[[int, int], None] | None = None,
     client: httpx.AsyncClient | None = None,
     require_hash: bool = False,
+    allow_unverified: bool = False,
 ) -> tuple[Path, bool]:
-    """Download a model; returns (file, whether the Hub's SHA-256 was checked). The Hub may give no hash."""
+    """Download a model; returns (file, whether the Hub's SHA-256 was checked). Without a hash from the Hub nothing is
+    downloaded (UnverifiedDownload) unless `allow_unverified`; the file then gets a manifest that says "unverified".
+    `require_hash` (the desktop setup) refuses either way."""
     entry = MODELS[model_id]
     quant = quant or entry.default_quant
     if quant not in entry.quants:
@@ -94,8 +116,17 @@ async def download(
             raise PermissionError(f"{entry.repo} has license '{info['license']}', which is not on SPIKE's allowlist")
         if require_hash and (not info["license"] or not info["sha256"]):
             raise ValueError("A license and SHA-256 are required for desktop installation")
+        if not info["sha256"] and not allow_unverified:
+            raise UnverifiedDownload(
+                f"The Hub gave no SHA-256 for {filename}, so the download cannot be checked and nothing was saved. "
+                "Run again with --allow-unverified to download it without the check.")
+        manifest_path(dest).unlink(missing_ok=True)  # a record never outlives the file it describes
         await download_file(client, f"{HF}/{entry.repo}/resolve/main/{filename}", dest,
                             info["sha256"], info["size"], progress)
+        record = {"id": model_id, "repo": entry.repo, "file": filename, "quant": quant, "license": info["license"],
+                  "size": dest.stat().st_size, "sha256": info["sha256"], "sha256_verified": bool(info["sha256"]),
+                  "unverified": not info["sha256"]}
+        manifest_path(dest).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         return dest, bool(info["sha256"])
     finally:
         if own_client:

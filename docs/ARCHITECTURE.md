@@ -83,7 +83,7 @@ scales reset to 0 at startup). See [ADR 0004](adr/0004-adapter-serving.md).
 | read_file, list_dir | allow | confined to the workspace (`SPIKE_WORKSPACE`), traversal rejected |
 | write_file | ask | workspace only |
 | python | ask | separate process, `-I`, CPU 20 s, memory 512 MB (Linux), 30 s timeout; no network and no writes outside its temp folder **when the computer has a sandbox** (below) |
-| web_fetch | ask | http(s) only, private/loopback/link-local addresses refused, no redirects, 2 MB cap |
+| web_fetch | ask | http(s) only, private/loopback/link-local addresses refused (the name is resolved once and the request goes to the address that was checked), no redirects, 2 MB cap |
 
 In a project's chats the file tools work in that project's own folder (`$SPIKE_HOME/projects/<id>/files`).
 

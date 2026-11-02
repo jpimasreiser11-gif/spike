@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 
 from spike.projects import ProjectError, clean_path
+from spike.runtime.urls import strip_url_secrets
 from spike.skills.engine import NAME, SkillError, parse_skill
 
 FORMAT, VERSION = "spike-pack", 1
@@ -93,7 +94,8 @@ def install_skills_zip(blob: bytes, skills_dir: Path) -> list[str]:
 
 def export_pack(custom_specialists: list[dict[str, Any]], custom_connectors: list[dict[str, Any]],
                 user_skills: list[Path]) -> bytes:
-    connectors = [{k: v for k, v in c.items() if k != "headers"} for c in custom_connectors]
+    connectors = [{k: strip_url_secrets(v) if k == "url" and isinstance(v, str) else v
+                   for k, v in c.items() if k != "headers"} for c in custom_connectors]
     manifest = {"format": FORMAT, "version": VERSION, "specialists": custom_specialists, "connectors": connectors,
                 "skills": sorted(p.name for p in user_skills)}
     buf = io.BytesIO()

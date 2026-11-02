@@ -116,23 +116,81 @@ async def test_download_says_whether_the_hub_hash_was_checked(tmp_path):
     assert again == path and verified  # already there with the right hash
 
     path.unlink()
-    path, verified = await models.download("qwen3.5-2b", dest_dir=tmp_path, client=hub(None))
-    assert path.read_bytes() == body and not verified
-
-    path.unlink()
     with pytest.raises(ValueError, match="checksum mismatch"):
         await models.download("qwen3.5-2b", dest_dir=tmp_path, client=hub("0" * 64))
     assert not path.exists()
 
 
-@pytest.mark.parametrize(("verified", "said"), [(True, "(sha256 verified)"), (False, "gave no SHA-256 to check")])
+async def test_download_without_a_hub_hash_is_refused_unless_the_user_allows_it(tmp_path):
+    """L3: the Hub gave no SHA-256 (it normally does for LFS files). Nothing is written without the explicit flag, and
+    what is written with it is marked unverified in the model's manifest."""
+    with pytest.raises(models.UnverifiedDownload, match="--allow-unverified"):
+        await models.download("qwen3.5-2b", dest_dir=tmp_path, client=hub(None))
+    assert list(tmp_path.iterdir()) == []  # not even a partial file or a manifest
+
+    path, verified = await models.download("qwen3.5-2b", dest_dir=tmp_path, client=hub(None), allow_unverified=True)
+    assert path.read_bytes() == b"weights" and not verified
+    manifest = models.model_manifest(path)
+    assert manifest["unverified"] is True and manifest["sha256"] is None and manifest["sha256_verified"] is False
+    assert (manifest["id"], manifest["file"], manifest["size"]) == ("qwen3.5-2b", path.name, len(b"weights"))
+
+    path.unlink()  # downloading again with a hash replaces the record
+    digest = hashlib.sha256(b"weights").hexdigest()
+    path, verified = await models.download("qwen3.5-2b", dest_dir=tmp_path, client=hub(digest), allow_unverified=True)
+    manifest = models.model_manifest(path)
+    assert verified and manifest["unverified"] is False and manifest["sha256"] == digest
+
+
+async def test_the_desktop_setup_still_demands_a_hash_even_with_the_flag(tmp_path):
+    with pytest.raises(ValueError, match="required for desktop"):
+        await models.download("qwen3.5-2b", dest_dir=tmp_path, client=hub(None), require_hash=True, allow_unverified=True)
+    assert models.model_manifest(tmp_path / "Qwen3.5-2B-Q4_K_M.gguf") is None
+
+
+def test_a_model_without_a_manifest_is_not_called_unverified(tmp_path):
+    (tmp_path / "old.gguf").write_bytes(b"x")  # downloaded by an earlier version: nothing is known
+    assert models.model_manifest(tmp_path / "old.gguf") is None
+    (tmp_path / "old.gguf.manifest.json").write_text("not json", encoding="utf-8")
+    assert models.model_manifest(tmp_path / "old.gguf") is None
+
+
+@pytest.mark.parametrize(("verified", "said"), [(True, "(sha256 verified)"), (False, "without a SHA-256 check")])
 def test_models_pull_only_claims_a_checksum_when_one_was_checked(home, monkeypatch, capsys, verified, said):
-    async def fake_download(model_id, quant=None, progress=None):
+    async def fake_download(model_id, quant=None, progress=None, allow_unverified=False):
         return home / "models" / "m.gguf", verified
 
     monkeypatch.setattr(models, "download", fake_download)
-    assert main(["models", "pull"]) == 0
-    out = capsys.readouterr().out
-    assert said in out and ("sha256 verified" in out) is verified
-    assert "set as the local SPIKE model" in out
+    assert main(["models", "pull", "--allow-unverified"]) == 0
+    captured = capsys.readouterr()
+    assert said in captured.out and ("sha256 verified" in captured.out) is verified
+    assert ("warning" in captured.err) is not verified  # the warning goes to stderr, and only for an unchecked file
+    assert "set as the local SPIKE model" in captured.out
     assert not DEFAULT_SETTINGS["local_runtime"]["model"]  # saved in the home's database, not in the shared defaults
+
+
+def test_models_pull_refuses_when_the_hub_gives_no_hash_and_says_how_to_override(home, monkeypatch, capsys):
+    calls = []
+
+    async def fake_download(model_id, quant=None, progress=None, allow_unverified=False):
+        calls.append(allow_unverified)
+        if not allow_unverified:
+            raise models.UnverifiedDownload("The Hub gave no SHA-256 for m.gguf. Run again with --allow-unverified")
+        return home / "models" / "m.gguf", False
+
+    monkeypatch.setattr(models, "download", fake_download)
+    assert main(["models", "pull"]) == 1
+    err = capsys.readouterr().err
+    assert "--allow-unverified" in err and calls == [False]
+    assert main(["models", "pull", "--allow-unverified"]) == 0 and calls == [False, True]
+
+
+def test_doctor_marks_a_model_downloaded_without_a_hash_check(home, monkeypatch, capsys):
+    engine(monkeypatch, found=True)
+    add_model(home)
+    assert main(["doctor"]) == 0
+    assert "SHA-256" not in capsys.readouterr().out  # no manifest: nothing is claimed either way
+    (home / "models" / "tiny.gguf.manifest.json").write_text(json.dumps({"unverified": True}), encoding="utf-8")
+    assert main(["doctor"]) == 0
+    assert "downloaded without a SHA-256 check" in capsys.readouterr().out
+    assert main(["doctor", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["models"][0]["unverified"] is True

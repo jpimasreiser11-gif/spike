@@ -30,9 +30,11 @@ class ProjectError(ValueError):
 def clean_path(relative: str) -> PurePosixPath:
     """A relative path that stays inside its folder, or ProjectError. A `.git` folder is refused: git runs the commands
     its config names (core.fsmonitor, filters), so a project archive must not be able to plant one for the git calls
-    SPIKE makes in a project's folder (Parallel Prototypes)."""
+    SPIKE makes in a project's folder (Parallel Prototypes). A colon is refused in every part: in the first it is a drive
+    (`C:\\x`), in any other a Windows alternate data stream (`file.txt:stream`, `.git::$INDEX_ALLOCATION`)."""
     path = PurePosixPath(relative.replace("\\", "/"))
-    if not relative or path.is_absolute() or any(part in ("", "..") for part in path.parts) or ":" in path.parts[0]:
+    if (not relative or path.is_absolute() or any(part in ("", "..") for part in path.parts)
+            or any(":" in part for part in path.parts)):
         raise ProjectError(f"invalid file path '{relative}'")
     if any(is_git_name(part) for part in path.parts):
         raise ProjectError(f"invalid file path '{relative}': a .git folder is not part of a project's files")

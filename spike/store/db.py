@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from spike.runtime.urls import strip_url_secrets
 from spike.store import history
 
 SCHEMA = """
@@ -169,16 +170,22 @@ class Store:
                    "estimated, cost, files_sent, files_withheld, detail, conversation_id) "
                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                    (time.time(), provider_id, provider, model, int(local), status, tokens_in, tokens_out,
-                    int(estimated), cost, files_sent, files_withheld, detail, conversation_id))
+                    int(estimated), cost, files_sent, files_withheld, strip_url_secrets(detail), conversation_id))
 
     def calls(self, limit: int = 200, remote_only: bool = False) -> list[dict]:
         where = "WHERE local=0" if remote_only else ""
         rows = self._exec(f"SELECT * FROM calls {where} ORDER BY id DESC LIMIT ?", (limit,))
-        return [{**dict(r), "local": bool(r["local"]), "estimated": bool(r["estimated"])} for r in rows]
+        return [self._call(r) for r in rows]
 
     def calls_for(self, conversation_id: str) -> list[dict]:
         rows = self._exec("SELECT * FROM calls WHERE conversation_id=? ORDER BY id", (conversation_id,))
-        return [{**dict(r), "local": bool(r["local"]), "estimated": bool(r["estimated"])} for r in rows]
+        return [self._call(r) for r in rows]
+
+    @staticmethod
+    def _call(row: sqlite3.Row) -> dict:
+        """A call-log row; addresses in its detail lose their userinfo and query, also in rows an earlier version wrote."""
+        return {**dict(row), "local": bool(row["local"]), "estimated": bool(row["estimated"]),
+                "detail": strip_url_secrets(row["detail"])}
 
     def usage_since(self, provider_id: str, since: float) -> dict[str, float]:
         row = self._exec("SELECT COUNT(*) AS calls, COALESCE(SUM(tokens_in),0) AS tokens_in, "

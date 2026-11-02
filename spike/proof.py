@@ -21,6 +21,7 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 from spike import __version__
+from spike.runtime.urls import strip_url_secrets
 
 PROVIDER_FIELDS = ("id", "kind", "name", "base_url", "model", "paid", "allow_paid", "local", "share_files", "limits")
 SETTING_FIELDS = ("custom_instructions", "specialist_instructions", "tool_policies", "tools_enabled", "use_planner",
@@ -153,6 +154,8 @@ def build_proof(conv: dict[str, Any], messages: list[dict[str, Any]], calls: lis
                 "files": [{"path": f["path"], "existed": f["existed"], "before": f.get("before"),
                            "after": f.get("after"), **({"too_big": True} if f.get("too_big") else {})}
                           for f in cp["files"]]} for cp in checkpoints]
+    # an address may carry a key (`user:key@host`, `?api_key=`); a package is shared, so only scheme, host and path stay
+    calls = [{**c, "detail": strip_url_secrets(c["detail"])} if c.get("detail") else c for c in calls]
     used = {s.get("provider_id") for m in messages
             for s in ((m["meta"].get("route") or {}).get("specialists") or [])} | {c["provider_id"] for c in calls}
     manifest = {
@@ -161,7 +164,8 @@ def build_proof(conv: dict[str, Any], messages: list[dict[str, Any]], calls: lis
                 {"created_utc": _iso(conv["created"]), "temporary": temporary, "messages": len(messages)},
         "verification": {"status": "not_independently_verified"},
         "machine": environment_capsule(),
-        "providers": [{k: p.get(k) for k in PROVIDER_FIELDS if k in p} for p in providers if p["id"] in used],
+        "providers": [{k: strip_url_secrets(p[k]) if k == "base_url" else p[k] for k in PROVIDER_FIELDS if k in p}
+                      for p in providers if p["id"] in used],
         "settings": {k: settings.get(k) for k in SETTING_FIELDS if k in settings},
     }
     for section, key in (("chat", "chat"), ("environment", "machine"), ("providers", "providers"),

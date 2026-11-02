@@ -21,6 +21,7 @@ from spike.core.types import (
     StreamEvent,
 )
 from spike.providers.base import Provider, ProviderConfig
+from spike.runtime.urls import strip_url_secrets
 
 LIMIT_KEYS = ("monthly_tokens", "monthly_cost", "price_in", "price_out")
 
@@ -196,7 +197,8 @@ class GuardedProvider(Provider):
         try:
             answer = await self.inner.send_raw(payload, beta=beta)
         except Exception as exc:
-            self.log.log_call(**row, status="error", detail=str(exc)[:500], tokens_in=0, tokens_out=0, estimated=False)
+            self.log.log_call(**row, status="error", detail=strip_url_secrets(str(exc))[:500], tokens_in=0,
+                              tokens_out=0, estimated=False)
             raise
         usage = usage_tokens(answer.get("usage") or {}) if isinstance(answer, dict) else None
         self.log.log_call(**row, status="ok", detail="desktop step", tokens_in=(usage or (0, 0))[0],
@@ -231,6 +233,7 @@ class GuardedProvider(Provider):
                 elif ev.kind == "usage" and ev.usage:
                     usage = usage_tokens(ev.usage) or usage
                 elif ev.kind == "error":
+                    ev = replace(ev, text=strip_url_secrets(ev.text))  # an address in an error loses its key
                     status, detail = "error", ev.text[:500]
                 elif ev.kind == "done" and status == "cancelled":
                     status = "ok"

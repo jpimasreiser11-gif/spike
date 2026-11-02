@@ -32,6 +32,6 @@ def workspace_dir() -> Path:
 
 def is_git_name(part: str) -> bool:
     """Whether a path component is git's own folder, in the spellings a file system treats alike (case, trailing dots
-    and spaces on Windows, the 8.3 short name GIT~1)."""
-    name = part.rstrip(". ").lower()
+    and spaces on Windows, the 8.3 short name GIT~1, an NTFS stream name: `.git::$INDEX_ALLOCATION` is the folder)."""
+    name = part.split(":", 1)[0].rstrip(". ").lower()
     return name == ".git" or (name.startswith("git~") and name[4:].isdigit())

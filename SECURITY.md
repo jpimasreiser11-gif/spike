@@ -40,11 +40,18 @@ acknowledge reports within 7 days.
   type or paste yourself, the output of the `python` tool (you approve each script) and custom connectors.
   Optional monthly limits per provider (tokens, or spend at the prices you enter) stop calls before they are
   sent, and every call is written to a local call log (provider, model, tokens, files sent or withheld, status;
-  Settings → Privacy), kept 400 days.
+  Settings → Privacy), kept 400 days. An address in the call log, in a proof package (providers and call details) or in an
+  exported pack keeps its scheme, host, port and path only: userinfo (`user:key@host`), query (`?api_key=`) and fragment
+  are dropped. The text of your messages, and what a tool or a model wrote in a chat, is exported as it is.
 - Tools: file tools are confined to the workspace directory; `write_file`, `python` and `web_fetch` ask for
   permission by default. `web_fetch` refuses addresses that are not public (private, loopback, link-local, reserved, multicast and the shared
-  address space 100.64.0.0/10 that Tailscale and some cloud metadata services use, also written as IPv4-mapped IPv6) and redirects. It resolves the name
-  once to check it and the HTTP client resolves it again, so a DNS name that changes between the two is not covered.
+  address space 100.64.0.0/10 that Tailscale and some cloud metadata services use, also written as IPv4-mapped IPv6) and does not follow
+  redirects (the model is told where it goes, and fetching that address is a new call through the same checks). It resolves the
+  name once, checks every address the name gave, and connects to one of those addresses (the `Host` header, the TLS server name
+  and the certificate check stay those of the name), so a DNS name that changes after the check cannot move the request. Not
+  covered: when the environment sends the request through an HTTP proxy (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`) the proxy
+  connects and resolves the name itself; SPIKE then looks the name up again right before and refuses a changed answer, but
+  a change inside the proxy is not seen, so the proxy's own egress rules are the protection there.
   The Python tool runs in a separate process with CPU, memory (Linux) and time limits. Where the computer has
   `bwrap` (Linux) or `/usr/bin/sandbox-exec` (macOS), the code a model writes (`python`, `data_python`) also runs
   inside it (setting `sandbox`, `auto` by default): no network and no writes outside the working folder and a
@@ -60,7 +67,11 @@ acknowledge reports within 7 days.
 - Connectors (MCP servers): enabling a stdio connector runs its command on your computer (the app shows the exact
   command first; catalog entries pin a reviewed version). Their tools ask for permission by default. A server
   process receives only the variables it needs to start plus its own secrets, never SPIKE's token or provider
-  keys. Connector secrets are stored like provider keys and never returned by the API.
+  keys. Connector secrets are stored like provider keys and never returned by the API. A header whose name looks like a
+  credential (`Authorization`, `Cookie`, or a name with `key`, `token`, `secret`, `password`...) that was given a literal
+  value goes to the same key store when the connector is added, and a row saved by an earlier version is moved the first
+  time it is read; the settings database keeps only a `{HEADER_NAME}` placeholder. Other headers stay in the settings
+  database in clear. A value an earlier version wrote can remain in the database's freed pages until SQLite reuses them.
 - The browser connector (Playwright) is checked call by call, whatever its permission setting: a domain you have
   not allowed asks before it opens, a blocked one is refused, and submitting a form, accepting a dialog,
   uploading files or running code in a page asks every time; nobody can approve those for the `/v1` API or the
@@ -76,7 +87,7 @@ acknowledge reports within 7 days.
   module the model wrote; during the eval the file tools and `python` run without asking and `web_fetch` is
   refused.
 - `spike dev` works only inside the folder you start it on (paths outside are refused, symlinks resolved). Edits and commands ask first, showing the diff or the command; `--accept-edits` lets edits through, never commands. Edits can be undone with `/undo`; what a command does cannot, and a command runs with your user's rights, as the approval prompt says ("not isolated: approved commands run outside the sandbox in auto mode"), unless you set `sandbox` to `required` and the computer has one (then: no network, writes only in the folder), so read it before allowing it. `-p` and input that is not a terminal refuse every ask. Started on your home folder or a disk root it warns first.
-- Imported design systems are text: `DESIGN.md` and `tokens.css` up to 64 KB each (zips up to 4 MB, no paths outside the archive). Tokens may only hold CSS custom properties: `@import`, `url(`, `</style`, `expression(` and `javascript:` are refused, so a pasted token block cannot load anything or break out of a page's style. Their preview runs in the artifacts sandbox, and imported names are escaped.
+- Imported design systems are text: `DESIGN.md` and `tokens.css` up to 64 KB each (zips up to 4 MB, no paths outside the archive). Tokens may only hold CSS custom properties: `@import`, `url(`, `image-set(`, `</style`, `expression(` and `javascript:` are refused, also when CSS escapes spell them (`u\72l(`, `\40import`), so a pasted token block cannot load anything or break out of a page's style. Their preview runs in the artifacts sandbox, and imported names are escaped.
 - Real exchange orders (Spike Finance) are off by default. Turning them on needs an exchange, a list of markets, a per-order and a 24-hour limit, and your confirmation that the API key cannot withdraw funds (on Binance SPIKE asks the exchange and refuses a key that can); the exchange's test network is the default. A model can only propose an order: the chat shows it and nothing is sent until you click Confirm and then "Yes, send it", after the settings and limits are checked again; a proposal expires after 10 minutes and a second click cannot send it twice. The tool that proposes is never offered to `/v1` or MCP callers. Exchange keys go to the key store like provider keys and are never returned by the API; keys and real-order settings can only be changed, and orders confirmed, from a browser on the computer SPIKE runs on (not from another machine or another site). Backtests and paper trading use public prices only.
 - Spike Motion plays a video scene in a headless Chromium (with its sandbox, except when SPIKE runs as root, where Chromium refuses it) that cannot reach the network: every request except the scene itself is refused, and the scene's Content Security Policy allows only inline code and `data:` images and fonts. Pop-ups are closed and dialogs dismissed; rendering stops after 10 minutes and videos are at most 60 s and 1920 px. `render_video` asks before writing the video, like `write_file`.
 - Spike Data runs the model's SQL in an in-memory DuckDB that is locked after your files are loaded: it cannot read or write other files, attach databases, install or load extensions, see Python objects or change its own settings, and a query stops after 30 s. Only files inside the workspace (or the project folder) load; links that point outside it are refused, and SQLite files open read-only. `data_python` asks first, like `python`, and works on copies of the files. Charts are built by SPIKE from the query's rows; the app draws them without generating code and refuses any request a chart tries to make. Reports are built locally; nothing is uploaded.
@@ -119,8 +130,9 @@ acknowledge reports within 7 days.
 - MCP Apps: a connector's view (HTML its server wrote) runs in an iframe with `sandbox="allow-scripts"` and no `allow-same-origin`, so it has an opaque origin: it cannot read SPIKE's storage or cookies, call SPIKE's API (its CSP blocks it too) or touch the app's window. Its CSP only allows the public https/wss origins the server declared (shown above the view); localhost, IP addresses, `.local` names and plain http are dropped. It gets no camera, microphone, location or clipboard. SPIKE serves only views that a tool of that connector declared. A view can call only tools of its own connector that allow it, under each tool's permission (an "ask" tool waits for your click in the card); opening a link asks first; a chat message from a view is put in the text box for you to send; context a view gives goes to the model once, marked as data. Every call is written to `$SPIKE_HOME/connectors/apps-audit.jsonl`. A view can still show misleading content, so it always appears inside a SPIKE frame naming its connector.
 - Project files are served as downloads (`application/octet-stream`, `Content-Security-Policy: sandbox`), so an
   uploaded HTML file cannot run with the app's origin. Imported project archives are checked for unsafe paths
-  and size before anything is written. A path through a `.git` folder (any spelling the file system treats alike,
-  including `GIT~1`) is refused in archives, uploads, packs and `write_file`: git runs programs named in a repository's
+  and size before anything is written. A project path with a `:` in any part is refused (a drive letter, or on Windows an
+  alternate data stream such as `file.txt:stream`). A path through a `.git` folder (any spelling the file system treats alike,
+  including `GIT~1` and `.git::$INDEX_ALLOCATION`) is refused in archives, uploads, packs and `write_file`: git runs programs named in a repository's
   `.git/config` (`core.fsmonitor`, filters, aliases), and Parallel Prototypes runs git in a project's folder.
 - A pack (`spike-pack` zip) can carry custom connectors, but only the fields the connector form can enter (name,
   transport, command, arguments, address, description) are imported: environment variables, headers, secret
@@ -160,4 +172,7 @@ acknowledge reports within 7 days.
 - Model output is rendered as sanitized Markdown (DOMPurify). The built frontend only calls the local
   `/api/*` endpoints ([audit](docs/audits/2026-10-17-web-bundle-rea.md)).
 - Downloads: models are fetched only from allowlisted licenses and verified against the SHA-256 published by
-  the Hub.
+  the Hub. When the Hub publishes none, `spike models pull` refuses and saves nothing; `--allow-unverified` downloads
+  anyway, prints a warning, and writes `<model>.gguf.manifest.json` next to the file with `"unverified": true`
+  (`spike doctor` repeats it). The desktop setup never accepts a file without a hash. Release workflows pin every
+  GitHub Action to a full commit SHA, and the real-model installer check only accepts a build of `main` or of a version tag.

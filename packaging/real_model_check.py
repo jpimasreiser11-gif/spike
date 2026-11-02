@@ -125,10 +125,34 @@ def verify_artifact(folder: Path, target: str) -> tuple[Path, dict]:
     return artifact, record
 
 
+def from_main_or_a_tag_push(run: dict) -> bool:
+    """Whether the run builds code that reached main or was tagged as a release. A branch that is not main can hold
+    anything its author pushed, and the installers of its run would be tested and reported as SPIKE's. A tag push is
+    the one event that names a tag in `head_branch`; release.yml only starts on `v*` tags, and the tag must be a
+    version (a run started by hand on a tag is not accepted: start it on main, or push the tag)."""
+    branch = run.get("head_branch")
+    if branch == "main" and run.get("event") != "pull_request":
+        return True
+    if run.get("event") != "push" or not isinstance(branch, str) or not branch.startswith("v"):
+        return False
+    try:
+        release.validate_version(branch[1:])
+    except ValueError:
+        return False
+    return True
+
+
 def check_source_run(run: dict, artifacts: dict) -> dict:
-    """Only a completed, successful "Native installers" run with all three native-* artifacts unexpired qualifies."""
+    """Only a completed, successful "Native installers" run of main or of a version tag push, with all three native-*
+    artifacts unexpired, qualifies."""
     if run.get("name") != "Native installers" or not str(run.get("path", "")).split("@")[0].endswith("/release.yml"):
         raise ValueError('The run is not a "Native installers" run')
+    repository, head = (run.get(k) or {} for k in ("repository", "head_repository"))
+    if repository.get("full_name") and head.get("full_name") and repository["full_name"] != head["full_name"]:
+        raise ValueError("The run comes from another repository (a fork); use a run of this repository")
+    if not from_main_or_a_tag_push(run):
+        raise ValueError(f"The run is from {run.get('head_branch')!r} ({run.get('event')}), not from main or a version "
+                         "tag push; run Native installers on main, or push the release tag, and use that run")
     if run.get("status") != "completed" or run.get("conclusion") != "success":
         raise ValueError(f"The run did not succeed (status {run.get('status')}, conclusion {run.get('conclusion')})")
     found = {a.get("name"): a for a in artifacts.get("artifacts", []) if isinstance(a, dict)}

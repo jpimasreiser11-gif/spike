@@ -584,12 +584,21 @@ def test_uninstall_that_damages_the_profile_is_reported(world):
     assert result["failed_stage"] == "uninstall" and "changed the user's profile" in result["error"]
 
 
+def native_run(**change) -> dict:
+    """What GET /repos/OWNER/REPO/actions/runs/ID returns for a run started by hand on main (the fields the check reads)."""
+    return {"name": "Native installers", "path": ".github/workflows/release.yml", "status": "completed",
+            "conclusion": "success", "head_sha": SHA, "head_branch": "main", "event": "workflow_dispatch",
+            "run_number": 7, "created_at": "2026-11-02T10:00:00Z"} | change
+
+
+def native_artifacts() -> dict:
+    return {"artifacts": [{"name": f"native-{t}", "expired": False} for t in rmc.release.TARGETS]}
+
+
 def test_source_run_must_be_a_successful_native_installers_run_with_live_artifacts():
-    run = {"name": "Native installers", "path": ".github/workflows/release.yml", "status": "completed",
-           "conclusion": "success", "head_sha": SHA, "run_number": 7, "created_at": "2026-11-02T10:00:00Z"}
-    artifacts = {"artifacts": [{"name": f"native-{t}", "expired": False} for t in rmc.release.TARGETS]}
+    run, artifacts = native_run(), native_artifacts()
     assert rmc.check_source_run(run, artifacts) == {"head_sha": SHA, "run_number": 7, "created_at": "2026-11-02T10:00:00Z"}
-    tagged = {**run, "path": ".github/workflows/release.yml@refs/tags/v0.1.0"}
+    tagged = {**run, "path": ".github/workflows/release.yml@refs/tags/v0.1.0", "head_branch": "v0.1.0", "event": "push"}
     assert rmc.check_source_run(tagged, artifacts)["run_number"] == 7
     for change, message in (({"name": "CI"}, "not a"), ({"path": ".github/workflows/ci.yml"}, "not a"),
                             ({"conclusion": "failure"}, "did not succeed"), ({"status": "in_progress"}, "did not succeed"),
@@ -603,9 +612,43 @@ def test_source_run_must_be_a_successful_native_installers_run_with_live_artifac
         rmc.check_source_run(run, {"artifacts": artifacts["artifacts"][:2]})
 
 
+@pytest.mark.parametrize("change", [
+    {"head_branch": "feature/try-installers"},                       # a run of any other branch
+    {"head_branch": "feature/try-installers", "event": "push"},
+    {"head_branch": "v0.1.0"},                                         # a dispatch on a tag is not a tag push
+    {"head_branch": "release-v0.1.0", "event": "push"},               # not a version tag
+    {"head_branch": "v0.1", "event": "push"},
+    {"head_branch": "main", "event": "pull_request"},                 # a pull request from a branch called main
+    {"head_branch": None}, {"head_branch": ""},
+])
+def test_source_run_must_come_from_main_or_a_tag_push(change):
+    with pytest.raises(ValueError, match="main or a version tag"):
+        rmc.check_source_run(native_run(**change), native_artifacts())
+
+
+def test_source_run_without_a_branch_field_is_refused():
+    run = native_run()
+    del run["head_branch"]
+    with pytest.raises(ValueError, match="main or a version tag"):
+        rmc.check_source_run(run, native_artifacts())
+
+
+@pytest.mark.parametrize("change", [{"head_branch": "main", "event": "push"}, {"head_branch": "main"},
+                                    {"head_branch": "v1.2.3-rc.1", "event": "push"}])
+def test_source_run_accepts_main_and_version_tags(change):
+    assert rmc.check_source_run(native_run(**change), native_artifacts())["head_sha"] == SHA
+
+
+def test_source_run_from_another_repository_is_refused():
+    run = native_run(repository={"full_name": "owner/spike"}, head_repository={"full_name": "fork/spike"})
+    with pytest.raises(ValueError, match="another repository"):
+        rmc.check_source_run(run, native_artifacts())
+    same = native_run(repository={"full_name": "owner/spike"}, head_repository={"full_name": "owner/spike"})
+    assert rmc.check_source_run(same, native_artifacts())["run_number"] == 7
+
+
 def test_source_command_reads_the_json_and_writes_github_outputs(tmp_path, monkeypatch, capsys):
-    run = {"name": "Native installers", "path": ".github/workflows/release.yml", "status": "completed",
-           "conclusion": "success", "head_sha": SHA, "run_number": 9, "created_at": "2026-11-02T10:00:00Z"}
+    run = native_run(run_number=9)
     (tmp_path / "run.json").write_text(json.dumps(run), encoding="utf-8")
     (tmp_path / "artifacts.json").write_text(json.dumps(
         {"artifacts": [{"name": f"native-{t}", "expired": False} for t in rmc.release.TARGETS]}), encoding="utf-8")
@@ -644,7 +687,7 @@ def test_workflow_is_manual_read_only_clean_machine_per_os_and_pins_its_tools():
         "Darwin-arm64": "macos-latest", "Windows-AMD64": "windows-2022", "Linux-x86_64": "ubuntu-24.04"}
     assert set(check["strategy"]["matrix"]["include"][0]) == {"os", "target"} and check["strategy"]["fail-fast"] is False
     assert check["timeout-minutes"] >= 90 and set(check["needs"]) == {"lint", "source"}
-    download = next(s for s in check["steps"] if str(s.get("uses", "")).startswith("actions/download-artifact@v4"))
+    download = next(s for s in check["steps"] if str(s.get("uses", "")).startswith("actions/download-artifact@"))
     assert download["with"]["run-id"] == "${{ inputs.run_id }}" and download["with"]["github-token"] == "${{ github.token }}"
     assert download["with"]["name"] == "native-${{ matrix.target }}"
     assert "--default-profile" in text and "packaging/real_model_check.py run" in text
@@ -659,6 +702,6 @@ def test_workflow_is_manual_read_only_clean_machine_per_os_and_pins_its_tools():
     assert pinned and all("httpx==" in p and "psutil==" in p for p in pinned)
     printed = [s for s in check["steps"] if "cat " in s.get("run", "")]
     assert printed and printed[0]["if"] == "always()"
-    upload = next(s for s in check["steps"] if str(s.get("uses", "")).startswith("actions/upload-artifact@v4"))
+    upload = next(s for s in check["steps"] if str(s.get("uses", "")).startswith("actions/upload-artifact@"))
     assert upload["if"] == "always()"
     assert set(m["target"] for m in check["strategy"]["matrix"]["include"]) == set(rmc.release.TARGETS)

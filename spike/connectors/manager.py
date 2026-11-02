@@ -28,6 +28,8 @@ CATALOG = Path(__file__).with_name("catalog.yaml")
 POLICIES = ("allow", "ask", "deny")
 ID_PATTERN = r"^[a-z0-9][a-z0-9-]{0,30}$"
 START_TIMEOUT_S = 120  # npx/uvx may download the server on first start
+SECRET_HEADER = re.compile(r"auth|cookie|token|secret|key|passw|credential|signature|session", re.IGNORECASE)
+PLACEHOLDER = re.compile(r"\{[A-Za-z_][A-Za-z0-9_]*\}")
 
 
 @dataclass
@@ -125,8 +127,44 @@ class ConnectorManager:
 
     # ------------------------------------------------------------------ definitions and settings
     def definitions(self) -> list[ConnectorDef]:
-        custom = [ConnectorDef.from_dict(raw, custom=True) for raw in self.store.get_setting("custom_connectors", [])]
-        return self.catalog + custom
+        return self.catalog + [ConnectorDef.from_dict(raw, custom=True) for raw in self._custom_rows()]
+
+    def _custom_rows(self) -> list[dict[str, Any]]:
+        """The stored custom connectors. A row an earlier version saved can hold a credential typed literally in a
+        header: it moves to the key store now and the row is saved without it."""
+        rows = self.store.get_setting("custom_connectors", [])
+        moved = False
+        for raw in rows:
+            try:
+                moved |= isinstance(raw, dict) and self._vault_headers(raw)
+            except Exception:  # the key store refused: the row stays as it was, and the next read tries again
+                continue
+        if moved:
+            self.store.set_setting("custom_connectors", rows)
+        return rows
+
+    def _vault_headers(self, raw: dict[str, Any]) -> bool:
+        """Move the literal value of every credential-looking header (Authorization, Cookie, `*-Key`, `*-Token`...) of
+        a custom connector row into the key store, where provider keys and connector secrets live, and leave a
+        `{HEADER_NAME}` placeholder in the row, declared as one of the connector's secrets. A value that already uses a
+        placeholder, and headers that do not look like credentials, stay as they are. Raises if the key store does."""
+        headers = dict(raw.get("headers") or {})
+        found = {name: value for name, value in headers.items()
+                 if isinstance(value, str) and value and SECRET_HEADER.search(name) and not PLACEHOLDER.search(value)}
+        if not found:
+            return False
+        secrets, taken = list(raw.get("secrets") or []), set()
+        for header, value in found.items():
+            key = "HEADER_" + re.sub(r"[^A-Za-z0-9]+", "_", header).strip("_").upper()
+            while key in taken:
+                key += "_2"
+            taken.add(key)
+            self.secrets.set(self._secret_key(raw["id"], key), value)
+            headers[header] = "{" + key + "}"
+            if not any(isinstance(x, dict) and x.get("name") == key for x in secrets):
+                secrets.append({"name": key, "label": f"{header} header"})
+        raw["headers"], raw["secrets"] = headers, secrets
+        return True
 
     def get(self, cid: str) -> ConnectorDef | None:
         return next((d for d in self.definitions() if d.id == cid), None)
@@ -173,9 +211,13 @@ class ConnectorManager:
         if definition.transport not in ("stdio", "http"):
             raise ValueError("transport must be 'stdio' or 'http'")
         stored = {k: v for k, v in definition.public().items() if k not in ("custom", "header_names")}
-        self.store.set_setting("custom_connectors", [*self.store.get_setting("custom_connectors", []),
-                                                     stored | {"headers": definition.headers}])
-        return definition
+        stored["headers"] = definition.headers
+        try:
+            self._vault_headers(stored)
+        except Exception as exc:
+            raise ValueError("the key store refused the header values; nothing was saved") from exc
+        self.store.set_setting("custom_connectors", [*self.store.get_setting("custom_connectors", []), stored])
+        return ConnectorDef.from_dict(stored, custom=True)
 
     async def remove_custom(self, cid: str) -> None:
         definition = self.get(cid)
