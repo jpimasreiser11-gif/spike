@@ -58,6 +58,7 @@ from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.state import AppState
 from spike.server.workspace_api import create_workspace_router
+from spike.server.subtitles_api import create_subtitles_router
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
 from spike.tools.documents import MissingLibrary
@@ -1418,6 +1419,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_memory_router(st, check_scope, this_computer))
     app.include_router(create_desktop_router(st, this_computer))
     app.include_router(create_media_router(st, this_computer))
+    app.include_router(create_subtitles_router(st, this_computer))
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")

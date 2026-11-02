@@ -8,6 +8,7 @@ import { D as DESKTOP, DesktopTask } from "./components/Desktop";
 import { Forge } from "./components/Forge";
 import { Creator, type CreatorExtra } from "./components/Creator";
 import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
+import { SubtitleStudio } from "./components/SubtitleStudio";
 import { Lab } from "./components/Lab";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
@@ -112,6 +113,7 @@ export default function App() {
   }, []);
   useEffect(() => { setCommentThreads([]); }, [activeId, project?.id]);
   const [forgeOpen, setForgeOpen] = useState(false);
+  const [subtitlesOpen, setSubtitlesOpen] = useState(false);
   const [labOpen, setLabOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(false);
@@ -335,6 +337,7 @@ export default function App() {
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
         <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
         <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
+        <button className="side-btn" disabled={busy} onClick={() => setSubtitlesOpen(true)}>{t.subtitles.title}</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
@@ -449,6 +452,8 @@ export default function App() {
       {workspaceOpen && <WorkspacePanel specialists={specialists} onClose={() => setWorkspaceOpen(false)} />}
       {commentThreads.length > 0 && <button className="btn comment-selection" onClick={() => setCommentThreads([])}>{t.selectedComments}: {commentThreads.length} · {t.clearComments}</button>}
       {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
+
+      {subtitlesOpen && <SubtitleStudio projectId={project?.id} projectName={project?.name} onClose={() => setSubtitlesOpen(false)} />}
 
       {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}
 
