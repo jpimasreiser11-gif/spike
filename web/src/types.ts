@@ -106,7 +106,7 @@ export type ToolState = {
   file?: string; // workspace path of a file the tool wrote
   checkpoint?: string; // copy kept before the tool changed files: the step can be undone
   undone?: boolean;
-  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi; // something to act on or look at next to the result
+  ui?: { kind: "live_order"; order: LiveOrder } | McpAppUi | DataUi | VideoUi | DiagnosticUi | ExplorerUi; // something to act on or look at next to the result
 };
 
 /** Spike Data: a data file loaded as a table for a query. */
@@ -559,4 +559,35 @@ export type DiagnosticUi = {
   licenses?: { package: string; license: string; status: string }[];
   issues?: { code: string; selector: string; [key: string]: unknown }[];
   screenshot?: string; url?: string;
+};
+
+/** Spike Geo (A16): a GeoJSON/CSV map drawn as an SVG by the server, with the numbers computed on a sphere. */
+export type GeoRow = { name: string; points: number; length_km: number | null; perimeter_km: number | null; area_km2: number | null; value?: number | null };
+export type GeoUi = {
+  kind: "geo_map"; title: string; svg: string; source: string; projection: string; lat_ts: number; radius_km: number;
+  stats: { features: number; points: number; lines: number; polygons: number }; bbox: number[]; value: string | null;
+  legend: { label: string; count: number }[]; rows: GeoRow[]; rows_truncated: boolean; skipped: string[]; truncated?: Record<string, number> | null;
+};
+
+/** Architecture Explorer (A16): the module graph of a folder as an SVG, and its import cycles. */
+export type ArchitectureCycle = { size: number; members: string[]; more: number; path: string[] };
+export type ArchitectureUi = {
+  kind: "architecture"; title: string; svg: string; lazy: boolean; cycles: ArchitectureCycle[]; cycles_total: number;
+  stats: { modules: number; python: number; javascript: number; edges: number; static: number; lazy: number; type: number;
+    external: number; unresolved: number; cycles: number; in_cycles: number; shown: number };
+  truncated: Record<string, number>; errors: string[];
+};
+export type ExplorerUi = GeoUi | ArchitectureUi;
+
+/** Spike View recorder (A16): the recording in progress, the saved scripts and the replay, as the server reports them. */
+export type ViewStep = { n: number; action: "navigate" | "click" | "type" | "select" | "press"; name: string; url?: string; key?: string;
+  text?: string; values?: string[]; secret?: boolean; submits?: boolean; status?: "pending" | "done" | "skipped" | "failed" };
+export type ViewScript = { id: string; name?: string; created?: string; steps?: number; error?: string };
+export type ViewQuestion = { id: string; kind: "step" | "submit" | "domain" | "blocked" | "secret" | "failed"; code: string; step: number;
+  domain: string | null; detail: string; reason: string; options: string[] };
+export type ViewReplay = { state: "idle" | "running" | "waiting" | "done" | "stopped" | "error"; reason: string; mode: "auto" | "step";
+  script: { id: string; name: string } | null; index: number; total: number; steps: ViewStep[]; question: ViewQuestion | null };
+export type ViewStatus = {
+  running: boolean; scripts: ViewScript[]; replay: ViewReplay;
+  recording: { recording: boolean; name: string; steps: ViewStep[]; ignored: Record<string, number>; truncated: boolean };
 };

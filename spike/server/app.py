@@ -53,6 +53,7 @@ from spike.server.memory_api import create_memory_router
 from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.state import AppState
+from spike.server.view_api import create_view_router
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
 from spike.tools.documents import MissingLibrary
@@ -1402,6 +1403,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
     app.include_router(create_memory_router(st, check_scope, this_computer))
     app.include_router(create_desktop_router(st, this_computer))
+    app.include_router(create_view_router(st, this_computer))  # A16 browser recorder and replay
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")

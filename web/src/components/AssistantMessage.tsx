@@ -8,6 +8,7 @@ import { ArtifactContext, artifactFromCode } from "./Artifact";
 import { DataView, ReportActions, isData } from "./DataViews";
 import { DiagnosticCard } from "./DevDiagnostics";
 import { DesktopRecordView } from "./Desktop";
+import { ArchitectureCard, GeoCard } from "./Explorer";
 import { LiveOrderCard } from "./Finance";
 import { McpAppView } from "./McpApp";
 import { M } from "./Memory";
@@ -421,6 +422,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
         ? <LiveOrderCard key={tool.ui.order.id} initial={tool.ui.order} readOnly={replay} />
         : tool.ui?.kind === "mcp_app" ? <McpAppView key={`${tool.id}-${i}`} ui={tool.ui} args={tool.arguments} readOnly={replay} />
           : tool.ui?.kind === "dev_diagnostic" ? <DiagnosticCard key={`${tool.id}-${i}`} ui={tool.ui} />
+          : tool.ui?.kind === "geo_map" ? <GeoCard key={`${tool.id}-${i}`} ui={tool.ui} />
+          : tool.ui?.kind === "architecture" ? <ArchitectureCard key={`${tool.id}-${i}`} ui={tool.ui} />
           : isData(tool.ui) ? <DataView key={`${tool.id}-${i}`} ui={tool.ui} />
             : tool.ui?.kind === "video" && !replay ? <VideoCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} /> : null)}
 
