@@ -93,8 +93,11 @@ def stage_archive(archive: Path, dest: Path, target: str, sha256: str, license_f
                     entries.append((name, stream.read(), source.mode & 0o777))
     license_text = license_file.read_text(encoding="utf-8")
     # Upstream archives ship llama.cpp's own LICENSE: accepted only if it is the text SPIKE bundles, then written once.
-    for name, data, _ in [e for e in entries if e[0] == "LICENSE"]:
-        if data.decode("utf-8", "replace").replace("\r\n", "\n").strip() != license_text.replace("\r\n", "\n").strip():
+    def text(raw: str) -> str:
+        return raw.replace("\r\n", "\n").strip()
+
+    for data in [data for name, data, _ in entries if name == "LICENSE"]:
+        if text(data.decode("utf-8", "replace")) != text(license_text):
             raise ValueError("Archive LICENSE differs from packaging/licenses/llama.txt")
     entries = [e for e in entries if e[0] != "LICENSE"]
     names = [name for name, _, _ in entries]
