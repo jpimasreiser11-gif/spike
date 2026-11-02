@@ -64,3 +64,16 @@ def test_every_unverified_source_in_the_registry_has_a_formatter():
 
     unverified = {n: s for n, s in registry.items() if s.get("license_status") == "unverified"}
     assert unverified and all(s["format"] in FORMATTERS and "hub" in s for s in unverified.values())
+
+
+def test_probe_reads_candidates_that_are_not_in_the_registry(tmp_path, monkeypatch):
+    def metadata(repo):
+        if repo == "bad/x":
+            raise OSError("404")
+        return {"license_hub": "apache-2.0", "gated": False, "sha": "s", "last_modified": None, "card": "c"}
+
+    monkeypatch.setattr(verify_sources, "hub_metadata", metadata)
+    out = tmp_path / "p.json"
+    assert verify_sources.main(["--probe", "good/y", "bad/x", "--out", str(out)]) == 0
+    probes = json.loads(out.read_text(encoding="utf-8"))["probes"]
+    assert probes[0]["license_hub"] == "apache-2.0" and probes[1]["error"] == "OSError: 404"

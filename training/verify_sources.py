@@ -9,6 +9,7 @@ card text, upstream rights and how the data was produced are read by a person, n
 
     python training/verify_sources.py --out sources-report.json            # every unverified source
     python training/verify_sources.py --names gsm8k-train mbpp-test --out r.json
+    python training/verify_sources.py --probe allenai/scitail --out r.json   # candidates not in the registry yet
 """
 
 from __future__ import annotations
@@ -99,8 +100,19 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--names", nargs="*", help="registry names (default: every license_status: unverified source)")
     ap.add_argument("--registry", default=str(ROOT / "training" / "datasets.yaml"))
+    ap.add_argument("--probe", nargs="*", default=[], help="Hub datasets not in the registry: metadata and card only")
     ap.add_argument("--out", required=True)
     args = ap.parse_args(argv)
+    if args.probe:
+        report = {"created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "probes": []}
+        for repo in args.probe:
+            try:
+                report["probes"].append({"hub": repo, **hub_metadata(repo)})
+            except Exception as exc:  # recorded; the next candidate still runs
+                report["probes"].append({"hub": repo, "error": f"{type(exc).__name__}: {exc}"})
+            print(f"{repo}: hub_license={report['probes'][-1].get('license_hub')} error={report['probes'][-1].get('error')}")
+        Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        return 0
     registry = yaml.safe_load(Path(args.registry).read_text(encoding="utf-8"))["sources"]
     names = args.names or [n for n, s in registry.items() if s.get("license_status") == "unverified"]
     unknown = [n for n in names if n not in registry]

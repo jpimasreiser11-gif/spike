@@ -10,6 +10,10 @@ on:
         description: "Registry names, space-separated (empty: every unverified source)"
         type: string
         default: ""
+      probe:
+        description: "Hub datasets not in the registry, space-separated: metadata and card only (instead of names)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -27,9 +31,10 @@ jobs:
       - name: Read the Hub and stream every row of each source
         env:
           NAMES: ${{ inputs.names }}
+          PROBE: ${{ inputs.probe }}
         run: |
           # shellcheck disable=SC2086
-          python training/verify_sources.py ${NAMES:+--names $NAMES} --out sources-report.json || echo "some sources failed; see the report"
+          python training/verify_sources.py ${PROBE:+--probe $PROBE} ${NAMES:+--names $NAMES} --out sources-report.json || echo "some sources failed; see the report"
           pip freeze | grep -iE '^(datasets|huggingface.hub|httpx)==' > versions.txt
       - name: The report in the log too (for reviewers who cannot download artifacts)
         run: cat versions.txt sources-report.json
