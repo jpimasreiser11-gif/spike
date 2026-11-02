@@ -20,7 +20,9 @@ One heavy job at a time (the Mac stays usable), stopping at the first accepted r
       off per request; 4 slots, a context per slot of at least twice train.max_seq_length, q8_0 KV cache as run_eval.py),
       then self_replay.py (--resume when training/data/<id>/self_replay.jsonl.partial exists). The server is stopped
       however this step ends. Skipped when self_replay.jsonl and self_replay.summary.json exist.
-   c. prepare: `prepare.py --self-replay`; stops if the replay share of the mix is below the recipe's ratio (a smoke run's
+   c. prepare: `prepare.py --self-replay --fit-domain` (long answers are dropped, so the domain chats are sampled to keep
+      the recipe's ratio: a second, recorded difference, counts.domain_before_fit); stops if the replay share of the mix is
+      below the recipe's ratio or under 40 % of the domain chats remain (a smoke run's
       few answers would change two things at once) or the manifest does not record the file.
    d. train: `training/scripts/train_supervised.sh` (RAM guard, resumes from its checkpoints).
    e. sweep2: `sweep_checkpoints.py` again, now on the new run. Its exit code is the verdict: 0 accepted, 2 rejected.
@@ -71,6 +73,7 @@ except ImportError:  # Windows: no lock, the Mac is the machine this runs on
 PARALLEL = 4             # llama-server slots and self_replay.py requests in flight
 MIN_CTX_PER_SLOT = 2048  # a slot holds a prompt and its answer (train.max_seq_length tokens at most): twice that, or this
 NGL = 99                 # GPU layers, run_eval.py's default for Apple silicon
+MIN_DOMAIN_KEPT = 0.4    # prepare.py --fit-domain may sample the domain chats down to this share, no further
 RATIO_SLACK = 0.02       # prepare.py warns when the replay share is further than this below the recipe's ratio
 STOP_GRACE_SEC = 60      # a command told to stop (SIGTERM) gets this long before SIGKILL; the RAM guard needs ~30 s
 ARCHIVED = ("adapter", "sweep")
@@ -248,7 +251,8 @@ def self_replay_cmd(job: Job, base_url: str, resume: bool) -> list[str]:
 
 
 def prepare_cmd(job: Job) -> list[str]:
-    return [sys.executable, str(ROOT / "training" / "prepare.py"), str(job.recipe), "--self-replay", str(job.replay)]
+    return [sys.executable, str(ROOT / "training" / "prepare.py"), str(job.recipe), "--self-replay", str(job.replay),
+            "--fit-domain"]
 
 
 def train_cmd(job: Job) -> list[str]:
@@ -395,7 +399,13 @@ def check_mix(job: Job) -> dict:
                          f"too few answers (a --limit smoke run, or many were dropped: see "
                          f"{shown(job.replay.with_suffix('.summary.json'))}). Training was not started, so the replay source "
                          f"stays the only change; delete training/data/{job.spec}/self_replay.* and run the same command again")
-    return {key: counts[key] for key in ("domain", "replay_available", "train", "valid", "iters") if key in counts} | {
+    before, domain = counts.get("domain_before_fit"), counts.get("domain")
+    if isinstance(before, int) and isinstance(domain, int) and domain < MIN_DOMAIN_KEPT * before:
+        raise SystemExit(f"prepare: only {domain / before:.0%} of the {before} domain chats fit {job.replay.name} at the recipe's "
+                         f"ratio (a --limit smoke run?). Training was not started; delete training/data/{job.spec}/self_replay.* "
+                         "and run the same command again")
+    return {key: counts[key] for key in ("domain", "domain_before_fit", "replay_available", "train", "valid", "iters")
+            if key in counts} | {
         "replay_ratio_actual": actual}
 
 
