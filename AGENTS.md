@@ -33,6 +33,9 @@ or `CHANGELOG.md` (Claude merges those). Put the text for STATUS and CHANGELOG i
   `spike/dev/tools.py`); paths stay inside the workspace or project; no secrets in logs, records or tests.
 - **Cross-platform**: Windows CI runs with cp1252, so every `read_text`/`write_text`/`open` passes `encoding="utf-8"`;
   paths written into records use `Path.as_posix()`; no POSIX-only calls without a guard.
+- **Reverse engineering**: REA (and any decompiling or bundle analysis) only on SPIKE's own builds or software the
+  owner is authorized to analyse. Never on other companies' apps, including AI assistants' desktop apps: research
+  other products only from their public documentation and what their UI shows in normal use.
 - **User-visible strings** in Spanish and English (`web/src/i18n.ts`).
 - **Merges stay small**: new HTTP routes in their own module with an `APIRouter`, registered with one line in
   `spike/server/app.py`; new UI in new component files.

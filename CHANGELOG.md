@@ -20,6 +20,12 @@ base model and the app marks it β until an adapter passes its acceptance tests.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- Spike Dev plans without changing anything (`--plan`, `/plan`, `/act`) and takes a skill per turn (`/skills`,
+  `/skill`); Forge takes up to three skills per task and imports skill ZIPs; deliverables share one download and
+  preview component (DEVFORGE1).
+- Undo checks its backups before restoring and restores atomically; skill and pack imports ignore Finder metadata
+  and validate before writing; the context window keeps tool calls with their results; dark mode meets WCAG AA
+  contrast; Replay and proof downloads work by keyboard (Gemini, G3 and G6 to G11).
 - Chat, projects, files, artifacts panel (isolated frame), Word/Excel/PowerPoint/PDF output, Markdown with
   sanitizing, undo of file changes, step-by-step replay, temporary chats.
 - Neural Memory (facts, decisions, rules, summaries, documents; local and editable).
