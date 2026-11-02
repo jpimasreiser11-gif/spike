@@ -91,11 +91,16 @@ def stage_archive(archive: Path, dest: Path, target: str, sha256: str, license_f
                 source = regular(info, set())
                 with tar.extractfile(source) as stream:
                     entries.append((name, stream.read(), source.mode & 0o777))
+    license_text = license_file.read_text(encoding="utf-8")
+    # Upstream archives ship llama.cpp's own LICENSE: accepted only if it is the text SPIKE bundles, then written once.
+    for name, data, _ in [e for e in entries if e[0] == "LICENSE"]:
+        if data.decode("utf-8", "replace").replace("\r\n", "\n").strip() != license_text.replace("\r\n", "\n").strip():
+            raise ValueError("Archive LICENSE differs from packaging/licenses/llama.txt")
+    entries = [e for e in entries if e[0] != "LICENSE"]
     names = [name for name, _, _ in entries]
     binary = "llama-server.exe" if target.startswith("Windows") else "llama-server"
-    if binary not in names or len(names) != len(set(names)) or {"LICENSE", "manifest.json"} & set(names):
+    if binary not in names or len(names) != len(set(names)) or "manifest.json" in names:
         raise ValueError("Missing server or conflicting archive paths")
-    license_text = license_file.read_text(encoding="utf-8")
     dest.mkdir(parents=True)
     for name, data, mode in entries:
         path = dest / name

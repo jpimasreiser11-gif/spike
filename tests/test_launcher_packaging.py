@@ -87,3 +87,27 @@ def test_tar_stage_preserves_safe_library_aliases_and_refuses_escaping_links(tmp
     mod["ASSETS"]["Darwin-arm64"]["sha256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match="Unsafe"):
         mod["stage_archive"](archive, tmp_path / "unsafe", "Darwin-arm64", "", license_file)
+
+
+def test_upstream_license_in_the_archive_is_accepted_only_when_it_is_the_bundled_text(tmp_path):
+    mod = helper()
+    license_file = tmp_path / "llama.txt"
+    license_file.write_text("MIT License\n\nCopyright (c) the ggml authors\n", encoding="utf-8")
+    for i, (upstream, ok) in enumerate(((b"MIT License\r\n\r\nCopyright (c) the ggml authors\r\n", True),
+                                        (b"Some other license", False))):
+        archive = tmp_path / str(i) / mod["ASSETS"]["Windows-AMD64"]["name"]
+        archive.parent.mkdir()
+        with zipfile.ZipFile(archive, "w") as z:  # as the b11709 release archives are laid out: one folder, own LICENSE
+            z.writestr("llama-b11709/llama-server.exe", b"fake executable")
+            z.writestr("llama-b11709/LICENSE", upstream)
+        digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+        mod["ASSETS"]["Windows-AMD64"]["sha256"] = digest
+        stage = tmp_path / f"stage{i}"
+        if ok:
+            mod["stage_archive"](archive, stage, "Windows-AMD64", digest, license_file)
+            assert (stage / "LICENSE").read_text(encoding="utf-8") == license_file.read_text(encoding="utf-8")
+            assert mod["validate_stage"](stage, "Windows-AMD64") == stage
+        else:
+            with pytest.raises(ValueError, match="LICENSE differs"):
+                mod["stage_archive"](archive, stage, "Windows-AMD64", digest, license_file)
+            assert not stage.exists()

@@ -15,7 +15,8 @@ if arch.lower() in {"aarch64", "arm64"}:
 elif arch.lower() in {"amd64", "x86_64"}:
     arch = "AMD64" if system == "Windows" else "x86_64"
 target = f"{system}-{arch}"
-stage = Path(os.environ.get("SPIKE_LLAMA_STAGE", root / "packaging" / "vendor" / target / "b11709"))
+# Absolute: PyInstaller resolves relative binary paths against the spec folder, not the working directory.
+stage = Path(os.environ.get("SPIKE_LLAMA_STAGE", root / "packaging" / "vendor" / target / "b11709")).resolve()
 runpy.run_path(str(root / "packaging" / "stage_llama.py"))["validate_stage"](stage, target)
 web = root / "web" / "dist"
 if not (web / "index.html").is_file():
