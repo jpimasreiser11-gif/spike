@@ -338,6 +338,53 @@ assistant message's `meta.desktop`).
   cover the setting and an approval card. The fixtures were written from the provider's documentation, not recorded
   from the live API, and the macOS and Windows drivers have only been run against fake programs.
 
+## 3D with Blender and games with Godot (A18)
+
+`spike/maker/` lets the Code specialist make a 3D scene with **Blender** and a small game with **Godot 4** using the
+user's own programs. SPIKE never downloads or installs either: they are found on the `PATH` (`blender`; `godot`, then
+`godot4`), and when one is missing the tool is refused before anyone is asked, saying where to get it (English and
+Spanish).
+
+| Tool | Risk, policy | What it does |
+|---|---|---|
+| `blender_render` | execute, ask | Saves the model's bpy `script` (or a `starter` with `params`) in the workspace (default `blender/scene.py`), runs Blender on it and returns a PNG preview |
+| `godot_scaffold` | write, ask | Writes a minimal Godot 4 project from the model's plan (`project.godot`, `main.tscn`, the `.gd` scripts); runs nothing |
+| `godot_check` | execute, ask | Runs Godot headless on a scaffolded project and reports what passed and the errors Godot printed |
+
+- **Asking and limits.** The two run tools execute code on the computer (the bpy script, the project's GDScript), so
+  they ask like `run_command` and the card shows the arguments and whether the run is isolated. They run through
+  `RunCommand`, as `dependency_doctor` does: in the workspace, a timeout (default 120 s, at most 600) that kills the
+  process group, capped output, and the `sandbox` setting (`required` wraps the program, or denies when the computer
+  has no sandbox; under `auto` an approved program is not wrapped and the card says so; a program installed outside
+  the system folders is not visible inside a `required` sandbox). `godot_scaffold` asks like `write_file`; its
+  `targets()` and the render's let a step be undone.
+- **Blender.** A call writes the script as given, a copy of `blender_scripts/render_driver.py` beside it
+  (`<name>.render.py`) and `<name>.preview.png`; the script path must end in `.py` and stay in the workspace, and the
+  model has no parameter for the preview path. Command: `blender --background --factory-startup --python-exit-code 1
+  --python <name>.render.py -- <script> <preview> 640 360 32`. The driver runs the script, adds a camera and a sun if it
+  made none, then sets Cycles on the CPU, 32 samples, 640x360, PNG, exactly that path, and renders, so nothing the
+  script sets can move or enlarge the preview. A script that raises ends Blender with exit code 1 and no preview (an
+  old preview is deleted first); a script that is not valid Python never starts Blender. The three starters
+  (`vase`, `studio_scene`, `staircase`) are original bpy scripts whose numbers are lines like
+  `HEIGHT = 2.0  # 0.2..10 total height`; `starters.py` checks a model's `params` against those ranges and rewrites
+  the lines.
+- **Godot.** `godot.py` checks a plan before writing (plain node names, Godot class names, parents before children,
+  relative `.gd` paths, property values that are numbers, booleans, text or one-line `=` expressions) and writes Godot
+  4's text formats (`config_version=5`, `format=3`); an existing `project.godot` is not overwritten without `replace`.
+  `godot_check` runs `godot --version` and takes the first of `godot`/`godot4` that is version 4 or newer, then, within
+  one timeout, `godot --headless --path <project> --check-only --script res://<script>` per `.gd` file (at most 40) and
+  `godot --headless --path <project> --quit` to load the main scene for one frame. A check fails on a non-zero exit
+  code or on output lines starting `SCRIPT ERROR:`, `ERROR:` or `Parse Error:` ("leaked at exit" notices are ignored).
+  The tool succeeds when the checks ran; the verdict is in the text and in `data["ui"]` (kind `godot_check`).
+- **Interface and tests.** `web/src/components/Maker.tsx` shows a card per result; the Blender card opens the
+  picture (an inline PNG, since the panel's page may load nothing else), the script and Blender's output in the
+  artifacts panel, the Godot card opens every check with its errors; all printed text is escaped; strings are in
+  `web/src/i18n.ts`. No new HTTP route. `tests/test_maker.py` uses fake `blender` and `godot` programs
+  (`tests/helpers_programs.py`) on a temporary `PATH`, and a stand-in `bpy` for the starters and the driver;
+  `web/src/maker.test.tsx` and the browser smoke test cover the cards. **No real Blender or Godot has been run**: that
+  Blender accepts the driver and the starters, and that Godot accepts the scaffolded files and the flags above, is
+  unverified.
+
 ## Trustworthy answers
 
 `spike/trust/` looks at an answer after it is written. No model decides that something is verified: the labels come

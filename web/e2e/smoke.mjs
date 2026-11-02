@@ -768,6 +768,46 @@ await page.frameLocator(".artifact-frame").getByRole("heading", { name: "Depende
 await page.frameLocator(".artifact-frame").getByText("Sin manifiesto compatible").first().waitFor();
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
 
+// A18: Blender renders a preview and Godot checks a game, both with fake programs on the server's PATH (the real ones
+// are the user's own). Every run is approved first; the preview and the check open in the artifacts panel.
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
+await page.locator("#composer-input").fill("Renderiza una escena en Blender");
+await page.keyboard.press("Enter");
+const blenderPermission = page.locator(".permission", { hasText: "blender_render" });
+await blenderPermission.getByText("Ejecutará Blender con este script en tu ordenador").waitFor();
+await blenderPermission.getByRole("button", { name: "Permitir una vez" }).click();
+const blenderCard = page.getByRole("region", { name: "Vista previa de Blender" });
+await blenderCard.waitFor();
+await page.waitForFunction(() => { const i = document.querySelector(".maker-card img"); return i && i.complete && i.naturalWidth > 0; });
+await blenderCard.getByRole("button", { name: "Ver vista previa 3D" }).click();
+const blenderFrame = page.frameLocator(".artifact-frame");
+await blenderFrame.getByRole("heading", { name: "Vista previa de Blender" }).waitFor();
+const previewSrc = await blenderFrame.locator("img").getAttribute("src");
+if (!previewSrc?.startsWith("data:image/png;base64,")) fail("the Blender preview is not an inline PNG: " + previewSrc?.slice(0, 40));
+if (await blenderFrame.locator("img").evaluate((i) => i.naturalWidth) !== 64) fail("the Blender preview did not decode");
+await blenderFrame.locator("pre", { hasText: "SUN_STRENGTH = 6.0" }).waitFor();
+await page.screenshot({ path: `${out}/07x-blender-preview.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
+await page.getByRole("button", { name: "Nuevo chat" }).click();
+await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
+await page.locator("#composer-input").fill("Crea un juego en Godot");
+await page.keyboard.press("Enter");
+await page.locator(".permission", { hasText: "godot_scaffold" }).getByRole("button", { name: "Permitir una vez" }).click();
+const godotPermission = page.locator(".permission", { hasText: "godot_check" });
+await godotPermission.getByText("Ejecutará Godot sin ventana").waitFor();
+await godotPermission.getByRole("button", { name: "Permitir una vez" }).click();
+const godotCard = page.getByRole("region", { name: "Comprobación de Godot" });
+await godotCard.getByText("Con errores").waitFor();
+await godotCard.getByText("jugador.gd").waitFor();
+await godotCard.getByRole("button", { name: "Ver resultado de Godot" }).click();
+const godotFrame = page.frameLocator(".artifact-frame");
+await godotFrame.getByRole("heading", { name: "Comprobación de Godot" }).waitFor();
+await godotFrame.getByText("Parse Error").first().waitFor();
+await page.screenshot({ path: `${out}/07y-godot-check.png` });
+await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+
 // artifacts: an HTML answer opens in the sandboxed panel and can reach neither SPIKE's storage nor its API
 await page.getByRole("button", { name: "Nuevo chat" }).click();
 await page.locator(".spec-chips .chip", { hasText: "Code" }).click();
