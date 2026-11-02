@@ -172,3 +172,224 @@ sources:
     role: eval
     format: gsm8k
     provenance: 1,319 grade-school math word problems with numeric answers.
+
+  # ------------------------------------------------------------------ M5 candidates (NOT cleared for use)
+  # All licenses below are claims pending Claude review, including underlying text/table rights.
+  # license_status: unverified blocks preparation (also offline) and evaluation before network access.
+  casehold-train:
+    hub: coastalcph/lex_glue
+    config: case_hold
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/coastalcph/lex_glue
+    role: train
+    format: case_hold
+    provenance: 'UNVERIFIED candidate. CaseHOLD: legal citing contexts and candidate holdings from US judicial opinions,
+      with human labels. Verify the dataset grant, underlying opinion rights, upstream schema and absence of generated
+      text before use.'
+  casehold-test:
+    hub: coastalcph/lex_glue
+    config: case_hold
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/coastalcph/lex_glue
+    role: eval
+    format: case_hold
+    provenance: 'UNVERIFIED candidate. CaseHOLD: legal citing contexts and candidate holdings from US judicial opinions,
+      with human labels. Verify the dataset grant, underlying opinion rights, upstream schema and absence of generated
+      text before use.'
+  openbookqa-train:
+    hub: allenai/openbookqa
+    config: main
+    split: train
+    license: apache-2.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/openbookqa
+    role: train
+    format: openbookqa
+    provenance: 'UNVERIFIED candidate. OpenBookQA: crowdworker-written elementary science questions and answer options,
+      based on science facts. Use the original main configuration, no generated explanations or fact1 in prompts.'
+  openbookqa-test:
+    hub: allenai/openbookqa
+    config: main
+    split: test
+    license: apache-2.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/openbookqa
+    role: eval
+    format: openbookqa
+    provenance: 'UNVERIFIED candidate. OpenBookQA: crowdworker-written elementary science questions and answer options,
+      based on science facts. Use the original main configuration, no generated explanations or fact1 in prompts.'
+  gsm8k-train:
+    hub: openai/gsm8k
+    config: main
+    split: train
+    license: mit
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/openai/gsm8k
+    role: train
+    format: gsm8k
+    provenance: UNVERIFIED candidate. GSM8K original human-written grade-school problems and human step-by-step solutions
+      (not model outputs). Verify the original data grant and authorship; no synthetic derivatives.
+  mbpp-train:
+    hub: google-research-datasets/mbpp
+    config: full
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/google-research-datasets/mbpp
+    role: train
+    format: mbpp
+    provenance: UNVERIFIED candidate. MBPP original crowdworker-written Python problems, reference programs and tests.
+      No model-generated augmentations. Recipes train only on the train split; the test split is eval-only. Tests are neither exposed in prompts nor executed.
+  mbpp-test:
+    hub: google-research-datasets/mbpp
+    config: full
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/google-research-datasets/mbpp
+    role: eval
+    format: mbpp
+    provenance: UNVERIFIED candidate. MBPP original crowdworker-written Python problems, reference programs and tests.
+      No model-generated augmentations. Recipes train only on the train split; the test split is eval-only. Tests are neither exposed in prompts nor executed.
+  wikisql-train:
+    hub: Salesforce/wikisql
+    split: train
+    license: bsd-3-clause
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/Salesforce/wikisql
+    role: train
+    format: wikisql
+    provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
+      SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
+      repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
+  wikisql-test:
+    hub: Salesforce/wikisql
+    split: test
+    license: bsd-3-clause
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/Salesforce/wikisql
+    role: eval
+    format: wikisql
+    provenance: UNVERIFIED candidate. WikiSQL original crowdworker-written natural-language questions and annotated
+      SQL over Wikipedia tables. Verify dataset grant and upstream Wikipedia attribution/share-alike obligations;
+      repository code license alone is not sufficient. Schema-only canonical SQL, no execution.
+
+  # M6 candidates. Source cards inspected; full license/provenance review remains required before any load.
+
+  qasc-train:
+    hub: allenai/qasc
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/qasc
+    role: train
+    format: qasc
+    provenance: UNVERIFIED candidate. Crowd-authored eight-choice elementary science questions. No fact1, fact2,
+      combinedfact or formatted_question is exposed. Education coverage is science QA, not interactive tutoring.
+
+  qasc-eval:
+    hub: allenai/qasc
+    split: validation
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/allenai/qasc
+    role: eval
+    format: qasc
+    provenance: UNVERIFIED candidate. Crowd-authored eight-choice elementary science questions. No fact1, fact2,
+      combinedfact or formatted_question is exposed. Education coverage is science QA, not interactive tutoring.
+
+  commonsenseqa-train:
+    hub: tau/commonsense_qa
+    split: train
+    license: mit
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/tau/commonsense_qa
+    role: train
+    format: commonsense_qa
+    provenance: UNVERIFIED candidate. Original crowd-authored CommonsenseQA questions and annotated answers. Review
+      upstream ConceptNet attribution. Common-sense QA only, not evidence of general agent capability.
+
+  commonsenseqa-eval:
+    hub: tau/commonsense_qa
+    split: validation
+    license: mit
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/tau/commonsense_qa
+    role: eval
+    format: commonsense_qa
+    provenance: UNVERIFIED candidate. Original crowd-authored CommonsenseQA questions and annotated answers. Review
+      upstream ConceptNet attribution. Common-sense QA only, not evidence of general agent capability.
+
+  banking77-train:
+    hub: PolyAI/banking77
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/PolyAI/banking77
+    role: train
+    format: banking77
+    provenance: UNVERIFIED candidate. Human banking-support queries and expert intent labels. Labels are schema
+      identifiers, not approved customer advice or bank policies. No synthetic instruction derivatives.
+
+  banking77-eval:
+    hub: PolyAI/banking77
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/PolyAI/banking77
+    role: eval
+    format: banking77
+    provenance: UNVERIFIED candidate. Human banking-support queries and expert intent labels. Labels are schema
+      identifiers, not approved customer advice or bank policies. No synthetic instruction derivatives.
+
+  phishing-url-train:
+    hub: pirocheto/phishing-url
+    split: train
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/pirocheto/phishing-url
+    role: train
+    format: phishing_url
+    provenance: UNVERIFIED candidate. Mirror of Hannousse and Yahiouche (2021) historical phishing/legitimate URLs.
+      URL text only, never fetch URLs or compute live features. Review original grant, mirror split, duplicates
+      and same-domain leakage; not a live security verdict.
+
+  phishing-url-eval:
+    hub: pirocheto/phishing-url
+    split: test
+    license: cc-by-4.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/pirocheto/phishing-url
+    role: eval
+    format: phishing_url
+    provenance: UNVERIFIED candidate. Mirror of Hannousse and Yahiouche (2021) historical phishing/legitimate URLs.
+      URL text only, never fetch URLs or compute live features. Review original grant, mirror split, duplicates
+      and same-domain leakage; not a live security verdict.
+
+  billsum-train:
+    hub: FiscalNote/billsum
+    split: train
+    license: cc0-1.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/FiscalNote/billsum
+    role: train
+    format: billsum_title
+    provenance: UNVERIFIED candidate. US congressional summaries and titles from BillSum, originally sourced from
+      GPO. Human summary-to-title supervision, not full-bill summarization. ca_test is excluded. Verify originating
+      public-domain grant and attribution. Exact title matching is diagnostic only; use pairwise acceptance.
+
+  billsum-eval:
+    hub: FiscalNote/billsum
+    split: test
+    license: cc0-1.0
+    license_status: unverified
+    license_url: https://huggingface.co/datasets/FiscalNote/billsum
+    role: eval
+    format: billsum_title
+    provenance: UNVERIFIED candidate. US congressional summaries and titles from BillSum, originally sourced from
+      GPO. Human summary-to-title supervision, not full-bill summarization. ca_test is excluded. Verify originating
+      public-domain grant and attribution. Exact title matching is diagnostic only; use pairwise acceptance.

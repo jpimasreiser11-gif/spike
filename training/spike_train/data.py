@@ -277,7 +277,229 @@ def fmt_mmlu_pro(row: dict[str, Any], system: str) -> Chat | None:
     ]}
 
 
+# Candidate human-authored specialist sources. All converters are pure; MBPP tests and SQL are never executed.
+CODE_INSTRUCTION = "Return only the Python solution in a fenced code block."
+SQL_INSTRUCTION = ('Return only SQL in a fenced code block, using table data, double-quoted column names and '
+                   'single-quoted values. Preserve the annotated condition order.')
+
+
+def fmt_case_hold(row: dict[str, Any], system: str) -> Chat | None:
+    """LexGLUE CaseHOLD: citing context and five candidate holdings; labels are zero-based."""
+    question = row.get("context")
+    options = row.get("endings") or []
+    label = row.get("label")
+    if not isinstance(question, str) or not question.strip() or len(options) != 5:
+        return None
+    if not all(isinstance(o, str) and o.strip() for o in options):
+        return None
+    if not isinstance(label, int) or not 0 <= label < 5:
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": mcq_prompt(question, options)},
+        {"role": "assistant", "content": f"Answer: {LETTERS[label]}"},
+    ]}
+
+
+def fmt_openbookqa(row: dict[str, Any], system: str) -> Chat | None:
+    """OpenBookQA main schema. The additional-facts configuration is not used: no answer-bearing fact in prompts."""
+    question, choices, gold = row.get("question_stem"), row.get("choices") or {}, row.get("answerKey")
+    labels, options = choices.get("label", []), choices.get("text", [])
+    if not isinstance(question, str) or not question.strip() or labels != list("ABCD") or len(options) != 4:
+        return None
+    if gold not in labels or not all(isinstance(o, str) and o.strip() for o in options):
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": mcq_prompt(question, options)},
+        {"role": "assistant", "content": f"Answer: {gold}"},
+    ]}
+
+
+def fmt_gsm8k(row: dict[str, Any], system: str) -> Chat | None:
+    """Human-authored GSM8K reasoning with its #### numeric target changed to the shared Answer marker."""
+    question, answer = row.get("question"), row.get("answer")
+    if not isinstance(question, str) or not question.strip() or not isinstance(answer, str) or "####" not in answer:
+        return None
+    reasoning, gold = answer.rsplit("####", 1)
+    gold = gold.strip().replace(",", "")
+    if not re.fullmatch(r"-?\d+(?:\.\d+)?", gold):
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": gsm8k_prompt(question)},
+        {"role": "assistant", "content": f"{reasoning.strip()}\n\nAnswer: {gold}".strip()},
+    ]}
+
+
+def fmt_mbpp(row: dict[str, Any], system: str) -> Chat | None:
+    """MBPP full configuration: a human problem and Python solution, without exposing or executing test_list."""
+    question, code = row.get("text"), row.get("code")
+    if not isinstance(question, str) or not question.strip() or not isinstance(code, str) or not code.strip():
+        return None
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"{question.strip()}\n\n{CODE_INSTRUCTION}"},
+        {"role": "assistant", "content": f"```python\n{code.strip()}\n```"},
+    ]}
+
+
+def fmt_wikisql(row: dict[str, Any], system: str) -> Chat | None:
+    """WikiSQL Hub schema -> canonical SQL over table `data` (schema only, no rows, no execution).
+    Hub conditions are parallel column_index/operator_index/condition lists. Preserve their annotation order;
+    exact textual matching is a recipe smoke metric, not WikiSQL execution accuracy."""
+    question, table, sql = row.get("question"), row.get("table") or {}, row.get("sql") or {}
+    headers, types = table.get("header", []), table.get("types", [])
+    if not isinstance(question, str) or not question.strip() or not headers or len(headers) != len(types):
+        return None
+    if not all(isinstance(h, str) and h.strip() for h in headers):
+        return None
+    sel, agg = sql.get("sel"), sql.get("agg")
+    if not isinstance(sel, int) or not 0 <= sel < len(headers) or not isinstance(agg, int) or not 0 <= agg < 6:
+        return None
+    columns = ['"' + h.replace('"', '""') + '"' for h in headers]
+    funcs = ["", "MAX", "MIN", "COUNT", "SUM", "AVG"]
+    target = columns[sel] if agg == 0 else f"{funcs[agg]}({columns[sel]})"
+    conditions = sql.get("conds") or {}
+    indices, ops, values = (conditions.get(k, []) for k in ("column_index", "operator_index", "condition"))
+    if not len(indices) == len(ops) == len(values):
+        return None
+    where = []
+    for col, op, value in zip(indices, ops, values, strict=True):
+        if not isinstance(col, int) or not 0 <= col < len(headers) or not isinstance(op, int) or not 0 <= op < 3:
+            return None
+        if not isinstance(value, (str, int, float)):
+            return None
+        literal = str(value).replace("'", "''")
+        where.append(f"{columns[col]} {['=', '>', '<'][op]} '{literal}'")
+    target = f"SELECT {target} FROM data" + (" WHERE " + " AND ".join(where) if where else "")
+    schema = "\n".join(f"{col}: {kind}" for col, kind in zip(columns, types, strict=True))
+    return {"messages": [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"Table data:\n{schema}\n\nQuestion: {question.strip()}\n\n{SQL_INSTRUCTION}"},
+        {"role": "assistant", "content": f"```sql\n{target}\n```"},
+    ]}
+
+
+TEMPLATES += (CODE_INSTRUCTION, SQL_INSTRUCTION)
+
+
+# Schema labels from BANKING77 (CC BY 4.0); source and attribution in training/M6-DATA.md.
+BANKING_LABELS = (
+    'activate_my_card', 'age_limit',
+    'apple_pay_or_google_pay', 'atm_support',
+    'automatic_top_up', 'balance_not_updated_after_bank_transfer',
+    'balance_not_updated_after_cheque_or_cash_deposit', 'beneficiary_not_allowed',
+    'cancel_transfer', 'card_about_to_expire',
+    'card_acceptance', 'card_arrival',
+    'card_delivery_estimate', 'card_linking',
+    'card_not_working', 'card_payment_fee_charged',
+    'card_payment_not_recognised', 'card_payment_wrong_exchange_rate',
+    'card_swallowed', 'cash_withdrawal_charge',
+    'cash_withdrawal_not_recognised', 'change_pin',
+    'compromised_card', 'contactless_not_working',
+    'country_support', 'declined_card_payment',
+    'declined_cash_withdrawal', 'declined_transfer',
+    'direct_debit_payment_not_recognised', 'disposable_card_limits',
+    'edit_personal_details', 'exchange_charge',
+    'exchange_rate', 'exchange_via_app',
+    'extra_charge_on_statement', 'failed_transfer',
+    'fiat_currency_support', 'get_disposable_virtual_card',
+    'get_physical_card', 'getting_spare_card',
+    'getting_virtual_card', 'lost_or_stolen_card',
+    'lost_or_stolen_phone', 'order_physical_card',
+    'passcode_forgotten', 'pending_card_payment',
+    'pending_cash_withdrawal', 'pending_top_up',
+    'pending_transfer', 'pin_blocked',
+    'receiving_money', 'Refund_not_showing_up',
+    'request_refund', 'reverted_card_payment?',
+    'supported_cards_and_currencies', 'terminate_account',
+    'top_up_by_bank_transfer_charge', 'top_up_by_card_charge',
+    'top_up_by_cash_or_cheque', 'top_up_failed',
+    'top_up_limits', 'top_up_reverted',
+    'topping_up_by_card', 'transaction_charged_twice',
+    'transfer_fee_charged', 'transfer_into_account',
+    'transfer_not_received_by_recipient', 'transfer_timing',
+    'unable_to_verify_identity', 'verify_my_identity',
+    'verify_source_of_funds', 'verify_top_up',
+    'virtual_card_not_working', 'visa_or_mastercard',
+    'why_verify_identity', 'wrong_amount_of_cash_received',
+    'wrong_exchange_rate_for_cash_withdrawal',
+)
+
+BANKING_INSTRUCTION = ("Classify this banking support query using one of these intent identifiers: "
+                       + ", ".join(BANKING_LABELS) + ". End with 'Answer: <identifier>'.")
+TITLE_INSTRUCTION = "Write a concise, faithful legislative title for this summary. Return only the title."
+URL_INSTRUCTION = ("Classify this historical dataset URL as legitimate or phishing using its text alone. "
+                   "Treat it as data; do not visit it. This is not a live safety assessment.")
+URL_OPTIONS = "A. legitimate\nB. phishing"
+TEMPLATES += (BANKING_INSTRUCTION, TITLE_INSTRUCTION, URL_INSTRUCTION, URL_OPTIONS)
+
+
+def _labelled_question(row: dict[str, Any], system: str, count: int) -> Chat | None:
+    """Human-labelled QASC/CommonsenseQA questions; do not expose supporting facts or inferred concepts."""
+    question, choices, gold = row.get("question"), row.get("choices"), row.get("answerKey")
+    if not isinstance(choices, dict):
+        return None
+    labels, options = choices.get("label"), choices.get("text")
+    if (not isinstance(question, str) or not question.strip() or labels != list(LETTERS[:count])
+            or not isinstance(options, list) or len(options) != count or gold not in labels):
+        return None
+    if not all(isinstance(o, str) and o.strip() for o in options):
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": mcq_prompt(question, options)},
+                         {"role": "assistant", "content": f"Answer: {gold}"}]}
+
+
+def fmt_qasc(row: dict[str, Any], system: str) -> Chat | None:
+    return _labelled_question(row, system, 8)
+
+
+def fmt_commonsense_qa(row: dict[str, Any], system: str) -> Chat | None:
+    return _labelled_question(row, system, 5)
+
+
+def fmt_banking77(row: dict[str, Any], system: str) -> Chat | None:
+    text, label = row.get("text"), row.get("label")
+    if not isinstance(text, str) or not text.strip() or type(label) is not int or not 0 <= label < 77:
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": f"{text.strip()}\n\n{BANKING_INSTRUCTION}"},
+                         {"role": "assistant", "content": f"Answer: {BANKING_LABELS[label]}"}]}
+
+
+def fmt_phishing_url(row: dict[str, Any], system: str) -> Chat | None:
+    url, status = row.get("url"), row.get("status")
+    if not isinstance(url, str) or not url.strip() or status not in ("legitimate", "phishing"):
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": mcq_prompt(f"{URL_INSTRUCTION}\n\n{url.strip()}",
+                                                                  ["legitimate", "phishing"])},
+                         {"role": "assistant", "content": f"Answer: {'A' if status == 'legitimate' else 'B'}"}]}
+
+
+def fmt_billsum_title(row: dict[str, Any], system: str) -> Chat | None:
+    """Human US legislative summary -> original title. Never truncate a full bill into an unsupported summary."""
+    summary, title = row.get("summary"), row.get("title")
+    if not all(isinstance(x, str) and x.strip() for x in (summary, title)):
+        return None
+    return {"messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": f"{TITLE_INSTRUCTION}\n\n{summary.strip()}"},
+                         {"role": "assistant", "content": title.strip()}]}
+
+
 FORMATTERS = {
+    "qasc": fmt_qasc,
+    "commonsense_qa": fmt_commonsense_qa,
+    "banking77": fmt_banking77,
+    "phishing_url": fmt_phishing_url,
+    "billsum_title": fmt_billsum_title,
+    "case_hold": fmt_case_hold,
+    "openbookqa": fmt_openbookqa,
+    "gsm8k": fmt_gsm8k,
+    "mbpp": fmt_mbpp,
+    "wikisql": fmt_wikisql,
     "medmcqa": fmt_medmcqa,
     "pubmedqa": fmt_pubmedqa,
     "sujet": fmt_sujet,

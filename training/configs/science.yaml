@@ -1,0 +1,35 @@
+# Candidate recipe only. Claude must verify every license and provenance before preparation or training.
+# Hyperparameters and acceptance thresholds are hypotheses; not measured with real weights.
+specialist: science
+base_model: Qwen/Qwen3.5-4B
+hypothesis: >
+  Human-authored science examples may improve held-out science accuracy without degrading general knowledge.
+  This recipe has only been tested with inline fixtures; licenses and real-source schemas remain unverified.
+acceptance:
+  primary: {suite: science, min_gain_points: 3.0, max_p_value: 0.05}
+  regression: {suite: general, max_drop_points: 1.5}
+domain_sources:
+  - {source: openbookqa-train}
+replay:
+  ratio: 0.3
+  sources:
+    - {source: oasst2, max: 13000}
+eval:
+  max_tokens: 2048
+decontaminate_against: [mmlu-pro, openbookqa-test]
+valid_fraction: 0.02
+seed: 0
+train:
+  epochs: 1.0
+  batch_size: 1
+  grad_accumulation_steps: 16
+  learning_rate: 1.0e-4
+  max_seq_length: 768
+  grad_checkpoint: true
+  mask_prompt: true
+  num_layers: -1
+  lora_parameters:
+    rank: 16
+    scale: 2.0
+    dropout: 0.05
+    keys: [self_attn.q_proj, self_attn.k_proj, self_attn.v_proj, self_attn.o_proj, mlp.gate_proj, mlp.up_proj, mlp.down_proj]

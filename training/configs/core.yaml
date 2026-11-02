@@ -1,0 +1,49 @@
+# M6 candidate only. Claude reviews licensing, task coverage and real results before use.
+specialist: core
+base_model: Qwen/Qwen3.5-4B
+hypothesis: 'Original crowd-authored CommonsenseQA questions and annotated answers. Review upstream ConceptNet attribution.
+  Common-sense QA only, not evidence of general agent capability. Candidate only: no measured improvement, training,
+  model downloads or source ingestion.'
+acceptance:
+  primary:
+    suite: core
+    min_gain_points: 3.0
+    max_p_value: 0.05
+  regression:
+    suite: general
+    max_drop_points: 1.5
+domain_sources:
+- source: commonsenseqa-train
+replay:
+  ratio: 0.3
+  sources:
+  - source: oasst2
+    max: 13000
+eval:
+  max_tokens: 2048
+decontaminate_against:
+- mmlu-pro
+- commonsenseqa-eval
+valid_fraction: 0.02
+seed: 0
+train:
+  epochs: 1.0
+  batch_size: 1
+  grad_accumulation_steps: 16
+  learning_rate: 0.0001
+  max_seq_length: 768
+  grad_checkpoint: true
+  mask_prompt: true
+  num_layers: -1
+  lora_parameters:
+    rank: 16
+    scale: 2.0
+    dropout: 0.05
+    keys:
+    - self_attn.q_proj
+    - self_attn.k_proj
+    - self_attn.v_proj
+    - self_attn.o_proj
+    - mlp.gate_proj
+    - mlp.up_proj
+    - mlp.down_proj

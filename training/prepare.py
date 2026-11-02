@@ -75,6 +75,8 @@ def sha256(path: Path) -> str:
 def gate_source(name: str, src: dict, role: str, offline: bool = False) -> str:
     """The license a registry source is gated on (as the Hub publishes it; the registry's own when `offline`).
     SystemExit unless `role` may use the source."""
+    if src.get("license_status") == "unverified":
+        raise SystemExit(f"refusing source '{name}': license is unverified; Claude must review before use")
     hub = src["license"] if offline else licenses.source_license(src)
     ok, reason = licenses.check(hub, role)
     if role == "train" and src["role"] != "train":
@@ -209,7 +211,8 @@ def main() -> int:
             return src
         hub = gate_source(name, src, role, args.skip_license_check)
         manifest["sources"][name] = {**origin(src), "license_hub": hub, "license_registry": src["license"],
-                                     "role": role, "provenance": src.get("provenance", "")}
+                                     "role": role, "provenance": src.get("provenance", ""),
+                                     "license_status": src.get("license_status", "legacy")}
         return src
 
     def no_domain_data() -> SystemExit:  # replay alone would train on nothing of the domain, and empty files look fine
@@ -230,6 +233,13 @@ def main() -> int:
                          f"--out training/data/{cfg['specialist']}/self_replay.jsonl`, then pass it with --self-replay")
     if args.self_replay and not Path(args.self_replay).is_file():
         raise SystemExit(f"--self-replay {args.self_replay}: no such file")
+
+    # Candidate recipes must stop before checking even an already-registered source on the Hub.
+    source_names = list(cfg.get("decontaminate_against", [])) + [
+        e["source"] for e in cfg.get("domain_sources", []) + cfg.get("replay", {}).get("sources", [])]
+    for name in source_names:
+        if registry[name].get("license_status") == "unverified":
+            gate_source(name, registry[name], registry[name]["role"], args.skip_license_check)
 
     # 0. every license and registry role, before anything is downloaded
     for name in cfg.get("decontaminate_against", []):
