@@ -1,0 +1,484 @@
+{
+  "version": 1,
+  "fps": 30,
+  "licenseReviewed": false,
+  "captionsReviewed": false,
+  "releaseRevision": null,
+  "brand": {
+    "mascot": "spike-logo-original.png",
+    "cream": "#FDFDFA",
+    "mint": "#E3FADA",
+    "green": "#88D445",
+    "ink": "#052E1E"
+  },
+  "scenes": [
+    {
+      "id": "01",
+      "title": {
+        "es": "Tu proyecto. Tus modelos.",
+        "en": "Your project. Your models."
+      },
+      "seconds": 12,
+      "features": [
+        "workspace",
+        "providers",
+        "proof"
+      ],
+      "beats": [
+        "Define el resultado",
+        "Supervisa las acciones",
+        "Conserva los archivos"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "SPIKE propone reunir tus modelos, herramientas y proyectos en un espacio de trabajo. Tú defines el resultado; el sistema organiza las tareas y te permite supervisar cómo las realiza.",
+        "en": "SPIKE proposes one workspace for your models, tools and projects. You define the result; the system organizes the tasks and lets you oversee how they are carried out."
+      },
+      "clipNarration": {
+        "es": "SPIKE. Tus modelos, tus proyectos y resultados que puedes comprobar. Una visión de trabajo local, con control en cada paso.",
+        "en": "SPIKE. Your models, your projects and results you can check. A vision for local work, with control at every step."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Define the result",
+        "Review the actions",
+        "Keep your files"
+      ]
+    },
+    {
+      "id": "02",
+      "title": {
+        "es": "La IA que encaja en tu equipo",
+        "en": "AI that fits your computer"
+      },
+      "seconds": 18,
+      "features": [
+        "providers",
+        "autotune",
+        "privacy"
+      ],
+      "beats": [
+        "Modelo local",
+        "Recursos medidos",
+        "Nube opcional"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "El motor permitirá elegir modelos locales o proveedores externos. AutoTune buscará una configuración adecuada para cada equipo mediante pruebas reales. El objetivo de dieciséis gigabytes deberá demostrarse, y cada herramienta tendrá sus propios requisitos.",
+        "en": "The engine will let you choose local models or external providers. AutoTune will test configurations on your computer. The sixteen-gigabyte target must be demonstrated, and each tool will have its own requirements."
+      },
+      "clipNarration": {
+        "es": "Trabaja con modelos locales. Conecta otros proveedores cuando lo decidas y revisa qué datos salen, cuánto consumen y qué necesitan.",
+        "en": "Work with local models. Connect other providers when you choose, and review outgoing data, resource use and requirements."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Local model",
+        "Measured resources",
+        "Optional cloud"
+      ]
+    },
+    {
+      "id": "03",
+      "title": {
+        "es": "Un equipo, un resultado",
+        "en": "One team, one result"
+      },
+      "seconds": 18,
+      "features": [
+        "specialists",
+        "forge",
+        "parallel-minds"
+      ],
+      "beats": [
+        "Investigar",
+        "Ejecutar",
+        "Verificar e integrar"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Los especialistas compartirán una base y utilizarán instrucciones, conocimiento y herramientas según la tarea. Collective organizará quién investiga, ejecuta, verifica e integra. Los adaptadores entrenados solo se incorporarán cuando superen sus evaluaciones.",
+        "en": "Specialists will share a base and use instructions, knowledge and tools for each task. Collective will organize research, execution, verification and integration. Trained adapters will be included only after passing their evaluations."
+      },
+      "clipNarration": {
+        "es": "Collective coordinará especialistas para investigar, ejecutar y verificar. Su valor se medirá frente a una solución sencilla, con tiempo y consumo visibles.",
+        "en": "Collective will coordinate specialists to research, execute and verify. Its value will be measured against a simpler solution, with time and resource use visible."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Research",
+        "Execute",
+        "Verify and integrate"
+      ]
+    },
+    {
+      "id": "04",
+      "title": {
+        "es": "El contexto de tu proyecto",
+        "en": "Your project context"
+      },
+      "seconds": 18,
+      "features": [
+        "workspace",
+        "memory",
+        "files"
+      ],
+      "beats": [
+        "Archivos y decisiones",
+        "Recuperación relevante",
+        "Editar y borrar"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Cada proyecto reunirá archivos, conversaciones e instrucciones. Neural Memory buscará las decisiones y conocimientos relevantes para recuperarlos cuando hagan falta. Podrás revisar, corregir y borrar lo almacenado; guardar más información no significa disponer de contexto infinito.",
+        "en": "Each project will bring files, conversations and instructions together. Neural Memory will retrieve relevant decisions and knowledge when needed. You will be able to review, correct and delete stored information; more storage does not mean unlimited context."
+      },
+      "clipNarration": {
+        "es": "Tus archivos, decisiones y conversaciones, organizados por proyecto. Recupera lo relevante y conserva el control para revisar, corregir y borrar.",
+        "en": "Your files, decisions and conversations, organized by project. Retrieve what matters and retain control to review, correct and delete."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Files and decisions",
+        "Relevant retrieval",
+        "Edit and delete"
+      ]
+    },
+    {
+      "id": "05",
+      "title": {
+        "es": "De la petición al cambio probado",
+        "en": "From request to tested change"
+      },
+      "seconds": 18,
+      "features": [
+        "dev",
+        "forge",
+        "prototypes",
+        "replay"
+      ],
+      "beats": [
+        "Especificación",
+        "Cambios revisables",
+        "Pruebas y recuperación"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Forge y Dev convertirán solicitudes en tareas verificables. Podrán trabajar sobre archivos y repositorios, proponer cambios, ejecutar pruebas y preparar entregables. El usuario revisará las operaciones importantes y dispondrá de recuperación cuando sea técnicamente posible.",
+        "en": "Forge and Dev will turn requests into verifiable tasks. They will work with files and repositories, propose changes, run tests and prepare deliverables. You will review important operations and recover previous states when technically possible."
+      },
+      "clipNarration": {
+        "es": "Especifica, revisa y comprueba. Forge y Dev conectarán archivos, cambios y pruebas para entregar trabajo que puedas abrir y continuar.",
+        "en": "Specify, review and verify. Forge and Dev will connect files, changes and tests to deliver work you can open and continue."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Specification",
+        "Reviewable changes",
+        "Tests and recovery"
+      ]
+    },
+    {
+      "id": "06",
+      "title": {
+        "es": "Diseño que puedes seguir editando",
+        "en": "Design you can keep editing"
+      },
+      "seconds": 18,
+      "features": [
+        "design",
+        "creator",
+        "brand",
+        "vector"
+      ],
+      "beats": [
+        "Brief e identidad",
+        "Interfaz coherente",
+        "Archivos editables"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Design aplicará una identidad coherente a interfaces y materiales visuales. Creator ofrecerá plantillas para webs, aplicaciones, documentos y presentaciones. Las herramientas abiertas compatibles servirán de base, con resultados editables y revisión visual.",
+        "en": "Design will apply a consistent identity to interfaces and visual materials. Creator will offer templates for websites, apps, documents and presentations. Compatible open tools will provide the foundation, with editable results and visual review."
+      },
+      "clipNarration": {
+        "es": "Del brief a una interfaz coherente. Design y Creator producirán materiales editables, con identidad compartida y una revisión visual del resultado.",
+        "en": "From a brief to a consistent interface. Design and Creator will produce editable materials with a shared identity and visual review."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Brief and identity",
+        "Consistent interface",
+        "Editable files"
+      ]
+    },
+    {
+      "id": "07",
+      "title": {
+        "es": "Conclusiones con evidencia",
+        "en": "Conclusions with evidence"
+      },
+      "seconds": 18,
+      "features": [
+        "analytics",
+        "sql",
+        "citations",
+        "paper",
+        "notebook"
+      ],
+      "beats": [
+        "Validar los datos",
+        "Calcular y visualizar",
+        "Volver a la fuente"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Analytics transformará datos en cálculos, gráficos e informes. Las funciones de investigación organizarán fuentes, citas y experimentos. Las conclusiones mostrarán qué evidencia las respalda y qué puntos siguen pendientes de comprobar.",
+        "en": "Analytics will turn data into calculations, charts and reports. Research tools will organize sources, citations and experiments. Conclusions will show supporting evidence and the points that still need checking."
+      },
+      "clipNarration": {
+        "es": "Convierte datos en gráficos e informes. Revisa los cálculos, sigue cada cita y distingue las conclusiones comprobadas de lo pendiente.",
+        "en": "Turn data into charts and reports. Review calculations, trace citations and distinguish checked conclusions from unresolved points."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Validate data",
+        "Calculate and visualize",
+        "Trace the source"
+      ]
+    },
+    {
+      "id": "08",
+      "title": {
+        "es": "Conexiones bajo tu control",
+        "en": "Connections under your control"
+      },
+      "seconds": 18,
+      "features": [
+        "view",
+        "connectors",
+        "desktop",
+        "marketplace"
+      ],
+      "beats": [
+        "Herramientas compatibles",
+        "Permisos visibles",
+        "Detener y recuperar"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "View comenzará por tareas de navegador. MCP permitirá conectar servicios compatibles, con autenticación y permisos propios. El control del escritorio llegará por capacidades probadas para cada sistema. Los datos enviados y las acciones externas deberán quedar visibles.",
+        "en": "View will start with browser tasks. MCP will connect compatible services with their own authentication and permissions. Desktop control will depend on capabilities tested for each system. Outgoing data and external actions must remain visible."
+      },
+      "clipNarration": {
+        "es": "Conecta herramientas compatibles, revisa permisos y decide qué acciones autorizar. View y MCP mantendrán visibles los datos enviados y el control de ejecución.",
+        "en": "Connect compatible tools, review permissions and decide which actions to authorize. View and MCP will keep outgoing data and execution controls visible."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Compatible tools",
+        "Visible permissions",
+        "Stop and recover"
+      ]
+    },
+    {
+      "id": "09",
+      "title": {
+        "es": "Del contenido al movimiento",
+        "en": "From content to motion"
+      },
+      "seconds": 18,
+      "features": [
+        "motion",
+        "audio",
+        "subtitles",
+        "voice"
+      ],
+      "beats": [
+        "Datos y SVG",
+        "Voz y subtítulos",
+        "Vídeo y fuentes"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Motion creará animaciones y vídeos mediante herramientas especializadas. Audio, subtítulos y localización ampliarán el flujo. Los motores pesados serán opcionales, y el proyecto conservará los archivos necesarios para editar y reproducir el resultado.",
+        "en": "Motion will create animations and videos with specialized tools. Audio, subtitles and localization will extend the workflow. Heavy engines will be optional, and the project will retain the files needed to edit and reproduce the result."
+      },
+      "clipNarration": {
+        "es": "Anima datos, gráficos e ideas. Motion reunirá vídeo, audio y subtítulos, conservando las fuentes para editar y reproducir cada proyecto.",
+        "en": "Animate data, graphics and ideas. Motion will bring video, audio and subtitles together, preserving editable project sources."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Data and SVG",
+        "Voice and subtitles",
+        "Video and sources"
+      ]
+    },
+    {
+      "id": "10",
+      "title": {
+        "es": "Resultados útiles. Pruebas visibles.",
+        "en": "Useful results. Visible evidence."
+      },
+      "seconds": 24,
+      "features": [
+        "evolution",
+        "scoreboard",
+        "rollback",
+        "packs",
+        "specification"
+      ],
+      "beats": [
+        "Evaluar la mejora",
+        "Conservar la versión estable",
+        "Ampliar con packs"
+      ],
+      "status": "vision",
+      "capture": null,
+      "evidence": null,
+      "voice": {
+        "master": null,
+        "clip": null
+      },
+      "narration": {
+        "es": "Evolution propondrá mejoras a partir de correcciones y fallos. Lab comprobará su calidad, coste y rendimiento antes de sustituir versiones estables. Skills y paquetes ampliarán el ecosistema. La promesa de SPIKE será entregar resultados útiles y mostrar cómo se han comprobado.",
+        "en": "Evolution will propose improvements from corrections and failures. Lab will check quality, cost and performance before replacing stable versions. Skills and packs will extend the ecosystem. SPIKE’s promise is useful results and a clear account of how they were checked."
+      },
+      "clipNarration": {
+        "es": "SPIKE. Tu proyecto, tus modelos, tus decisiones. Resultados editables, mejoras evaluadas y una comunidad que podrá construir contigo. Descubre la visión.",
+        "en": "SPIKE. Your project, your models, your decisions. Editable results, evaluated improvements and a community that can build with you. Discover the vision."
+      },
+      "captions": {
+        "es": [],
+        "en": []
+      },
+      "clipCaptions": {
+        "es": [],
+        "en": []
+      },
+      "beatsEn": [
+        "Evaluate improvements",
+        "Keep the stable version",
+        "Extend with packs"
+      ]
+    }
+  ]
+}

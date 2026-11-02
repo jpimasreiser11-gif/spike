@@ -47,7 +47,7 @@ packages = ["spike"]
 [tool.hatch.build.targets.wheel.hooks.custom]   # hatch_build.py: adds web/dist as spike/server/static
 
 [tool.hatch.build.targets.sdist]
-exclude = ["web/node_modules", "training/data", "training/runs", "evals/results/*/predictions.jsonl", "brand", "archive"]
+exclude = ["web/node_modules", "training/data", "training/runs", "evals/results/*/predictions.jsonl", "brand", "archive", "marketing"]
 artifacts = ["web/dist/**"]   # built bundle travels with the sdist so a wheel can be built from it
 
 [tool.pytest.ini_options]

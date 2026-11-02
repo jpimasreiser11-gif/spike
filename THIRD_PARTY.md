@@ -204,3 +204,13 @@ grants no trademark rights (section 6), so they may not be used as another produ
 - **Inno Setup 6**: existing Windows runner build tool; installer-engine license and terms:
   https://github.com/jrsoftware/issrc/blob/main/license.txt. No paid signing or service is configured.
 - **actionlint 1.7.12** (MIT): CI-only workflow linter, https://github.com/rhysd/actionlint/releases/tag/v1.7.12.
+## Separate launch-video tooling (`marketing/video`, not the SPIKE runtime)
+
+Original Remotion compositions, scripts and editorial copy are kept in a separate development project. Remotion,
+`@remotion/cli` and `@remotion/media` 4.0.539 are subject to Remotion's own license and eligibility terms
+(https://www.remotion.dev/docs/license/pricing); they are not relicensed as Apache-2.0 by this repository. No paid license
+or rendering service is enabled. React/react-dom 18.3.1 and TypeScript 5.6.3 are MIT development dependencies.
+Two Inter font files are copied unchanged from the app's existing `@fontsource/inter` package; their SIL OFL 1.1 text is
+included in `marketing/video/public/Inter-LICENSE.txt`. The original SPIKE mascot is copied unchanged from `brand/`.
+Final captures, narration and other media need their own review before distribution; they are not supplied as verified
+product evidence by this tooling.
