@@ -1,0 +1,4387 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "ideas60",
+      "title": "Las 60 ideas de Joan (lista repetida una vez en la conversación; se conserva una sola copia)",
+      "items": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60"
+      ]
+    },
+    {
+      "id": "core12",
+      "title": "Doce propuestas iniciales de producto, en el orden de la conversación",
+      "items": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12"
+      ]
+    },
+    {
+      "id": "advanced20",
+      "title": "Veinte ampliaciones iniciales, en el orden de la tabla de la conversación",
+      "items": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20"
+      ]
+    },
+    {
+      "id": "modes",
+      "title": "Design, View, Forge, Dev, 30 skills, finanzas, Collective, Neural Memory, Evolution, Motion, Analytics, Creator",
+      "items": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12"
+      ]
+    },
+    {
+      "id": "evolution10",
+      "title": "Correction, Prompt, Tool Strategy, Routing, Failure Library, Personal, Benchmark, Regression, Rollback, Versioning",
+      "items": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10"
+      ]
+    },
+    {
+      "id": "launch",
+      "title": "Instalación, especialistas, validación/seguridad, contenido/difusión, monetización, control local de escritorio excluido",
+      "items": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "blueprint",
+      "title": "Blueprint",
+      "group": "Forge / Dev",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:01"
+      ],
+      "tasks": [
+        "A17"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/forge/blueprint.py",
+          "tests/test_forge.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "blueprint-flow",
+          "title": "Blueprint · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Convertir una solicitud ambigua en requisitos",
+            "Revisar tareas y dependencias antes de ejecutar",
+            "Comprobar cada criterio de aceptación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_forge.py"
+      ]
+    },
+    {
+      "id": "parallel-minds",
+      "title": "Parallel Minds",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:02",
+        "advanced20:04"
+      ],
+      "tasks": [
+        "A17"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/orchestrator/minds.py",
+          "tests/test_minds.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "parallel-minds-flow",
+          "title": "Parallel Minds · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Comprobar que está apagado",
+            "Estimar llamadas y costes",
+            "Comparar alternativas con un modelo solo y registrar calidad, tiempo y consumo",
+            "Cancelar sin nuevas llamadas"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_minds.py"
+      ]
+    },
+    {
+      "id": "devils-advocate",
+      "title": "Devil’s Advocate",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:03"
+      ],
+      "tasks": [
+        "A6"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/orchestrator/verify.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "devils-advocate-flow",
+          "title": "Devil’s Advocate · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Introducir una conclusión con un supuesto falso",
+            "Contrastar la objeción con fuentes",
+            "Revisar una corrección y conservar desacuerdos"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "uncertainty",
+      "title": "Uncertainty Engine",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:04"
+      ],
+      "tasks": [
+        "A6"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/trust/citations.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "uncertainty-flow",
+          "title": "Uncertainty Engine · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Preparar afirmaciones comprobadas, hipotéticas e incorrectas",
+            "Mostrar evidencia y límites",
+            "Conservar los puntos sin comprobar en la exportación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "decision",
+      "title": "Decision Simulator",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:05"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/decision-simulator/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "decision-flow",
+          "title": "Decision Simulator · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Definir alternativas, supuestos y costes",
+            "Variar un supuesto y recalcular",
+            "Distinguir escenarios de predicciones"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "answer-contracts",
+      "title": "Answer Contracts",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:06"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/contracts.py",
+          "tests/test_openai_api.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "answer-contracts-flow",
+          "title": "Answer Contracts · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Enviar un esquema válido e inválido",
+            "Comprobar JSON y recuperación de respuesta inválida",
+            "Informar el fallo sin entregar éxito ficticio"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_openai_api.py"
+      ]
+    },
+    {
+      "id": "decomposer",
+      "title": "Task Decomposer",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:07"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/forge/blueprint.py",
+          "tests/test_core.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "decomposer-flow",
+          "title": "Task Decomposer · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Descomponer un objetivo con dependencias",
+            "Denegar una herramienta",
+            "Resolver o mostrar el bloqueo sin ejecutar dependientes"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_core.py"
+      ]
+    },
+    {
+      "id": "failure-intelligence",
+      "title": "Failure Intelligence / Failure Library",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:08",
+        "evolution10:05"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/store.py",
+          "tests/test_evolution.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "failure-intelligence-flow",
+          "title": "Failure Intelligence / Failure Library · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Registrar un error reproducible",
+            "Proponer corrección y caso de regresión",
+            "Validar la corrección y conservar el intento fallido"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_evolution.py"
+      ]
+    },
+    {
+      "id": "reverse-studio",
+      "title": "Reverse Studio",
+      "group": "Design",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:09"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "reverse-studio-flow",
+          "title": "Reverse Studio · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Usar una referencia autorizada",
+            "Registrar qué comportamiento se observa",
+            "Crear implementación propia y contrastar visualmente",
+            "Documentar las diferencias y atribuciones"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "architecture",
+      "title": "Architecture Explorer",
+      "group": "Forge / Dev",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:10"
+      ],
+      "tasks": [
+        "A16"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "architecture-flow",
+          "title": "Architecture Explorer · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Abrir un repositorio de ejemplo",
+            "Mostrar módulos y dependencias con rutas reales",
+            "Abrir un nodo y comprobar su origen",
+            "Informar archivos no analizados"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "test-inventor",
+      "title": "Test Inventor",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:11"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/test-inventor/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "test-inventor-flow",
+          "title": "Test Inventor · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Definir comportamiento esperado",
+            "Generar una prueba que falle con el defecto",
+            "Corregir y ejecutar pruebas",
+            "Comprobar que no reflejan únicamente la implementación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "migration",
+      "title": "Migration Architect",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:12"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/migration-architect/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "migration-flow",
+          "title": "Migration Architect · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Crear proyecto de ejemplo y copia recuperable",
+            "Planificar migración y aprobar cambios",
+            "Ejecutar pruebas antes y después",
+            "Recuperar versión anterior"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "profiler",
+      "title": "Performance Profiler",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:13"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/performance-profiler/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "profiler-flow",
+          "title": "Performance Profiler · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Definir caso y medir referencia",
+            "Localizar cuello de botella real",
+            "Aplicar mejora y medir con igual configuración",
+            "Conservar resultados aunque no mejore"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "prototypes",
+      "title": "Parallel Prototypes",
+      "group": "Forge / Dev",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:14"
+      ],
+      "tasks": [
+        "A17"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/forge/prototypes.py",
+          "tests/test_prototypes.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "prototypes-flow",
+          "title": "Parallel Prototypes · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Crear dos ramas aisladas",
+            "Ejecutar la misma batería de pruebas",
+            "Comparar calidad, coste y tiempo",
+            "Integrar solo la elegida y recuperar conflicto"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_prototypes.py"
+      ]
+    },
+    {
+      "id": "dependency-doctor",
+      "title": "Dependency Doctor",
+      "group": "Forge / Dev",
+      "owner": "gemini",
+      "source_refs": [
+        "ideas60:15"
+      ],
+      "tasks": [
+        "A5"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_dev_diagnostics.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "dependency-doctor-flow",
+          "title": "Dependency Doctor · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Inspeccionar proyecto con dependencia incompatible",
+            "Revisar permiso de acceso a registros externos",
+            "Mostrar resultado o herramienta ausente",
+            "Filtrar sin repetir operaciones externas"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_dev_diagnostics.py"
+      ]
+    },
+    {
+      "id": "capsule",
+      "title": "Environment Capsule",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:16"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/proof.py",
+          "tests/test_ecosystem.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "capsule-flow",
+          "title": "Environment Capsule · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Exportar versiones y parámetros sin secretos",
+            "Reconstruir entorno en equipo limpio",
+            "Repetir la tarea y comparar artefactos"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_ecosystem.py"
+      ]
+    },
+    {
+      "id": "blender",
+      "title": "3D Studio / Blender",
+      "group": "Multimedia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:17"
+      ],
+      "tasks": [
+        "A18"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "blender-flow",
+          "title": "3D Studio / Blender · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Comprobar Blender instalado o error claro",
+            "Aprobar script en carpeta de ejemplo",
+            "Crear escena y abrir archivo editable",
+            "Cancelar sin procesos huérfanos"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "godot",
+      "title": "Game Studio / Godot",
+      "group": "Multimedia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:18"
+      ],
+      "tasks": [
+        "A18"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "godot-flow",
+          "title": "Game Studio / Godot · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Comprobar Godot y versión",
+            "Generar proyecto pequeño autorizado",
+            "Abrir y jugar el prototipo",
+            "Exportar fuentes y mostrar errores de compilación"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "audio",
+      "title": "Audio Production",
+      "group": "Multimedia",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:19"
+      ],
+      "tasks": [
+        "A14"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "592a0182a56aee33cd0aca6eb7b5ee950314eaa1",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/14"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "audio-flow",
+          "title": "Audio Production · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar audio de ejemplo propio",
+            "Previsualizar cortes y mezcla",
+            "Exportar y escuchar de principio a fin",
+            "Informar dependencia ausente sin modificar original"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "localization",
+      "title": "Localization Studio",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:20"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/localization/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "localization-flow",
+          "title": "Localization Studio · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Traducir interfaz ES/EN con glosario",
+            "Preservar variables y plurales",
+            "Comparar ambas versiones en la interfaz"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "vector",
+      "title": "Vector Designer",
+      "group": "Design",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:21"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/vector-designer/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "vector-flow",
+          "title": "Vector Designer · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Crear SVG según brief",
+            "Abrir y editar el resultado",
+            "Comprobar tamaño y contraste",
+            "Rechazar contenido externo no autorizado"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "visual-critic",
+      "title": "Visual Critic",
+      "group": "Design",
+      "owner": "gemini",
+      "source_refs": [
+        "ideas60:22"
+      ],
+      "tasks": [
+        "A5"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_dev_diagnostics.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "visual-critic-flow",
+          "title": "Visual Critic · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Abrir interfaz real de ejemplo con defectos conocidos",
+            "Comprobar contraste, accesibilidad y desbordamientos",
+            "Corregir y repetir",
+            "Distinguir análisis determinista de juicio visual"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_dev_diagnostics.py"
+      ]
+    },
+    {
+      "id": "brand",
+      "title": "Brand System",
+      "group": "Design",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:23"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/design/library.py",
+          "tests/test_design.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "brand-flow",
+          "title": "Brand System · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Aplicar paleta y tipografía a dos artefactos",
+            "Abrir ambos resultados editables",
+            "Comprobar identidad y legibilidad en claro y oscuro"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_design.py"
+      ]
+    },
+    {
+      "id": "subtitles",
+      "title": "Subtitle Engineer",
+      "group": "Multimedia",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:24"
+      ],
+      "tasks": [
+        "A14"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "592a0182a56aee33cd0aca6eb7b5ee950314eaa1",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/14"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "subtitles-flow",
+          "title": "Subtitle Engineer · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar SRT/VTT real",
+            "Dividir, unir, desplazar y deshacer",
+            "Exportar y reproducir con vídeo",
+            "Comprobar sincronización, UTF-8 y errores de herramienta"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "paper",
+      "title": "Paper Rebuilder",
+      "group": "Investigación",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:25"
+      ],
+      "tasks": [
+        "A15"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "b1f2f601afbcae196167a90124ef0df446679854",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/12"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "paper-flow",
+          "title": "Paper Rebuilder · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Cargar artículo autorizado con método verificable",
+            "Mostrar fuentes exactas y plan",
+            "Aprobar proveedor si se usa",
+            "Ejecutar experimento autorizado y contrastar resultados sin afirmar reproducción si falla"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "knowledge-graph",
+      "title": "Knowledge Graph",
+      "group": "Memoria",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:26"
+      ],
+      "tasks": [
+        "A7"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/memory/graph.py",
+          "tests/test_memory_graph.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "knowledge-graph-flow",
+          "title": "Knowledge Graph · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Indexar documentos de ejemplo",
+            "Mostrar relaciones con fragmentos de origen",
+            "Corregir y borrar una entidad",
+            "Comprobar que desaparece de búsquedas y exportación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_memory_graph.py"
+      ]
+    },
+    {
+      "id": "citations",
+      "title": "Citation Inspector",
+      "group": "Investigación",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:27"
+      ],
+      "tasks": [
+        "A6"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/trust/citations.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "citations-flow",
+          "title": "Citation Inspector · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Usar fuente y afirmación compatibles e incompatibles",
+            "Abrir fragmento original",
+            "Señalar cita que no respalda la afirmación",
+            "Exportar referencias verificables"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "contradictions",
+      "title": "Contradiction Map",
+      "group": "Investigación",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:28"
+      ],
+      "tasks": [
+        "A15"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "b1f2f601afbcae196167a90124ef0df446679854",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/12"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "contradictions-flow",
+          "title": "Contradiction Map · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Cargar fuentes contradictorias",
+            "Exigir citas textuales exactas",
+            "Representar discrepancias sin inventar resolución",
+            "Rechazar cita inexistente y revisar salida"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "experiments",
+      "title": "Experiment Designer",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:29"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/experiment-designer/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "experiments-flow",
+          "title": "Experiment Designer · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Definir hipótesis, controles y métricas antes de probar",
+            "Separar selección de aceptación",
+            "Ejecutar experimento permitido",
+            "Guardar resultados positivos y negativos"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "notebook",
+      "title": "Research Notebook",
+      "group": "Investigación",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:30"
+      ],
+      "tasks": [
+        "A15"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "b1f2f601afbcae196167a90124ef0df446679854",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/12"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "notebook-flow",
+          "title": "Research Notebook · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Crear cuaderno con fuentes, código y resultados",
+            "Exportar y abrir con lector real",
+            "Ejecutar solo tras aprobación",
+            "Reproducir con entorno registrado"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "tutor",
+      "title": "Interactive Tutor",
+      "group": "Memoria",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:31"
+      ],
+      "tasks": [
+        "A7"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/memory/tutor.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "tutor-flow",
+          "title": "Interactive Tutor · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Resolver ejercicios sin revelar respuesta primero",
+            "Medir dominio con ejercicio nuevo",
+            "Revisar progreso y corregirlo",
+            "Borrar progreso y comprobar persistencia"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "evidence-auditor",
+      "title": "Evidence Auditor",
+      "group": "Investigación",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:32",
+        "core12:05"
+      ],
+      "tasks": [
+        "A6"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/orchestrator/verify.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "evidence-auditor-flow",
+          "title": "Evidence Auditor · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Revisar informe con afirmación no demostrada",
+            "Comprobar cálculos y fuentes",
+            "Conservar incertidumbre en el informe final"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "data-contracts",
+      "title": "Data Contracts",
+      "group": "Analytics",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:33"
+      ],
+      "tasks": [
+        "A3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/analytics/contracts.py",
+          "tests/test_analytics_a3.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "data-contracts-flow",
+          "title": "Data Contracts · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar datos válidos e inválidos",
+            "Aplicar esquema y restricciones",
+            "Mostrar filas y columnas con errores",
+            "Corregir y volver a validar"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_analytics_a3.py"
+      ]
+    },
+    {
+      "id": "sql",
+      "title": "SQL Guardian",
+      "group": "Analytics",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:34"
+      ],
+      "tasks": [
+        "A3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/analytics/guardian.py",
+          "tests/test_analytics_a3.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "sql-flow",
+          "title": "SQL Guardian · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Previsualizar SQL y límites",
+            "Ejecutar consulta de lectura",
+            "Rechazar escritura y acceso fuera del proyecto",
+            "Verificar valores con cálculo independiente"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_analytics_a3.py"
+      ]
+    },
+    {
+      "id": "synthetic-data",
+      "title": "Synthetic Data Foundry",
+      "group": "Skills",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:35"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/synthetic-data/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "synthetic-data-flow",
+          "title": "Synthetic Data Foundry · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Definir esquema sin datos personales",
+            "Generar datos marcados sintéticos",
+            "Validar restricciones y casos límite",
+            "Exportar semilla y reglas de generación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "forecast",
+      "title": "Forecast Sandbox",
+      "group": "Analytics",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:36"
+      ],
+      "tasks": [
+        "A3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/analytics/forecast.py",
+          "tests/test_analytics_a3.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "forecast-flow",
+          "title": "Forecast Sandbox · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar serie temporal",
+            "Separar entrenamiento y backtest por tiempo",
+            "Comparar modelos con referencia sencilla",
+            "Mostrar error e incertidumbre sin prometer rentabilidad"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_analytics_a3.py"
+      ]
+    },
+    {
+      "id": "geo",
+      "title": "Geo Intelligence",
+      "group": "Analytics",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:37"
+      ],
+      "tasks": [
+        "A16"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "geo-flow",
+          "title": "Geo Intelligence · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar datos geográficos de ejemplo",
+            "Comprobar coordenadas y sistema de referencia",
+            "Generar mapa y exportarlo",
+            "Informar geodatos inválidos y fuentes ausentes"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "lineage",
+      "title": "Data Lineage",
+      "group": "Analytics",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:38"
+      ],
+      "tasks": [
+        "A3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/analytics/engine.py",
+          "spike/proof.py",
+          "tests/test_analytics_a3.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "lineage-flow",
+          "title": "Data Lineage · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar y transformar datos",
+            "Rastrear resultado hasta entrada y SQL",
+            "Exportar linaje con hashes",
+            "Comprobar que una modificación invalida referencia anterior"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_analytics_a3.py"
+      ]
+    },
+    {
+      "id": "data-rescue",
+      "title": "Data Rescue",
+      "group": "Analytics",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:39"
+      ],
+      "tasks": [
+        "A3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/analytics/rescue.py",
+          "tests/test_analytics_a3.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "data-rescue-flow",
+          "title": "Data Rescue · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Abrir CSV con codificación, columnas y duplicados problemáticos",
+            "Revisar correcciones antes de aplicar",
+            "Guardar original y resultado",
+            "Verificar filas y valores"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_analytics_a3.py"
+      ]
+    },
+    {
+      "id": "data-to-software",
+      "title": "Data-to-Software",
+      "group": "Creator",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:40"
+      ],
+      "tasks": [
+        "A12"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "2b48c2aaf36d27df2e661af8d8650d1ba1fe51bc",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/9"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "data-to-software-flow",
+          "title": "Data-to-Software · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Cargar Excel/CSV de ejemplo",
+            "Validar esquema y previsualizar app",
+            "Crear artefacto sin enviar datos sin permiso",
+            "Abrir filtros, tablas y formularios reales",
+            "Comprobar permisos y persistencia"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "desktop",
+      "title": "Desktop Actions",
+      "group": "View",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:41"
+      ],
+      "tasks": [
+        "A19"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_desktop.py",
+          "tests/test_desktop_session.py",
+          "tests/test_desktop_api.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "desktop-flow",
+          "title": "Desktop Actions · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Comprobar apagado inicial y proveedor compatible",
+            "Revisar datos de pantalla enviados",
+            "Denegar acción y comprobar que no ocurre",
+            "Autorizar acción inocua en app de prueba",
+            "Detener y verificar que no hay acciones posteriores"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_desktop.py",
+        "tests/test_desktop_session.py",
+        "tests/test_desktop_api.py"
+      ]
+    },
+    {
+      "id": "recorder",
+      "title": "Browser Recorder",
+      "group": "View",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:42"
+      ],
+      "tasks": [
+        "A16"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "recorder-flow",
+          "title": "Browser Recorder · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Registrar procedimiento sin contraseñas",
+            "Revisar pasos y datos capturados",
+            "Reproducir con permiso en página de prueba",
+            "Fallar selector y recuperar sin repetir envío"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "device-lab",
+      "title": "Device Lab",
+      "group": "Extensiones",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:43"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "device-lab-flow",
+          "title": "Device Lab · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Conectar dispositivo de prueba autorizado",
+            "Compilar y cargar con aprobación",
+            "Leer sensor real y mostrar fallo de conexión"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "files",
+      "title": "File Intelligence",
+      "group": "Memoria",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:44"
+      ],
+      "tasks": [
+        "A7"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/memory/folders.py",
+          "tests/test_memory_folders.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "files-flow",
+          "title": "File Intelligence · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Elegir carpeta autorizada",
+            "Buscar documento por contenido",
+            "Abrir fuente correcta",
+            "Eliminar autorización e índice",
+            "Comprobar que archivos ajenos no aparecen"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_memory_folders.py"
+      ]
+    },
+    {
+      "id": "scheduler",
+      "title": "Resource Scheduler",
+      "group": "Proyectos",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:45"
+      ],
+      "tasks": [
+        "A9"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "de5d31d4854734eb4f59fa3fb7c049bc198f83cd",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/7"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "scheduler-flow",
+          "title": "Resource Scheduler · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Encolar trabajos con límites",
+            "Simular presión de recursos sin ejecutar entrenamiento",
+            "Comprobar espera y cancelación",
+            "Reanudar uno solo y registrar consumo real"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "diagnostic",
+      "title": "System Diagnostic",
+      "group": "Skills",
+      "owner": "gemini",
+      "source_refs": [
+        "ideas60:46"
+      ],
+      "tasks": [
+        "A1",
+        "A5"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/bundled/system-diagnostic/SKILL.md",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "diagnostic-flow",
+          "title": "System Diagnostic · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Recoger diagnóstico local sin secretos",
+            "Reproducir fallo de servicio de prueba",
+            "Proponer cambio revisable",
+            "Verificar reparación y recuperación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "accessibility",
+      "title": "Accessibility Assistant",
+      "group": "View",
+      "owner": "gemini",
+      "source_refs": [
+        "ideas60:47"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "accessibility-flow",
+          "title": "Accessibility Assistant · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Completar proyecto con teclado y lector de pantalla",
+            "Revisar nombres accesibles y foco",
+            "Comprobar zoom, errores y diálogos",
+            "Registrar limitaciones por sistema"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "review-rooms",
+      "title": "Review Rooms",
+      "group": "Colaboración",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:48"
+      ],
+      "tasks": [],
+      "scope": "excluded",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [],
+      "decision": "Plan del equipo: salas de revisión multiusuario fuera de alcance. No elimina comentarios locales sobre artefactos.",
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "handoff",
+      "title": "Human Handoff",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:49"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_server.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "handoff-flow",
+          "title": "Human Handoff · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Pausar con pregunta necesaria",
+            "Responder y continuar una vez",
+            "Cancelar o expirar sin inventar aprobación",
+            "Revisar comportamiento en API sin interfaz"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_server.py"
+      ]
+    },
+    {
+      "id": "proof",
+      "title": "Proof Package",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:50"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/proof.py",
+          "tests/test_proof.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "proof-flow",
+          "title": "Proof Package · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Completar tarea real",
+            "Exportar archivos, versiones y pruebas",
+            "Verificar checksums y ausencia de secretos",
+            "Reproducir en segundo entorno y documentar diferencias"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_proof.py"
+      ]
+    },
+    {
+      "id": "branches",
+      "title": "Alternative Branches",
+      "group": "Proyectos",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:51"
+      ],
+      "tasks": [
+        "A9"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "de5d31d4854734eb4f59fa3fb7c049bc198f83cd",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/7"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "branches-flow",
+          "title": "Alternative Branches · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Crear alternativas de proyecto aisladas",
+            "Comparar archivos y resultados",
+            "Elegir e integrar con aprobación",
+            "Recuperar conflicto sin perder original"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "comments",
+      "title": "Artifact Comments",
+      "group": "Proyectos",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:52"
+      ],
+      "tasks": [
+        "A9"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "de5d31d4854734eb4f59fa3fb7c049bc198f83cd",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/7"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "comments-flow",
+          "title": "Artifact Comments · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Comentar una región del artefacto propio",
+            "Aplicar corrección dirigida",
+            "Comparar resultado y conservar versión",
+            "Evitar cambios fuera de la región sin revisión"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "temporary",
+      "title": "Temporary Sessions",
+      "group": "Memoria",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:53"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_temporary.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "temporary-flow",
+          "title": "Temporary Sessions · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Crear conversación temporal con dato de prueba",
+            "Comprobar ausencia de memoria e historial persistentes",
+            "Cerrar y reabrir",
+            "Verificar y explicar archivos creados explícitamente por herramientas"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_temporary.py"
+      ]
+    },
+    {
+      "id": "sharing",
+      "title": "Selective Sharing",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:54"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/proof.py",
+          "tests/test_proof.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "sharing-flow",
+          "title": "Selective Sharing · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Elegir secciones a exportar",
+            "Previsualizar contenido sin claves ni archivos privados",
+            "Verificar archivo resultante local",
+            "Compartir externamente solo con autorización separada"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_proof.py"
+      ]
+    },
+    {
+      "id": "extension-checks",
+      "title": "Extension Certification",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:55"
+      ],
+      "tasks": [
+        "A1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/skills/validation.py",
+          "tests/test_skill_validation.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "extension-checks-flow",
+          "title": "Extension Certification · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Importar extensión con versión, licencia y permisos",
+            "Validar estructura y dependencias",
+            "Denegar permisos",
+            "Mostrar que validación de formato no certifica seguridad ni calidad"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skill_validation.py"
+      ]
+    },
+    {
+      "id": "community-bench",
+      "title": "Community Benchmarks",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:56"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/bench.py",
+          "tests/test_ecosystem.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "community-bench-flow",
+          "title": "Community Benchmarks · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Medir modelo real con parámetros registrados",
+            "Generar exportación anonimizada",
+            "Inspeccionar ausencia de rutas y conversaciones",
+            "Compartir solo después de autorización"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_ecosystem.py"
+      ]
+    },
+    {
+      "id": "failure-library-public",
+      "title": "Failure Library pública",
+      "group": "Ecosistema",
+      "owner": "claude",
+      "source_refs": [
+        "ideas60:57"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/store.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "failure-library-public-flow",
+          "title": "Failure Library pública · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Crear reproducción mínima sin datos privados",
+            "Verificar error y licencia del ejemplo",
+            "Preparar paquete para revisión",
+            "Publicar únicamente tras autorización"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "compatibility",
+      "title": "Compatibility Matrix",
+      "group": "Lab",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:58"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "scripts/compat_matrix.py",
+          "tests/test_ecosystem.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "compatibility-flow",
+          "title": "Compatibility Matrix · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Separar trabajos CI configurados de ejecuciones verificadas",
+            "Vincular plataforma y versión con log",
+            "Registrar fallos y capacidades sin medir",
+            "Revisar matriz de sistemas anunciados"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_ecosystem.py"
+      ]
+    },
+    {
+      "id": "scoreboard",
+      "title": "Quality Scoreboard",
+      "group": "Lab",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:59",
+        "core12:10",
+        "advanced20:12"
+      ],
+      "tasks": [
+        "A8"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/lab.py",
+          "tests/test_lab.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "scoreboard-flow",
+          "title": "Quality Scoreboard · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Comparar modelos con casos idénticos separados del entrenamiento",
+            "Registrar latencia, coste y exactitud definida",
+            "Exportar resultados incluidos fallos",
+            "No inferir calidad general de una métrica aislada"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_lab.py"
+      ]
+    },
+    {
+      "id": "specification",
+      "title": "Open Specification",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "ideas60:60"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_ecosystem.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "specification-flow",
+          "title": "Open Specification · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Exportar proyectos, skills, packs y pruebas v1",
+            "Validar con esquemas publicados",
+            "Importar en instalación limpia",
+            "Rechazar versión incompatible con mensaje claro"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_ecosystem.py"
+      ]
+    },
+    {
+      "id": "adaptive",
+      "title": "Adaptive Intelligence / router",
+      "group": "Inteligencia",
+      "owner": "claude",
+      "source_refs": [
+        "core12:01"
+      ],
+      "tasks": [
+        "M9"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_core.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "adaptive-flow",
+          "title": "Adaptive Intelligence / router · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Evaluar conjunto ciego de 13 especialistas sin usarlo para ajustar",
+            "Comparar ruta sencilla y orquestada",
+            "Registrar errores, tiempo y consumo sin cambiar umbrales"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_core.py"
+      ]
+    },
+    {
+      "id": "autotune",
+      "title": "AutoTune / Auto Model Benchmark",
+      "group": "Motor",
+      "owner": "codex",
+      "source_refs": [
+        "core12:02",
+        "advanced20:01"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/tune.py",
+          "spike/bench.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "autotune-flow",
+          "title": "AutoTune / Auto Model Benchmark · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Detectar hardware real",
+            "Probar configuraciones dentro de presupuesto",
+            "Mostrar configuración recomendada con medición",
+            "Fallar con RAM insuficiente sin bloquear equipo"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "providers",
+      "title": "Universal Model Engine / Hybrid Escalation",
+      "group": "Motor",
+      "owner": "claude",
+      "source_refs": [
+        "core12:03",
+        "advanced20:03"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_providers.py",
+          "tests/test_privacy.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "providers-flow",
+          "title": "Universal Model Engine / Hybrid Escalation · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Completar tarea local",
+            "Revisar qué datos enviaría la escalada",
+            "Denegar y comprobar ausencia de envío",
+            "Autorizar proveedor configurado y comprobar capacidades reales"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_providers.py",
+        "tests/test_privacy.py"
+      ]
+    },
+    {
+      "id": "specialists",
+      "title": "Specialist Engine / Specialist Factory",
+      "group": "Motor",
+      "owner": "claude",
+      "source_refs": [
+        "core12:04",
+        "core12:08"
+      ],
+      "tasks": [
+        "M2",
+        "M7",
+        "M8"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_export_integration.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "specialists-flow",
+          "title": "Specialist Engine / Specialist Factory · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Distinguir perfil, RAG y adaptador",
+            "Evaluar compatibilidad al cambiar especialista",
+            "Rechazar adaptador no aceptado",
+            "Conservar perfil cuando no haya pesos aceptados"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_export_integration.py"
+      ]
+    },
+    {
+      "id": "workspace",
+      "title": "Workspace / Portable Projects",
+      "group": "Proyectos",
+      "owner": "codex",
+      "source_refs": [
+        "core12:06",
+        "advanced20:19"
+      ],
+      "tasks": [
+        "S1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/projects.py",
+          "tests/test_projects.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "workspace-flow",
+          "title": "Workspace / Portable Projects · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Crear proyecto y cargar archivos",
+            "Guardar instrucciones y conversación",
+            "Exportar e importar sin pérdida",
+            "Borrar y recuperar error de permisos sin perder registros",
+            "Reabrir después de reinicio"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_projects.py"
+      ]
+    },
+    {
+      "id": "forge",
+      "title": "Forge / Work / Collective",
+      "group": "Forge / Dev",
+      "owner": "claude",
+      "source_refs": [
+        "core12:07",
+        "modes:03",
+        "modes:07"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_forge.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "forge-flow",
+          "title": "Forge / Work / Collective · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Definir tarea completa con archivos",
+            "Planificar, pedir permisos, ejecutar y revisar",
+            "Cancelar y continuar sin duplicar efectos",
+            "Comprobar entregables con lector real",
+            "Comparar contra modelo solo con igual tarea y presupuesto"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_forge.py"
+      ]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy Control / Resource Budgeting",
+      "group": "Motor",
+      "owner": "claude",
+      "source_refs": [
+        "core12:09",
+        "advanced20:20"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_privacy.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "privacy-flow",
+          "title": "Privacy Control / Resource Budgeting · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Mostrar datos a enviar antes de llamada",
+            "Denegar y verificar tráfico real sin el dato",
+            "Aplicar límites de tokens, dinero y RAM",
+            "Comprobar límites tras reintento y cambio de proveedor"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_privacy.py"
+      ]
+    },
+    {
+      "id": "packs",
+      "title": "Packs / Workflow Templates",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "core12:11",
+        "advanced20:17"
+      ],
+      "tasks": [
+        "A2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/packs.py",
+          "tests/test_skills.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "packs-flow",
+          "title": "Packs / Workflow Templates · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Instalar pack versionado y revisar permisos",
+            "Usar plantilla completa",
+            "Exportar sin credenciales",
+            "Reimportar y ejecutar con dependencias presentes"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_skills.py"
+      ]
+    },
+    {
+      "id": "local-api",
+      "title": "Local API",
+      "group": "Motor",
+      "owner": "claude",
+      "source_refs": [
+        "core12:12"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_openai_api.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "local-api-flow",
+          "title": "Local API · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Usar cliente oficial contra modelo real",
+            "Probar streaming, cancelación, errores y herramientas soportadas",
+            "Verificar autenticación y restricciones de origen",
+            "Documentar subconjunto compatible"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_openai_api.py"
+      ]
+    },
+    {
+      "id": "context",
+      "title": "Smart Context Engine",
+      "group": "Memoria",
+      "owner": "claude",
+      "source_refs": [
+        "advanced20:02"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_memory.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "context-flow",
+          "title": "Smart Context Engine · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Recuperar información relevante de corpus conocido",
+            "Medir pérdida de hechos al comprimir",
+            "Respetar contexto y RAM",
+            "Informar documentos que no se pudieron indexar"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_memory.py"
+      ]
+    },
+    {
+      "id": "memory",
+      "title": "Neural Memory / Offline Knowledge Library",
+      "group": "Memoria",
+      "owner": "claude",
+      "source_refs": [
+        "advanced20:05",
+        "advanced20:13",
+        "modes:08"
+      ],
+      "tasks": [
+        "A7"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/memory/service.py",
+          "tests/test_memory.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "memory-flow",
+          "title": "Neural Memory / Offline Knowledge Library · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Guardar decisiones y correcciones autorizadas",
+            "Buscar sin conexión con modelo real",
+            "Editar y borrar información",
+            "Comprobar ausencia tras reapertura",
+            "Medir calidad de recuperación sin contexto infinito"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_memory.py"
+      ]
+    },
+    {
+      "id": "replay",
+      "title": "Agent Replay / Reversible Actions",
+      "group": "Forge / Dev",
+      "owner": "claude",
+      "source_refs": [
+        "advanced20:06",
+        "advanced20:16"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_server.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "replay-flow",
+          "title": "Agent Replay / Reversible Actions · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Ejecutar tarea con varios pasos",
+            "Reproducir registro sin volver a ejecutar",
+            "Deshacer archivo con y sin cambio posterior",
+            "Mostrar acciones que no se pueden revertir"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_server.py"
+      ]
+    },
+    {
+      "id": "sandbox",
+      "title": "Safe Execution",
+      "group": "Motor",
+      "owner": "claude",
+      "source_refs": [
+        "advanced20:07"
+      ],
+      "tasks": [
+        "A4"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_core.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "sandbox-flow",
+          "title": "Safe Execution · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Intentar lectura y escritura fuera del entorno autorizado",
+            "Comprobar rechazo en sistema real",
+            "Cancelar proceso y verificar limpieza",
+            "Documentar límites por plataforma"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_core.py"
+      ]
+    },
+    {
+      "id": "workflow-builder",
+      "title": "Visual Workflow Builder",
+      "group": "Creator",
+      "owner": "codex",
+      "source_refs": [
+        "advanced20:08"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "workflow-builder-flow",
+          "title": "Visual Workflow Builder · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Crear grafo de tarea",
+            "Validar ciclos y permisos",
+            "Guardar, abrir y ejecutar con resultados reproducibles"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "connectors",
+      "title": "One-Click Connectors / MCP",
+      "group": "View",
+      "owner": "codex",
+      "source_refs": [
+        "advanced20:09"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "tests/test_mcp_client.py",
+          "tests/test_connectors.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "connectors-flow",
+          "title": "One-Click Connectors / MCP · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Instalar conector versionado",
+            "Autorizar autenticación y herramienta",
+            "Denegar acción y comprobar que no ocurrió",
+            "Desconectar, fallar transporte y recuperar",
+            "Inspeccionar procedencia y datos transmitidos"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_mcp_client.py",
+        "tests/test_connectors.py"
+      ]
+    },
+    {
+      "id": "voice",
+      "title": "Voice / Multimodal Specialists",
+      "group": "Multimedia",
+      "owner": "codex",
+      "source_refs": [
+        "advanced20:10",
+        "advanced20:11"
+      ],
+      "tasks": [
+        "A13"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "9bb0274e2fca5f7b40dabe155411163776b62173",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/11"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "voice-flow",
+          "title": "Voice / Multimodal Specialists · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Comprobar motor y modelo compatibles",
+            "Importar audio e imagen propios",
+            "Generar respuesta y escuchar voz real",
+            "Denegar proveedor y verificar ausencia de envío",
+            "Informar dependencia ausente"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "marketplace",
+      "title": "Skill Marketplace / 30 skills",
+      "group": "Ecosistema",
+      "owner": "codex",
+      "source_refs": [
+        "advanced20:14",
+        "modes:05"
+      ],
+      "tasks": [
+        "A11"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "a91316035de1f4efbeee6557547f996878dc5bfc",
+        "references": [
+          "https://github.com/jpimasreiser11-gif/spike/pull/8"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "marketplace-flow",
+          "title": "Skill Marketplace / 30 skills · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Revisar licencia, origen y versión",
+            "Instalar solo skills elegidas",
+            "Ejecutar casos ES/EN por skill",
+            "Rechazar dependencias incompatibles",
+            "Desinstalar y exportar sin datos privados"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "update-advisor",
+      "title": "Model Update Advisor",
+      "group": "Lab",
+      "owner": "claude",
+      "source_refs": [
+        "advanced20:15"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "update-advisor-flow",
+          "title": "Model Update Advisor · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Comparar candidato con modelo estable",
+            "Conservar configuración y resultados reproducibles",
+            "Recomendar cambio solo si criterio aprobado se cumple",
+            "Volver a versión anterior"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "dev",
+      "title": "Spike Dev / CLI",
+      "group": "Forge / Dev",
+      "owner": "codex",
+      "source_refs": [
+        "advanced20:18",
+        "modes:04"
+      ],
+      "tasks": [
+        "DEV1"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "df11471377cc737b1c3ed99fab128b96c35a4b2e",
+        "references": [
+          "tests/test_dev.py",
+          "https://github.com/jpimasreiser11-gif/spike/pull/15"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "dev-flow",
+          "title": "Spike Dev / CLI · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Abrir carpeta real de ejemplo",
+            "Editar, aprobar y ejecutar pruebas",
+            "Cancelar y reanudar sesión sin reactivar permisos",
+            "Deshacer y comprobar archivos finales"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": [
+        "tests/test_dev.py"
+      ]
+    },
+    {
+      "id": "design",
+      "title": "Spike Design",
+      "group": "Design",
+      "owner": "codex",
+      "source_refs": [
+        "modes:01"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/design/library.py",
+          "tests/test_design.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "design-flow",
+          "title": "Spike Design · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Definir brief y sistema visual",
+            "Crear interfaz y revisar en navegador real",
+            "Corregir contraste y estados de error",
+            "Exportar componentes editables"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_design.py"
+      ]
+    },
+    {
+      "id": "view",
+      "title": "Spike View",
+      "group": "View",
+      "owner": "claude",
+      "source_refs": [
+        "modes:02"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "view-flow",
+          "title": "Spike View · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Automatizar navegación en sitio de prueba",
+            "Revisar permisos antes de envío",
+            "Denegar, fallar selector y recuperar",
+            "Detener antes de acción externa"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "finance",
+      "title": "Finanzas y criptos",
+      "group": "Analytics",
+      "owner": "claude",
+      "source_refs": [
+        "modes:06"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/finance/paper.py",
+          "spike/finance/live.py",
+          "tests/test_finance.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "finance-flow",
+          "title": "Finanzas y criptos · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Analizar y simular con datos fechados",
+            "Comprobar cálculos y comisiones",
+            "Mantener órdenes reales apagadas",
+            "Verificar denegación y confirmación por operación en entorno de pruebas",
+            "No ejecutar órdenes reales para esta validación"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_finance.py"
+      ]
+    },
+    {
+      "id": "evolution",
+      "title": "Evolution / Correction Learning",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "modes:09",
+        "evolution10:01"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/memory/learn.py",
+          "tests/test_learn.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "evolution-flow",
+          "title": "Evolution / Correction Learning · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Corregir respuesta y aprobar regla",
+            "Aplicar regla a una tarea nueva",
+            "Deshacer y comprobar persistencia",
+            "Evitar guardar datos de sesión temporal"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_learn.py"
+      ]
+    },
+    {
+      "id": "motion",
+      "title": "Spike Motion",
+      "group": "Multimedia",
+      "owner": "codex",
+      "source_refs": [
+        "modes:10"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/motion/render.py",
+          "tests/test_motion.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "motion-flow",
+          "title": "Spike Motion · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Generar animación por código",
+            "Renderizar con dependencias reales y permisos",
+            "Abrir vídeo y proyecto editable",
+            "Comprobar fallo, cancelación y sincronización"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_motion.py"
+      ]
+    },
+    {
+      "id": "analytics",
+      "title": "Spike Analytics",
+      "group": "Analytics",
+      "owner": "codex",
+      "source_refs": [
+        "modes:11"
+      ],
+      "tasks": [
+        "A3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/analytics/engine.py",
+          "tests/test_analytics.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "analytics-flow",
+          "title": "Spike Analytics · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Importar CSV y Excel",
+            "Revisar cálculos en código",
+            "Interactuar con gráfico y exportar informe",
+            "Abrir resultado y contrastar con cálculo independiente"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_analytics.py"
+      ]
+    },
+    {
+      "id": "creator",
+      "title": "Spike Creator",
+      "group": "Creator",
+      "owner": "codex",
+      "source_refs": [
+        "modes:12"
+      ],
+      "tasks": [],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/creator.py",
+          "tests/test_creator.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "creator-flow",
+          "title": "Spike Creator · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Usar plantillas web, app, documento y presentación",
+            "Aprobar herramientas y crear archivos",
+            "Abrir, editar y comprobar cada tipo real",
+            "Reintentar fallo conservando originales"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_creator.py"
+      ]
+    },
+    {
+      "id": "prompt-evolution",
+      "title": "Prompt Evolution / Regression Protection",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "evolution10:02",
+        "evolution10:08"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/prompts.py",
+          "tests/test_prompt_regression.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "prompt-evolution-flow",
+          "title": "Prompt Evolution / Regression Protection · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Guardar candidata inactiva",
+            "Comparar con suite separada",
+            "Rechazar regresión según regla existente",
+            "Activar solo aceptada y registrar intentos fallidos"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_prompt_regression.py"
+      ]
+    },
+    {
+      "id": "strategy",
+      "title": "Tool Strategy Learning",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "evolution10:03"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/strategy.py",
+          "tests/test_strategy.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "strategy-flow",
+          "title": "Tool Strategy Learning · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Registrar usos y fallos sin inventar calidad",
+            "Evaluar selección en conjunto separado",
+            "Conservar estrategia estable si empeora",
+            "Restablecer historial y verificar comportamiento"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_strategy.py"
+      ]
+    },
+    {
+      "id": "routing-learning",
+      "title": "Specialist Routing Learning",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "evolution10:04"
+      ],
+      "tasks": [
+        "M9"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/router_learning.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "routing-learning-flow",
+          "title": "Specialist Routing Learning · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Recoger correcciones autorizadas",
+            "Evaluar rutas sobre conjunto ciego",
+            "Rechazar regresión con los criterios de Claude",
+            "Registrar versión y datos usados"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "personal-adapter",
+      "title": "Personal Adaptation",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "evolution10:06"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/personal.py",
+          "tests/test_personal_adapter.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "personal-adapter-flow",
+          "title": "Personal Adaptation · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Verificar apagado inicial y selección autorizada de ejemplos",
+            "Entrenar solo con RAM disponible",
+            "Medir y rechazar si incumple criterio",
+            "Eliminar datos temporales y restaurar versión"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_personal_adapter.py"
+      ]
+    },
+    {
+      "id": "benchmark-generation",
+      "title": "Benchmark Generation",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "evolution10:07"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/dataset.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "benchmark-generation-flow",
+          "title": "Benchmark Generation · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Transformar fallo en caso evaluable autorizado",
+            "Revisar respuesta correcta y procedencia",
+            "Separarlo de entrenamiento y selección",
+            "Ejecutar y guardar resultado"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "rollback",
+      "title": "Auto Rollback / Model Versioning",
+      "group": "Lab / Evolution",
+      "owner": "claude",
+      "source_refs": [
+        "evolution10:09",
+        "evolution10:10"
+      ],
+      "tasks": [
+        "A10"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "spike/evolution/service.py",
+          "tests/test_evolution_levels.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "rollback-flow",
+          "title": "Auto Rollback / Model Versioning · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Instalar candidata y conservar estable",
+            "Provocar fallo controlado",
+            "Recuperar versión compatible sin pérdida",
+            "Verificar hashes y trazabilidad de decisiones"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_evolution_levels.py"
+      ]
+    },
+    {
+      "id": "install",
+      "title": "Distribución y primer arranque",
+      "group": "Distribución",
+      "owner": "codex",
+      "source_refs": [
+        "launch:01"
+      ],
+      "tasks": [
+        "I1",
+        "I2",
+        "I3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "in_review",
+        "revision": "03f36e533a371085df78a00e78d82a316daee475",
+        "references": [
+          "scripts/install.sh",
+          "scripts/install.ps1",
+          "https://github.com/jpimasreiser11-gif/spike/pull/10"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "install-flow",
+          "title": "Distribución y primer arranque · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Instalar DMG, EXE y AppImage en máquinas limpias anunciadas",
+            "Descargar modelo y verificar SHA-256",
+            "Abrir app y completar tarea con pesos reales",
+            "Repetir sin red, sin modelo y con RAM insuficiente",
+            "Actualizar, cancelar y recuperar sin perder proyectos"
+          ]
+        }
+      ],
+      "notes": "Implementación candidata: pendiente de revisión e integración y prueba real de este recorrido.",
+      "tests": []
+    },
+    {
+      "id": "trained-models",
+      "title": "Trece especialistas: recetas y aceptación",
+      "group": "Modelos",
+      "owner": "claude / mac",
+      "source_refs": [
+        "launch:02"
+      ],
+      "tasks": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "M9"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "training/fix_forgetting.py",
+          "tests/test_fix_forgetting.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "trained-models-flow",
+          "title": "Trece especialistas: recetas y aceptación · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos",
+            "windows",
+            "linux"
+          ],
+          "mode": "real",
+          "requires_model": true,
+          "steps": [
+            "Auditar licencias y procedencia de cada receta",
+            "Entrenar de uno en uno bajo límite de RAM",
+            "Separar entrenamiento, selección y aceptación",
+            "Medir cada especialista frente a base con criterios existentes",
+            "Anunciar como perfil los rechazados y conservar todos los resultados"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": [
+        "tests/test_fix_forgetting.py"
+      ]
+    },
+    {
+      "id": "release-quality",
+      "title": "Candidato: usuario nuevo, privacidad y recuperación",
+      "group": "Lanzamiento",
+      "owner": "claude",
+      "source_refs": [
+        "launch:03"
+      ],
+      "tasks": [
+        "L2"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "documented",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "scripts/release/readiness.py"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "release-quality-flow",
+          "title": "Candidato: usuario nuevo, privacidad y recuperación · recorrido completo",
+          "critical": true,
+          "platforms": [
+            "macos"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Ejecutar todos los recorridos de alcance en versión integrada",
+            "Repetir críticos tres veces por plataforma",
+            "Comprobar ausencia de pérdida de datos y acciones sin permiso",
+            "Revisar defectos conocidos y licencias",
+            "Obtener revisión de Claude y de Joan"
+          ]
+        }
+      ],
+      "notes": "Código o procedimiento localizado; no implica que toda la promesa esté terminada ni validada con modelos reales.",
+      "tests": []
+    },
+    {
+      "id": "launch-media",
+      "title": "Demostraciones, documentación y campaña",
+      "group": "Lanzamiento",
+      "owner": "codex / mac",
+      "source_refs": [
+        "launch:04"
+      ],
+      "tasks": [
+        "L1",
+        "L3"
+      ],
+      "scope": "release",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [
+        {
+          "id": "launch-media-flow",
+          "title": "Demostraciones, documentación y campaña · recorrido completo",
+          "critical": false,
+          "platforms": [
+            "macos"
+          ],
+          "mode": "real",
+          "requires_model": false,
+          "steps": [
+            "Capturar versión validada con datos de ejemplo",
+            "Componer vídeo y subtítulos ES/EN",
+            "Reproducir master y recortes completos",
+            "Revisar README, tutorial y calendario",
+            "Mantener publicación separada bajo autorización de Joan"
+          ]
+        }
+      ],
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "monetization",
+      "title": "Community, Pro y servicios",
+      "group": "Negocio",
+      "owner": "claude / joan",
+      "source_refs": [
+        "launch:05"
+      ],
+      "tasks": [
+        "N1",
+        "N2",
+        "N3"
+      ],
+      "scope": "deferred",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [],
+      "decision": "Joan eligió Community + futuros extras Pro + servicios. Facturación después de aprobar oferta y estudio de Claude; no bloquea la app Community.",
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    },
+    {
+      "id": "local-desktop",
+      "title": "Control de escritorio con modelo local",
+      "group": "View",
+      "owner": "claude",
+      "source_refs": [
+        "launch:06"
+      ],
+      "tasks": [],
+      "scope": "excluded",
+      "implementation": {
+        "state": "planned",
+        "revision": "9072c7059c3a5c23f6140fdc49089d9ddc8a0699",
+        "references": [
+          "docs/team/PLAN.md"
+        ]
+      },
+      "journeys": [],
+      "decision": "Plan del equipo: control del escritorio con modelo local expresamente excluido.",
+      "notes": "Promesa conservada en el inventario; implementación y responsable operativo pendientes de confirmar con Claude.",
+      "tests": []
+    }
+  ]
+}
