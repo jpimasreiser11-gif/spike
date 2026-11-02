@@ -120,6 +120,18 @@ base model and the app marks it β until an adapter passes its acceptance tests.
 - Fixes: portable benchmark paths and Windows project cleanup; the browser tests wait for the end of each
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
+### Security and packaging (release review, L2)
+- A path through a `.git` folder is refused in project archives, file uploads, packs and `write_file`: git runs
+  programs named in `.git/config`.
+- Pack import brings in only the fields the Connectors form can enter; environment variables, headers, secret
+  definitions and links in a pack are dropped.
+- A provider is local only when its address's host is this computer; moving a provider to another address makes it
+  remote (file contents withheld unless allowed, paid-call rule applies).
+- `web_fetch` refuses the shared address space 100.64.0.0/10 and IPv4-mapped IPv6 forms.
+- Desktop builds carry the license text of every bundled Python and web package, NOTICE and THIRD_PARTY.md
+  (`licenses/third-party/`); the web app serves the OFL text of its fonts as `/FONT-LICENSES.txt`.
+- `docs/release/REVIEW-v0.1.md`: v0.1 checklist with evidence, findings, secrets scan and license table.
+
 ### Learning from use (Evolution)
 - Tool strategy learning: successes and failures of tools and skills are counted per task type from real runs; the
   counts only break ties between skills the router scores equal (at least 5 uses each, kept only while skill

@@ -682,7 +682,7 @@
   {
    "id": "L2",
    "owner": "claude",
-   "status": "todo",
+   "status": "doing",
    "phase": "lanzamiento",
    "title": "Revisión final de seguridad y licencias y notas de versión",
    "depends": [
@@ -693,7 +693,8 @@
    "spec": "v0.1 checklist in docs/PLAN.md §27.",
    "accept": [
     "checklist all ticked with evidence"
-   ]
+   ],
+   "note": "2026-11-02 part 1 done (73fe361): docs/release/REVIEW-v0.1.md, 4 medium fixes, licenses in the bundle. Waits on: L1 demo, M2 adapter, a Native installers run with the new spec, libfuse decision, llama.cpp vendored notices, release notes."
   },
   {
    "id": "L3",
