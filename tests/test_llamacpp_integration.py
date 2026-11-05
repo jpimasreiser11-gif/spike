@@ -8,6 +8,7 @@ Set SPIKE_LLAMA_SERVER to the binary to run them.
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -33,6 +34,36 @@ def test_gguf_reader_on_real_file(tiny):
     assert info.arch == "llama" and info.field("block_count") == 2
     # 2 layers * 2 kv heads * (16 + 16) dims * 2 bytes = 256 bytes/token
     assert kv_cache_bytes(info, 1000, "f16") == 256_000
+
+
+async def test_eval_receipt_and_resume_with_real_server_and_adapter(tiny, tmp_path, monkeypatch):
+    """The resume contract works with the actual runtime, not only a stand-in client."""
+    import json
+
+    from spike_train.evaluation import Item
+
+    from evals import run_eval
+
+    monkeypatch.setattr(run_eval, "load_items", lambda task, *_: [
+        Item(f"{task['name']}:0", task["name"], "Choose A", "mcq", "A", 2)])
+    out = tmp_path / "eval"
+    args = SimpleNamespace(suites="medicine", model=str(tiny / "spike-tiny.gguf"),
+                           adapter=[str(tiny / "spike-medicine.gguf")], server_url=None, acceptance=None,
+                           limit=1, max_tokens=2, parallel=1, ctx_per_slot=1024, ngl=0, threads=2,
+                           kv_cache_type="f16", seed=0, out=str(out), resume=None)
+    assert await run_eval.run(args) == 0
+    original = (out / "predictions.jsonl").read_bytes()
+
+    async def no_new_generation(*args, **kwargs):
+        raise AssertionError("complete groups should be reused")
+
+    monkeypatch.setattr(run_eval.Client, "chat", no_new_generation)
+    args.resume = str(out)
+    assert await run_eval.run(args) == 0
+    summary = json.loads((out / "summary.json").read_text())
+    assert summary["variants"] == ["base", "spike-medicine"]
+    assert summary["meta"]["resumed"]["saved_rows"] == len(original.splitlines())
+    assert (out / "predictions.jsonl").read_bytes() == original
 
 
 async def _greedy(base_url: str, prompt: str, lora: list | None, cache: bool = False) -> list[int]:
