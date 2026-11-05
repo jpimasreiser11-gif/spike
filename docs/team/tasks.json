@@ -723,7 +723,7 @@
     "L1"
    ],
    "paths": [],
-   "spec": "v0.1 checklist in docs/PLAN.md §27.",
+   "spec": "v0.1 checklist in docs/PLAN.md §27. 2026-11-05: dependency audits done (dompurify, pypdf updated); libfuse decided by joan: ship the AppImage with the standard runtime.",
    "accept": [
     "checklist all ticked with evidence"
    ],
