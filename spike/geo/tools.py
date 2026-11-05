@@ -63,6 +63,8 @@ def totals(dataset: Dataset) -> dict[str, int]:
 def bbox(dataset: Dataset) -> list[float]:
     every = [p for f in dataset.features for p in [*f.points, *(q for ln in f.lines for q in ln),
                                                    *(q for pg in f.polygons for r in pg for q in r)]]
+    if not every:
+        return [0.0, 0.0, 0.0, 0.0]
     lats, lons = [p[0] for p in every], [p[1] for p in every]
     return [min(lats), min(lons), max(lats), max(lons)]
 
@@ -110,10 +112,11 @@ class GeoMap(_GeoTool):
         "required": ["path"]}
 
     def act(self, args: dict[str, Any]) -> ToolResult:
-        lang = args.get("lang", "es")
+        lang = args.get("lang") or "es"
         if lang not in ("es", "en"):
             raise GeoError("lang must be es or en")
-        label, value, bins = args.get("label") or None, args.get("value") or None, check_bins(args.get("bins", 5))
+        raw_bins = args.get("bins")
+        label, value, bins = args.get("label") or None, args.get("value") or None, check_bins(5 if raw_bins is None else raw_bins)
         dataset = self.load(args)
         title = str(args.get("title") or "").strip()[:120]
         svg = render_map(dataset, title=title, lang=lang, labels=label, value=value, bins=bins)

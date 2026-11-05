@@ -114,7 +114,7 @@ def check_page_path(path: str) -> str:
 def image_size(data: bytes) -> tuple[int, int]:
     """Width and height of a PNG, JPEG or WebP from its header, with no decoder."""
     w = h = 0
-    if data.startswith(b"\x89PNG\r\n\x1a\n") and data[12:16] == b"IHDR":
+    if len(data) >= 24 and data.startswith(b"\x89PNG\r\n\x1a\n") and data[12:16] == b"IHDR":
         w, h = struct.unpack(">II", data[16:24])
     elif data.startswith(b"\xff\xd8"):
         i = 2
@@ -131,7 +131,10 @@ def image_size(data: bytes) -> tuple[int, int]:
                 h, w = struct.unpack(">HH", data[i + 5:i + 9])
                 break
             else:
-                i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+                seg_len = struct.unpack(">H", data[i + 2:i + 4])[0]
+                if seg_len < 2:
+                    break
+                i += 2 + seg_len
     elif data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         kind = data[12:16]
         if kind == b"VP8X" and len(data) >= 30:
@@ -256,13 +259,41 @@ def _walk(nodes: list[dict[str, Any]]):
         yield from _walk(node.get("n", []))
 
 
+def _check_capture_node(node: Any) -> None:
+    if not isinstance(node, dict) or not isinstance(node.get("t"), str) or not node["t"]:
+        raise ReverseError("reverse_capture_failed")
+    rect, style, kids = node.get("r"), node.get("s"), node.get("n", [])
+    if (
+        not isinstance(rect, list | tuple)
+        or len(rect) != 4
+        or any(isinstance(v, bool) or not isinstance(v, int | float) for v in rect)
+        or not isinstance(style, dict)
+        or not isinstance(kids, list)
+    ):
+        raise ReverseError("reverse_capture_failed")
+    for kid in kids:
+        _check_capture_node(kid)
+
+
 def describe(capture: dict[str, Any], own_text: str = "", budget_tokens: int = 3000) -> str:
     """The compact structure of a captured page: one line per element with its box, its non-default styles and a
     lorem-style text of the same length. Deeper levels are folded until it fits `budget_tokens`; similar siblings are
     folded into one line. The original text, sources, links, class names and ids are never in it."""
-    own = [line.strip() for line in own_text.splitlines() if line.strip()]
+    if not isinstance(capture, dict) or not isinstance(capture.get("viewport"), dict):
+        raise ReverseError("reverse_capture_failed")
     view = capture["viewport"]
-    head = (f"Viewport {view['width']}x{view['height']} px. Page background {capture.get('page', '#ffffff')}."
+    vw, vh = view.get("width"), view.get("height")
+    if (
+        isinstance(vw, bool)
+        or isinstance(vh, bool)
+        or not isinstance(vw, int)
+        or not isinstance(vh, int)
+        or vw <= 0
+        or vh <= 0
+    ):
+        raise ReverseError("reverse_capture_failed")
+    own = [line.strip() for line in own_text.splitlines() if line.strip()]
+    head = (f"Viewport {vw}x{vh} px. Page background {capture.get('page', '#ffffff')}."
             + (" The capture was cut at its element limit." if capture.get("truncated") else "")
             + "\nEach line is: tag [x,y widthxheight] {styles that differ from the browser's default} \"placeholder text\"."
             "\nIndented lines are children. `xN` means N similar siblings in a row (sizes and text lengths differ a "
@@ -270,6 +301,7 @@ def describe(capture: dict[str, Any], own_text: str = "", budget_tokens: int = 3
     root = capture.get("root")
     if not root:
         return head + "(the page has no visible element)"
+    _check_capture_node(root)
     depth = 14
     while True:
         d = _Describer(list(own), depth)

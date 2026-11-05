@@ -185,23 +185,43 @@ class _Run:
         self.nodes = {n["id"]: n for n in doc["nodes"]}
         self.sources = incoming(doc)
         self.records = live.record["nodes"]
-        self.scope = {name: Value(text) for name, text in values.items()}  # names of input nodes, then finished nodes
+        self.scope = {
+            name: Value(text)
+            for name, text in values.items()
+            if isinstance(text, str) and text.strip()
+        }  # names of input nodes, then finished nodes
         self.values = values
 
     def emit(self, event: dict[str, Any]) -> None:
         self.live.emit(event)
 
+    def _node_alive(self, nid: str) -> bool:
+        return (
+            nid in self.nodes
+            and nid in self.records
+            and any(isinstance(n, dict) and n.get("id") == nid for n in self.doc.get("nodes", []))
+        )
+
     # ------------------------------------------------------------------ edges
     def edge_state(self, edge: dict[str, Any]) -> str:
-        source = self.records[edge["from"]]
+        from_id = edge["from"]
+        if not self._node_alive(from_id):
+            return "dead"
+        source = self.records[from_id]
         if source["status"] == "ok":
-            if self.nodes[edge["from"]]["type"] == "condition":
+            if self.nodes[from_id]["type"] == "condition":
                 return "live" if source.get("branch") == edge["fromPort"] else "neutral"
             return "live"
         return "neutral" if source["status"] == "skipped" and source.get("skip") == "branch" else "dead"
 
     # ------------------------------------------------------------------ one node
     async def run_node(self, nid: str) -> None:
+        if not self._node_alive(nid):
+            rec = self.records.get(nid)
+            if rec is not None:
+                rec.update(status="skipped", skip="deleted")
+            self.emit({"type": "node_end", "node": nid, "status": "skipped", "skip": "deleted"})
+            return
         node, rec = self.nodes[nid], self.records[nid]
         edges = self.sources.get(nid, [])
         states = [self.edge_state(e) for e in edges]
@@ -274,7 +294,13 @@ class _Run:
 
     # ------------------------------------------------------------------ the five kinds
     async def do_input(self, node: dict[str, Any], rec: dict[str, Any], subject: Value | None) -> Value:
-        return Value(self.values[node["name"]])
+        raw = self.values.get(node["name"])
+        text = raw if isinstance(raw, str) else "" if raw is None else str(raw)
+        if not text.strip():
+            text = str(node.get("default") or "")
+        if not text.strip():
+            raise NodeFailure(f"'{node['name']}' needs a value")
+        return Value(text)
 
     async def do_specialist(self, node: dict[str, Any], rec: dict[str, Any], subject: Value | None) -> Value:
         prompt, private = self.fill(node["prompt"], subject)

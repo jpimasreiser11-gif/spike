@@ -15,6 +15,7 @@ import base64
 import copy
 import json
 import re
+import struct
 import time
 import uuid
 from collections.abc import Callable
@@ -229,11 +230,21 @@ def create_reverse_router(get_state: Callable[[], Any], this_computer: Callable[
                     capture = await reverse_browser.capture_page(
                         url=req.url, folder=folder_of(req) if req.source == "file" else None, path=req.path,
                         width=width, height=height)
+                    if not isinstance(capture, dict) or not isinstance(capture.get("png"), bytes | bytearray):
+                        raise ReverseError("reverse_capture_failed")
+                    png_raw = bytes(capture.pop("png"))
+                    if (
+                        len(png_raw) < 24
+                        or not png_raw.startswith(b"\x89PNG\r\n\x1a\n")
+                        or png_raw[12:16] != b"IHDR"
+                        or any(v <= 0 for v in struct.unpack(">II", png_raw[16:24]))
+                    ):
+                        raise ReverseError("reverse_capture_failed")
+                    described = reverse.describe(capture, req.own_text, quote["room"])
                 except ReverseError as exc:
                     raise HTTPException(*reason_of(exc)) from exc
-                reference = "data:image/png;base64," + base64.b64encode(capture.pop("png")).decode("ascii")
-                text = reverse.structure_prompt(reverse.describe(capture, req.own_text, quote["room"]),
-                                                req.own_text, avoid)
+                reference = "data:image/png;base64," + base64.b64encode(png_raw).decode("ascii")
+                text = reverse.structure_prompt(described, req.own_text, avoid)
                 user = Message(role="user", content=text, private=[text])  # a page of the user's: file content
                 tokens = estimate_tokens(system) + estimate_tokens(text)
             if reason := blocked(provider, kind, tokens, context, quote["out"]):  # again, with the real size
