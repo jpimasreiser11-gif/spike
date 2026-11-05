@@ -13,7 +13,7 @@ import { Memory } from "./Memory";
 import { Privacy } from "./Privacy";
 import { Skills } from "./Skills";
 import { IconClose, IconTrash } from "./Icons";
-import { SpecMark } from "./SpecMark";
+import { SpecialistCard } from "./SpecialistCard";
 
 const L = lang === "es"
   ? {
@@ -308,6 +308,10 @@ function LimitsEditor({ limits, save }: { limits: Limits; save: (l: Limits) => v
 }
 
 function Specialists({ specialists, providers, settings, save }: { specialists: Specialist[]; providers: ProviderInfo[]; settings: Settings; save: (p: Partial<Settings>) => void }) {
+  const [live, setLive] = useState<Specialist[]>(specialists);
+  useEffect(() => {
+    api.get<Specialist[]>("/api/specialists").then(setLive).catch(() => {});
+  }, [settings]);
   const setBinding = (id: string, provider_id: string) => {
     const next = { ...settings.specialist_bindings };
     if (provider_id) next[id] = { ...(next[id] || {}), provider_id }; else delete next[id];
@@ -316,26 +320,17 @@ function Specialists({ specialists, providers, settings, save }: { specialists: 
   const setInstr = (id: string, value: string) => save({ specialist_instructions: { ...settings.specialist_instructions, [id]: value } });
   return (
     <div className="form">
-      {specialists.map((s) => (
-        <div key={s.id} className="card">
-          <div className="card-head">
-            <span className={`chip spec-${s.id}`}><SpecMark id={s.id} />{s.name}</span>
-            <span className="muted small">{s.domain}</span>
-            {s.adapter && <span className={`badge status-${s.adapter_status}`}>{L.adapterStatus}: {s.adapter_status}</span>}
-          </div>
-          <p className="small muted">{s.description}</p>
-          <div className="row">
-            <label className="field"><span>{L.bind}</span>
-              <select value={settings.specialist_bindings[s.id]?.provider_id ?? ""} onChange={(e) => setBinding(s.id, e.target.value)}>
-                <option value="">{L.inherit}</option>
-                {providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </label>
-          </div>
-          <label className="field"><span>{L.specInstr}</span>
-            <textarea rows={2} defaultValue={settings.specialist_instructions[s.id] ?? ""} onBlur={(e) => e.target.value !== (settings.specialist_instructions[s.id] ?? "") && setInstr(s.id, e.target.value)} />
-          </label>
-        </div>
+      {live.map((s) => (
+        <SpecialistCard
+          key={s.id}
+          specialist={s}
+          providers={providers}
+          boundProviderId={settings.specialist_bindings[s.id]?.provider_id ?? ""}
+          defaultProviderId={settings.default_provider}
+          instructions={settings.specialist_instructions[s.id] ?? ""}
+          onBind={(pid) => setBinding(s.id, pid)}
+          onInstructions={(val) => setInstr(s.id, val)}
+        />
       ))}
     </div>
   );

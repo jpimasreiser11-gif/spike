@@ -66,6 +66,7 @@ from spike.server.subtitles_api import create_subtitles_router
 from spike.server.view_api import create_view_router
 from spike.server.workflow_api import create_workflow_router
 from spike.server.workspace_api import create_workspace_router
+from spike.specialists.status import specialist_status
 from spike.store.checkpoints import CheckpointError, RunCheckpoints
 from spike.tools.builtin import Workspace
 from spike.tools.documents import MissingLibrary
@@ -431,7 +432,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     # ---------------------------------------------------------------- specialists & tools
     @app.get("/api/specialists")
     async def specialists() -> list[dict]:
-        return [s.public() for s in st().catalog.specialists.values()]
+        state = st()
+        return [specialist_status(state, s) for s in state.catalog.specialists.values()]
 
     @app.get("/api/tools")
     async def tools() -> list[dict]:
