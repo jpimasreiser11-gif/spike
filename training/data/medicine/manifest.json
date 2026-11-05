@@ -86,7 +86,7 @@
       }
     }
   },
-  "created_utc": "2026-10-20T08:39:25Z",
+  "created_utc": "2026-11-02T12:29:26Z",
   "sources": {
     "medmcqa-eval": {
       "hub": "openlifescienceai/medmcqa",
@@ -94,6 +94,7 @@
       "license_registry": "apache-2.0",
       "role": "eval",
       "provenance": "",
+      "license_status": "legacy",
       "indexed_prompts": 1448
     },
     "pubmedqa-labeled": {
@@ -102,6 +103,7 @@
       "license_registry": "mit",
       "role": "eval",
       "provenance": "",
+      "license_status": "legacy",
       "indexed_prompts": 1000
     },
     "mmlu-pro": {
@@ -110,6 +112,7 @@
       "license_registry": "mit",
       "role": "eval",
       "provenance": "12k 10-option questions in 14 categories; used per category for domain and regression evals.",
+      "license_status": "legacy",
       "indexed_prompts": 12032
     },
     "medmcqa": {
@@ -118,6 +121,7 @@
       "license_registry": "apache-2.0",
       "role": "train",
       "provenance": "Indian medical entrance exam questions (AIIMS/NEET-PG) with expert explanations.",
+      "license_status": "legacy",
       "kept": 12376
     },
     "pubmedqa-artificial": {
@@ -126,6 +130,7 @@
       "license_registry": "mit",
       "role": "train",
       "provenance": "Automatically generated yes/no questions from PubMed abstracts.",
+      "license_status": "legacy",
       "kept": 5817
     },
     "oasst2": {
@@ -134,27 +139,41 @@
       "license_registry": "apache-2.0",
       "role": "train",
       "provenance": "Human-written conversations collected by OpenAssistant (2023); only reviewed, non-deleted, non-synthetic messages are used.",
-      "built": 13002,
-      "kept": 11939
+      "license_status": "legacy",
+      "kept": 4062
+    },
+    "self_replay:self_replay.jsonl": {
+      "role": "train",
+      "self_generated": true,
+      "sha256": "f8788481693c65a076871720a833b7500481973a3ed1cbbb60f2e56e7f5a4da3",
+      "rows": 4064,
+      "teachers": {
+        "Qwen/Qwen3.5-4B": {
+          "license_hub": "apache-2.0",
+          "license_recorded": "apache-2.0"
+        }
+      },
+      "kept": 4062
     }
   },
   "dropped": {
-    "format_or_quality": 11377,
+    "format_or_quality": 11375,
     "duplicate": 1,
-    "contaminated": 19,
-    "too_long": 1472
+    "contaminated": 17,
+    "too_long": 417
   },
   "counts": {
-    "domain": 18192,
-    "replay_available": 11939,
-    "train": 25469,
-    "valid": 519,
+    "domain": 9478,
+    "replay_available": 4062,
+    "train": 13270,
+    "valid": 270,
     "replay_ratio_target": 0.3,
     "replay_ratio_actual": 0.3,
-    "iters": 25469
+    "domain_before_fit": 18192,
+    "iters": 13270
   },
   "files": {
-    "train.jsonl": "e0c220fb3f71aa8520d906b1a29b79e2b6e27233543b402c5581efe9729af383",
-    "valid.jsonl": "7c8397494414b4f065c46dbfd7c5efd717e5d4fed68dff75a0d978c80b1eeca5"
+    "train.jsonl": "8ab9cc11f3454e4fa2de5b1e0ebd7f22b64b5b5c4143fe118614defa9a18e0b8",
+    "valid.jsonl": "f25270072d4b4914e249297fdc961d89443d6b6ce3ce6a625b381cac7bb31255"
   }
 }

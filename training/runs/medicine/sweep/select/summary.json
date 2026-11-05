@@ -1,0 +1,480 @@
+{
+  "meta": {
+    "run_id": "20261102-185716",
+    "model": "/Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf",
+    "adapters": {
+      "spike-medicine-it1600-s1": 0,
+      "spike-medicine-it3400-s1": 1,
+      "spike-medicine-it6600-s1": 2,
+      "spike-medicine-it13270-s0.5": 3
+    },
+    "server_url": "http://127.0.0.1:64864",
+    "parallel": 4,
+    "kv_cache_type": "q8_0",
+    "max_tokens": 2048,
+    "seed": 0,
+    "limit": null,
+    "suites": "medicine-select,general-select",
+    "decoding": "greedy",
+    "thinking": false,
+    "host": "macOS-27.0-arm64-arm-64bit",
+    "machine": "arm64",
+    "props": "b11669-620d2225c"
+  },
+  "variants": [
+    "base",
+    "spike-medicine-it13270-s0.5",
+    "spike-medicine-it1600-s1",
+    "spike-medicine-it3400-s1",
+    "spike-medicine-it6600-s1"
+  ],
+  "tasks": {
+    "medmcqa-val-select": {
+      "accuracy": {
+        "base": {
+          "n": 400,
+          "correct": 109,
+          "accuracy": 0.2725,
+          "ci95": [
+            0.2312,
+            0.3181
+          ],
+          "unparsed": 154,
+          "truncated": 9
+        },
+        "spike-medicine-it13270-s0.5": {
+          "n": 400,
+          "correct": 246,
+          "accuracy": 0.615,
+          "ci95": [
+            0.5664,
+            0.6614
+          ],
+          "unparsed": 10,
+          "truncated": 12
+        },
+        "spike-medicine-it1600-s1": {
+          "n": 400,
+          "correct": 188,
+          "accuracy": 0.47,
+          "ci95": [
+            0.4216,
+            0.519
+          ],
+          "unparsed": 68,
+          "truncated": 70
+        },
+        "spike-medicine-it3400-s1": {
+          "n": 400,
+          "correct": 228,
+          "accuracy": 0.57,
+          "ci95": [
+            0.521,
+            0.6176
+          ],
+          "unparsed": 19,
+          "truncated": 19
+        },
+        "spike-medicine-it6600-s1": {
+          "n": 400,
+          "correct": 212,
+          "accuracy": 0.53,
+          "ci95": [
+            0.481,
+            0.5784
+          ],
+          "unparsed": 29,
+          "truncated": 29
+        }
+      },
+      "vs_base": {
+        "spike-medicine-it13270-s0.5": {
+          "paired_n": 400,
+          "delta_points": 34.25,
+          "baseline_only": 21,
+          "variant_only": 158,
+          "p_value": 0.0
+        },
+        "spike-medicine-it1600-s1": {
+          "paired_n": 400,
+          "delta_points": 19.75,
+          "baseline_only": 44,
+          "variant_only": 123,
+          "p_value": 0.0
+        },
+        "spike-medicine-it3400-s1": {
+          "paired_n": 400,
+          "delta_points": 29.75,
+          "baseline_only": 24,
+          "variant_only": 143,
+          "p_value": 0.0
+        },
+        "spike-medicine-it6600-s1": {
+          "paired_n": 400,
+          "delta_points": 25.75,
+          "baseline_only": 31,
+          "variant_only": 134,
+          "p_value": 0.0
+        }
+      }
+    },
+    "mmlu-pro-general-select": {
+      "accuracy": {
+        "base": {
+          "n": 400,
+          "correct": 257,
+          "accuracy": 0.6425,
+          "ci95": [
+            0.5944,
+            0.6879
+          ],
+          "unparsed": 0,
+          "truncated": 13
+        },
+        "spike-medicine-it13270-s0.5": {
+          "n": 400,
+          "correct": 257,
+          "accuracy": 0.6425,
+          "ci95": [
+            0.5944,
+            0.6879
+          ],
+          "unparsed": 0,
+          "truncated": 22
+        },
+        "spike-medicine-it1600-s1": {
+          "n": 400,
+          "correct": 210,
+          "accuracy": 0.525,
+          "ci95": [
+            0.4761,
+            0.5735
+          ],
+          "unparsed": 19,
+          "truncated": 19
+        },
+        "spike-medicine-it3400-s1": {
+          "n": 400,
+          "correct": 225,
+          "accuracy": 0.5625,
+          "ci95": [
+            0.5135,
+            0.6103
+          ],
+          "unparsed": 8,
+          "truncated": 8
+        },
+        "spike-medicine-it6600-s1": {
+          "n": 400,
+          "correct": 228,
+          "accuracy": 0.57,
+          "ci95": [
+            0.521,
+            0.6176
+          ],
+          "unparsed": 15,
+          "truncated": 17
+        }
+      },
+      "vs_base": {
+        "spike-medicine-it13270-s0.5": {
+          "paired_n": 400,
+          "delta_points": 0.0,
+          "baseline_only": 33,
+          "variant_only": 33,
+          "p_value": 1.0
+        },
+        "spike-medicine-it1600-s1": {
+          "paired_n": 400,
+          "delta_points": -11.75,
+          "baseline_only": 75,
+          "variant_only": 28,
+          "p_value": 4e-06
+        },
+        "spike-medicine-it3400-s1": {
+          "paired_n": 400,
+          "delta_points": -8.0,
+          "baseline_only": 65,
+          "variant_only": 33,
+          "p_value": 0.001601
+        },
+        "spike-medicine-it6600-s1": {
+          "paired_n": 400,
+          "delta_points": -7.25,
+          "baseline_only": 63,
+          "variant_only": 34,
+          "p_value": 0.004226
+        }
+      }
+    },
+    "pubmedqa-labeled-select": {
+      "accuracy": {
+        "base": {
+          "n": 200,
+          "correct": 83,
+          "accuracy": 0.415,
+          "ci95": [
+            0.3489,
+            0.4843
+          ],
+          "unparsed": 0,
+          "truncated": 0
+        },
+        "spike-medicine-it13270-s0.5": {
+          "n": 200,
+          "correct": 149,
+          "accuracy": 0.745,
+          "ci95": [
+            0.6804,
+            0.8004
+          ],
+          "unparsed": 0,
+          "truncated": 0
+        },
+        "spike-medicine-it1600-s1": {
+          "n": 200,
+          "correct": 147,
+          "accuracy": 0.735,
+          "ci95": [
+            0.6698,
+            0.7913
+          ],
+          "unparsed": 0,
+          "truncated": 0
+        },
+        "spike-medicine-it3400-s1": {
+          "n": 200,
+          "correct": 150,
+          "accuracy": 0.75,
+          "ci95": [
+            0.6857,
+            0.8049
+          ],
+          "unparsed": 0,
+          "truncated": 0
+        },
+        "spike-medicine-it6600-s1": {
+          "n": 200,
+          "correct": 148,
+          "accuracy": 0.74,
+          "ci95": [
+            0.6751,
+            0.7959
+          ],
+          "unparsed": 0,
+          "truncated": 0
+        }
+      },
+      "vs_base": {
+        "spike-medicine-it13270-s0.5": {
+          "paired_n": 200,
+          "delta_points": 33.0,
+          "baseline_only": 25,
+          "variant_only": 91,
+          "p_value": 0.0
+        },
+        "spike-medicine-it1600-s1": {
+          "paired_n": 200,
+          "delta_points": 32.0,
+          "baseline_only": 26,
+          "variant_only": 90,
+          "p_value": 0.0
+        },
+        "spike-medicine-it3400-s1": {
+          "paired_n": 200,
+          "delta_points": 33.5,
+          "baseline_only": 25,
+          "variant_only": 92,
+          "p_value": 0.0
+        },
+        "spike-medicine-it6600-s1": {
+          "paired_n": 200,
+          "delta_points": 32.5,
+          "baseline_only": 27,
+          "variant_only": 92,
+          "p_value": 0.0
+        }
+      }
+    }
+  },
+  "suites": {
+    "general-select": {
+      "accuracy": {
+        "base": {
+          "n": 400,
+          "correct": 257,
+          "accuracy": 0.6425,
+          "ci95": [
+            0.5944,
+            0.6879
+          ],
+          "unparsed": 0,
+          "truncated": 13
+        },
+        "spike-medicine-it13270-s0.5": {
+          "n": 400,
+          "correct": 257,
+          "accuracy": 0.6425,
+          "ci95": [
+            0.5944,
+            0.6879
+          ],
+          "unparsed": 0,
+          "truncated": 22
+        },
+        "spike-medicine-it1600-s1": {
+          "n": 400,
+          "correct": 210,
+          "accuracy": 0.525,
+          "ci95": [
+            0.4761,
+            0.5735
+          ],
+          "unparsed": 19,
+          "truncated": 19
+        },
+        "spike-medicine-it3400-s1": {
+          "n": 400,
+          "correct": 225,
+          "accuracy": 0.5625,
+          "ci95": [
+            0.5135,
+            0.6103
+          ],
+          "unparsed": 8,
+          "truncated": 8
+        },
+        "spike-medicine-it6600-s1": {
+          "n": 400,
+          "correct": 228,
+          "accuracy": 0.57,
+          "ci95": [
+            0.521,
+            0.6176
+          ],
+          "unparsed": 15,
+          "truncated": 17
+        }
+      },
+      "vs_base": {
+        "spike-medicine-it13270-s0.5": {
+          "paired_n": 400,
+          "delta_points": 0.0,
+          "baseline_only": 33,
+          "variant_only": 33,
+          "p_value": 1.0
+        },
+        "spike-medicine-it1600-s1": {
+          "paired_n": 400,
+          "delta_points": -11.75,
+          "baseline_only": 75,
+          "variant_only": 28,
+          "p_value": 4e-06
+        },
+        "spike-medicine-it3400-s1": {
+          "paired_n": 400,
+          "delta_points": -8.0,
+          "baseline_only": 65,
+          "variant_only": 33,
+          "p_value": 0.001601
+        },
+        "spike-medicine-it6600-s1": {
+          "paired_n": 400,
+          "delta_points": -7.25,
+          "baseline_only": 63,
+          "variant_only": 34,
+          "p_value": 0.004226
+        }
+      }
+    },
+    "medicine-select": {
+      "accuracy": {
+        "base": {
+          "n": 600,
+          "correct": 192,
+          "accuracy": 0.32,
+          "ci95": [
+            0.2839,
+            0.3584
+          ],
+          "unparsed": 154,
+          "truncated": 9
+        },
+        "spike-medicine-it13270-s0.5": {
+          "n": 600,
+          "correct": 395,
+          "accuracy": 0.6583,
+          "ci95": [
+            0.6195,
+            0.6952
+          ],
+          "unparsed": 10,
+          "truncated": 12
+        },
+        "spike-medicine-it1600-s1": {
+          "n": 600,
+          "correct": 335,
+          "accuracy": 0.5583,
+          "ci95": [
+            0.5184,
+            0.5976
+          ],
+          "unparsed": 68,
+          "truncated": 70
+        },
+        "spike-medicine-it3400-s1": {
+          "n": 600,
+          "correct": 378,
+          "accuracy": 0.63,
+          "ci95": [
+            0.5907,
+            0.6677
+          ],
+          "unparsed": 19,
+          "truncated": 19
+        },
+        "spike-medicine-it6600-s1": {
+          "n": 600,
+          "correct": 360,
+          "accuracy": 0.6,
+          "ci95": [
+            0.5603,
+            0.6384
+          ],
+          "unparsed": 29,
+          "truncated": 29
+        }
+      },
+      "vs_base": {
+        "spike-medicine-it13270-s0.5": {
+          "paired_n": 600,
+          "delta_points": 33.83,
+          "baseline_only": 46,
+          "variant_only": 249,
+          "p_value": 0.0
+        },
+        "spike-medicine-it1600-s1": {
+          "paired_n": 600,
+          "delta_points": 23.83,
+          "baseline_only": 70,
+          "variant_only": 213,
+          "p_value": 0.0
+        },
+        "spike-medicine-it3400-s1": {
+          "paired_n": 600,
+          "delta_points": 31.0,
+          "baseline_only": 49,
+          "variant_only": 235,
+          "p_value": 0.0
+        },
+        "spike-medicine-it6600-s1": {
+          "paired_n": 600,
+          "delta_points": 28.0,
+          "baseline_only": 58,
+          "variant_only": 226,
+          "p_value": 0.0
+        }
+      }
+    }
+  }
+}

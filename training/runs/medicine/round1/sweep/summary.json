@@ -1,0 +1,153 @@
+{
+  "specialist": "medicine",
+  "recipe": "training/configs/medicine.yaml",
+  "run": {
+    "git_commit": "a1dc5beec0b4060af91103275557e64cf0883266",
+    "iters": 25469,
+    "started_utc": "2026-10-20T08:40:23Z"
+  },
+  "model": "/Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf",
+  "select": {
+    "suites": [
+      "medicine-select",
+      "general-select"
+    ],
+    "rule": {
+      "primary": {
+        "suite": "medicine-select",
+        "min_gain_points": 3.0,
+        "max_p_value": 0.05
+      },
+      "regression": {
+        "suite": "general-select",
+        "max_drop_points": 1.5
+      }
+    },
+    "results": "training/runs/medicine/sweep/select"
+  },
+  "candidates": [
+    {
+      "asked": [
+        "0.125"
+      ],
+      "fraction": 0.125,
+      "iteration": 3200,
+      "scale": 1.0,
+      "stem": "spike-medicine-it3200-s1",
+      "checkpoint": "training/runs/medicine/adapter/0003200_adapters.safetensors",
+      "gguf": "training/runs/medicine/sweep/gguf/spike-medicine-it3200-s1.gguf",
+      "select": {
+        "primary": {
+          "suite": "medicine-select",
+          "paired_n": 600,
+          "delta_points": 26.17,
+          "p_value": 0.0
+        },
+        "regression": {
+          "suite": "general-select",
+          "paired_n": 400,
+          "delta_points": -5.5,
+          "p_value": 0.01544
+        }
+      },
+      "passes": false,
+      "reasons": [
+        "medicine-select: +26.17 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -5.50 pts (max drop 1.5)"
+      ]
+    },
+    {
+      "asked": [
+        "0.25"
+      ],
+      "fraction": 0.25,
+      "iteration": 6400,
+      "scale": 1.0,
+      "stem": "spike-medicine-it6400-s1",
+      "checkpoint": "training/runs/medicine/adapter/0006400_adapters.safetensors",
+      "gguf": "training/runs/medicine/sweep/gguf/spike-medicine-it6400-s1.gguf",
+      "select": {
+        "primary": {
+          "suite": "medicine-select",
+          "paired_n": 600,
+          "delta_points": 29.33,
+          "p_value": 0.0
+        },
+        "regression": {
+          "suite": "general-select",
+          "paired_n": 400,
+          "delta_points": -7.75,
+          "p_value": 0.001169
+        }
+      },
+      "passes": false,
+      "reasons": [
+        "medicine-select: +29.33 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -7.75 pts (max drop 1.5)"
+      ]
+    },
+    {
+      "asked": [
+        "0.5"
+      ],
+      "fraction": 0.5,
+      "iteration": 12800,
+      "scale": 1.0,
+      "stem": "spike-medicine-it12800-s1",
+      "checkpoint": "training/runs/medicine/adapter/0012800_adapters.safetensors",
+      "gguf": "training/runs/medicine/sweep/gguf/spike-medicine-it12800-s1.gguf",
+      "select": {
+        "primary": {
+          "suite": "medicine-select",
+          "paired_n": 600,
+          "delta_points": 31.5,
+          "p_value": 0.0
+        },
+        "regression": {
+          "suite": "general-select",
+          "paired_n": 400,
+          "delta_points": -8.25,
+          "p_value": 0.000705
+        }
+      },
+      "passes": false,
+      "reasons": [
+        "medicine-select: +31.50 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -8.25 pts (max drop 1.5)"
+      ]
+    },
+    {
+      "asked": [
+        "1@0.5"
+      ],
+      "fraction": 1.0,
+      "iteration": 25469,
+      "scale": 0.5,
+      "stem": "spike-medicine-it25469-s0.5",
+      "checkpoint": "training/runs/medicine/adapter/adapters.safetensors",
+      "gguf": "training/runs/medicine/sweep/gguf/spike-medicine-it25469-s0.5.gguf",
+      "select": {
+        "primary": {
+          "suite": "medicine-select",
+          "paired_n": 600,
+          "delta_points": 31.33,
+          "p_value": 0.0
+        },
+        "regression": {
+          "suite": "general-select",
+          "paired_n": 400,
+          "delta_points": -7.25,
+          "p_value": 0.002479
+        }
+      },
+      "passes": false,
+      "reasons": [
+        "medicine-select: +31.33 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -7.25 pts (max drop 1.5)"
+      ]
+    }
+  ],
+  "chosen": null,
+  "final": null,
+  "exit_code": 2
+}

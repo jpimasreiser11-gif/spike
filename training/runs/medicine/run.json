@@ -1,22 +1,25 @@
 {
   "specialist": "medicine",
-  "started_utc": "2026-10-20T08:40:23Z",
-  "finished_utc": "2026-10-20T18:24:24Z",
+  "started_utc": "2026-11-02T12:31:33Z",
+  "run_started_utc": "2026-11-02T12:31:33Z",
+  "finished_utc": "2026-11-02T17:57:01Z",
   "exit_code": 0,
+  "spike_resume": "1",
   "data_files_sha256": {
-    "train.jsonl": "e0c220fb3f71aa8520d906b1a29b79e2b6e27233543b402c5581efe9729af383",
-    "valid.jsonl": "7c8397494414b4f065c46dbfd7c5efd717e5d4fed68dff75a0d978c80b1eeca5"
+    "train.jsonl": "8ab9cc11f3454e4fa2de5b1e0ebd7f22b64b5b5c4143fe118614defa9a18e0b8",
+    "valid.jsonl": "f25270072d4b4914e249297fdc961d89443d6b6ce3ce6a625b381cac7bb31255"
   },
   "counts": {
-    "domain": 18192,
-    "replay_available": 11939,
-    "train": 25469,
-    "valid": 519,
+    "domain": 9478,
+    "replay_available": 4062,
+    "train": 13270,
+    "valid": 270,
     "replay_ratio_target": 0.3,
     "replay_ratio_actual": 0.3,
-    "iters": 25469
+    "domain_before_fit": 18192,
+    "iters": 13270
   },
-  "git_commit": "a1dc5beec0b4060af91103275557e64cf0883266",
+  "git_commit": "00a00906402efc01114c996c5578bedd6f2abf3a",
   "chip": "Apple M4 Max",
   "memory_bytes": "38654705664",
   "os": "macOS-27.0-arm64-arm-64bit",
