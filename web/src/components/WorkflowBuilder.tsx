@@ -344,7 +344,7 @@ export function WorkflowBuilder({ projectId, providers = [], onClose }: { projec
                     {Object.entries(W.modes).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
                 {node.mode === "file" ? (
                   <label className="field"><span>{W.fields.path}</span>
-                    <input value={node.path ?? ""} onChange={(e) => set({ path: e.target.value })} placeholder="informes/{{topic}}.md" /></label>
+                    <input value={node.path ?? ""} onChange={(e) => set({ path: e.target.value })} placeholder={W.outputPathPlaceholder} /></label>
                 ) : (<>
                   <label className="field"><span>{W.fields.title}</span>
                     <input value={node.title ?? ""} onChange={(e) => set({ title: e.target.value })} /></label>

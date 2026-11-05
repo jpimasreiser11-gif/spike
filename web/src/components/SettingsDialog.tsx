@@ -25,7 +25,7 @@ const L = lang === "es"
       allowPaid: "Permitir peticiones de pago", paidWarn: "Este proveedor puede cobrarte. SPIKE no enviará nada hasta que lo permitas.", test: "Probar conexión", default: "Predeterminado",
       makeDefault: "Usar por defecto", remove: "Eliminar", ok: "Conectado", models: "modelos", adapters: "adaptadores", bind: "Ejecutar en", inherit: "Proveedor por defecto",
       adapterStatus: "Adaptador", specInstr: "Instrucciones de este especialista", policy: "Política", allow: "Permitir", ask: "Preguntar", deny: "Bloquear",
-      hw: "Hardware", rec: "Recomendado", modelPath: "Ruta del modelo GGUF", ctx: "Contexto (tokens)", start: "Iniciar", stop: "Detener", status: "Estado", running: "En marcha", stoppedS: "Parado",
+      hw: "Hardware", cores: "núcleos", rec: "Recomendado", modelPath: "Ruta del modelo GGUF", ctx: "Contexto (tokens)", start: "Iniciar", stop: "Detener", status: "Estado", running: "En marcha", stoppedS: "Parado", load: "carga",
       secrets: "Almacén de claves", pull: "Descarga el modelo base con: spike models pull", keyLink: "Obtener clave",
       shareFiles: "Enviar el contenido de tus archivos a este proveedor", shareHint: "Desactivado: SPIKE cambia el contenido de tus archivos (y las respuestas escritas a partir de ellos) por un aviso antes de enviar nada.",
       limits: "Topes mensuales", monthlyTokens: "Tokens al mes", priceIn: "Precio por millón de tokens de entrada", priceOut: "Precio por millón de tokens de salida", monthlyCost: "Gasto máximo al mes", noLimit: "sin tope", noPrice: "sin precio",
@@ -47,7 +47,7 @@ const L = lang === "es"
       allowPaid: "Allow paid requests", paidWarn: "This provider may bill you. SPIKE sends nothing until you allow it.", test: "Test connection", default: "Default",
       makeDefault: "Make default", remove: "Remove", ok: "Connected", models: "models", adapters: "adapters", bind: "Run on", inherit: "Default provider",
       adapterStatus: "Adapter", specInstr: "Instructions for this specialist", policy: "Policy", allow: "Allow", ask: "Ask", deny: "Block",
-      hw: "Hardware", rec: "Recommended", modelPath: "GGUF model path", ctx: "Context (tokens)", start: "Start", stop: "Stop", status: "Status", running: "Running", stoppedS: "Stopped",
+      hw: "Hardware", cores: "cores", rec: "Recommended", modelPath: "GGUF model path", ctx: "Context (tokens)", start: "Start", stop: "Stop", status: "Status", running: "Running", stoppedS: "Stopped", load: "load",
       secrets: "Key storage", pull: "Download the base model with: spike models pull", keyLink: "Get a key",
       shareFiles: "Send your files' contents to this provider", shareHint: "Off: SPIKE replaces your files' contents (and answers written from them) with a notice before sending anything.",
       limits: "Monthly limits", monthlyTokens: "Tokens per month", priceIn: "Price per million input tokens", priceOut: "Price per million output tokens", monthlyCost: "Maximum spend per month", noLimit: "no limit", noPrice: "no price",
@@ -94,7 +94,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
         <div className="modal-head">
           <h2>{L.title}</h2>
           {flash && <span className="flash">{flash}</span>}
-          <button className="icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
+          <button className="icon-btn" onClick={onClose} aria-label={t.close}><IconClose /></button>
         </div>
         <div className="modal-body">
           <nav className="tabs" role="tablist">
@@ -445,8 +445,8 @@ function Engine({ settings, save, reload }: { settings: Settings; save: (p: Part
     <div className="form">
       <div className="card">
         <div className="card-head"><b>{L.hw}</b></div>
-        <p className="small">{hw.cpu_model} · {hw.physical_cores} cores · {hw.total_ram_gb} GB RAM · {hw.os} {hw.arch}{hw.apple_silicon ? " · Metal" : ""}</p>
-        <p className="small muted">{L.rec}: {sys.recommendation.quant} · ctx {sys.recommendation.context} · KV {sys.recommendation.kv_cache_type} · {sys.recommendation.threads} threads</p>
+        <p className="small">{hw.cpu_model} · {hw.physical_cores} {L.cores} · {hw.total_ram_gb} GB RAM · {hw.os} {hw.arch}{hw.apple_silicon ? " · Metal" : ""}</p>
+        <p className="small muted">{L.rec}: {sys.recommendation.quant} · ctx {sys.recommendation.context} · KV {sys.recommendation.kv_cache_type} · {sys.recommendation.threads} {L.threads}</p>
         {sys.recommendation.notes.map((n: string) => <p key={n} className="small warn-text">{n}</p>)}
         <p className="small muted">{L.secrets}: {sys.secrets_backend}</p>
       </div>
@@ -455,7 +455,7 @@ function Engine({ settings, save, reload }: { settings: Settings; save: (p: Part
         <label className="field"><span>{L.modelPath}</span><input defaultValue={rt.model} placeholder="~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf" onBlur={(e) => e.target.value !== rt.model && save({ local_runtime: { ...rt, model: e.target.value } })} /></label>
         <label className="field"><span>{L.ctx}</span><input type="number" key={rt.context ?? "auto"} defaultValue={rt.context ?? ""} placeholder={String(sys.recommendation.context)} onBlur={(e) => save({ local_runtime: { ...rt, context: e.target.value ? Number(e.target.value) : null } })} /></label>
         {!rt.model && <div className="no-models"><img src="/states/no-models.webp" alt="" width={84} height={89} /><small className="muted">{L.pull}</small></div>}
-        {sys.runtime.running && <p className="small muted">RSS {sys.runtime.rss_mb} MB · load {sys.runtime.load_seconds}s · {sys.runtime.adapters.length} {L.adapters}</p>}
+        {sys.runtime.running && <p className="small muted">RSS {sys.runtime.rss_mb} MB · {L.load} {sys.runtime.load_seconds}s · {sys.runtime.adapters.length} {L.adapters}</p>}
         <Tune hasModel={!!rt.model} onDone={() => { reload(); load(); }} />
         <div className="card-actions">
           <button className="btn primary" disabled={busy} onClick={() => act("start")}>{L.start}</button>

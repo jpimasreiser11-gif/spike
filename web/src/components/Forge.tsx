@@ -13,7 +13,7 @@ const F = lang === "es"
       executor: "Quién ejecuta", defaultProvider: "Predeterminado (ajustes)", draft: "Preparar el plan", drafting: "Preparando el plan…",
       goal: "Objetivo", requirements: "Requisitos (uno por línea)", steps: "Pasos", criteria: "Criterios de aceptación (uno por línea)",
       specialist: "Especialista", role: "Papel", research: "Investigador", execute: "Ejecutor", instruction: "Instrucción",
-      files: "Archivos que guarda (separados por comas)", dependsOn: "Usa el resultado de", addStep: "Añadir paso", removeStep: "Quitar paso",
+      files: "Archivos que guarda (separados por comas)", filesPlaceholder: "informe.md", dependsOn: "Usa el resultado de", addStep: "Añadir paso", removeStep: "Quitar paso",
       back: "Volver", run: "Aprobar y ejecutar", fallback: "El planificador no dio un plan válido: revisa este borrador antes de aprobarlo.",
       close: "Cerrar", paid: "de pago", local: "local", noCriteria: "Sin criterios, el verificador solo revisa cada paso contra su instrucción.",
     }
@@ -23,7 +23,7 @@ const F = lang === "es"
       executor: "Who runs it", defaultProvider: "Default (settings)", draft: "Draft the plan", drafting: "Drafting the plan…",
       goal: "Goal", requirements: "Requirements (one per line)", steps: "Steps", criteria: "Acceptance criteria (one per line)",
       specialist: "Specialist", role: "Role", research: "Researcher", execute: "Executor", instruction: "Instruction",
-      files: "Files it saves (comma-separated)", dependsOn: "Uses the result of", addStep: "Add step", removeStep: "Remove step",
+      files: "Files it saves (comma-separated)", filesPlaceholder: "report.md", dependsOn: "Uses the result of", addStep: "Add step", removeStep: "Remove step",
       back: "Back", run: "Approve and run", fallback: "The planner did not give a valid plan: review this draft before approving it.",
       close: "Close", paid: "paid", local: "local", noCriteria: "Without criteria, the checker only reviews each step against its instruction.",
     };
@@ -83,7 +83,7 @@ export function BlueprintEditor({ bp, onChange, requirements, setRequirements, c
             <textarea rows={2} value={s.instruction} onChange={(e) => setStep(i, { instruction: e.target.value })} />
           </label>
           <label className="field"><span>{F.files}</span>
-            <input value={s.deliverables.join(", ")} placeholder="informe.md"
+            <input value={s.deliverables.join(", ")} placeholder={F.filesPlaceholder}
               onChange={(e) => setStep(i, { deliverables: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} />
           </label>
           {i > 0 && (

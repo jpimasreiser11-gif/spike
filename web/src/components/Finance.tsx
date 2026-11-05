@@ -35,7 +35,9 @@ const F = lang === "es"
       check: "Test key", checkOk: "The key works", withdrawYes: "The exchange says this key CAN withdraw funds: create one without that permission",
       withdrawNo: "The exchange confirms it cannot withdraw", spent: "Real orders in 24 h", problems: "Real orders cannot be proposed now:", ready: "Ready: every order will need your click",
       realFunds: "Real funds", localOnly: "Keys and these settings can only be changed on this computer.",
-      problem: {} as Record<string, string>,
+      problem: { off: "Real orders are off", no_exchange: "You have not chosen an exchange", no_key: "No API key is saved for this exchange",
+        withdrawal_unconfirmed: "You have not confirmed that the key cannot withdraw funds", no_testnet: "This exchange has no test network; turn test mode off only if you mean to trade real funds",
+        can_withdraw: "The exchange says this key can withdraw funds: create one without that permission" } as Record<string, string>,
       status: { proposed: "waiting for your confirmation", sending: "sending", placed: "sent", failed: "failed", cancelled: "cancelled", expired: "expired", open: "open", filled: "filled" } as Record<string, string>,
     };
 
@@ -223,7 +225,7 @@ function Live({ info, reload }: { info: FinanceInfo; reload: () => void }) {
         <div className="table-wrap"><table className="calls" aria-label={F.live}>
           <tbody>{info.live_orders.map((o) => (
             <tr key={o.id}><td>{new Date(o.created * 1000).toLocaleString(lang)}</td><td>{o.side}</td><td>{num(o.amount, 8)} {o.symbol}</td>
-              <td>{o.exchange}{o.sandbox ? " (test)" : ""}</td><td>{num(o.notional)}</td><td>{F.status[o.status] ?? o.status}</td></tr>))}</tbody>
+              <td>{o.exchange}{o.sandbox ? ` (${C.test})` : ""}</td><td>{num(o.notional)}</td><td>{F.status[o.status] ?? o.status}</td></tr>))}</tbody>
         </table></div>
       )}
       {msg && <div className="flash-box">{msg}</div>}

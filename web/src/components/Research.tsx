@@ -64,7 +64,7 @@ export function Research({ conversationId, projectId, projectName, specialists, 
   return <section className="research-panel" aria-label={R.title}>
     <div className="row"><h1>{R.title}</h1><div className="spacer" /><button className="btn" onClick={onClose}>{R.close}</button></div>
     <p className="muted">{R.intro}</p>
-    <div className="card"><h2>Notebook</h2><p>{R.notebookHint}</p>
+    <div className="card"><h2>{R.notebookTitle}</h2><p>{R.notebookHint}</p>
       {conversationId ? <a className="btn" download href={`/api/research/notebooks/${encodeURIComponent(conversationId)}`}>{R.notebook}</a> : <p>{R.noChat}</p>}
     </div>
     <p><b>{R.scope}:</b> {projectName || R.workspace}</p>
@@ -77,7 +77,7 @@ export function Research({ conversationId, projectId, projectName, specialists, 
           <option value="">{t.defaultProvider}</option>{providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select></label>
       </div>
-      <label className="field"><span>{R.paths}</span><textarea rows={3} value={paths} onChange={(e) => { setPaths(e.target.value); reset(); }} placeholder={kind === "paper" ? "paper.pdf" : "study-a.txt\nstudy-b.txt"} /></label>
+      <label className="field"><span>{R.paths}</span><textarea rows={3} value={paths} onChange={(e) => { setPaths(e.target.value); reset(); }} placeholder={kind === "paper" ? R.paperPlaceholder : R.comparePlaceholder} /></label>
       <p className="small muted">{R.pathHint}</p><button className="btn" disabled={!paths.trim()} onClick={prepare}>{R.preview}</button>
     </fieldset>
     {busy && <p role="status">{R.busy}</p>}{error && <div role="alert" className="error-box">{error}</div>}

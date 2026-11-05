@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ProjectBranches } from "./ProjectBranches";
 import { api } from "../api";
-import { lang } from "../i18n";
+import { lang, t } from "../i18n";
 import type { DesignSystemInfo, Project, ProjectFile, Specialist } from "../types";
 import { IconClose, IconTrash, IconUpload } from "./Icons";
 
@@ -83,7 +83,7 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
       <form className="modal small" role="dialog" aria-modal="true" aria-busy={deleting} aria-label={project ? PL.editProject : PL.newProject} onSubmit={submit}>
         <div className="modal-head">
           <h2>{project ? PL.editProject : PL.newProject}</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><IconClose /></button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t.close}><IconClose /></button>
         </div>
         <div className="form padded">
           <label className="field"><span>{PL.name}</span>
