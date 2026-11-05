@@ -239,7 +239,7 @@ class Session:
             values = [row[i] for row in rescued.rows if row[i] is not None]
             if values and all(type(v) is int and -(2**63) <= v < 2**63 for v in values):
                 types.append("BIGINT")
-            elif values and all(type(v) in (int, float) for v in values):
+            elif values and all(type(v) is float or (type(v) is int and -(2**53) <= v <= 2**53) for v in values):
                 types.append("DOUBLE")
             elif values and all(type(v) is dt.date for v in values):
                 types.append("DATE")
@@ -274,26 +274,42 @@ class Session:
 
     def _load_parquet(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
-        self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM read_parquet(?)", [str(path)]).fetchall()
+        self.con.execute(
+            f"CREATE TABLE {ident(name, self.reserved)} AS SELECT * FROM read_parquet(?)", [str(path)]
+        ).fetchall()
         self._table(name, given)
 
     def _load_json(self, given: str, path: Path, taken: set[str]) -> None:
         name = table_name(path.stem, taken, self.reserved)
-        self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM read_json_auto(?)", [str(path)]).fetchall()
+        self.con.execute(
+            f"CREATE TABLE {ident(name, self.reserved)} AS SELECT * FROM read_json_auto(?)", [str(path)]
+        ).fetchall()
         self._table(name, given)
 
     def _from_frame(self, frame: Any, name: str) -> None:
         import pandas as pd
 
         frame = frame.copy()
-        frame.columns = [str(c) for c in frame.columns]
+        taken_cols: set[str] = set()
+        clean_cols: list[str] = []
+        for i, raw_col in enumerate(frame.columns):
+            base = str(raw_col).strip() or f"column_{i + 1}"
+            candidate, suffix = base, 2
+            while candidate.casefold() in taken_cols:
+                candidate, suffix = f"{base}_{suffix}", suffix + 1
+            taken_cols.add(candidate.casefold())
+            clean_cols.append(candidate)
+        frame.columns = clean_cols
         for col in frame.columns:  # a column mixing numbers and text becomes text, as a spreadsheet shows it
-            if frame[col].dtype == object and len({type(v) for v in frame[col].dropna()}) > 1:
+            non_null = frame[col].dropna()
+            if frame[col].dtype == object and len(non_null) == 0:
+                frame[col] = pd.Series([None] * len(frame), index=frame.index, dtype="string")
+            elif frame[col].dtype == object and len({type(v) for v in non_null}) > 1:
                 frame[col] = frame[col].map(lambda v: None if pd.isna(v) else str(v))
         view = f"frame_{uuid.uuid4().hex[:8]}"
         self.con.register(view, frame)
         try:
-            self.con.execute(f"CREATE TABLE {ident(name)} AS SELECT * FROM {view}").fetchall()
+            self.con.execute(f"CREATE TABLE {ident(name, self.reserved)} AS SELECT * FROM {view}").fetchall()
         finally:
             self.con.unregister(view)
 
@@ -308,7 +324,10 @@ class Session:
             raise DataError("Excel files need pandas and openpyxl: pip install 'spike-ai[data]'") from exc
         except Exception as exc:  # a damaged or protected workbook
             raise DataError(f"could not read '{given}': {exc}") from exc
-        for sheet, frame in sheets.items():
+        nonempty = {sheet: frame for sheet, frame in sheets.items() if len(frame.columns) > 0}
+        if not nonempty:
+            raise DataError(f"'{given}' has no tables")
+        for sheet, frame in nonempty.items():
             name = table_name(path.stem if len(sheets) == 1 else f"{path.stem}_{sheet}", taken, self.reserved)
             self._from_frame(frame, name)
             self._table(name, given, str(sheet))

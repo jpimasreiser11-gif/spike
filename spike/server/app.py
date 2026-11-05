@@ -921,7 +921,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             title = str(body.get("title") or "Informe de datos").strip()[:200] or "Informe de datos"
             blocks = clean_blocks(body.get("blocks"))
             data = (build_docx if fmt == "docx" else build_pdf)(title, blocks)
-        except (ReportError, json.JSONDecodeError, AttributeError) as exc:
+        except (ReportError, ValueError, TypeError, AttributeError) as exc:
             raise HTTPException(400, str(exc) if isinstance(exc, ReportError) else "invalid report") from exc
         except MissingLibrary as exc:
             raise HTTPException(501, str(exc).removeprefix("error: ")) from exc
