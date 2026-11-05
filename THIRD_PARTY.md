@@ -164,7 +164,7 @@ built-in Helvetica (Latin-1 only) when none is found.
 |---|---|---|
 | react, react-dom | 18.3.1 | MIT |
 | marked | 14.1.3 | MIT |
-| dompurify | 3.4.16 | MPL-2.0 OR Apache-2.0 (used under Apache-2.0) |
+| dompurify | 3.4.17 | MPL-2.0 OR Apache-2.0 (used under Apache-2.0) |
 | vega, vega-lite, vega-interpreter (charts; a separate chunk loaded on the first chart) | 6.4.0, 6.5.0, 2.3.2 | BSD-3-Clause |
 | vega-\* and d3-\* modules, delaunator, internmap, topojson-client, robust-predicates, json-stringify-pretty-compact, tslib (bundled with Vega) | as locked in `web/package-lock.json` | BSD-3-Clause or ISC; ISC; ISC; ISC; Unlicense; MIT; 0BSD |
 | highlight.js | 11.10.0 | BSD-3-Clause |

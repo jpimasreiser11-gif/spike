@@ -23,6 +23,8 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- Security updates: DOMPurify 3.4.17 for the Markdown sanitizer (critical advisories) and pypdf ≥ 6.21.4 for reading
+  PDFs (crafted files could hang it); Vite and Vitest on their patched 5.x and 2.x releases.
 - Spike Dev plans without changing anything (`--plan`, `/plan`, `/act`) and takes a skill per turn (`/skills`,
   `/skill`); Forge takes up to three skills per task and imports skill ZIPs; deliverables share one download and
   preview component (DEVFORGE1).
