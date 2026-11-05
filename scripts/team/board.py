@@ -1,4 +1,4 @@
-"""The task board SPIKE's two builders share: Claude (the lead, in the cloud) and Codex (a worker on the owner's Mac).
+"""The task board SPIKE's builders share: Claude (the lead, in the cloud), Codex, Gemini and Opus (workers on the owner's Mac).
 
     python scripts/team/board.py check                      # validate docs/team/tasks.json; exit 1 on any problem
     python scripts/team/board.py render [--check]           # write docs/team/BOARD.md; --check: exit 1 when it is stale
@@ -21,9 +21,9 @@ ROOT = Path(__file__).resolve().parents[2]
 BOARD = ROOT / "docs" / "team" / "tasks.json"
 NONE_FOUND = 3   # exit code of `next` when the owner has nothing to do
 
-OWNERS = ("claude", "codex", "mac", "joan")
+OWNERS = ("claude", "codex", "gemini", "opus", "mac", "joan")
 STATUSES = ("todo", "doing", "review", "changes", "done", "blocked")
-OWNER_ES = {"claude": "Claude", "codex": "Codex", "mac": "Mac", "joan": "joan"}
+OWNER_ES = {"claude": "Claude", "codex": "Codex", "gemini": "Gemini", "opus": "Opus", "mac": "Mac", "joan": "joan"}
 STATUS_ES = {"todo": "pendiente", "doing": "en curso", "review": "en revisión", "changes": "cambios pedidos",
              "done": "hecha", "blocked": "bloqueada"}
 ID_RE = re.compile(r"[A-Z]{1,2}\d{1,3}")

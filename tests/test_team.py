@@ -51,6 +51,7 @@ def test_valid_board_has_no_problems():
 @pytest.mark.parametrize("data, needle", [
     (mk(task("X1"), task("X1")), "task X1: duplicate id"),
     (mk(task("X1", owner="robot")), "owner 'robot'"),
+    (mk(task("X1", owner="Gemini")), "owner 'Gemini'"),   # owners are lower-case ids
     (mk(task("X1", status="finished")), "status 'finished'"),
     (mk(task("x1")), "id 'x1'"),
     (mk(task("ABC1")), "id 'ABC1'"),
@@ -159,6 +160,7 @@ def test_render_is_spanish_deterministic_and_grouped_by_phase():
     assert "| Codex | 1 | 1 | 1 | 0 | 0 | 0 | 3 |" in lines
     assert "| Mac | 0 | 0 | 0 | 0 | 0 | 1 | 1 |" in lines
     assert "| joan | 0 | 0 | 0 | 1 | 0 | 0 | 1 |" in lines
+    assert "| Gemini | 0 | 0 | 0 | 0 | 0 | 0 | 0 |" in lines and "| Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |" in lines
     assert "| **Total** | **1** | **1** | **1** | **1** | **1** | **1** | **6** |" in lines
     assert [ln for ln in lines if ln.startswith("## ")] == ["## Resumen", "## Fase: app", "## Fase: base", "## Fase: mac"]
     assert text.count("| ID | Quién | Estado | Tarea | Depende de |") == 3

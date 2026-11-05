@@ -438,12 +438,12 @@
   {
    "id": "M1",
    "owner": "mac",
-   "status": "doing",
+   "status": "done",
    "phase": "modelos",
    "title": "Medicina: arreglar el olvido (fix_forgetting)",
    "depends": [],
    "paths": [],
-   "spec": "Running on the Mac since 2026-10-26 09:05 UTC from ~/Downloads/Spike-main: checkpoint sweep, then one retrain with self-generated replay if none passes. Acceptance criteria unchanged.",
+   "spec": "Running on the Mac since 2026-10-26 09:05 UTC from ~/Downloads/Spike-main: checkpoint sweep, then one retrain with self-generated replay if none passes. Acceptance criteria unchanged. Done 2026-11-05: round 2 accepted (training/runs/medicine/sweep/final).",
    "accept": [
     "summary.json with the verdict",
     "general drop ≤ 1.5 points to accept"
@@ -452,14 +452,14 @@
   {
    "id": "M2",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "modelos",
    "title": "Decidir medicina con los números y elegir la receta",
    "depends": [
     "M1"
    ],
    "paths": [],
-   "spec": "Read the sweep/acceptance records; accepted → recipe for the others; rejected → next fix from MEJORAR-ESPECIALISTAS.md (verified distillation from open teachers, DPO after SFT), one change at a time.",
+   "spec": "Read the sweep/acceptance records; accepted → recipe for the others; rejected → next fix from MEJORAR-ESPECIALISTAS.md (verified distillation from open teachers, DPO after SFT), one change at a time. Done 2026-11-05: accepted; recipe = self-generated replay + --fit-domain (30 % replay) + sweep with a scale-0.5 candidate; 768-token limit unchanged.",
    "accept": [
     "decision written in docs/STATUS.md with the measured numbers"
    ]
@@ -467,14 +467,14 @@
   {
    "id": "M3",
    "owner": "mac",
-   "status": "todo",
+   "status": "doing",
    "phase": "modelos",
    "title": "Entrenar finanzas con la receta que pase",
    "depends": [
     "M2"
    ],
    "paths": [],
-   "spec": "Same gate, one run at a time, RAM guard.",
+   "spec": "Started on the Mac 2026-11-05 15:50 UTC with medicine's round-2 recipe, finance.yaml unchanged: self_replay.py, prepare --self-replay --fit-domain, train_supervised under the RAM guard, sweep_checkpoints (default candidates incl. final@0.5, then the acceptance suites once). Same gate, one run at a time.",
    "accept": [
     "acceptance record"
    ]
@@ -597,6 +597,39 @@
     "teacher license gate test"
    ],
    "note": "2026-11-02: pipeline, topics, SQL sandbox and held-out evals built and tested with a fake teacher; the real teacher run happens on the Mac in the M8 rounds."
+  },
+  {
+   "id": "M11",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Medicina: registrar el adaptador aceptado e instalarlo",
+   "depends": [
+    "M2"
+   ],
+   "paths": [
+    "training/runs/medicine/sweep/final/"
+   ],
+   "spec": "Light, no model run. Write training/runs/medicine/sweep/final/adapter.json with the file name, size and SHA-256 of training/runs/medicine/sweep/gguf/spike-medicine-it13270-s0.5.gguf (the evaluated file; its scale 0.5 is in the GGUF alpha, load it at 1.0). Copy it to ~/.spike/adapters/spike-medicine.gguf. From the saved predictions of the final run, count the base answers left unparsed on medmcqa-val (409) and mmlu-pro-health (241) that state an option's full text instead of its letter, are empty, or are cut off, with 5 short examples each. Push mac/m11.",
+   "accept": [
+    "adapter.json whose SHA-256 equals the installed file",
+    "the unparsed-answer counts and examples in the report"
+   ]
+  },
+  {
+   "id": "M12",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "equipo",
+   "title": "Subir al repo los prompts de Argon y Opus",
+   "depends": [],
+   "paths": [
+    "docs/team/prompts/"
+   ],
+   "spec": "Copy ~/Downloads/SPIKE-prompts/ (the Gemini Argon and Opus prompts and ENTREGAS.md) to docs/team/prompts/ on a branch mac/prompts, so that Claude puts G4, G12-G25 and O1-O5 on this board with their exact specs and owners gemini and opus.",
+   "accept": [
+    "the files on mac/prompts"
+   ]
   },
   {
    "id": "I1",

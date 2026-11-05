@@ -31,7 +31,9 @@ CATALOG = load_catalog()
 def test_catalog_loads_all_specialists():
     assert set(CATALOG.specialists) == {"core", "finance", "medicine", "marketing", "law", "code", "science", "math",
                                        "education", "data", "writing", "business", "security"}
-    assert all(s.adapter_status in {"none", "planned"} for s in CATALOG.specialists.values())
+    statuses = {s.id: s.adapter_status for s in CATALOG.specialists.values()}
+    assert statuses.pop("medicine") == "evaluated"   # accepted 2026-11-05 (training/runs/medicine/sweep/final)
+    assert set(statuses.values()) <= {"none", "planned"}
 
 
 def test_normalize_strips_accents():

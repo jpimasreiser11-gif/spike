@@ -6,11 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 2 | 1 | 0 | 0 | 17 | 0 | 20 |
+| Claude | 1 | 1 | 0 | 0 | 18 | 0 | 20 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Mac | 4 | 1 | 0 | 0 | 1 | 0 | 6 |
+| Gemini | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Mac | 5 | 1 | 0 | 0 | 2 | 0 | 8 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **9** | **2** | **0** | **0** | **34** | **0** | **45** |
+| **Total** | **9** | **2** | **0** | **0** | **36** | **0** | **47** |
 
 ## Fase: equipo
 
@@ -18,6 +20,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---|---|---|---|
 | A0 | Claude | hecha | Tablero del equipo y trabajador de Codex | - |
 | M0 | Mac | hecha | Arrancar a Codex en el Mac | A0 |
+| M12 | Mac | pendiente | Subir al repo los prompts de Argon y Opus | - |
 
 ## Fase: app
 
@@ -51,15 +54,16 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
-| M1 | Mac | en curso | Medicina: arreglar el olvido (fix_forgetting) | - |
-| M2 | Claude | pendiente | Decidir medicina con los números y elegir la receta | M1 |
-| M3 | Mac | pendiente | Entrenar finanzas con la receta que pase | M2 |
+| M1 | Mac | hecha | Medicina: arreglar el olvido (fix_forgetting) | - |
+| M2 | Claude | hecha | Decidir medicina con los números y elegir la receta | M1 |
+| M3 | Mac | en curso | Entrenar finanzas con la receta que pase | M2 |
 | M4 | Mac | pendiente | Entrenar marketing | M3 |
 | M5 | Codex | hecha | Recetas de datos: derecho, ciencia, matemáticas, código y datos | - |
 | M6 | Codex | hecha | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
 | M7 | Claude | hecha | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
 | M9 | Claude | hecha | Router con los 13 especialistas | M8 |
+| M11 | Mac | pendiente | Medicina: registrar el adaptador aceptado e instalarlo | M2 |
 
 ## Fase: models
 

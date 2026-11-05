@@ -9,9 +9,10 @@ Local first, open source (Apache-2.0), and able to use external API models with 
 ---
 
 > **Project status: early, honest.** The app, orchestrator, provider layer, local runtime and the full
-> training/evaluation pipeline are built and tested. **No specialist adapter has been trained yet.** Until an
-> adapter passes its acceptance tests, each specialist runs as a prompt profile on the base model and the app
-> marks it β.
+> training/evaluation pipeline are built and tested. **One specialist adapter has passed its acceptance tests:
+> Medicine** (+35 points on three English medical benchmarks, −0.6 on general knowledge, limit −1.5). It is not
+> published yet. Until a specialist's adapter passes and is installed, it runs as a prompt profile on the base model
+> and the app marks it β.
 > Details with evidence: [docs/STATUS.md](docs/STATUS.md).
 
 ## What SPIKE is
@@ -89,7 +90,7 @@ follows [docs/STATUS.md](docs/STATUS.md).
 |---|---|---|---|---|---|
 | Code license | Apache-2.0 | MIT | Proprietary app, free to use at home and at work; its CLI, SDKs and MLX engine are MIT | Own license since v0.6.6: a branding clause on top of BSD-3-style terms (its docs: not OSI-approved); BSD-3 up to v0.6.5 | Apache-2.0 |
 | Runs models on your computer | Yes, through llama.cpp | Yes (cloud models are optional) | Yes, llama.cpp; MLX on Apple Silicon | Connects to Ollama and OpenAI-compatible servers that run the models | Yes, llama.cpp |
-| Models you get | Downloads one base, Qwen3.5-4B (SHA-256 checked). No specialist adapter is trained or accepted yet | A library of many open models from other makers | A catalog of other makers' models (56 listed, 47 local) and Hugging Face search | Whatever its connected servers offer | Downloads models from Hugging Face |
+| Models you get | Downloads one base, Qwen3.5-4B (SHA-256 checked). One specialist adapter (Medicine) accepted, not published yet | A library of many open models from other makers | A catalog of other makers' models (56 listed, 47 local) and Hugging Face search | Whatever its connected servers offer | Downloads models from Hugging Face |
 | Routes a request to a specialist by itself | Yes: lexical router plus a planner for multi-domain requests; specialists are prompt profiles for now | not checked | not checked | Not described in its feature docs; you pick a model or a preset | not checked |
 | OpenAI-compatible API | Yes: `/v1` with `spike-auto` or one specialist; tested with the official `openai` client | Yes, a subset: chat completions, responses, completions, embeddings, models | Yes: responses, chat completions, completions, embeddings, models | Its own API has an OpenAI-compatible chat completions endpoint | Yes: local server at `127.0.0.1:1337/v1` |
 | MCP | Client (stdio, Streamable HTTP) and server; tested with the official MCP SDK, not with Claude Code, Cursor or Codex | Client not checked; its docs offer a web-search MCP server for other clients | MCP host since 0.3.17 | Native since v0.6.31, Streamable HTTP only (stdio via the mcpo proxy) | Supported; needs a model with tool calling |
@@ -114,8 +115,8 @@ What they do that SPIKE does not:
   set up from the terminal or by the installer scripts; it has no packaged desktop app.
 - **SPIKE is new**: it has the measurements in this repository and no track record yet.
 
-Not claimed here: that SPIKE answers better than any of them (no specialist has an accepted evaluation verdict, and
-none is shown to beat the base model), or that it is faster (the others were not benchmarked). SPIKE's bet is a
+Not claimed here: that SPIKE answers better than any of them (only Medicine has an accepted verdict, and it is
+measured against its own base model, not against these apps), or that it is faster (the others were not benchmarked). SPIKE's bet is a
 router and specialists on one small model that fits a CPU-only 16 GB computer, with numbers published next to the
 command that reproduces them.
 

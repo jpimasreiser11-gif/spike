@@ -3,7 +3,7 @@
 Persistent record of what is verified, what is built but unmeasured, and what is missing.
 Rule: nothing is listed as done without the evidence next to it. Measured ≠ computed ≠ reported by others.
 
-_Last update: 2026-10-18, `main` of the private GitHub repository `spike`._
+_Last update: 2026-11-05, `main` of the GitHub repository `spike`._
 
 ## Verified (with evidence)
 
@@ -225,6 +225,41 @@ probes show the forgetting: the adapter drops the specialist's persona and safet
 assistant, not a licensed physician"), answers in a generic style and repeated one Spanish sentence three times.
 Training time matched the ≈ 10 h projection below.
 
+**Medicine adapter, round 2: ACCEPTED** (2026-11-05; `training/runs/medicine/sweep/final/summary.{md,json}`,
+`training/runs/medicine/{run,fix_forgetting}.json`, `training/data/medicine/manifest.json`). Same acceptance criteria
+as round 1. Three changes, run by `training/fix_forgetting.py`: the general replay is the base model's own answers
+(`training/self_replay.py`; 4,062 kept, `training/data/medicine/self_replay.summary.json`) instead of OpenAssistant;
+the medicine chats are sampled from 18,192 to 9,478 so that replay stays 30 % (`prepare.py --fit-domain`; 13,270
+training chats, one epoch, 13,270 steps on joan's M4 Max under the RAM guard, 2026-11-02 12:31–17:57 UTC, exit 0, no
+stop); and the checkpoint sweep, choosing on the selection suites (disjoint from the acceptance ones), took the final
+adapter at LoRA scale 0.5, written into the GGUF's alpha, so the file loads at scale 1.0. At scale 1 the checkpoints
+at 1,600, 3,400 and 6,600 steps lost 11.75, 8.00 and 7.25 points on `general-select`; the final one at 0.5 lost 0.00
+(+33.83 on `medicine-select`; `training/runs/medicine/sweep/summary.md`). Acceptance suites, base and adapter in one
+run, scored once with the choice extractor of `d41e89a` (Metal, greedy, thinking off, max_tokens 2048, llama-server
+b11669-620d2225c; cut on 2026-11-02 and resumed on 2026-11-04, reusing 3,818 saved rows):
+
+| suite | n | base | adapter | Δ (pts) | McNemar p |
+|---|---|---|---|---|---|
+| medicine (pooled) | 2,318 | 0.319 | 0.670 | +35.07 | < 1e-6 |
+| · MedMCQA validation | 1,000 | 0.276 | 0.643 | +36.70 | |
+| · PubMedQA labeled | 500 | 0.422 | 0.804 | +38.20 | |
+| · MMLU-Pro health | 818 | 0.309 | 0.621 | +31.17 | |
+| general (MMLU-Pro history, philosophy, psychology, other) | 800 | 0.637 | 0.631 | −0.62 | 0.74 |
+
+Both criteria pass (medicine ≥ +3 pts with p ≤ 0.05; general drop ≤ 1.5 pts). Part of the multiple-choice gain is
+answer format: the base still names no option in 409 of 1,000 MedMCQA and 241 of 818 health answers (26 and 16 with
+the adapter). Over each variant's own parseable answers (computed from those counts; not a same-items comparison)
+MedMCQA goes 0.467 → 0.660 and health 0.439 → 0.633; PubMedQA has no unparsed base answer and gains 38.2 points.
+Not measured: Spanish, open questions, live answers (round 1's adapter lost the specialist's persona and safety
+framing in live probes; no probes were run for round 2), and any clinical use: these are English benchmark scores.
+
+**Decision (M2, 2026-11-05):** accepted; Medicine's `adapter_status` is `evaluated` in the catalog. The round-2 recipe
+(self-generated replay, domain fitted to 30 % replay, sweep with a scale-0.5 candidate chosen on the selection
+suites) is the recipe for finance (running on the Mac since 2026-11-05 15:50 UTC, 768-token limit unchanged) and
+the others; each still has to pass its own gate. The adapter is not published (needs joan's OK) and its SHA-256 is
+not recorded in the repository yet; until `~/.spike/adapters/spike-medicine.gguf` is installed, Medicine runs as
+the β profile.
+
 **Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
 2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
 with gradient checkpointing peaks at 11 GB with 128-token sequences, 23 GB at 768 and over 27 GB at 1024 (out of
@@ -241,11 +276,10 @@ yet measured).
 
 ## Built, not yet measured with real weights
 
-- An accepted adapter: the first one, medicine, was trained and rejected (above). Before it, the 2026-10-18 run died
-  at step 5,200 of 25,469 when its session ended and the 2026-10-19 one was stopped by the RAM guard at step
-  2,440. Training can now run under a RAM guard that stops it, waits for free memory and resumes exactly from
-  the last checkpoint (tested with real mlx on Linux CPU: stopped-and-resumed equals uninterrupted; not yet run on
-  Apple silicon: the medicine run used a plain watcher and the stock trainer).
+- A stop and resume of training on Apple silicon: the RAM guard ran medicine round 2 on the Mac without stopping it
+  (`training/runs/medicine/ramguard.log`); stopped-and-resumed equals uninterrupted is tested with real mlx on Linux
+  CPU only. Earlier, the 2026-10-18 run died at step 5,200 of 25,469 when its session ended and the 2026-10-19 one
+  was stopped by the RAM guard at step 2,440.
 - Finance data after a license audit of Sujet-Finance-Instruct-177k's 18 upstream sources: 4 kept (news and tweet
   classification, FinEntity; at most 2,000 rows each), 14 excluded (outputs of OpenAI or Anthropic models,
   non-commercial licenses, or unknown provenance). Questions with calculations come from FinQA and TAT-QA (MIT,
@@ -257,24 +291,24 @@ yet measured).
   FinQA test (supporting facts given, so not comparable with retriever-based leaderboards) and TAT-QA test, 600
   each, to MMLU-Pro business and economics.
 - Self-generated replay (`training/self_replay.py`, docs/TRAINING.md): the base model's own answers as anti-forgetting
-  data, an option for the medicine retry. 41 tests (a scripted server, plus the server check against a real
-  llama-server with a tiny random-weight model); not run with the real model yet and
-  its effect on forgetting is not measured. The rejected run's human replay (oasst2) had no system prompt while
+  data. 41 tests (a scripted server, plus the server check against a real
+  llama-server with a tiny random-weight model). Run with the real model for medicine round 2 (accepted, above),
+  but its effect alone is not separated: with it, the scale-1 checkpoints still lost 7.25 to 11.75 general points. The rejected run's human replay (oasst2) had no system prompt while
   the domain chats had the specialist's; whether that mismatch adds to the forgetting is not measured either.
 - Checkpoint sweep (`training/sweep_checkpoints.py`, docs/TRAINING.md): the other cheap try for the medicine rejection,
   without retraining: the saved checkpoints (every 200 iterations) and the final adapter at a smaller LoRA scale are
   exported, compared on `medicine-select` and `general-select` with the recipe's own rule, and the acceptance suites
   run once on the one chosen. 53 tests with a recording runner in place of the exporter and `run_eval.py` (checkpoint
   choice, scaled adapters, reuse after an interruption, the choice rule, exit codes, the summary), and a tiny scaled
-  candidate through llama.cpp's real converter whose GGUF alpha is scale × SCALE × rank. Built and tested with fakes;
-  not run on the real medicine checkpoints, so whether any checkpoint or scale passes is not known.
+  candidate through llama.cpp's real converter whose GGUF alpha is scale × SCALE × rank. Run on medicine round 2:
+  the final adapter at scale 0.5 passed (above).
 - Unattended fix for the medicine rejection (`training/fix_forgetting.py`, docs/TRAINING.md): one detached command runs the
   checkpoint sweep and, if nothing is accepted, archives the first run, generates the base model's own replay answers
   with a base-only llama-server, prepares, trains under the RAM guard and sweeps again, stopping at the first accepted result,
-  and continues where it stopped when run again. Round 2's only recipe change is self-generated replay. Built and tested
-  with fakes for the scripts and the server (53 tests, at every step boundary an interruption and a re-run) and with the
-  real llama-server on a tiny model for the server flags; not run on the Mac yet, so no real step, timing or verdict is
-  known.
+  and continues where it stopped when run again. Built and tested with fakes for the scripts and the server (53
+  tests, at every step boundary an interruption and a re-run) and with the real llama-server on a tiny model for the
+  server flags. Ran on the Mac for medicine from 2026-10-26 to 2026-11-04, with interruptions it resumed from; verdict
+  accepted (above).
 - End-to-end quality of orchestrated answers; long-context accuracy.
 - Which skills the local 4B model actually follows (the table goes here only once measured with real weights).
 - Memory search quality with the real embedding model (Qwen3-Embedding-0.6B): the meaning-only similarity floor (0.45) is a placeholder until calibrated on a labelled set; embedding speed and RAM on the 16 GB target.
@@ -302,8 +336,8 @@ yet measured).
 2. ~~Baseline evals on the Mac~~ (done, above).
 3. ~~Train, export and evaluate the medicine adapter; accept or reject by its criteria~~ (done: rejected for
    forgetting, above).
-4. Fix the forgetting on medicine with the same criteria (choices made on a general sample disjoint from the
-   acceptance suite, every attempt reported), then finance with what works, then marketing (teacher distillation).
+4. ~~Fix the forgetting on medicine with the same criteria~~ (done: round 2 accepted, above); finance with the same
+   recipe (running), then marketing (teacher distillation) and the other ten, one at a time.
 5. Long-context eval; orchestrated vs single-model pairwise eval.
 6. ~~Choose the repository, enable CI~~ (done); publish with measured tables once joan agrees.
 7. ~~Forge: checks SPIKE runs itself on the saved files~~ (built and measured in run 4: no gain). Forge stays

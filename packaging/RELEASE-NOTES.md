@@ -18,7 +18,8 @@ the Hub's SHA-256, answered one question, quit and uninstalled keeping the profi
 runner has 7.0 GiB of RAM and the app's own 8 GiB guard refused the download, so the real model on macOS is not
 tested on a runner; it is to be checked on a Mac with the demo (L1). The security and license review (L2) is in
 docs/release/REVIEW-v0.1.md; still open there: the founder's reading of the LGPL runtime below, and Joan's publication
-approval (L3). No specialist adapter is released yet: each one ships only after it passes its own acceptance gate.
+approval (L3). No specialist adapter is released yet: each one ships only after it passes its own acceptance gate. Medicine passed
+its gate on 2026-11-05 (docs/STATUS.md) and waits for the publication approval.
 
 Licenses: each build carries SPIKE's Apache-2.0 LICENSE, NOTICE, THIRD_PARTY.md and the license text of every bundled
 Python and web package (`licenses/` next to the program; `licenses/third-party/INDEX.md` lists them). The Linux

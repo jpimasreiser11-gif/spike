@@ -5,10 +5,13 @@ comes from [docs/STATUS.md](docs/STATUS.md), which says where and how it was mea
 
 ## [0.1.0] — unreleased
 
-First public version. **No specialist adapter is trained yet**: each specialist runs as a prompt profile on the
-base model and the app marks it β until an adapter passes its acceptance tests.
+First public version. **One specialist adapter, Medicine, passed its acceptance tests**; the others run as prompt
+profiles on the base model, marked β, until theirs pass.
 
 ### Models and runtime
+- Medicine adapter accepted (round 2): +35.07 points on MedMCQA, PubMedQA and MMLU-Pro health (2,318 questions),
+  −0.62 on general knowledge (limit −1.5), after self-generated replay, sampling the domain to keep 30 % replay and
+  LoRA scale 0.5 written into the GGUF. Round 1 had been rejected for forgetting (−7.62). Not published yet.
 - One Qwen3.5-4B (Q4_K_M, llama.cpp) shared by 13 specialists, each with its own LoRA adapter slot switched per
   request with explicit scales; external providers (OpenAI-compatible, Anthropic, Gemini, DeepSeek, Ollama,
   LM Studio and others) with the same instructions and tools. Paid providers stay blocked until allowed; keys in

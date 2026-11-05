@@ -103,3 +103,26 @@ regenerating only the missing group:
 | general (MMLU-Pro history, philosophy, psychology, other) | 800 | 0.639 | 0.562 | −7.62 | 2.4e-5 |
 
 Source: [STATUS.md](STATUS.md#measured-with-real-weights).
+
+**Medicine adapter, round 2: ACCEPTED** (2026-11-05; `training/runs/medicine/sweep/final/summary.{md,json}`,
+`training/runs/medicine/{run,fix_forgetting}.json`, `training/data/medicine/manifest.json`). Same acceptance criteria
+as round 1. Three changes, run by `training/fix_forgetting.py`: the general replay is the base model's own answers
+(`training/self_replay.py`; 4,062 kept, `training/data/medicine/self_replay.summary.json`) instead of OpenAssistant;
+the medicine chats are sampled from 18,192 to 9,478 so that replay stays 30 % (`prepare.py --fit-domain`; 13,270
+training chats, one epoch, 13,270 steps on joan's M4 Max under the RAM guard, 2026-11-02 12:31–17:57 UTC, exit 0, no
+stop); and the checkpoint sweep, choosing on the selection suites (disjoint from the acceptance ones), took the final
+adapter at LoRA scale 0.5, written into the GGUF's alpha, so the file loads at scale 1.0. At scale 1 the checkpoints
+at 1,600, 3,400 and 6,600 steps lost 11.75, 8.00 and 7.25 points on `general-select`; the final one at 0.5 lost 0.00
+(+33.83 on `medicine-select`; `training/runs/medicine/sweep/summary.md`). Acceptance suites, base and adapter in one
+run, scored once with the choice extractor of `d41e89a` (Metal, greedy, thinking off, max_tokens 2048, llama-server
+b11669-620d2225c; cut on 2026-11-02 and resumed on 2026-11-04, reusing 3,818 saved rows):
+
+| suite | n | base | adapter | Δ (pts) | McNemar p |
+|---|---|---|---|---|---|
+| medicine (pooled) | 2,318 | 0.319 | 0.670 | +35.07 | < 1e-6 |
+| · MedMCQA validation | 1,000 | 0.276 | 0.643 | +36.70 | |
+| · PubMedQA labeled | 500 | 0.422 | 0.804 | +38.20 | |
+| · MMLU-Pro health | 818 | 0.309 | 0.621 | +31.17 | |
+| general (MMLU-Pro history, philosophy, psychology, other) | 800 | 0.637 | 0.631 | −0.62 | 0.74 |
+
+Source: [STATUS.md](STATUS.md#measured-with-real-weights).

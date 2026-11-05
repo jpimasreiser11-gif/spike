@@ -688,7 +688,9 @@ specialists:
     domain: Medicine and health sciences
     description: Clinical reasoning, pharmacology, physiology, diagnostics and evidence-based medicine.
     adapter: spike-medicine
-    adapter_status: planned
+    # Accepted 2026-11-05: training/runs/medicine/sweep/final/summary.md. The file is the sweep's
+    # spike-medicine-it13270-s0.5.gguf: the LoRA scale 0.5 is in its GGUF alpha, so it loads at scale 1.0.
+    adapter_status: evaluated
     sensitive: true
     tools: [ask_user, calculator, read_file, list_dir, web_fetch]
     keywords:
