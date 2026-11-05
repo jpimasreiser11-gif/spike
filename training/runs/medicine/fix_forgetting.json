@@ -1,0 +1,47 @@
+{
+  "specialist": "medicine",
+  "steps": {
+    "sweep1": {
+      "utc": "2026-10-26T11:12:26Z",
+      "exit_code": 2
+    },
+    "archive": {
+      "utc": "2026-10-26T11:12:26Z",
+      "round": 1,
+      "dir": "training/runs/medicine/round1",
+      "moved": [
+        "adapter",
+        "sweep"
+      ],
+      "copied": [
+        "run.json",
+        "export.json",
+        "data-manifest.json"
+      ]
+    },
+    "self_replay": {
+      "utc": "2026-10-26T18:01:06Z",
+      "resumed": false,
+      "prompts": 9063,
+      "kept": 4064
+    },
+    "prepare": {
+      "utc": "2026-11-02T12:30:04Z",
+      "domain": 9478,
+      "domain_before_fit": 18192,
+      "replay_available": 4062,
+      "train": 13270,
+      "valid": 270,
+      "iters": 13270,
+      "replay_ratio_actual": 0.3
+    },
+    "train": {
+      "utc": "2026-11-02T17:57:06Z"
+    },
+    "sweep2": {
+      "utc": "2026-11-04T10:15:24Z",
+      "exit_code": 0
+    }
+  },
+  "archive_round": 1
+}

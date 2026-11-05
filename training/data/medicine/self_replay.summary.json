@@ -1,0 +1,29 @@
+{
+  "generator": "Qwen/Qwen3.5-4B",
+  "generator_license": "apache-2.0",
+  "server": {
+    "build": "b11669-620d2225c",
+    "model_file": "Qwen3.5-4B-Q4_K_M.gguf",
+    "adapters_checked": true
+  },
+  "settings": {
+    "specialist": "medicine",
+    "temperature": 0.0,
+    "thinking": false,
+    "max_seq_length": 768
+  },
+  "prompts": 9063,
+  "kept": 4064,
+  "resumed_prompts": 0,
+  "dropped": {
+    "prompt_too_long": 20,
+    "thinking": 0,
+    "hit_length_limit": 4963,
+    "unfinished": 0,
+    "empty": 0,
+    "repeated_sentence": 16,
+    "repeated_ngrams": 0,
+    "too_long": 0
+  },
+  "out": "/Users/jpima/Downloads/Spike-main/training/data/medicine/self_replay.jsonl"
+}

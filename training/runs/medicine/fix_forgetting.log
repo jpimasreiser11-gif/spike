@@ -1,0 +1,55 @@
+2026-10-26T09:05:35Z fix_forgetting medicine: started; finished before: nothing
+2026-10-26T09:05:35Z sweep1: /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/sweep_checkpoints.py medicine --llama-cpp /Users/jpima/src/llama.cpp --model /Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf
+2026-10-26T11:12:26Z sweep1: sweep_checkpoints.py exited with 2
+2026-10-26T11:12:26Z sweep1: nothing accepted on the existing run; round 2 changes the replay source and nothing else
+2026-10-26T11:12:26Z archive: round 1
+2026-10-26T11:12:26Z archive: moved training/runs/medicine/adapter -> training/runs/medicine/round1/adapter
+2026-10-26T11:12:26Z archive: moved training/runs/medicine/sweep -> training/runs/medicine/round1/sweep
+2026-10-26T11:12:26Z archive: copied training/runs/medicine/run.json -> training/runs/medicine/round1/run.json
+2026-10-26T11:12:26Z archive: copied training/runs/medicine/export.json -> training/runs/medicine/round1/export.json
+2026-10-26T11:12:26Z archive: copied training/data/medicine/manifest.json -> training/runs/medicine/round1/data-manifest.json
+2026-10-26T11:12:26Z self_replay: from the start
+2026-10-26T11:12:26Z self_replay: starting llama-server on Qwen3.5-4B-Q4_K_M.gguf alone: /opt/homebrew/bin/llama-server -m /Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf --host 127.0.0.1 --port 49436 -c 8192 --parallel 4 --jinja -ngl 99 --flash-attn auto --metrics --no-webui --cache-type-k q8_0 --cache-type-v q8_0
+2026-10-26T11:12:26Z self_replay: llama-server ready at http://127.0.0.1:49436
+2026-10-26T11:12:26Z self_replay: /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/self_replay.py /Users/jpima/Downloads/Spike-main/training/configs/medicine.yaml --base-url http://127.0.0.1:49436/v1 --base-repo Qwen/Qwen3.5-4B --out /Users/jpima/Downloads/Spike-main/training/data/medicine/self_replay.jsonl --concurrency 4
+2026-10-26T18:01:06Z self_replay: llama-server stopped
+2026-10-26T18:01:06Z prepare: /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/prepare.py /Users/jpima/Downloads/Spike-main/training/configs/medicine.yaml --self-replay /Users/jpima/Downloads/Spike-main/training/data/medicine/self_replay.jsonl
+2026-10-30T13:31:29Z STOPPED by a signal (exit 143)
+2026-10-30T13:31:29Z run the same command again to continue where it stopped
+2026-11-02T12:29:25Z fix_forgetting medicine: started; finished before: sweep1, archive, self_replay
+2026-11-02T12:29:25Z sweep1: nothing accepted on the existing run; round 2 changes the replay source and nothing else
+2026-11-02T12:29:25Z archive: already done (training/runs/medicine/round1), skipped
+2026-11-02T12:29:25Z self_replay: training/data/medicine/self_replay.jsonl and self_replay.summary.json exist, skipped
+2026-11-02T12:29:25Z prepare: /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/prepare.py /Users/jpima/Downloads/Spike-main/training/configs/medicine.yaml --self-replay /Users/jpima/Downloads/Spike-main/training/data/medicine/self_replay.jsonl --fit-domain
+2026-11-02T12:30:04Z train: bash /Users/jpima/Downloads/Spike-main/training/scripts/train_supervised.sh medicine
+2026-11-02T12:31:22Z STOPPED by a signal (exit 143)
+2026-11-02T12:31:22Z run the same command again to continue where it stopped
+2026-11-02T12:31:31Z fix_forgetting medicine: started; finished before: sweep1, archive, self_replay, prepare
+2026-11-02T12:31:31Z sweep1: nothing accepted on the existing run; round 2 changes the replay source and nothing else
+2026-11-02T12:31:31Z archive: already done (training/runs/medicine/round1), skipped
+2026-11-02T12:31:31Z self_replay: training/data/medicine/self_replay.jsonl and self_replay.summary.json exist, skipped
+2026-11-02T12:31:31Z prepare: already done, skipped
+2026-11-02T12:31:31Z train: bash /Users/jpima/Downloads/Spike-main/training/scripts/train_supervised.sh medicine
+2026-11-02T17:57:06Z sweep2: /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/sweep_checkpoints.py medicine --llama-cpp /Users/jpima/src/llama.cpp --model /Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf
+2026-11-02T23:20:39Z STOPPED by a signal (exit 143)
+2026-11-02T23:20:39Z run the same command again to continue where it stopped
+2026-11-04T08:41:09Z fix_forgetting medicine: started; finished before: sweep1, archive, self_replay, prepare, train
+2026-11-04T08:41:09Z sweep1: nothing accepted on the existing run; round 2 changes the replay source and nothing else
+2026-11-04T08:41:09Z archive: already done (training/runs/medicine/round1), skipped
+2026-11-04T08:41:09Z self_replay: training/data/medicine/self_replay.jsonl and self_replay.summary.json exist, skipped
+2026-11-04T08:41:09Z prepare: already done, skipped
+2026-11-04T08:41:09Z train: run.json records a finished run on this training set, skipped
+2026-11-04T08:41:09Z sweep2: /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/sweep_checkpoints.py medicine --llama-cpp /Users/jpima/src/llama.cpp --model /Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf
+2026-11-04T10:15:24Z sweep2: sweep_checkpoints.py exited with 0
+2026-11-04T10:15:24Z summary:
+2026-11-04T10:15:24Z fix_forgetting medicine: ACCEPTED after round 2 (replay from the base model's own answers)
+2026-11-04T10:15:24Z   sweep1, existing run: exit 2, no candidate passed the select rule
+2026-11-04T10:15:24Z     evidence: training/runs/medicine/round1/sweep/summary.md
+2026-11-04T10:15:24Z   archived the first run as training/runs/medicine/round1/ (adapter, sweep; run.json, export.json, data-manifest.json)
+2026-11-04T10:15:24Z   self-generated replay: prompts 9063, kept 4064 (training/data/medicine/self_replay.jsonl); trained on it, run record training/runs/medicine/run.json
+2026-11-04T10:15:24Z   sweep2, new run: exit 0, ACCEPTED spike-medicine-it13270-s0.5: medicine: +35.07 pts (need ≥ 3.0), p = 0 (need ≤ 0.05); general: -0.62 pts (max drop 1.5)
+2026-11-04T10:15:24Z     evidence: training/runs/medicine/sweep/summary.md
+2026-11-04T10:15:24Z   nothing was installed: the sweep printed the `spike adapters install` command (in the .out); /Users/jpima/Downloads/Spike/.venv-train/bin/python /Users/jpima/Downloads/Spike-main/training/sweep_checkpoints.py medicine --llama-cpp /Users/jpima/src/llama.cpp --model /Users/jpima/.spike/models/Qwen3.5-4B-Q4_K_M.gguf prints it again from the saved results
+2026-11-04T10:15:24Z   training/configs/medicine.yaml was not edited and still lists the human-written replay sources; the new run used --self-replay (training/data/medicine/manifest.json): set replay.self_generated: true in the recipe when you commit it
+2026-11-04T10:15:24Z   nothing was committed or pushed
+2026-11-04T10:15:24Z fix_forgetting medicine: finished with exit code 0

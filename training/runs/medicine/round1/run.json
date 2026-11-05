@@ -1,0 +1,27 @@
+{
+  "specialist": "medicine",
+  "started_utc": "2026-10-20T08:40:23Z",
+  "finished_utc": "2026-10-20T18:24:24Z",
+  "exit_code": 0,
+  "data_files_sha256": {
+    "train.jsonl": "e0c220fb3f71aa8520d906b1a29b79e2b6e27233543b402c5581efe9729af383",
+    "valid.jsonl": "7c8397494414b4f065c46dbfd7c5efd717e5d4fed68dff75a0d978c80b1eeca5"
+  },
+  "counts": {
+    "domain": 18192,
+    "replay_available": 11939,
+    "train": 25469,
+    "valid": 519,
+    "replay_ratio_target": 0.3,
+    "replay_ratio_actual": 0.3,
+    "iters": 25469
+  },
+  "git_commit": "a1dc5beec0b4060af91103275557e64cf0883266",
+  "chip": "Apple M4 Max",
+  "memory_bytes": "38654705664",
+  "os": "macOS-27.0-arm64-arm-64bit",
+  "python": "3.12.13",
+  "mlx": "0.32.4",
+  "mlx_lm": "0.32.2",
+  "gated_delta": "spike_train.gated_delta_chunked (chunk 16)"
+}
