@@ -193,8 +193,10 @@ class MemoryStore:
         if not new_text:
             raise ValueError("a memory needs text")
         with self._lock, self._db:
-            self._db.execute("UPDATE memories SET text = ?, kind = ?, updated = ? WHERE id = ?",
-                             (new_text, kind or current.kind, time.time(), memory_id))
+            cur = self._db.execute("UPDATE memories SET text = ?, kind = ?, updated = ? WHERE id = ?",
+                                   (new_text, kind or current.kind, time.time(), memory_id))
+            if cur.rowcount == 0:
+                return None
             if new_text != current.text:
                 self._db.execute("DELETE FROM chunks WHERE memory_id = ?", (memory_id,))
                 self._insert_chunks(memory_id, new_text)

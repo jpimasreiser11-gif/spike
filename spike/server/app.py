@@ -1050,15 +1050,30 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     @app.delete("/api/projects/{pid}/files/{path:path}")
     async def delete_project_file(pid: str, path: str) -> dict:
         target = existing_file(pid, path)
-        target.unlink()
-        relative = target.relative_to(st().project_files.folder(pid)).as_posix()
+        base = st().project_files.folder(pid)
+        relative = unicodedata.normalize("NFC", target.relative_to(base).as_posix())
+        try:
+            target.unlink()
+        except FileNotFoundError as exc:
+            st().memory.store.delete_source(f"project:{pid}", f"file:{relative}")
+            raise HTTPException(404, "file not found") from exc
+        cur = target.parent
+        while cur != base and base in cur.parents:
+            try:
+                cur.rmdir()
+            except OSError:
+                break
+            cur = cur.parent
         st().memory.store.delete_source(f"project:{pid}", f"file:{relative}")
         return {"ok": True}
 
     @app.get("/api/projects/{pid}/export")
     async def export_project_zip(pid: str) -> Response:
         project = project_or_404(pid)
-        name = re.sub(r"[^A-Za-z0-9._-]+", "-", project["name"]).strip("-") or "project"
+        ascii_name = "".join(
+            c for c in unicodedata.normalize("NFKD", project["name"]) if not unicodedata.combining(c)
+        )
+        name = re.sub(r"[^A-Za-z0-9._-]+", "-", ascii_name).strip("-") or "project"
         try:
             blob = export_project(st().store, st().project_files, pid, st().memory.store)
         except ProjectError as exc:
