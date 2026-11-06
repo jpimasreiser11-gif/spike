@@ -8,7 +8,9 @@ import os
 import re
 import shutil
 import stat
+import unicodedata
 import zipfile
+import zlib
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -32,13 +34,25 @@ def clean_path(relative: str) -> PurePosixPath:
     its config names (core.fsmonitor, filters), so a project archive must not be able to plant one for the git calls
     SPIKE makes in a project's folder (Parallel Prototypes). A colon is refused in every part: in the first it is a drive
     (`C:\\x`), in any other a Windows alternate data stream (`file.txt:stream`, `.git::$INDEX_ALLOCATION`)."""
-    path = PurePosixPath(relative.replace("\\", "/"))
-    if (not relative or path.is_absolute() or any(part in ("", "..") for part in path.parts)
-            or any(":" in part for part in path.parts)):
+    if not isinstance(relative, str):
+        raise ProjectError("invalid file path")
+    norm = unicodedata.normalize("NFC", relative)
+    if (
+        not norm
+        or norm.startswith(("/", "\\"))
+        or any(ord(c) < 32 for c in norm)
+    ):
         raise ProjectError(f"invalid file path '{relative}'")
-    if any(is_git_name(part) for part in path.parts):
+    raw_parts = norm.replace("\\", "/").split("/")
+    if (
+        not raw_parts
+        or any(part in ("", ".", "..") for part in raw_parts)
+        or any(":" in part for part in raw_parts)
+    ):
+        raise ProjectError(f"invalid file path '{relative}'")
+    if any(is_git_name(part) for part in raw_parts):
         raise ProjectError(f"invalid file path '{relative}': a .git folder is not part of a project's files")
-    return path
+    return PurePosixPath(*raw_parts)
 
 
 class ProjectFiles:
@@ -72,8 +86,11 @@ class ProjectFiles:
             if (not isinstance(error, PermissionError) or function not in (os.unlink, os.remove, os.rmdir)
                     or target.is_symlink() or not target.resolve().is_relative_to(base.resolve())):
                 raise error
-            target.chmod(target.stat().st_mode | stat.S_IWUSR)
-            function(path)
+            try:
+                target.chmod(target.stat().st_mode | stat.S_IWUSR)
+                function(path)
+            except FileNotFoundError:
+                return
 
         try:
             shutil.rmtree(base, onerror=retry_readonly)
@@ -83,9 +100,18 @@ class ProjectFiles:
 
     def list(self, pid: str) -> list[dict[str, Any]]:
         base = self.folder(pid)  # a repository's own files (Parallel Prototypes makes one) are not the user's files
-        return [{"path": p.relative_to(base).as_posix(), "size": p.stat().st_size}
-                for p in sorted(base.rglob("*"))
-                if p.is_file() and ".git" not in p.relative_to(base).parts and not self._linked(base, p)]
+        out: list[dict[str, Any]] = []
+        for p in sorted(base.rglob("*")):
+            try:
+                rel = p.relative_to(base)
+                if ".git" in rel.parts or self._linked(base, p) or not p.is_file():
+                    continue
+                size = p.stat().st_size
+            except FileNotFoundError:
+                continue
+            out.append({"path": unicodedata.normalize("NFC", rel.as_posix()), "size": size})
+        out.sort(key=lambda item: item["path"])
+        return out
 
     @staticmethod
     def _linked(base: Path, path: Path) -> bool:
@@ -101,10 +127,22 @@ class ProjectFiles:
     def write(self, pid: str, relative: str, data: bytes) -> dict[str, Any]:
         if len(data) > MAX_FILE_BYTES:
             raise ProjectError(f"files are limited to {MAX_FILE_BYTES // 1024**2} MB")
-        target = self.path(pid, relative)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
-        return {"path": clean_path(relative).as_posix(), "size": len(data)}
+        base = self.folder(pid)
+        clean = clean_path(relative)
+        target = self.path(pid, clean.as_posix())
+        if target.exists() and target.is_dir():
+            raise ProjectError(f"file path '{clean.as_posix()}' collides with an existing directory")
+        cur = target.parent
+        while cur != base and base in cur.parents:
+            if cur.exists() and not cur.is_dir():
+                raise ProjectError(f"file path '{clean.as_posix()}' collides with an existing file")
+            cur = cur.parent
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        except (FileExistsError, IsADirectoryError, NotADirectoryError) as exc:
+            raise ProjectError(f"file path '{clean.as_posix()}' collides with an existing file or directory") from exc
+        return {"path": clean.as_posix(), "size": len(data)}
 
 
 def export_project(store: Store, files: ProjectFiles, pid: str, memory: MemoryStore | None = None) -> bytes:
@@ -128,7 +166,11 @@ def export_project(store: Store, files: ProjectFiles, pid: str, memory: MemorySt
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(_entry("project.json"), json.dumps(manifest, ensure_ascii=False, indent=1, sort_keys=True))
         for item in files.list(pid):
-            z.writestr(_entry(f"files/{item['path']}"), files.path(pid, item["path"]).read_bytes())
+            try:
+                raw_bytes = files.path(pid, item["path"]).read_bytes()
+            except FileNotFoundError:
+                continue
+            z.writestr(_entry(f"files/{item['path']}"), raw_bytes)
     return buf.getvalue()
 
 
@@ -149,6 +191,8 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
         if len(infos) > MAX_ENTRIES or sum(i.file_size for i in infos) > MAX_ARCHIVE_BYTES:
             raise ProjectError("the archive is too large")
         payload: list[tuple[PurePosixPath, zipfile.ZipInfo]] = []
+        seen_files: set[str] = set()
+        seen_dirs: set[str] = set()
         for info in infos:
             if info.is_dir():
                 continue
@@ -156,10 +200,24 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
                 continue
             if not info.filename.startswith("files/"):
                 raise ProjectError(f"unexpected entry '{info.filename}'")
-            payload.append((clean_path(info.filename[len("files/"):]), info))
+            if info.file_size > MAX_FILE_BYTES:
+                raise ProjectError(f"files are limited to {MAX_FILE_BYTES // 1024**2} MB")
+            clean = clean_path(info.filename[len("files/"):])
+            key = clean.as_posix().casefold()
+            if key in seen_files or key in seen_dirs:
+                raise ProjectError(f"colliding file path '{clean.as_posix()}' in archive")
+            for parent in clean.parents:
+                if parent == PurePosixPath("."):
+                    continue
+                pkey = parent.as_posix().casefold()
+                if pkey in seen_files:
+                    raise ProjectError(f"colliding file path '{clean.as_posix()}' in archive")
+                seen_dirs.add(pkey)
+            seen_files.add(key)
+            payload.append((clean, info))
         try:
             manifest = json.loads(archive.read("project.json"))
-        except (KeyError, ValueError) as exc:
+        except (KeyError, ValueError, zipfile.BadZipFile, zlib.error, EOFError, NotImplementedError, RuntimeError) as exc:
             raise ProjectError("the archive has no valid project.json") from exc
         if not isinstance(manifest, dict) or manifest.get("format") != FORMAT or manifest.get("version") != VERSION:
             raise ProjectError("the archive is not a SPIKE project (format/version)")
@@ -173,9 +231,25 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
                 raise ProjectError("invalid project note (kind/text)")
         if notes and memory is None:
             raise ProjectError("project notes need a memory store")
-        meta = manifest.get("project") or {}
+        raw_meta = manifest.get("project")
+        if raw_meta is not None and not isinstance(raw_meta, dict):
+            raise ProjectError("invalid project metadata in project.json")
+        meta = raw_meta or {}
         if not isinstance(meta.get("name"), str) or not meta["name"].strip():
             raise ProjectError("the project has no name")
+        raw_convs = manifest.get("conversations")
+        if raw_convs is not None and not isinstance(raw_convs, list):
+            raise ProjectError("invalid conversations in project.json")
+        convs = raw_convs or []
+        for conv in convs:
+            if not isinstance(conv, dict):
+                raise ProjectError("invalid conversation entry in project.json")
+            msgs = conv.get("messages")
+            if msgs is not None and not isinstance(msgs, list):
+                raise ProjectError("invalid conversation messages in project.json")
+            for m in msgs or []:
+                if not isinstance(m, dict) or (m.get("meta") is not None and not isinstance(m.get("meta"), dict)):
+                    raise ProjectError("invalid message entry in project.json")
         mode = meta.get("mode") or "auto"
         design = meta.get("design") if isinstance(meta.get("design"), str) else ""
         project = store.create_project(meta["name"], str(meta.get("instructions") or ""),
@@ -185,7 +259,7 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
             if memory is not None:
                 for note in notes:
                     memory.add(note["text"], note["kind"], scope=f"project:{project['id']}")
-            for conv in manifest.get("conversations") or []:
+            for conv in convs:
                 c = store.create_conversation(title=str(conv.get("title") or "Imported chat"),
                                               mode=conv.get("mode") if conv.get("mode") in modes else "auto",
                                               provider_id=conv.get("provider_id"), project_id=project["id"],
@@ -194,8 +268,18 @@ def import_project(store: Store, files: ProjectFiles, blob: bytes, modes: set[st
                     if m.get("role") in ("user", "assistant"):
                         store.add_message(c["id"], m["role"], str(m.get("content") or ""), m.get("meta") or {},
                                           created=m.get("created"))
+            total_bytes = 0
             for path, info in payload:
-                files.write(project["id"], path.as_posix(), archive.read(info))
+                try:
+                    data = archive.read(info)
+                except (zipfile.BadZipFile, zlib.error, EOFError, NotImplementedError, RuntimeError) as exc:
+                    raise ProjectError(f"corrupt archive entry '{path.as_posix()}'") from exc
+                if len(data) > MAX_FILE_BYTES:
+                    raise ProjectError(f"files are limited to {MAX_FILE_BYTES // 1024**2} MB")
+                total_bytes += len(data)
+                if total_bytes > MAX_ARCHIVE_BYTES:
+                    raise ProjectError("the archive exceeds the project size limit")
+                files.write(project["id"], path.as_posix(), data)
         except Exception:
             if memory is not None:
                 memory.delete_scope(f"project:{project['id']}")
