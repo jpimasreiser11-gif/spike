@@ -71,17 +71,51 @@ def tool_name(connector_id: str, remote: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", f"mcp__{connector_id.replace('-', '_')}__{remote}")[:64]
 
 
+_VALID_JSON_TYPES = {"string", "number", "integer", "boolean", "array", "object", "null"}
+
+
+def normalize_input_schema(raw: Any) -> dict[str, Any]:
+    """Sanitize a server's tool inputSchema into a valid JSON Schema object."""
+    if not isinstance(raw, dict):
+        return {"type": "object", "properties": {}}
+    out = dict(raw)
+    out["type"] = "object"
+    raw_props = out.get("properties")
+    props: dict[str, dict[str, Any]] = {}
+    if isinstance(raw_props, dict):
+        for k, v in raw_props.items():
+            if not isinstance(k, str) or not k:
+                continue
+            if isinstance(v, dict):
+                props[k] = v
+            elif isinstance(v, str) and v in _VALID_JSON_TYPES:
+                props[k] = {"type": v}
+            else:
+                props[k] = {}
+    out["properties"] = props
+    if "required" in out:
+        raw_req = out["required"]
+        if isinstance(raw_req, (list, tuple)):
+            out["required"] = [r for r in raw_req if isinstance(r, str) and r in props]
+        else:
+            out.pop("required", None)
+    return out
+
+
 class McpTool(Tool):
     risk = "network"
 
     def __init__(self, connector: ConnectorDef, client: McpClient, spec: dict[str, Any], name: str, policy: str,
                  guard: Callable[[str, dict[str, Any]], Review | None] | None = None,
                  observers: list[Callable[[str, str, dict[str, Any], str, bool], None]] | None = None):
-        self.connector, self.client, self.remote_name = connector, client, spec["name"]
+        remote = str(spec["name"]).strip()
+        self.connector, self.client, self.remote_name = connector, client, remote
         self.observers = observers  # told (connector id, tool, arguments, result text, is error) after each call
         self.name = name
-        self.description = f"[{connector.name}] {spec.get('description') or spec['name']}"[:1024]
-        self.parameters = spec.get("inputSchema") or {"type": "object", "properties": {}}
+        raw_desc = spec.get("description")
+        desc = raw_desc.strip() if isinstance(raw_desc, str) and raw_desc.strip() else remote
+        self.description = f"[{connector.name}] {desc}"[:1024]
+        self.parameters = normalize_input_schema(spec.get("inputSchema"))
         self.default_policy = policy  # type: ignore[assignment]
         self.guard = guard
         self.ui_uri, self.visibility = tool_ui(spec)  # MCP Apps: the view of its results; who may call it
@@ -281,7 +315,7 @@ class ConnectorManager:
         try:
             conn.client = self._client(definition)
             await asyncio.wait_for(conn.client.start(), timeout=START_TIMEOUT_S)
-            specs = await conn.client.list_tools()
+            specs = await asyncio.wait_for(conn.client.list_tools(), timeout=START_TIMEOUT_S)
         except (McpError, TimeoutError, OSError) as exc:
             conn.status, conn.error = "error", str(exc) or exc.__class__.__name__
             if conn.client:
@@ -294,7 +328,9 @@ class ConnectorManager:
         policy = self.config(cid)["policy"]
         names: set[str] = set()
         for spec in specs:
-            name = tool_name(cid, spec["name"])
+            if not isinstance(spec, dict) or not isinstance(spec.get("name"), str) or not spec["name"].strip():
+                continue
+            name = tool_name(cid, spec["name"].strip())
             while name in names:
                 name = name[:60] + f"_{len(names)}"
             names.add(name)
@@ -336,6 +372,8 @@ class ConnectorManager:
         "ask" tool runs only with `approved` (the user's click in the app). Raises PermissionError otherwise."""
         decision = "refused"
         try:
+            if not isinstance(arguments, dict):
+                raise AppError("tool arguments must be an object")
             conn = self._running(cid)
             self._declared(conn, view)
             tool = conn.by_remote.get(name)

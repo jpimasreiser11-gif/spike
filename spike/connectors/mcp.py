@@ -83,17 +83,21 @@ class StdioTransport(Transport):
 
         async def read_stdout() -> None:
             assert self.proc and self.proc.stdout
-            while line := await self.proc.stdout.readline():
-                try:
-                    message = json.loads(line)
-                except ValueError:
-                    continue  # servers must not print anything else on stdout; tolerate it
-                if isinstance(message, dict):
-                    await on_message(message)
-            with contextlib.suppress(TimeoutError):  # let the last stderr lines arrive: they explain the exit
-                await asyncio.wait_for(asyncio.shield(stderr_task), timeout=1)
-            if self.on_closed:
-                self.on_closed(f"the server process exited{self._tail()}")
+            try:
+                while line := await self.proc.stdout.readline():
+                    try:
+                        message = json.loads(line)
+                    except ValueError:
+                        continue  # servers must not print anything else on stdout; tolerate it
+                    if isinstance(message, dict):
+                        await on_message(message)
+            except (ValueError, OSError):
+                pass
+            finally:
+                with contextlib.suppress(TimeoutError):  # let the last stderr lines arrive: they explain the exit
+                    await asyncio.wait_for(asyncio.shield(stderr_task), timeout=1)
+                if self.on_closed:
+                    self.on_closed(f"the server process exited{self._tail()}")
 
         async def read_stderr() -> None:
             assert self.proc and self.proc.stderr
@@ -113,7 +117,7 @@ class StdioTransport(Transport):
         self.proc.stdin.write(json.dumps(message, ensure_ascii=False).encode() + b"\n")
         try:
             await self.proc.stdin.drain()
-        except (BrokenPipeError, ConnectionResetError) as exc:
+        except OSError as exc:
             raise McpError(f"the server process exited{self._tail()}") from exc
 
     def _tail(self) -> str:
@@ -173,29 +177,35 @@ class HttpTransport(Transport):
                     raise McpError(f"HTTP {response.status_code}: {body}")
                 self.session_id = response.headers.get("mcp-session-id", self.session_id)
                 kind = response.headers.get("content-type", "")
+                dispatched = 0
                 if "text/event-stream" in kind:
                     data: list[str] = []
                     async for line in response.aiter_lines():
                         if line.startswith("data:"):
                             data.append(line[5:].lstrip())
                         elif not line and data:
-                            await self._dispatch("\n".join(data))
+                            dispatched += await self._dispatch("\n".join(data))
                             data = []
                     if data:
-                        await self._dispatch("\n".join(data))
+                        dispatched += await self._dispatch("\n".join(data))
                 elif "json" in kind:
-                    await self._dispatch((await response.aread()).decode())
+                    dispatched += await self._dispatch((await response.aread()).decode("utf-8", errors="replace"))
+                if "id" in message and "method" in message and dispatched == 0:
+                    raise McpError("the server closed the response without a valid JSON-RPC reply")
         except httpx.HTTPError as exc:
             raise McpError(f"cannot reach {self.url}: {exc.__class__.__name__}") from exc
 
-    async def _dispatch(self, raw: str) -> None:
+    async def _dispatch(self, raw: str) -> int:
         try:
             payload = json.loads(raw)
         except ValueError:
-            return
+            return 0
+        count = 0
         for message in payload if isinstance(payload, list) else [payload]:
             if isinstance(message, dict):
+                count += 1
                 await self._on_message(message)  # type: ignore[misc]
+        return count
 
     async def close(self) -> None:
         if self.session_id:
@@ -228,16 +238,22 @@ class McpClient:
         await self.notify("notifications/initialized")
         return result
 
+    def _timeout_error(self, method: str) -> McpError:
+        t_str = f"{self.timeout_s:.0f}" if self.timeout_s >= 1 else f"{self.timeout_s:g}"
+        return McpError(f"'{method}' got no answer in {t_str} s")
+
     async def request(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         rid = next(self._ids)
-        future = asyncio.get_running_loop().create_future()
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
         self._pending[rid] = future
         message = {"jsonrpc": "2.0", "id": rid, "method": method, **({"params": params} if params is not None else {})}
         # HTTP answers arrive while the POST is still open, so the send runs beside the wait
         send = asyncio.create_task(self.transport.send(message))
         self._sends.add(send)
         send.add_done_callback(self._sends.discard)
-        timeout = McpError(f"'{method}' got no answer in {self.timeout_s:.0f} s")
+        timeout = self._timeout_error(method)
+        deadline = loop.time() + self.timeout_s
         try:
             done, _ = await asyncio.wait({send, future}, timeout=self.timeout_s, return_when=asyncio.FIRST_COMPLETED)
             if not done:
@@ -247,16 +263,28 @@ class McpClient:
             else:
                 if send.exception():
                     raise send.exception()  # type: ignore[misc]
+                if isinstance(self.transport, HttpTransport) and not future.done():
+                    raise McpError(f"'{method}': the server closed the response without answering request {rid}")
+                remaining = max(0.001, deadline - loop.time())
                 try:
-                    response = await asyncio.wait_for(future, timeout=self.timeout_s)
+                    response = await asyncio.wait_for(future, timeout=remaining)
                 except TimeoutError as exc:
                     raise timeout from exc
         finally:
             self._pending.pop(rid, None)
+            if not send.done():
+                send.cancel()
+            self._sends.discard(send)
         if "error" in response:
-            err = response["error"] or {}
-            raise McpError(str(err.get("message") or err))
-        return response.get("result") or {}
+            err = response["error"]
+            msg = err.get("message") if isinstance(err, dict) else err
+            raise McpError(str(msg or "unknown MCP error"))
+        res = response.get("result")
+        if res is None:
+            return {}
+        if not isinstance(res, dict):
+            raise McpError(f"'{method}' returned an invalid JSON-RPC result")
+        return res
 
     def _closed(self, reason: str) -> None:
         for future in self._pending.values():
@@ -264,11 +292,18 @@ class McpClient:
                 future.set_exception(McpError(reason))
 
     async def notify(self, method: str, params: dict[str, Any] | None = None) -> None:
-        await self.transport.send({"jsonrpc": "2.0", "method": method, **({"params": params} if params else {})})
+        msg = {"jsonrpc": "2.0", "method": method, **({"params": params} if params else {})}
+        try:
+            await asyncio.wait_for(self.transport.send(msg), timeout=self.timeout_s)
+        except TimeoutError as exc:
+            raise self._timeout_error(method) from exc
 
     async def _on_message(self, message: dict[str, Any]) -> None:
         if "id" in message and ("result" in message or "error" in message):
-            future = self._pending.get(message["id"])
+            rid = message["id"]
+            future = self._pending.get(rid)
+            if future is None and isinstance(rid, str) and rid.isdigit():
+                future = self._pending.get(int(rid))
             if future and not future.done():
                 future.set_result(message)
         elif "method" in message and "id" in message:  # a request from the server
@@ -284,25 +319,45 @@ class McpClient:
             self.tools_changed = True
 
     async def list_tools(self) -> list[dict[str, Any]]:
-        tools, cursor = [], None
+        tools: list[dict[str, Any]] = []
+        seen_names: set[str] = set()
+        seen_cursors: set[str] = set()
+        cursor: str | None = None
         for _ in range(100):
             result = await self.request("tools/list", {"cursor": cursor} if cursor else {})
-            tools += [t for t in result.get("tools") or [] if isinstance(t, dict) and t.get("name")]
-            cursor = result.get("nextCursor")
-            if not cursor:
+            raw_tools = result.get("tools")
+            if not isinstance(raw_tools, list) or not raw_tools:
                 break
+            for t in raw_tools:
+                if isinstance(t, dict) and isinstance(t.get("name"), str) and t["name"].strip():
+                    name = t["name"].strip()
+                    if name not in seen_names:
+                        seen_names.add(name)
+                        tools.append({**t, "name": name})
+            next_cursor = result.get("nextCursor")
+            if not isinstance(next_cursor, str) or not next_cursor.strip() or next_cursor in seen_cursors:
+                break
+            seen_cursors.add(next_cursor)
+            cursor = next_cursor
         self.tools_changed = False
         return tools
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> CallResult:
         result = await self.request("tools/call", {"name": name, "arguments": arguments})
         parts = []
-        for item in result.get("content") or []:
+        raw_content = result.get("content")
+        items = raw_content if isinstance(raw_content, list) else []
+        for item in items:
+            if not isinstance(item, dict):
+                if isinstance(item, str) and item:
+                    parts.append(item)
+                continue
             kind = item.get("type")
             if kind == "text":
                 parts.append(str(item.get("text", "")))
             elif kind == "resource":
-                res = item.get("resource") or {}
+                raw_res = item.get("resource")
+                res = raw_res if isinstance(raw_res, dict) else {}
                 parts.append(str(res.get("text") or f"[resource {res.get('uri', '')}]"))
             elif kind == "resource_link":
                 parts.append(f"[resource {item.get('uri', '')}]")
@@ -319,4 +374,8 @@ class McpClient:
         for future in self._pending.values():
             if not future.done():
                 future.cancel()
+        for task in list(self._sends):
+            if not task.done():
+                task.cancel()
+        self._sends.clear()
         await self.transport.close()
