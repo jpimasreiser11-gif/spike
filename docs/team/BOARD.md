@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 1 | 1 | 0 | 0 | 18 | 0 | 20 |
+| Claude | 1 | 1 | 0 | 0 | 19 | 0 | 21 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Gemini | 0 | 0 | 0 | 0 | 7 | 0 | 7 |
 | Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Mac | 5 | 1 | 0 | 0 | 2 | 0 | 8 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **9** | **2** | **0** | **0** | **36** | **0** | **47** |
+| **Total** | **9** | **2** | **0** | **0** | **44** | **0** | **55** |
 
 ## Fase: equipo
 
@@ -21,6 +21,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A0 | Claude | hecha | Tablero del equipo y trabajador de Codex | - |
 | M0 | Mac | hecha | Arrancar a Codex en el Mac | A0 |
 | M12 | Mac | pendiente | Subir al repo los prompts de Argon y Opus | - |
+| G12 | Gemini | hecha | Revisar los PR abiertos de Codex | - |
 
 ## Fase: app
 
@@ -49,6 +50,12 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | A10 | Claude | hecha | Evolution: estrategia de herramientas, regresión de prompts y adaptador personal | - |
 | A17 | Claude | hecha | Parallel Minds y prototipos en paralelo | - |
 | A19 | Claude | hecha | Escritorio con un proveedor con computer use | - |
+| G4 | Gemini | hecha | Estado real de cada especialista en Ajustes | - |
+| G13 | Gemini | hecha | Fiabilidad de Analytics | - |
+| G14 | Gemini | hecha | Fiabilidad de proyectos y memoria | - |
+| G15 | Gemini | hecha | Fiabilidad de los conectores MCP | - |
+| G16 | Gemini | hecha | Fiabilidad de Workflows, Device Lab, Reverse Studio y Geo | - |
+| G17 | Gemini | hecha | Auditoría de traducciones | - |
 
 ## Fase: modelos
 
@@ -64,6 +71,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
 | M9 | Claude | hecha | Router con los 13 especialistas | M8 |
 | M11 | Mac | pendiente | Medicina: registrar el adaptador aceptado e instalarlo | M2 |
+| M13 | Claude | hecha | Integrar la procedencia de evaluaciones (PR #2, rama gemini/G12-2) | - |
 
 ## Fase: models
 

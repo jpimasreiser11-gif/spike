@@ -23,6 +23,10 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- Settings › Especialistas shows each specialist's real state: its catalog status, whether an acceptance record backs
+  it, whether the adapter file is there and loaded, the mode it answers in today and its active context layers (G4).
+- Reliability fixes, each with a test that failed before it, in Analytics, projects and memory, MCP connectors,
+  Workflows, Device Lab, Reverse Studio and Geo; a translation audit keeps Spanish and English in step (G13 to G17).
 - Security updates: DOMPurify 3.4.17 for the Markdown sanitizer (critical advisories) and pypdf ≥ 6.21.4 for reading
   PDFs (crafted files could hang it); Vite and Vitest on their patched 5.x and 2.x releases.
 - Spike Dev plans without changing anything (`--plan`, `/plan`, `/act`) and takes a skill per turn (`/skills`,
@@ -175,6 +179,8 @@ profiles on the base model, marked β, until theirs pass.
 - With the user's consent, approved corrections (from SPIKE's local model only) export as SFT and DPO data.
 
 ### Training and evaluation
+- Resumed evals, checkpoint sweeps and the forgetting fix keep SHA-256 receipts of their inputs and refuse to mix
+  results from changed inputs (Codex's PR #2, rebased by Gemini Argon).
 - Multiple-choice answer extraction also reads `Answer: Option B`, a letter line followed by confidence or
   disclaimer notes, `option B is correct` and `we select option B`, without reading an option argued against or a
   capital-letter word as the answer (not yet measured on saved eval predictions; re-score them with `--rescore`).

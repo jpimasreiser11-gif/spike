@@ -698,6 +698,114 @@
    ]
   },
   {
+   "id": "G4",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "app",
+   "title": "Estado real de cada especialista en Ajustes",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G4, report docs/team/reports/G4.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G12",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "equipo",
+   "title": "Revisar los PR abiertos de Codex",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G12, report docs/team/reports/G12.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G13",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "app",
+   "title": "Fiabilidad de Analytics",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G13, report docs/team/reports/G13.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G14",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "app",
+   "title": "Fiabilidad de proyectos y memoria",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G14, report docs/team/reports/G14.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G15",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "app",
+   "title": "Fiabilidad de los conectores MCP",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G15, report docs/team/reports/G15.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G16",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "app",
+   "title": "Fiabilidad de Workflows, Device Lab, Reverse Studio y Geo",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G16, report docs/team/reports/G16.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G17",
+   "owner": "gemini",
+   "status": "done",
+   "phase": "app",
+   "title": "Auditoría de traducciones",
+   "depends": [],
+   "paths": [],
+   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G17, report docs/team/reports/G17.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "M13",
+   "owner": "claude",
+   "status": "done",
+   "phase": "modelos",
+   "title": "Integrar la procedencia de evaluaciones (PR #2, rama gemini/G12-2)",
+   "depends": [],
+   "paths": [
+    "evals/run_eval.py",
+    "training/sweep_checkpoints.py",
+    "training/fix_forgetting.py"
+   ],
+   "spec": "Argon rebased PR #2 onto main (gemini/G12-2): SHA-256 input receipts before reusing cached sweeps and resumed evals. Merged 2026-11-06 (code, tests and docs/TRAINING.md; the stale handoff notes left out); finance runs from an older checkout and is not affected. PR #2 to be closed.",
+   "accept": [
+    "merged with green CI, PR #2 closed"
+   ]
+  },
+  {
    "id": "L1",
    "owner": "mac",
    "status": "todo",
