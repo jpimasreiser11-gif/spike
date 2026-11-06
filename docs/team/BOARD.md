@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 1 | 1 | 0 | 0 | 19 | 0 | 21 |
+| Claude | 2 | 1 | 0 | 0 | 19 | 0 | 22 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 0 | 0 | 0 | 0 | 7 | 0 | 7 |
-| Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Mac | 5 | 1 | 0 | 0 | 2 | 0 | 8 |
+| Gemini | 7 | 1 | 0 | 0 | 7 | 0 | 15 |
+| Opus | 4 | 1 | 0 | 0 | 0 | 0 | 5 |
+| Mac | 3 | 1 | 0 | 0 | 4 | 0 | 8 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **9** | **2** | **0** | **0** | **44** | **0** | **55** |
+| **Total** | **19** | **4** | **0** | **0** | **46** | **0** | **69** |
 
 ## Fase: equipo
 
@@ -20,7 +20,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---|---|---|---|
 | A0 | Claude | hecha | Tablero del equipo y trabajador de Codex | - |
 | M0 | Mac | hecha | Arrancar a Codex en el Mac | A0 |
-| M12 | Mac | pendiente | Subir al repo los prompts de Argon y Opus | - |
+| M12 | Mac | hecha | Subir al repo los prompts de Argon y Opus | - |
 | G12 | Gemini | hecha | Revisar los PR abiertos de Codex | - |
 
 ## Fase: app
@@ -56,6 +56,19 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G15 | Gemini | hecha | Fiabilidad de los conectores MCP | - |
 | G16 | Gemini | hecha | Fiabilidad de Workflows, Device Lab, Reverse Studio y Geo | - |
 | G17 | Gemini | hecha | Auditoría de traducciones | - |
+| G18 | Gemini | en curso | Accesibilidad en todas las pantallas | - |
+| G19 | Gemini | pendiente | Documentación de usuario en español e inglés | - |
+| G20 | Gemini | pendiente | Revisar documentos desfasados | - |
+| G21 | Gemini | pendiente | Reproducibilidad: revisiones fijadas de datos y modelos | - |
+| G22 | Gemini | pendiente | Windows y Linux | - |
+| G23 | Gemini | pendiente | Primer arranque e instalador sin modelo real | - |
+| G24 | Gemini | pendiente | Mensajes de error para usuarios | - |
+| G25 | Gemini | pendiente | Rendimiento de la interfaz: dividir el bundle | - |
+| O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
+| O2 | Opus | pendiente | Un espacio de tarea unificado | - |
+| O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |
+| O4 | Opus | pendiente | Revisión de seguridad previa al lanzamiento (para L2) | - |
+| O5 | Opus | pendiente | Revisar la integración del PR #2 | M13 |
 
 ## Fase: modelos
 
@@ -70,8 +83,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M7 | Claude | hecha | Verificar licencias y conteos de las recetas nuevas | M5, M6 |
 | M8 | Mac | pendiente | Entrenar los 10 especialistas restantes, de uno en uno | M4, M7 |
 | M9 | Claude | hecha | Router con los 13 especialistas | M8 |
-| M11 | Mac | pendiente | Medicina: registrar el adaptador aceptado e instalarlo | M2 |
+| M11 | Mac | hecha | Medicina: registrar el adaptador aceptado e instalarlo | M2 |
 | M13 | Claude | hecha | Integrar la procedencia de evaluaciones (PR #2, rama gemini/G12-2) | - |
+| M14 | Claude | pendiente | Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción | M3 |
 
 ## Fase: models
 

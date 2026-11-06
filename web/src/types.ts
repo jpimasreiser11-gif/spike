@@ -20,6 +20,7 @@ export type Specialist = {
   adapter_accepted?: boolean;
   adapter_reasons?: string[];
   adapter_file_present?: boolean;
+  adapter_file_check?: "verified" | "different" | "unverified" | null;
   loaded_on_providers?: string[];
   active_provider?: string;
   provider_supports_adapters?: boolean;

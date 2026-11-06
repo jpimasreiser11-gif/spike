@@ -101,6 +101,26 @@ describe("SpecialistCard (G4)", () => {
     expect(htmlNoReceipt).toContain("Evaluado (sin recibo de aprobación)");
   });
 
+  it("says whether the installed adapter file is the accepted one", () => {
+    const card = (check: Specialist["adapter_file_check"], locale: "es" | "en") =>
+      renderToStaticMarkup(
+        <SpecialistCard
+          specialist={{ ...MEDICINE_ACCEPTED, adapter_file_check: check }}
+          providers={PROVIDERS}
+          boundProviderId=""
+          instructions=""
+          onBind={vi.fn()}
+          onInstructions={vi.fn()}
+          locale={locale}
+        />,
+      );
+    expect(card("verified", "es")).toContain("es el aceptado (SHA-256 comprobado)");
+    expect(card("different", "es")).toContain("no es el que se aceptó");
+    expect(card("different", "es")).toContain("warn-text");
+    expect(card("unverified", "en")).toContain("not verified");
+    expect(card(null, "es")).not.toContain("Archivo instalado");
+  });
+
   it("never shows evaluated and accepted when catalog status is planned, training, or trained even if receipt/file exist", () => {
     for (const status of ["planned", "training", "trained"] as const) {
       const html = renderToStaticMarkup(

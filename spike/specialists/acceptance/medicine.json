@@ -1,0 +1,15 @@
+{
+  "specialist": "medicine",
+  "accepted": true,
+  "reasons": [
+    "medicine: +35.07 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+    "general: -0.62 pts (max drop 1.5)"
+  ],
+  "date": "2026-11-05",
+  "evaluated_as": "spike-medicine-it13270-s0.5",
+  "file": "spike-medicine-it13270-s0.5.gguf",
+  "bytes": 42485024,
+  "sha256": "21caa0a0b24bdd4d5badb5bc1f336d2eb3061a635400a85a15f4cf52f9d40a34",
+  "load_scale": 1.0,
+  "evidence": "training/runs/medicine/sweep/final/summary.json"
+}

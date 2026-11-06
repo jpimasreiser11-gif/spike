@@ -91,6 +91,19 @@ export function SpecialistCard({
           <b>{S.receiptLabel}:</b> {s.adapter_reasons!.join(" · ")}
         </div>
       )}
+      {s.adapter_file_check && (
+        <div
+          className={`small ${s.adapter_file_check === "verified" ? "muted" : "warn-text"}`}
+          data-testid={`adapter-file-${s.id}`}
+        >
+          <b>{S.fileLabel}:</b>{" "}
+          {s.adapter_file_check === "verified"
+            ? S.fileVerified
+            : s.adapter_file_check === "different"
+              ? S.fileDifferent
+              : S.fileUnverified}
+        </div>
+      )}
       <div className="row">
         <label className="field">
           <span>{S.bind}</span>

@@ -601,7 +601,7 @@
   {
    "id": "M11",
    "owner": "mac",
-   "status": "todo",
+   "status": "done",
    "phase": "modelos",
    "title": "Medicina: registrar el adaptador aceptado e instalarlo",
    "depends": [
@@ -610,7 +610,7 @@
    "paths": [
     "training/runs/medicine/sweep/final/"
    ],
-   "spec": "Light, no model run. Write training/runs/medicine/sweep/final/adapter.json with the file name, size and SHA-256 of training/runs/medicine/sweep/gguf/spike-medicine-it13270-s0.5.gguf (the evaluated file; its scale 0.5 is in the GGUF alpha, load it at 1.0). Copy it to ~/.spike/adapters/spike-medicine.gguf. From the saved predictions of the final run, count the base answers left unparsed on medmcqa-val (409) and mmlu-pro-health (241) that state an option's full text instead of its letter, are empty, or are cut off, with 5 short examples each. Push mac/m11.",
+   "spec": "Light, no model run. Write training/runs/medicine/sweep/final/adapter.json with the file name, size and SHA-256 of training/runs/medicine/sweep/gguf/spike-medicine-it13270-s0.5.gguf (the evaluated file; its scale 0.5 is in the GGUF alpha, load it at 1.0). Copy it to ~/.spike/adapters/spike-medicine.gguf. From the saved predictions of the final run, count the base answers left unparsed on medmcqa-val (409) and mmlu-pro-health (241) that state an option's full text instead of its letter, are empty, or are cut off, with 5 short examples each. Push mac/m11. Done 2026-11-06: adapter.json (sha256 21caa0a0…), installed on the Mac (round 1 moved to round1-rejected/), unparsed_base.json.",
    "accept": [
     "adapter.json whose SHA-256 equals the installed file",
     "the unparsed-answer counts and examples in the report"
@@ -619,7 +619,7 @@
   {
    "id": "M12",
    "owner": "mac",
-   "status": "todo",
+   "status": "done",
    "phase": "equipo",
    "title": "Subir al repo los prompts de Argon y Opus",
    "depends": [],
@@ -718,7 +718,7 @@
    "title": "Revisar los PR abiertos de Codex",
    "depends": [],
    "paths": [],
-   "spec": "From the Argon prompt (~/Downloads/SPIKE-prompts); delivered on gemini/G12, report docs/team/reports/G12.md.",
+   "spec": "Audit of Codex's open PRs (report only); its rebase of PR #2 is M13. #14 and #17-#21 closed 2026-11-06 with joan's OK.",
    "accept": [
     "report and tests reviewed by Claude"
    ]
@@ -803,6 +803,195 @@
    "spec": "Argon rebased PR #2 onto main (gemini/G12-2): SHA-256 input receipts before reusing cached sweeps and resumed evals. Merged 2026-11-06 (code, tests and docs/TRAINING.md; the stale handoff notes left out); finance runs from an older checkout and is not affected. PR #2 to be closed.",
    "accept": [
     "merged with green CI, PR #2 closed"
+   ]
+  },
+  {
+   "id": "M14",
+   "owner": "claude",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción",
+   "depends": [
+    "M3"
+   ],
+   "paths": [
+    "training/spike_train/metrics.py"
+   ],
+   "spec": "From M11's reading of the base model's unparsed medicine answers: extract_choice misses '**Final Answer Selection:** E', and 114/409 MedMCQA answers state an option's text instead of its letter. Extend the extractor test-first after finance's final run (so finance is scored by one extractor), and report base and adapter rescored side by side without changing any accepted verdict.",
+   "accept": [
+    "tests for both patterns",
+    "rescore table in STATUS"
+   ]
+  },
+  {
+   "id": "G18",
+   "owner": "gemini",
+   "status": "doing",
+   "phase": "app",
+   "title": "Accesibilidad en todas las pantallas",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G18 from origin/main, report docs/team/reports/G18.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G19",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Documentación de usuario en español e inglés",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G19 from origin/main, report docs/team/reports/G19.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G20",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Revisar documentos desfasados",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G20 from origin/main, report docs/team/reports/G20.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G21",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Reproducibilidad: revisiones fijadas de datos y modelos",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G21 from origin/main, report docs/team/reports/G21.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G22",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Windows y Linux",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G22 from origin/main, report docs/team/reports/G22.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G23",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Primer arranque e instalador sin modelo real",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G23 from origin/main, report docs/team/reports/G23.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G24",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Mensajes de error para usuarios",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G24 from origin/main, report docs/team/reports/G24.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G25",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Rendimiento de la interfaz: dividir el bundle",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G25 from origin/main, report docs/team/reports/G25.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "O1",
+   "owner": "opus",
+   "status": "doing",
+   "phase": "app",
+   "title": "Sesiones de Spike Dev en la app (API e interfaz)",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O1 from origin/main, report docs/team/reports/O1.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "O2",
+   "owner": "opus",
+   "status": "todo",
+   "phase": "app",
+   "title": "Un espacio de tarea unificado",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O2 from origin/main, report docs/team/reports/O2.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "O3",
+   "owner": "opus",
+   "status": "todo",
+   "phase": "app",
+   "title": "Instalar skills desde una URL de GitHub, con revisión",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O3 from origin/main, report docs/team/reports/O3.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "O4",
+   "owner": "opus",
+   "status": "todo",
+   "phase": "app",
+   "title": "Revisión de seguridad previa al lanzamiento (para L2)",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O4 from origin/main, report docs/team/reports/O4.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "O5",
+   "owner": "opus",
+   "status": "todo",
+   "phase": "app",
+   "title": "Revisar la integración del PR #2",
+   "depends": [
+    "M13"
+   ],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O5 from origin/main, report docs/team/reports/O5.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
    ]
   },
   {

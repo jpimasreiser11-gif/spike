@@ -24,7 +24,8 @@ profiles on the base model, marked β, until theirs pass.
 
 ### App
 - Settings › Especialistas shows each specialist's real state: its catalog status, whether an acceptance record backs
-  it, whether the adapter file is there and loaded, the mode it answers in today and its active context layers (G4).
+  it, whether the adapter file is there and loaded, the mode it answers in today and its active context layers (G4);
+  the installed adapter file is checked by SHA-256 against the accepted one, whose record ships with SPIKE.
 - Reliability fixes, each with a test that failed before it, in Analytics, projects and memory, MCP connectors,
   Workflows, Device Lab, Reverse Studio and Geo; a translation audit keeps Spanish and English in step (G13 to G17).
 - Security updates: DOMPurify 3.4.17 for the Markdown sanitizer (critical advisories) and pypdf ≥ 6.21.4 for reading

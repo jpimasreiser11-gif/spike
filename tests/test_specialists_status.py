@@ -8,8 +8,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from spike.evolution.adapters import sha256
 from spike.server.app import create_app
 from spike.server.state import AppState
+from spike.specialists.status import ACCEPTANCE_DIR
 from tests.helpers import ScriptedProvider
 
 
@@ -61,6 +63,7 @@ def test_filename_or_catalog_alone_never_marks_adapter_accepted(env, tmp_path: P
     empty_runs = tmp_path / "empty_runs"
     empty_runs.mkdir()
     state.runs_dir = empty_runs
+    state.acceptance_dir = empty_runs   # and no record shipped with SPIKE either
 
     specs = {s["id"]: s for s in client.get("/api/specialists").json()}
     assert specs["medicine"]["adapter_file_present"] is True
@@ -165,3 +168,56 @@ def test_active_mode_and_context_layers_reflect_live_state(env):
     assert med["active_provider"] == "deepseek"
     assert med["provider_supports_adapters"] is False
     assert med["active_mode"] == "instruction_profile"
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_the_shipped_medicine_record_matches_the_training_records():
+    shipped = json.loads((ACCEPTANCE_DIR / "medicine.json").read_text(encoding="utf-8"))
+    final = ROOT / "training" / "runs" / "medicine" / "sweep" / "final"
+    adapter = json.loads((final / "adapter.json").read_text(encoding="utf-8"))
+    summary = json.loads((final / "summary.json").read_text(encoding="utf-8"))
+    verdict = summary["acceptance"][adapter["evaluated_as"]]
+    assert shipped["accepted"] is True and verdict["accepted"] is True
+    assert shipped["reasons"] == verdict["reasons"]
+    assert (shipped["sha256"], shipped["bytes"], shipped["file"]) == (adapter["sha256"], adapter["bytes"], adapter["file"])
+    assert shipped["evidence"] == (final / "summary.json").relative_to(ROOT).as_posix()
+
+
+def test_an_installed_package_without_training_runs_still_has_the_receipt(env, tmp_path: Path):
+    client, state, _ = env
+    state.runs_dir = tmp_path / "no-runs"   # a wheel or the desktop app ships no training/runs
+    med = {s["id"]: s for s in client.get("/api/specialists").json()}["medicine"]
+    assert med["adapter_accepted"] is True and any("+35.07" in r for r in med["adapter_reasons"])
+    assert med["adapter_file_present"] is False and med["adapter_file_check"] is None
+
+
+def test_the_installed_file_is_checked_against_the_accepted_hash(env, tmp_path: Path):
+    client, state, _ = env
+    adapters_dir = state.adapters_path()
+    adapters_dir.mkdir(parents=True, exist_ok=True)
+    installed = adapters_dir / "spike-medicine.gguf"
+    installed.write_bytes(b"GGUF round 1, the rejected adapter")
+
+    def check() -> str | None:
+        return {s["id"]: s for s in client.get("/api/specialists").json()}["medicine"]["adapter_file_check"]
+
+    assert check() == "different"   # the shipped record's hash is the accepted file's, not this one
+
+    records = tmp_path / "records"
+    records.mkdir()
+    state.acceptance_dir = records
+    record = {"specialist": "medicine", "accepted": True, "reasons": ["medicine: +35.07 pts"]}
+    (records / "medicine.json").write_text(json.dumps(record), encoding="utf-8")
+    assert check() == "unverified"   # accepted, but no hash to compare with
+
+    (records / "medicine.json").write_text(json.dumps({**record, "sha256": sha256(installed)}), encoding="utf-8")
+    assert check() == "verified"
+
+    installed.write_bytes(b"GGUF replaced by hand afterwards")
+    assert check() == "different"   # the cache follows the file, not its name
+
+    state.evolution.store.add_version("adapter:medicine", {"file": str(installed), "sha256": sha256(installed)},
+                                      {"accepted": True, "reasons": ["medicine: +2.0 pts"]}, "a personal retrain")
+    assert check() == "verified"    # what `spike adapters install` accepted and recorded
