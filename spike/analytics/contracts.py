@@ -66,11 +66,13 @@ class Contract:
     @classmethod
     def load(cls, path: Path) -> Contract:
         """Read a definition as UTF-8; YAML uses safe_load and JSON never resolves external references."""
+        if not path.is_file():
+            raise DataError(f"'{path.name}' is not a file in the workspace")
         try:
             text = path.read_text(encoding="utf-8")
             definition = json.loads(text) if path.suffix.lower() == ".json" else yaml.safe_load(text)
             return cls(definition)
-        except (ValueError, yaml.YAMLError, RecursionError) as exc:
+        except (ValueError, yaml.YAMLError, RecursionError, OSError) as exc:
             raise DataError("invalid JSON/YAML data contract") from exc
 
     def validate(self, columns: list[str], rows: list[list[Any]]) -> list[dict[str, Any]]:

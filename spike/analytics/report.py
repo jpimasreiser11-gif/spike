@@ -39,11 +39,16 @@ def _png(value: Any) -> tuple[bytes, int, int]:
         raise ReportError("an image is not valid base64") from exc
     if len(data) > MAX_IMAGE or not data.startswith(PNG):
         raise ReportError(f"images must be PNG files of at most {MAX_IMAGE // 1024**2} MB")
-    image = _lib("PIL.Image").open(io.BytesIO(data))
-    width, height = image.size
-    if width > MAX_PIXELS or height > MAX_PIXELS:
+    try:
+        image = _lib("PIL.Image").open(io.BytesIO(data))
+        width, height = image.size
+        image.verify()
+    except ReportError:
+        raise
+    except Exception as exc:
+        raise ReportError("corrupted PNG image") from exc
+    if not (1 <= width <= MAX_PIXELS and 1 <= height <= MAX_PIXELS):
         raise ReportError(f"images must be at most {MAX_PIXELS} pixels per side")
-    image.verify()
     return data, width, height
 
 
