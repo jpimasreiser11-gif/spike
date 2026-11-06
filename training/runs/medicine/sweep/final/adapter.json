@@ -1,0 +1,11 @@
+{
+  "file": "spike-medicine-it13270-s0.5.gguf",
+  "bytes": 42485024,
+  "sha256": "21caa0a0b24bdd4d5badb5bc1f336d2eb3061a635400a85a15f4cf52f9d40a34",
+  "evaluated_as": "spike-medicine-it13270-s0.5",
+  "lora_scale_in_gguf": 0.5,
+  "load_scale": 1.0,
+  "verdict": "accepted",
+  "evidence": "training/runs/medicine/sweep/final/summary.json",
+  "installed_as": "~/.spike/adapters/spike-medicine.gguf"
+}

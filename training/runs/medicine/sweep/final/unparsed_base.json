@@ -1,0 +1,218 @@
+{
+ "medmcqa-val": {
+  "unparsed": 409,
+  "counts": {
+   "option_text": 114,
+   "empty": 0,
+   "cut_off": 3,
+   "other": 292
+  },
+  "option_text_is_gold": 54,
+  "examples": {
+   "option_text": [
+    {
+     "item": "medmcqa-val/01409140-2453-4880-b3bd-f16772156d0f",
+     "gold": "A",
+     "named": [
+      "C"
+     ],
+     "end": " provide this information based on medical literature and guidelines, it does not replace a physical examination and clinical judgment by a treating physician.*"
+    },
+    {
+     "item": "medmcqa-val/01de6945-cd63-4096-9fda-e70148ee977d",
+     "gold": "A",
+     "named": [
+      "A"
+     ],
+     "end": "tional purposes and does not constitute medical advice. If you have symptoms or concerns about your health, please consult a qualified healthcare professional.*"
+    },
+    {
+     "item": "medmcqa-val/07f12102-6d93-4392-a50f-fb7424f73683",
+     "gold": "B",
+     "named": [
+      "B"
+     ],
+     "end": " perform a physical examination. Clinical decisions should always be made by a qualified healthcare professional who can assess the specific patient's anatomy.*"
+    },
+    {
+     "item": "medmcqa-val/09ce3345-10ca-4ade-91b7-8b1361c55c99",
+     "gold": "B",
+     "named": [
+      "B"
+     ],
+     "end": "l information, this does not replace a clinical examination by a treating clinician who can assess the specific patient's hemodynamic status and comorbidities.*"
+    },
+    {
+     "item": "medmcqa-val/0ba46472-54a7-4bb9-9802-a0546e24cede",
+     "gold": "C",
+     "named": [
+      "C"
+     ],
+     "end": "his response is for educational purposes only and does not constitute medical advice. Clinical decisions should be made by a qualified healthcare professional.*"
+    }
+   ],
+   "empty": [],
+   "cut_off": [
+    {
+     "item": "medmcqa-val/5682860b-5ef4-4c1d-88b4-eb81546548ba",
+     "gold": "A",
+     "named": [
+      "A"
+     ],
+     "end": "        *   If the father is a carrier of a different translocation? No.\n            *   If the question implies that since the child has a 21/21 translocation,"
+    },
+    {
+     "item": "medmcqa-val/9eb1442f-0fb3-4f6b-adaa-41bc417180bb",
+     "gold": "B",
+     "named": [
+      "A"
+     ],
+     "end": "d look at the \"400\" option.**\n400 is the standard answer for estimating a proportion with $p=0.5$, $\\alpha=0.05$, and a margin of error of 5% ($d=0.05$).\n$n = \\"
+    },
+    {
+     "item": "medmcqa-val/dfe219a6-198c-476c-9d38-195856bc9b00",
+     "gold": "B",
+     "named": [
+      "B",
+      "C"
+     ],
+     "end": "t fracture with pulp involvement\" (without specifying complete), the answer is **Class IV**.\n\nLet's assume the question is asking for the classification of a **"
+    }
+   ],
+   "other": [
+    {
+     "item": "medmcqa-val/00eb7f90-ec76-4b2a-89e8-9f716b070bfa",
+     "gold": "C",
+     "named": [],
+     "end": "igher malignant potential.\n\n*Note: As an AI, this information is for educational purposes and does not replace a clinical examination by a qualified physician.*"
+    },
+    {
+     "item": "medmcqa-val/0150cd44-7abc-4723-8a8a-c17de3f20004",
+     "gold": "D",
+     "named": [
+      "B",
+      "C",
+      "D"
+     ],
+     "end": "ated by bees using wax (a lipid), not a biological mineralization process.\n\nTherefore, the mollusc shell is the only option representing true biomineralization."
+    },
+    {
+     "item": "medmcqa-val/01b445b9-8c7f-4cb1-b14c-d766cd4483dd",
+     "gold": "A",
+     "named": [
+      "A",
+      "C"
+     ],
+     "end": "viewing US-specific case reports, whereas FDI is the gold standard for international evidence-based medicine regarding dental pathology and treatment protocols."
+    },
+    {
+     "item": "medmcqa-val/026d473e-9f24-45f9-8a98-43045be5c30e",
+     "gold": "B",
+     "named": [],
+     "end": "the apex compared to older adults, making the 681 µm measurement clinically relevant for endodontic instrumentation and obturation strategies in young patients."
+    },
+    {
+     "item": "medmcqa-val/035a6e66-f990-4d45-abd9-9855059b027a",
+     "gold": "C",
+     "named": [],
+     "end": "onstitute a clinical diagnosis or treatment plan. If you suspect infective endocarditis, seek immediate medical attention from a qualified healthcare provider.*"
+    }
+   ]
+  }
+ },
+ "mmlu-pro-health": {
+  "unparsed": 241,
+  "counts": {
+   "option_text": 40,
+   "empty": 0,
+   "cut_off": 1,
+   "other": 200
+  },
+  "option_text_is_gold": 17,
+  "examples": {
+   "option_text": [
+    {
+     "item": "mmlu-pro-health/6010",
+     "gold": "B",
+     "named": [
+      "D"
+     ],
+     "end": "t replace a physical examination by a licensed clinician. Immediate medical evaluation is necessary for any patient with head injury and altered consciousness.*"
+    },
+    {
+     "item": "mmlu-pro-health/6056",
+     "gold": "I",
+     "named": [
+      "I"
+     ],
+     "end": "stion and does not constitute a clinical diagnosis or treatment plan for a specific patient. Always consult a qualified healthcare provider for medical advice.*"
+    },
+    {
+     "item": "mmlu-pro-health/6063",
+     "gold": "A",
+     "named": [
+      "D"
+     ],
+     "end": " evaluation are required.\n\n*Disclaimer: This information is for educational purposes and does not replace professional medical advice, diagnosis, or treatment.*"
+    },
+    {
+     "item": "mmlu-pro-health/6125",
+     "gold": "C",
+     "named": [
+      "C"
+     ],
+     "end": "ted by extensive in vitro and clinical evidence regarding the role of sucrose in plaque formation.\n\n**Red Flags:** None applicable to this theoretical question."
+    },
+    {
+     "item": "mmlu-pro-health/6179",
+     "gold": "E",
+     "named": [
+      "F"
+     ],
+     "end": "urgent in-person evaluation by a clinician to manage the severe tachycardia (risk of arrhythmia) and to initiate specific therapies for Graves' ophthalmopathy.*"
+    }
+   ],
+   "empty": [],
+   "cut_off": [
+    {
+     "item": "mmlu-pro-health/6514",
+     "gold": "G",
+     "named": [],
+     "end": "rete **acid**. **Ghrelin** is secreted by **G cells**? No.\n    *   *Fact Check*: **G cells** secrete **gastrin**. **Parietal cells** secrete **acid**. **Ghrelin"
+    }
+   ],
+   "other": [
+    {
+     "item": "mmlu-pro-health/6001",
+     "gold": "E",
+     "named": [],
+     "end": "e.g., Guillain-Barré syndrome, transverse myelitis) and manage supportive care, as there is no cure for paralysis once it occurs.\n\n**Final Answer Selection:** E"
+    },
+    {
+     "item": "mmlu-pro-health/6004",
+     "gold": "F",
+     "named": [],
+     "end": "I assistant simulating a medical professional. This information is for educational purposes and does not replace the clinical judgment of a licensed physician.*"
+    },
+    {
+     "item": "mmlu-pro-health/6006",
+     "gold": "E",
+     "named": [],
+     "end": "er: This information is for educational purposes and does not constitute medical advice. Always consult a qualified healthcare provider for clinical decisions.*"
+    },
+    {
+     "item": "mmlu-pro-health/6009",
+     "gold": "D",
+     "named": [],
+     "end": "ditions like Myasthenia Gravis (autoantibodies against nAChRs) and is the target of drugs like neostigmine (an acetylcholinesterase inhibitor) used to treat it."
+    },
+    {
+     "item": "mmlu-pro-health/6011",
+     "gold": "B",
+     "named": [],
+     "end": " significant pain upon removal, they should seek medical evaluation. Always follow the specific instructions provided by the clinician who applied the dressing."
+    }
+   ]
+  }
+ }
+}
