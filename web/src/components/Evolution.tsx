@@ -10,7 +10,7 @@ export const E = lang === "es"
   ? {
       intro: "SPIKE aprende de cómo lo usas, en tu ordenador: tus correcciones, cuando reintentas con otro especialista y los fallos. Nada cambia lo que hace sin pasar antes una comprobación local, y todo se puede deshacer. Los chats temporales no se registran.",
       enabled: "Aprender de mi uso", autoRouter: "Ajustar el enrutador solo cuando reintento con otro especialista (si pasa la comprobación)",
-      router: "Enrutador", builtIn: "Integrado", learned: "Aprendido", first: "Porcentaje de preguntas en que el primer especialista elegido es el correcto.", test: "prueba protegida", dev: "desarrollo", questions: "preguntas",
+      router: "Enrutador", builtIn: "Integrado", learned: "Aprendido", first: "Porcentaje de preguntas en que el primer especialista elegido es el correcto.", test: "prueba protegida", dev: "desarrollo", questions: "preguntas", question: "Pregunta", run: "respuesta",
       learnNow: "Aprender ahora", rollback: "Volver a la anterior", words: "Palabras aprendidas", routes: "Reintentos con otro especialista",
       routed: "el enrutador eligió", picked: "elegiste", ignore: "Ignorar", use: "Usar", ignored: "ignorado",
       accepted: "Aceptado: en uso", rejected: "No se usa", noRoutes: "Cuando reintentes una respuesta con otro especialista, aparecerá aquí.",
@@ -43,7 +43,7 @@ export const E = lang === "es"
   : {
       intro: "SPIKE learns from how you use it, on your computer: your corrections, when you retry with another specialist, and failures. Nothing changes what it does without passing a local check first, and everything can be undone. Temporary chats are never recorded.",
       enabled: "Learn from my use", autoRouter: "Tune the router by itself when I retry with another specialist (if it passes the check)",
-      router: "Router", builtIn: "Built-in", learned: "Learned", first: "Share of questions where the first specialist picked is the right one.", test: "protected test", dev: "dev", questions: "questions",
+      router: "Router", builtIn: "Built-in", learned: "Learned", first: "Share of questions where the first specialist picked is the right one.", test: "protected test", dev: "dev", questions: "questions", question: "Question", run: "run",
       learnNow: "Learn now", rollback: "Go back to the previous one", words: "Learned words", routes: "Retries with another specialist",
       routed: "the router picked", picked: "you picked", ignore: "Ignore", use: "Use", ignored: "ignored",
       accepted: "Accepted: in use", rejected: "Not used", noRoutes: "When you retry an answer with another specialist, it shows up here.",
@@ -116,7 +116,7 @@ function Candidate({ item, run }: { item: EvolutionItem; run: (fn: () => Promise
         {item.specialist && <span className="badge">{item.specialist}</span>}
         <span className="small muted">{date(item.created)}</span>
       </div>
-      <textarea rows={2} aria-label="question" value={question} onChange={(e) => setQuestion(e.target.value)} />
+      <textarea rows={2} aria-label={E.question} value={question} onChange={(e) => setQuestion(e.target.value)} />
       {item.reference && <p className="small muted">{E.reference}: {item.reference}</p>}
       <div className="row">
         <label className="field grow"><span>{E.include}</span><input aria-label={E.include} value={include} onChange={(e) => setInclude(e.target.value)} /></label>
@@ -147,7 +147,7 @@ function Failure({ item, run }: { item: EvolutionItem; run: (fn: () => Promise<u
     <div className="card evo-item" data-testid="evo-failure">
       <div className="card-head">
         <span className={`badge ${item.status === "fixed" ? "ok" : "warn"}`}>{item.status === "fixed" ? E.fixed : E.open}</span>
-        <span className="badge">{item.what === "tool" ? item.tool : "run"}</span>
+        <span className="badge">{item.what === "tool" ? item.tool : E.run}</span>
         <span className="small muted">{date(item.created)}</span>
       </div>
       <code className="small evo-error">{item.error}</code>

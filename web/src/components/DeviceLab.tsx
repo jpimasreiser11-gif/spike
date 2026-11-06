@@ -41,10 +41,10 @@ const SECTIONS = ["overflow", "tap_targets", "small_text", "console_errors", "fa
 /** The readable report for the artifacts panel. Everything the page or the tool produced is escaped as text, and a
  * screenshot is used only when it is a PNG data URL, because the panel's page may load nothing else. */
 export function deviceLabDocument(ui: DeviceLabUi): ArtifactDoc {
-  const rows = ui.profiles.map(p => `<tr><td>${esc(profileName(p))}</td><td>${p.viewport.width} × ${p.viewport.height} @${p.scale}×${p.touch ? " · touch" : ""}</td>` +
+  const rows = ui.profiles.map(p => `<tr><td>${esc(profileName(p))}</td><td>${p.viewport.width} × ${p.viewport.height} @${p.scale}×${p.touch ? ` · ${esc(D.touch.toLowerCase())}` : ""}</td>` +
     `<td class="${esc(p.status)}">${esc(D.statuses[p.status] ?? p.status)}</td><td>${esc(reasonLines(p).join("; "))}</td></tr>`).join("");
   const detail = (p: DeviceLabProfile) => {
-    const facts = [`${p.viewport.width} × ${p.viewport.height}`, `@${p.scale}×`, p.touch ? "touch" : "", p.mobile ? "mobile" : "", p.http_status ? `HTTP ${p.http_status}` : "",
+    const facts = [`${p.viewport.width} × ${p.viewport.height}`, `@${p.scale}×`, p.touch ? D.touch.toLowerCase() : "", p.mobile ? "mobile" : "", p.http_status ? `HTTP ${p.http_status}` : "",
       p.layout ? `${D.viewportWidth} ${p.layout.viewport_width} px · ${D.documentWidth} ${p.layout.document_width} px` : "", `${p.seconds} ${D.seconds}`].filter(Boolean).join(" · ");
     const sections = SECTIONS.filter(k => p[k].total).map(k => `<h3>${esc(D.sections[k])} (${p[k].total})</h3><ul>` +
       p[k].items.map(i => `<li><code>${esc(ITEM[k](i))}</code></li>`).join("") + (p[k].total > p[k].items.length ? `<li>…</li>` : "") + "</ul>").join("");
@@ -147,7 +147,7 @@ export function DeviceLab({ onClose }: { onClose: () => void }) {
       <section aria-label={D.profiles}><h3>{D.profiles}</h3>
         <div className="device-lab-profiles">{info?.profiles.map((p) => <label key={p.id} className="device-lab-check">
           <input type="checkbox" name={`profile-${p.id}`} checked={chosen.includes(p.id)} disabled={busy} onChange={() => toggle(p.id)} />{D.names[p.id] ?? p.name} <small>{p.width} × {p.height}</small></label>)}
-          {customs.map((c, i) => <span key={i} className="device-lab-check">{c.name} <small>{c.width} × {c.height} @{c.scale}×{c.touch ? " · touch" : ""}</small>
+          {customs.map((c, i) => <span key={i} className="device-lab-check">{c.name} <small>{c.width} × {c.height} @{c.scale}×{c.touch ? ` · ${D.touch.toLowerCase()}` : ""}</small>
             <button type="button" className="btn small" aria-label={`${D.removeCustom} ${c.name}`} disabled={busy} onClick={() => { setCustoms(customs.filter((_, j) => j !== i)); setApproved(false); }}>{D.removeCustom}</button></span>)}</div>
         <fieldset className="device-lab-custom"><legend>{D.customTitle}</legend>
           <label>{D.customName}<input name="custom-name" maxLength={40} value={draft.name} disabled={busy} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></label>

@@ -14,7 +14,7 @@ export const M = lang === "es"
       enabled: "Usar la memoria en los chats", learn: "Guardar lo que le pides recordar («recuerda que…», «a partir de ahora…») y proponer reglas cuando lo corriges", summaries: "Resumir los chats en la memoria (solo con el modelo local, sin coste)",
       search: "Búsqueda", semanticOn: "por palabras y por significado", wordsOnly: "por palabras", installHint: "Para buscar también por significado, instala el modelo de memoria:",
       semanticOff: "Buscar solo por palabras", failed: "El modelo de memoria no arrancó; se busca por palabras",
-      memories: "recuerdos", add: "Añadir", addPlaceholder: "Algo que SPIKE debe recordar…", filter: "Buscar en la memoria…",
+      memories: "recuerdos", title: "Memoria", kind: "Tipo", scope: "Alcance", add: "Añadir", addPlaceholder: "Algo que SPIKE debe recordar…", filter: "Buscar en la memoria…",
       all: "Todo", global: "Global", project: "Proyecto", allKinds: "Todos los tipos",
       kinds: { fact: "Dato", decision: "Decisión", preference: "Preferencia", rule: "Regla", summary: "Resumen de chat", document: "Archivo" } as Record<string, string>,
       ruleHint: "Las reglas se aplican siempre; el resto se usa cuando es relevante.",
@@ -28,7 +28,7 @@ export const M = lang === "es"
       enabled: "Use memory in chats", learn: "Save what you ask it to remember (\"remember that…\", \"from now on…\") and suggest rules when you correct it", summaries: "Summarise chats into memory (local model only, no cost)",
       search: "Search", semanticOn: "by words and by meaning", wordsOnly: "by words", installHint: "To also search by meaning, install the memory model:",
       semanticOff: "Search by words only", failed: "The memory model did not start; searching by words",
-      memories: "memories", add: "Add", addPlaceholder: "Something SPIKE should remember…", filter: "Search memory…",
+      memories: "memories", title: "Memory", kind: "Kind", scope: "Scope", add: "Add", addPlaceholder: "Something SPIKE should remember…", filter: "Search memory…",
       all: "All", global: "Global", project: "Project", allKinds: "All kinds",
       kinds: { fact: "Fact", decision: "Decision", preference: "Preference", rule: "Rule", summary: "Chat summary", document: "File" } as Record<string, string>,
       ruleHint: "Rules always apply; everything else is used when relevant.",
@@ -48,7 +48,7 @@ export function Memory({ settings, save, onClose }: { settings: Settings; save: 
   const [sub, setSub] = useState<Sub>("notes");
   return (
     <div className="form">
-      <div className="seg memory-sub" role="tablist" aria-label="Memory">
+      <div className="seg memory-sub" role="tablist" aria-label={M.title}>
         {SUBS.map((k) => (
           <button key={k} role="tab" aria-selected={sub === k} className={sub === k ? "on" : ""} data-sub={k} onClick={() => setSub(k)}>{M.sub[k]}</button>
         ))}
@@ -115,10 +115,10 @@ function Notes({ settings, save }: { settings: Settings; save: (p: Partial<Setti
       <div className="memory-add">
         <textarea rows={2} aria-label={M.addPlaceholder} placeholder={M.addPlaceholder} value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} />
         <div className="row">
-          <select aria-label="kind" value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}>
+          <select aria-label={M.kind} value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}>
             {ADDABLE.map((k) => <option key={k} value={k}>{M.kinds[k]}</option>)}
           </select>
-          <select aria-label="scope" value={draft.scope} onChange={(e) => setDraft({ ...draft, scope: e.target.value })}>
+          <select aria-label={M.scope} value={draft.scope} onChange={(e) => setDraft({ ...draft, scope: e.target.value })}>
             <option value="global">{M.global}</option>
             {projects.map((p) => <option key={p.id} value={`project:${p.id}`}>{p.name}</option>)}
           </select>

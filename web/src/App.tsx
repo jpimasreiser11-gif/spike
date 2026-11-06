@@ -378,10 +378,10 @@ export default function App() {
     <ArtifactContext.Provider value={setArtifact}>
     <SetupWizard />
     <div className={`app ${sidebar ? "with-sidebar" : ""} ${artifact ? "with-artifact" : ""}`}>
-      <aside className="sidebar" aria-label="Conversations">
+      <aside className="sidebar" aria-label={t.conversations}>
         <div className="sidebar-top">
           <div className="brand"><img src="/spike-mark.png" alt="" width={30} height={30} /><span className="wordmark">SPIKE</span></div>
-          <button className="icon-btn" onClick={() => setSidebar(false)} aria-label="Close sidebar"><IconSidebar /></button>
+          <button className="icon-btn" onClick={() => setSidebar(false)} aria-label={t.closeSidebar}><IconSidebar /></button>
         </div>
         <button className="side-btn history-launch" disabled={busy} onClick={() => setSearchOpen(true)} aria-keyshortcuts="Control+k Meta+k">
           <span>{t.history.title}</span><kbd>⌘ / Ctrl K</kbd></button>
@@ -429,7 +429,7 @@ export default function App() {
 
       <main className="main">
         <header className="topbar">
-          {!sidebar && <button className="icon-btn" onClick={() => setSidebar(true)} aria-label="Open sidebar"><IconSidebar /></button>}
+          {!sidebar && <button className="icon-btn" onClick={() => setSidebar(true)} aria-label={t.openSidebar}><IconSidebar /></button>}
           {!sidebar && <button className="icon-btn" onClick={newChat} aria-label={t.newChat}><IconPlus /></button>}
           {project && <span className="crumb"><IconFolder size={15} /> {project.name}</span>}
           <div className="spacer" />
@@ -442,7 +442,7 @@ export default function App() {
           {activeId && !empty && !busy && (
             <ProofDownload key={activeId} conversationId={activeId} />
           )}
-          <button className="icon-btn" onClick={toggleTheme} aria-label="Toggle theme">{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
+          <button className="icon-btn" onClick={toggleTheme} aria-label={t.toggleTheme}>{theme === "dark" ? <IconSun /> : <IconMoon />}</button>
         </header>
 
         {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}

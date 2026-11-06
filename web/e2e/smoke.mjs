@@ -1520,7 +1520,7 @@ await mp.getByRole("heading", { name: "Investigación", exact: true }).waitFor()
 if (await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) fail("Research overflows mobile");
 await mp.screenshot({ path: `${out}/09-research-mobile.png` });
 // the diagram card on a phone: the picture shrinks to the screen and the table of cycles scrolls inside its card
-const openSidebar = mp.getByRole("button", { name: "Open sidebar" });
+const openSidebar = mp.getByRole("button", { name: /Abrir barra lateral|Open sidebar/ });
 if (await openSidebar.count()) await openSidebar.click();
 await mp.locator(".conv-title", { hasText: "Dame la arquitectura del proyecto" }).first().click();
 await mp.locator("img.explorer-svg").waitFor({ timeout: 10000 });
