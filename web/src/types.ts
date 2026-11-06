@@ -1,5 +1,12 @@
 import type { DesktopRecord } from "./desktop";
 
+export type SpecialistLayers = {
+  base_instructions: boolean;
+  user_instructions: boolean;
+  learned_instructions: boolean;
+  knowledge_count: number;
+};
+
 export type Specialist = {
   id: string;
   name: string;
@@ -9,6 +16,15 @@ export type Specialist = {
   adapter_status: "none" | "planned" | "training" | "trained" | "evaluated";
   sensitive: boolean;
   tools: string[];
+  base_model?: string;
+  adapter_accepted?: boolean;
+  adapter_reasons?: string[];
+  adapter_file_present?: boolean;
+  loaded_on_providers?: string[];
+  active_provider?: string;
+  provider_supports_adapters?: boolean;
+  active_mode?: "instruction_profile" | "adapter_loaded";
+  layers?: SpecialistLayers;
 };
 
 export type Preset = {

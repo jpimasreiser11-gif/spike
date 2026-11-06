@@ -351,7 +351,16 @@ await dsCard.getByLabel("Tokens al mes").blur();
 await page.screenshot({ path: `${out}/04-settings-providers.png` });
 if (await dsCard.getByRole("checkbox", { name: /^Enviar el contenido de tus archivos a este proveedor/ }).isChecked()) fail("a new remote provider must not get file contents by default");
 await page.getByRole("tab", { name: "Especialistas" }).click();
-await page.getByRole("dialog").locator(".chip", { hasText: "Spike Medicine" }).waitFor();
+const medSpec = page.getByRole("dialog").locator('[data-specialist="medicine"]');
+await medSpec.locator(".chip", { hasText: "Spike Medicine" }).waitFor();
+await medSpec.getByText(/Evaluado y aceptado/).waitFor();
+await medSpec.getByText(/\+35\.07 pts/).waitFor();
+await medSpec.getByText(/-0\.62 pts/).waitFor();
+await medSpec.getByText(/Perfil de instrucciones/).waitFor();
+await medSpec.getByText("Instrucciones base").waitFor();
+const codeSpec = page.getByRole("dialog").locator('[data-specialist="code"]');
+await codeSpec.getByText(/Planificado/).waitFor();
+if (await codeSpec.getByText(/Evaluado y aceptado/).count()) fail("planned specialist must not show evaluated and accepted");
 await page.getByRole("tab", { name: "Skills" }).click();
 await page.getByRole("dialog").locator('[data-skill="financial-ratio-analysis"]').waitFor();
 for (const name of ["decision-simulator", "test-inventor", "migration-architect", "performance-profiler", "localization", "experiment-designer", "synthetic-data", "vector-designer", "system-diagnostic", "landing-page", "report-creator", "deck-creator", "dashboard-creator", "data-app-creator", "release-notes", "incident-review", "dataset-audit", "api-contract"]) {
