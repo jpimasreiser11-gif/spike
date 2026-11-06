@@ -92,7 +92,7 @@ export async function workflowFlow(page, request, base, out, fail) {
   const mp = await phone.newPage();
   await mp.goto(base);
   await mp.getByText("¿En qué te ayudo hoy?").waitFor({ timeout: 15000 });
-  if (await mp.getByRole("button", { name: "Open sidebar" }).count()) await mp.getByRole("button", { name: "Open sidebar" }).click();
+  if (await mp.getByRole("button", { name: /Abrir barra lateral|Open sidebar/ }).count()) await mp.getByRole("button", { name: /Abrir barra lateral|Open sidebar/ }).click();
   await mp.getByRole("button", { name: "Crear", exact: true }).click();
   await mp.getByRole("button", { name: "Flujos de trabajo", exact: true }).click();
   await mp.getByLabel("Flujos guardados").selectOption({ label: "Saludo con SPIKE · v1" });

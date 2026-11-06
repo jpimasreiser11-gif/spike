@@ -90,7 +90,7 @@ export function SubtitleStudio({ projectId, projectName, onClose }: {
             onChange={(e) => { void importFile(e.target.files?.[0]); e.target.value = ""; }} /></label>
         </section>
         <section aria-label={S.localTitle}><h3>{S.localTitle}</h3><p>{S.localHint}</p>
-          <label>{S.path}<input name="media-path" placeholder="media/entrevista.mp4" value={path} disabled={busy}
+          <label>{S.path}<input name="media-path" placeholder={S.pathPlaceholder} value={path} disabled={busy}
             onChange={(e) => { setPath(e.target.value); setApproved(false); setRenderApproved(false); }} /></label>
           <p className="subtitle-tools">whisper.cpp: {status?.whisper ? S.available : S.missing} · ffmpeg: {status?.ffmpeg ? S.available : S.missing} · ffprobe: {status?.ffprobe ? S.available : S.missing}</p>
           {status && !status.enabled && <p>{S.configure}</p>}
