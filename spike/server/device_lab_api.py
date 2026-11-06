@@ -79,6 +79,11 @@ def create_device_lab_router(get_state: Callable[[], Any], this_computer: Callab
         if body.android and not body.android.approved:
             raise HTTPException(403, "device_lab_android_approval")
         phone = body.android.request() if body.android else None
+        try:
+            lab.check_target(body.url, body.allow_hosts)
+            lab.pick_profiles(body.profiles, body.custom)
+        except DeviceLabError as exc:
+            raise refused(exc) from exc
 
         async def work() -> dict:
             return await lab.run_device_lab(body.url, profiles=body.profiles, custom=body.custom,

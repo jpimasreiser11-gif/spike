@@ -232,15 +232,17 @@ def incoming(doc: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
     return found
 
 
-def find_cycle(doc: Mapping[str, Any]) -> list[str]:
-    """The ids of the nodes of one cycle, or [] when the graph has none (an edge to an unknown node, or from a node to
-    itself, is reported as its own problem)."""
+def find_cycles(doc: Mapping[str, Any]) -> list[list[str]]:
+    """Every cycle in the graph (each as its ordered node ids), or [] when the graph has none (an edge to an unknown
+    node, or from a node to itself, is reported as its own problem)."""
     ids = {n["id"] for n in doc["nodes"]}
     after: dict[str, list[str]] = defaultdict(list)
     for edge in doc["edges"]:
         if edge["from"] in ids and edge["to"] in ids and edge["from"] != edge["to"]:
             after[edge["from"]].append(edge["to"])
     state: dict[str, int] = {}  # 1 on the current path, 2 finished
+    cycles: list[list[str]] = []
+    seen_sets: set[frozenset[str]] = set()
     for start in [n["id"] for n in doc["nodes"]]:
         if start in state:
             continue
@@ -251,8 +253,12 @@ def find_cycle(doc: Mapping[str, Any]) -> list[str]:
             node, children = todo[-1]
             for child in children:
                 if state.get(child) == 1:
-                    return path[path.index(child):]
-                if child not in state:
+                    cycle = path[path.index(child):]
+                    key = frozenset(cycle)
+                    if key not in seen_sets:
+                        seen_sets.add(key)
+                        cycles.append(cycle)
+                elif child not in state:
                     state[child] = 1
                     path.append(child)
                     todo.append((child, iter(after[child])))
@@ -261,11 +267,18 @@ def find_cycle(doc: Mapping[str, Any]) -> list[str]:
                 state[node] = 2
                 path.pop()
                 todo.pop()
-    return []
+    return cycles
+
+
+def find_cycle(doc: Mapping[str, Any]) -> list[str]:
+    """The ids of the nodes of one cycle, or [] when the graph has none (an edge to an unknown node, or from a node to
+    itself, is reported as its own problem)."""
+    cycles = find_cycles(doc)
+    return cycles[0] if cycles else []
 
 
 def ancestors(doc: Mapping[str, Any], node_id: str) -> set[str]:
-    """Every node that has a path to `node_id`."""
+    """Every node that has a path to `node_id` (excluding `node_id` itself)."""
     sources = incoming(doc)
     seen: set[str] = set()
     todo = [node_id]
@@ -274,14 +287,24 @@ def ancestors(doc: Mapping[str, Any], node_id: str) -> set[str]:
             if edge["from"] not in seen:
                 seen.add(edge["from"])
                 todo.append(edge["from"])
+    seen.discard(node_id)
     return seen
 
 
 def levels(doc: Mapping[str, Any]) -> list[list[str]]:
     """Node ids in the order a run takes them: each level only needs earlier ones (the planner's topological levels).
-    The graph must be acyclic: `validate` finds cycles first, the planner would only break them silently."""
-    sources = incoming(doc)
+    The graph must be acyclic: raises WorkflowError if a cycle or self-loop is present."""
     ids = {n["id"] for n in doc["nodes"]}
+    cycle = find_cycle(doc) or next(
+        ([e["from"]] for e in doc["edges"] if e["from"] == e["to"] and e["from"] in ids),
+        [],
+    )
+    if cycle:
+        raise WorkflowError(
+            "the workflow has a cycle: " + " → ".join(cycle),
+            [Problem("cycle", "the workflow has a cycle: " + " → ".join(cycle), cycle[0], {"nodes": cycle})],
+        )
+    sources = incoming(doc)
     tasks = [Subtask(id=n["id"], specialist=n["type"], instruction="",
                      depends_on=list(dict.fromkeys(e["from"] for e in sources.get(n["id"], []) if e["from"] in ids)))
              for n in doc["nodes"]]
@@ -414,8 +437,7 @@ def validate(doc: Mapping[str, Any], env: Environment) -> list[Problem]:
         if node["type"] == "condition" and len(incoming(doc).get(nid, [])) != 1:
             bad("edge_condition_inputs", "a condition tests one value: join exactly one edge to it", nid)
 
-    cycle = find_cycle(doc)
-    if cycle:
+    for cycle in find_cycles(doc):
         bad("cycle", "the workflow has a cycle: " + " → ".join(cycle), cycle[0], nodes=cycle)
 
     # variables
@@ -561,16 +583,18 @@ def evaluate(node: Mapping[str, Any], subject: str, needle: str) -> bool:
             "==": number == limit, "!=": number != limit}[node.get("compare") or ">"]
 
 
-def bind_inputs(doc: Mapping[str, Any], given: Mapping[str, Any],
+def bind_inputs(doc: Mapping[str, Any], given: Mapping[str, Any] | None = None,
                 check_file: Callable[[str], str | None] | None = None) -> tuple[dict[str, str], list[Problem]]:
     """The value of every input node for a run (name -> text), from what the user gave or the node's default, and what
     is wrong with them. `check_file(path)` returns why a file path cannot be used, or None."""
+    given_map = given if isinstance(given, Mapping) else {}
     values: dict[str, str] = {}
     problems: list[Problem] = []
     for node in doc["nodes"]:
         if node["type"] != "input":
             continue
-        name, raw = node["name"], given.get(node["name"])
+        name = node["name"]
+        raw = given_map.get(name, given_map.get(node["id"]))
         text = raw if isinstance(raw, str) else "" if raw is None else str(raw)
         text = (text if text.strip() else node["default"])[:MAX_VALUE]
         if not text.strip():
@@ -582,9 +606,10 @@ def bind_inputs(doc: Mapping[str, Any], given: Mapping[str, Any],
             else:
                 text = show_number(number)
         elif node["kind"] == "file":
-            why = check_file(text.strip()) if check_file else None
+            clean_file = text.strip()
+            why = path_problem(clean_file) or (check_file(clean_file) if check_file else None)
             if why:
                 problems.append(Problem("input_file", f"'{name}': {why}", node["id"], {"name": name, "why": why}))
-            text = text.strip()
+            text = clean_file
         values[name] = text
     return values, problems

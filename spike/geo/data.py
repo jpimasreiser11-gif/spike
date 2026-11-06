@@ -80,6 +80,15 @@ def number(value: Any) -> float | None:
 
 
 def check(lat: float, lon: float, where: str) -> LatLon:
+    if (
+        isinstance(lat, bool)
+        or isinstance(lon, bool)
+        or not isinstance(lat, int | float)
+        or not isinstance(lon, int | float)
+        or not math.isfinite(lat)
+        or not math.isfinite(lon)
+    ):
+        raise GeoError(f"{where}: coordinates must be finite numbers")
     if abs(lat) > 90 or abs(lon) > 180:
         if max(abs(lat), abs(lon)) > 1000:
             raise GeoError(f"{where}: ({lon:g}, {lat:g}) looks like projected coordinates in metres; Spike Geo reads "
@@ -109,7 +118,10 @@ def positions(raw: Any, where: str, least: int) -> list[LatLon]:
 
 def ring(raw: Any, where: str) -> list[LatLon]:
     corners = positions(raw, where, 4)  # the RFC: a closed ring has at least four positions
-    return corners[:-1] if corners[0] == corners[-1] else corners
+    open_corners = corners[:-1] if corners[0] == corners[-1] else corners
+    if len(set(open_corners)) < 3:
+        raise GeoError(f"{where}: a polygon ring needs at least 3 distinct positions")
+    return open_corners
 
 
 def parts(geometry: Any, where: str, depth: int = 0) -> tuple[list[LatLon], list[list[LatLon]], list[list[list[LatLon]]]]:
@@ -178,6 +190,8 @@ def note(skipped: list[str], message: str) -> None:
 
 def parse_geojson(text: str, source: str = "") -> Dataset:
     """A FeatureCollection, a Feature or a bare geometry. Features without geometry are skipped (and said)."""
+    if not isinstance(text, str) or not text.strip():
+        raise GeoError("the file is empty")
     try:
         doc = json.loads(text)
     except ValueError as exc:
@@ -202,11 +216,15 @@ def parse_geojson(text: str, source: str = "") -> Dataset:
         if item.get("geometry") is None:
             note(out.skipped, f"feature {n}: no geometry")
             continue
-        seen += 1
         if cut_features or cut_vertices:  # past a limit: only count
+            seen += 1
             total_vertices += count_vertices(item["geometry"])
             continue
         points, lines, polygons = parts(item["geometry"], f"feature {n}")
+        if not points and not lines and not polygons:
+            note(out.skipped, f"feature {n}: no geometry")
+            continue
+        seen += 1
         props = item.get("properties") if isinstance(item.get("properties"), dict) else {}
         feature = Feature(n, props, points, lines, polygons)
         size = feature.vertices()

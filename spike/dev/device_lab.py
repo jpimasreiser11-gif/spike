@@ -24,6 +24,7 @@ import re
 import shlex
 import shutil
 import socket
+import struct
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -134,8 +135,8 @@ def parse_custom(data: Any, taken: set[str]) -> Profile:
 
 
 def pick_profiles(ids: Any, custom: Any) -> list[Profile]:
-    """The built-in profiles named by `ids` (all of them when it is empty) plus the custom ones, in order."""
-    if ids in (None, "", []):
+    """The built-in profiles named by `ids` (all of them when omitted) plus the custom ones, in order."""
+    if ids in (None, ""):
         ids = [] if custom else [p.id for p in PROFILES]
     if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
         raise DeviceLabError("device_lab_profile", "profiles must be a list of profile ids")
@@ -386,6 +387,16 @@ async def check_profile(browser, profile: Profile, target: Target, allowed: froz
         await context.close()
 
 
+def valid_png(png: Any) -> bool:
+    """Whether `png` is a non-empty PNG image with a valid IHDR header and an IEND trailer."""
+    if not isinstance(png, (bytes, bytearray)) or len(png) < 33:
+        return False
+    if not png.startswith(PNG_SIGNATURE) or png[12:16] != b"IHDR":
+        return False
+    w, h = struct.unpack(">II", png[16:24])
+    return w > 0 and h > 0 and b"IEND" in png[-24:]
+
+
 async def screenshot(page, data: dict[str, Any], notes: list[str]) -> str:
     """The whole page as a PNG data URL at CSS-pixel size, cut at a sane size; "" (with a note) when it fails."""
     try:
@@ -394,6 +405,9 @@ async def screenshot(page, data: dict[str, Any], notes: list[str]) -> str:
         png = await page.screenshot(type="png", full_page=True, scale="css", animations="disabled",
                                     clip={"x": 0, "y": 0, "width": width, "height": height})
     except Exception:  # noqa: BLE001 - the findings stand without the picture
+        notes.append("screenshot_failed")
+        return ""
+    if not valid_png(png):
         notes.append("screenshot_failed")
         return ""
     if len(png) > MAX_SHOT_BYTES:
@@ -501,7 +515,7 @@ async def android_shot(request: AndroidRequest, target: Target) -> dict[str, Any
                                                 shlex.quote(target.url)]) is not None
             await asyncio.sleep(max(0.0, min(request.wait_s, 30.0)))
         png = await step("screenshot", ["exec-out", "screencap", "-p"])
-        if png is None or not png.startswith(PNG_SIGNATURE):
+        if not valid_png(png):
             out["error"] = "no_screenshot"
         else:
             out.update(status="ok", screenshot="data:image/png;base64," + base64.b64encode(png).decode("ascii"))
