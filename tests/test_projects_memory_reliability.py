@@ -332,6 +332,11 @@ def test_folder_index_symlink_loops_broken_links_and_permission_denied(tmp_path:
         secret_pdf.write_bytes(b"%PDF-1.4 unreadable")
         secret_md.chmod(0)
         secret_pdf.chmod(0)
+        try:   # root (Linux CI containers) and Windows still read a mode-0 file: then only the links are checked
+            secret_md.read_bytes()
+            enforced = False
+        except PermissionError:
+            enforced = True
         try:
             inc = [*DEFAULT_INCLUDE, "*.pdf"]
             folder = folder_idx.add(str(root), scope="global", include=inc)
@@ -341,14 +346,14 @@ def test_folder_index_symlink_loops_broken_links_and_permission_denied(tmp_path:
 
             job = folder_idx.queue(folder.id)
             asyncio.run(folder_idx.run(job))
-            assert job.indexed == 1
             assert job.skipped.get("link", 0) == 3
-            assert job.skipped.get("denied", 0) == 2
-
             files_status = {f["path"]: f["status"] for f in folder_idx.files(folder.id)}
             assert files_status["ok.md"] == "indexed"
-            assert files_status["secret.md"] == "denied"
-            assert files_status["secret.pdf"] == "denied"
+            if enforced:
+                assert job.indexed == 1
+                assert job.skipped.get("denied", 0) == 2
+                assert files_status["secret.md"] == "denied"
+                assert files_status["secret.pdf"] == "denied"
         finally:
             secret_md.chmod(stat.S_IRUSR | stat.S_IWUSR)
             secret_pdf.chmod(stat.S_IRUSR | stat.S_IWUSR)
