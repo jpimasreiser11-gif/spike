@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -281,7 +282,7 @@ if args[:2] == ["exec-out", "screencap"]:
 sys.exit(0)
 """,
     )
-    monkeypatch.setenv("PATH", f"{adb_dir}:{tmp_path}")
+    monkeypatch.setenv("PATH", os.pathsep.join([str(adb_dir), str(tmp_path)]))
     shot = await lab.android_shot(AndroidRequest(open_url=False, wait_s=0), check_target("http://localhost:3000/"))
     assert shot["status"] == "error" and shot["error"] == "no_screenshot" and shot["screenshot"] == ""
 
