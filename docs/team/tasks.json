@@ -474,7 +474,7 @@
     "M2"
    ],
    "paths": [],
-   "spec": "Started on the Mac 2026-11-05 15:50 UTC with medicine's round-2 recipe, finance.yaml unchanged: self_replay.py, prepare --self-replay --fit-domain, train_supervised under the RAM guard, sweep_checkpoints (default candidates incl. final@0.5, then the acceptance suites once). Same gate, one run at a time.",
+   "spec": "Started on the Mac 2026-11-05 15:50 UTC with medicine's round-2 recipe, finance.yaml unchanged: self_replay.py, prepare --self-replay --fit-domain, train_supervised under the RAM guard, sweep_checkpoints (default candidates incl. final@0.5, then the acceptance suites once). Same gate, one run at a time. 2026-11-06: first sweep rejected (best final@0.5: finance +5.17, general -3.00); the Mac tries scales 0.25/0.35 and it4400@0.5 on the selection suites (evaluation only). Claude's decision if none passes: next single change is the training window (chunked ~1536 tokens instead of 768, which dropped 6,313 of 9,063 replay answers), same gate, measured against this run.",
    "accept": [
     "acceptance record"
    ]
