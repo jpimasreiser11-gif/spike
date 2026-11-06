@@ -46,7 +46,7 @@ class WorkflowIn(BaseModel):
 
 
 class RunIn(BaseModel):
-    inputs: dict[str, Any] = Field(default_factory=dict)
+    inputs: dict[str, Any] | None = Field(default_factory=dict)
     revision: int | None = Field(default=None, ge=1)
     provider_id: str | None = None
 

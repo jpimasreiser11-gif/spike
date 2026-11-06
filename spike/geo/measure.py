@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import math
 
+from spike.geo.data import check
+
 EARTH_RADIUS_M = 6_371_008.8
 LatLon = tuple[float, float]
 Vec = tuple[float, float, float]
@@ -21,6 +23,8 @@ Vec = tuple[float, float, float]
 
 def haversine(a: LatLon, b: LatLon) -> float:
     """Great-circle distance in metres between two (lat, lon) points in degrees."""
+    a = check(a[0], a[1], "point a")
+    b = check(b[0], b[1], "point b")
     p1, p2 = math.radians(a[0]), math.radians(b[0])
     h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(b[1] - a[1]) / 2) ** 2
     return 2 * EARTH_RADIUS_M * math.asin(min(1.0, math.sqrt(h)))
@@ -28,11 +32,13 @@ def haversine(a: LatLon, b: LatLon) -> float:
 
 def path_length(points: list[LatLon]) -> float:
     """Length in metres of the path through the points."""
-    return sum(haversine(p, q) for p, q in zip(points, points[1:], strict=False))
+    checked = [check(p[0], p[1], "path") for p in points]
+    return sum(haversine(p, q) for p, q in zip(checked, checked[1:], strict=False))
 
 
 def unclosed(ring: list[LatLon]) -> list[LatLon]:
-    return ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else list(ring)
+    checked = [check(p[0], p[1], "ring") for p in ring]
+    return checked[:-1] if len(checked) > 1 and checked[0] == checked[-1] else checked
 
 
 def perimeter(ring: list[LatLon]) -> float:

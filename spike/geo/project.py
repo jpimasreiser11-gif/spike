@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from spike.geo.data import check
 from spike.geo.measure import EARTH_RADIUS_M
 
 MIN_COS = 0.05  # near the poles cos(lat_ts) would flatten the map to a line
@@ -19,6 +20,8 @@ MIN_COS = 0.05  # near the poles cos(lat_ts) would flatten the map to a line
 
 def center_lon(lons: list[float]) -> float:
     """The middle of the smallest arc of the circle that holds all the longitudes (degrees, -180..180)."""
+    if not lons:
+        return 0.0
     ordered = sorted(((lon + 180) % 360) - 180 for lon in lons)
     if ordered[0] == ordered[-1]:
         return ordered[0]
@@ -36,12 +39,14 @@ class Equirectangular:
     @classmethod
     def fit(cls, points: list[tuple[float, float]]) -> Equirectangular:
         """The projection centred on a set of (lat, lon) points."""
-        lats = [p[0] for p in points] or [0.0]
-        lons = [p[1] for p in points] or [0.0]
+        checked = [check(p[0], p[1], "projection") for p in points]
+        lats = [p[0] for p in checked] or [0.0]
+        lons = [p[1] for p in checked] or [0.0]
         return cls(lon0=round(center_lon(lons), 6), lat_ts=round((min(lats) + max(lats)) / 2, 6))
 
     def xy(self, lat: float, lon: float) -> tuple[float, float]:
         """(x, y) in metres; y grows northwards."""
+        lat, lon = check(lat, lon, "projection")
         delta = ((lon - self.lon0 + 180) % 360) - 180
         return (EARTH_RADIUS_M * math.radians(delta) * max(MIN_COS, math.cos(math.radians(self.lat_ts))),
                 EARTH_RADIUS_M * math.radians(lat))
