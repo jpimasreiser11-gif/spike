@@ -8,9 +8,10 @@ never a field in a model tool schema. Even approved statements retain the sessio
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
-from spike.analytics.engine import DataError
+from spike.analytics.engine import DataError, first_lines
 
 # Only writes to the disposable loaded tables are approvable; settings, extensions, COPY and ATTACH stay denied.
 WRITES = {"INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP"}
@@ -29,7 +30,10 @@ ACTIONS = {
 
 def statement(con: Any, sql: str, *, approved: bool = False) -> str:
     """Require one SELECT by default; explicitly approved DML/DDL can modify in-memory tables only."""
-    statements = con.extract_statements(sql)
+    try:
+        statements = con.extract_statements(sql)
+    except Exception as exc:
+        raise DataError(f"SQL error: {first_lines(exc)}") from exc
     if len(statements) != 1:
         raise DataError("SQL error: Guardian requires one statement")
     kind = str(statements[0].type).rsplit(".", 1)[-1]
@@ -42,12 +46,22 @@ def bounded(sql: str, limit: int) -> str:
     """Fetch one sentinel beyond the visible limit to report truncation, with an actual SQL LIMIT."""
     if type(limit) is not int or not 1 <= limit <= 10_000:
         raise DataError("preview limit must be an integer from 1 to 10000")
-    return f"SELECT * FROM ({sql.strip().rstrip(';')}) AS spike_preview LIMIT {limit + 1}"
+    clean = sql.strip()
+    while True:
+        stripped = re.sub(r"(?:;\s*|--[^\r\n'\"]*\s*)$", "", clean).strip()
+        if stripped == clean:
+            break
+        clean = stripped
+    sep = "\n" if "--" in clean else ""
+    return f"SELECT * FROM ({clean}{sep}) AS spike_preview LIMIT {limit + 1}"
 
 
 def explain(con: Any, sql: str) -> dict[str, Any]:
     """EXPLAIN never executes the query; traverse the physical plan without an external model."""
-    plan = json.loads(con.execute("EXPLAIN (FORMAT JSON) " + sql).fetchall()[0][1])
+    try:
+        plan = json.loads(con.execute("EXPLAIN (FORMAT JSON) " + sql).fetchall()[0][1])
+    except Exception as exc:
+        raise DataError(f"SQL error: {first_lines(exc)}") from exc
     labels: dict[str, list[str]] = {"en": [], "es": []}
 
     def visit(nodes: list[dict[str, Any]]) -> None:

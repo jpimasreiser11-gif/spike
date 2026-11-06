@@ -9,6 +9,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from spike.analytics import engine
 from spike.analytics.charts import MARKS, build_chart
 from spike.analytics.contracts import ContractViolation
 from spike.analytics.engine import FORMATS, DataError, Result, describe, files_arg, ident, run_query
@@ -209,10 +210,21 @@ class DataPython(PythonRunner):
             return
         data = folder / "data"
         data.mkdir()
+        total = 0
+        seen: set[str] = set()
         for given in files_arg(args.get("files")):
             source = self.workspace.resolve(given)
             if not source.is_file():
                 raise DataError(f"'{given}' is not a file in the workspace")
+            size = source.stat().st_size
+            if size > engine.MAX_FILE:
+                raise DataError(f"'{given}' is larger than {engine.MAX_FILE // 1024**2} MB")
+            total += size
+            if total > engine.MAX_TOTAL:
+                raise DataError(f"the files add up to more than {engine.MAX_TOTAL // 1024**2} MB")
+            if source.name in seen:
+                raise DataError(f"duplicate file name '{source.name}' in data_python")
+            seen.add(source.name)
             shutil.copyfile(source, data / source.name)
 
     async def run(self, args: dict[str, Any]) -> ToolResult:

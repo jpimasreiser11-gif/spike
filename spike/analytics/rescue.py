@@ -13,6 +13,7 @@ import datetime as dt
 import hashlib
 import io
 import json
+import math
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from typing import Any
 
 from spike.analytics.engine import DataError
 
+STRIP = " \t\r\n\u00a0\u200b\ufeff"
 MONTHS = {name: n for n, names in enumerate((
     ("jan", "january", "ene", "enero"), ("feb", "february", "febrero"), ("mar", "march", "marzo"),
     ("apr", "april", "abr", "abril"), ("may", "mayo"), ("jun", "june", "junio"),
@@ -49,6 +51,8 @@ def _date(text: str, locale: str) -> dt.date | None:
                 return dt.date(int(year), MONTHS[a], int(b))
             if b in MONTHS:
                 return dt.date(int(year), MONTHS[b], int(a))
+            if len(a) == 4 and a.isdigit():
+                return dt.date(int(a), int(b), int(year))
             if len(year) == 4:
                 return dt.date(int(year), int(b if locale == "es" else a), int(a if locale == "es" else b))
     except (ValueError, TypeError):
@@ -56,51 +60,116 @@ def _date(text: str, locale: str) -> dt.date | None:
     return None
 
 
+def _dates_are_ambiguous(values: list[str]) -> bool:
+    has_ambiguous = False
+    disambiguated = False
+    for text in values:
+        try:
+            dt.date.fromisoformat(text)
+            continue
+        except ValueError:
+            pass
+        pieces = re.split(r"[\s/.,-]+", text.lower())
+        if len(pieces) == 3:
+            a, b, year = pieces
+            if a in MONTHS or b in MONTHS or (len(a) == 4 and a.isdigit()):
+                continue
+            if len(year) == 4 and a.isdigit() and b.isdigit():
+                ia, ib = int(a), int(b)
+                if ia > 12 or ib > 12:
+                    disambiguated = True
+                elif 1 <= ia <= 12 and 1 <= ib <= 12 and ia != ib:
+                    has_ambiguous = True
+    return has_ambiguous and not disambiguated
+
+
 def _number(text: str) -> int | float | None:
-    if re.fullmatch(r"[+-]?\d+", text):
-        return int(text)
-    if re.fullmatch(r"[+-]?(?:\d+[.,]\d*|[.,]\d+)(?:[eE][+-]?\d+)?|[+-]?\d+[eE][+-]?\d+", text):
+    if re.fullmatch(r"[+-]?(?:0|[1-9]\d*)", text):
+        value = int(text)
+        return value if -(2**63) <= value < 2**63 else None
+    if re.fullmatch(
+        r"[+-]?(?:(?:0|[1-9]\d*)[.,]\d*|[.,]\d+)(?:[eE][+-]?\d+)?|[+-]?(?:0|[1-9]\d*)[eE][+-]?\d+",
+        text,
+    ):
         value = float(text.replace(",", "."))
-        if value not in (float("inf"), float("-inf")):
+        if math.isfinite(value):
             return value
     return None
 
 
 def rescue_csv(path: Path, *, locale: str = "es") -> Rescued:
-    """Detect UTF-8/BOM or cp1252, separator, preamble/header, decimals/dates, duplicates and empty columns."""
+    """Detect UTF-8/UTF-16/BOM or cp1252, separator, preamble/header, decimals/dates, duplicates and empty columns."""
     if locale not in ("es", "en"):
         raise DataError("CSV locale must be es or en")
     raw = path.read_bytes()
-    encoding = "utf-8-sig"
-    try:
-        text = raw.decode(encoding)
-    except UnicodeDecodeError:
-        encoding = "cp1252"
+    if raw.startswith((b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")):
+        encoding = "utf-32"
         try:
             text = raw.decode(encoding)
         except UnicodeDecodeError as exc:
-            raise DataError("CSV encoding must be UTF-8 or cp1252") from exc
-    candidates = []
-    for separator in (",", ";", "\t", "|"):
+            raise DataError("CSV encoding is invalid UTF-32") from exc
+    elif raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        encoding = "utf-16"
         try:
-            rows = [row for row in csv.reader(io.StringIO(text), delimiter=separator, strict=True)
-                    if any(v.strip() for v in row)]
-        except csv.Error:
-            continue  # a wrong separator can make a valid quoted field look malformed
-        widths = Counter(len(row) for row in rows)
-        width, count = widths.most_common(1)[0] if widths else (0, 0)
-        candidates.append((count if width > 1 else 0, width, separator, rows))
+            text = raw.decode(encoding)
+        except UnicodeDecodeError as exc:
+            raise DataError("CSV encoding is invalid UTF-16") from exc
+    else:
+        encoding = "utf-8-sig"
+        try:
+            text = raw.decode(encoding)
+        except UnicodeDecodeError:
+            encoding = "cp1252"
+            try:
+                text = raw.decode(encoding)
+            except UnicodeDecodeError as exc:
+                raise DataError("CSV encoding must be UTF-8 or cp1252") from exc
+    text = text.lstrip("\ufeff")
+    if "\x00" in text:
+        raise DataError("CSV contains NUL bytes")
+    directive_sep: str | None = None
+    directive_skipped = 0
+    lines = text.splitlines(keepends=True)
+    for idx, line in enumerate(lines):
+        stripped = line.strip(STRIP)
+        if not stripped:
+            continue
+        match = re.fullmatch(r"sep=(.)", stripped, re.IGNORECASE)
+        if match:
+            directive_sep = match.group(1)
+            directive_skipped = 1
+            text = "".join(lines[idx + 1:])
+        break
+
+    primary = (",", ";", "\t", "|")
+    rare = (":", "^", "~")
+
+    def _try_separators(seps: tuple[str, ...]) -> list[tuple[int, bool, int, str, list[list[str]]]]:
+        out = []
+        for sep in seps:
+            try:
+                parsed = [row for row in csv.reader(io.StringIO(text), delimiter=sep, strict=True)
+                          if any(v.strip(STRIP) for v in row)]
+            except csv.Error:
+                continue  # a wrong separator can make a valid quoted field look malformed
+            widths = Counter(len(row) for row in parsed)
+            w, c = widths.most_common(1)[0] if widths else (0, 0)
+            out.append((c if w > 1 else 0, sep in primary, w, sep, parsed))
+        return out
+
+    candidates = _try_separators((directive_sep,)) if directive_sep else _try_separators(primary + rare)
     if not candidates:
         raise DataError("invalid quoted CSV")
-    _, width, separator, records = max(candidates, key=lambda c: (c[0], c[1]))
+    _, _, width, separator, records = max(candidates, key=lambda c: (c[0], c[1], c[2]))
     if not records:
         raise DataError("CSV is empty")
     # Skip only narrower preamble lines before the first full-width record.
-    skipped = next(i for i, row in enumerate(records) if len(row) == width)
-    records = records[skipped:]
+    local_skipped = next(i for i, row in enumerate(records) if len(row) == width)
+    skipped = directive_skipped + local_skipped
+    records = records[local_skipped:]
     if any(len(row) != width for row in records):
         raise DataError("ragged CSV records; specify a consistent delimiter/header")
-    first = [v.strip() for v in records[0]]
+    first = [v.strip(STRIP) for v in records[0]]
     header = any(v and _number(v) is None and _date(v, locale) is None for v in first)
     names = first if header else [f"column_{i + 1}" for i in range(width)]
     taken: set[str] = set()
@@ -112,12 +181,13 @@ def rescue_csv(path: Path, *, locale: str = "es") -> Rescued:
             candidate, suffix = f"{base}_{suffix}", suffix + 1
         taken.add(candidate.casefold())
         columns.append(candidate)
-    rows = [[v.strip() or None for v in row] for row in records[int(header):]]
+    rows = [[v.strip(STRIP) or None for v in row] for row in records[int(header):]]
     before = {"rows": len(rows), "columns": len(columns)}
     steps = [{"code": "encoding", "value": encoding}, {"code": "delimiter", "value": separator},
              {"code": "header", "skipped": skipped, "generated": not header,
               "renamed": sum(a != b for a, b in zip(names, columns, strict=True))}]
-    keep = [i for i in range(width) if any(row[i] is not None for row in rows)]
+    keep = ([i for i in range(width) if any(row[i] is not None for row in rows)]
+            if rows else (list(range(width)) if header else []))
     if len(keep) != width:
         steps.append({"code": "empty_columns", "count": width - len(keep)})
     columns = [columns[i] for i in keep]
@@ -134,10 +204,13 @@ def rescue_csv(path: Path, *, locale: str = "es") -> Rescued:
                 if row[i] is not None:
                     row[i] = _number(row[i])
         elif nonempty and all(v is not None for v in dates):
-            steps.append({"code": "dates", "column": i, "count": len(dates), "locale": locale})
+            steps.append({"code": "dates", "column": i, "count": len(dates), "locale": locale,
+                          "ambiguous": _dates_are_ambiguous(nonempty)})
             for row in rows:
                 if row[i] is not None:
                     row[i] = _date(row[i], locale)
+        elif nonempty and all(_date(v, "es") is not None or _date(v, "en") is not None for v in nonempty):
+            steps.append({"code": "ambiguous_dates", "column": i, "count": len(nonempty)})
     unique, seen = [], set()
     for row in rows:
         key = tuple(row)
