@@ -51,7 +51,13 @@ class ProjectBranches:
         items = self.files.list(pid)
         if sum(i["size"] for i in items) > MAX_ARCHIVE_BYTES:
             raise ProjectError("project too large")
-        return {i["path"]: self.files.path(pid, i["path"]).read_bytes() for i in items}
+        snap: dict[str, bytes] = {}
+        for i in items:
+            try:
+                snap[i["path"]] = self.files.path(pid, i["path"]).read_bytes()
+            except FileNotFoundError:
+                continue
+        return snap
 
     def fork(self, pid: str, name: str, modes: set[str]) -> dict[str, Any]:
         if not name.strip():
@@ -109,6 +115,21 @@ class ProjectBranches:
                     merged[item["path"]] = source[item["path"]]
             if sum(len(b) for b in merged.values()) > MAX_ARCHIVE_BYTES:
                 raise ProjectError("merged project too large")
+            seen_files: set[str] = set()
+            seen_dirs: set[str] = set()
+            for path in merged:
+                clean = clean_path(path)
+                key = clean.as_posix().casefold()
+                if key in seen_files or key in seen_dirs:
+                    raise ProjectError(f"merged path '{clean.as_posix()}' collides with a file or directory")
+                for parent_part in clean.parents:
+                    if parent_part.as_posix() == ".":
+                        continue
+                    pkey = parent_part.as_posix().casefold()
+                    if pkey in seen_files:
+                        raise ProjectError(f"merged path '{clean.as_posix()}' collides with a file or directory")
+                    seen_dirs.add(pkey)
+                seen_files.add(key)
             folder = self.files.folder(parent)
             with tempfile.TemporaryDirectory(prefix="merge-", dir=folder.parent) as temporary:
                 staging = Path(temporary) / "files"
@@ -116,8 +137,11 @@ class ProjectBranches:
                 staging.mkdir()
                 for path, data in merged.items():
                     target = staging.joinpath(*clean_path(path).parts)
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    target.write_bytes(data)
+                    try:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(data)
+                    except (FileExistsError, IsADirectoryError, NotADirectoryError) as exc:
+                        raise ProjectError(f"merged path '{path}' collides with a file or directory") from exc
                 os.replace(folder, backup)
                 try:
                     os.replace(staging, folder)

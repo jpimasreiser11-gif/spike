@@ -60,9 +60,13 @@ class Entry:
                 "lang": self.lang, "note": self.note, "created": self.created, "updated": self.updated}
 
 
+_ZERO_WIDTH_RE = re.compile(r"[\u200b\u200c\u200d\ufeff]")
+
+
 def fold(text: str) -> str:
     """Lower case without accents and with single spaces: how terms and conversations are compared."""
-    plain = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+    cleaned = _ZERO_WIDTH_RE.sub("", text)
+    plain = "".join(c for c in unicodedata.normalize("NFKD", cleaned) if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", plain.casefold()).strip()
 
 
@@ -71,7 +75,9 @@ def _entry(r: sqlite3.Row) -> Entry:
 
 
 def _clean(term: str, translation: str, lang: str, note: str) -> tuple[str, str, str, str]:
-    term, translation, lang, note = (str(v or "").strip() for v in (term, translation, lang, note))
+    term, translation, lang, note = (
+        _ZERO_WIDTH_RE.sub("", str(v or "")).strip() for v in (term, translation, lang, note)
+    )
     if not term or not translation:
         raise GlossaryError("an entry needs a term and its wording")
     if len(term) > MAX_TERM or len(translation) > MAX_TRANSLATION or len(note) > MAX_NOTE:
@@ -206,24 +212,37 @@ class Glossary:
         else:
             order, body, start = list(COLUMNS), rows, 1
         added = updated = 0
+        batch_added: set[tuple[str, str]] = set()
+        batch_updated: set[tuple[str, str]] = set()
         errors: list[dict[str, Any]] = []
         with self.store.write() as db:  # one transaction: a large file is not committed row by row
             for line, row in enumerate(body, start):
-                cells = {name: _unsafe_cell(cell.strip()) for name, cell in zip(order, row, strict=False) if name}
+                cells: dict[str, str] = {}
+                for name, cell in zip(order, row, strict=False):
+                    if not name:
+                        continue
+                    val = _unsafe_cell(cell.strip())
+                    if name not in cells or (val and not cells[name]):
+                        cells[name] = val
                 try:
                     term, translation, lang, note = _clean(*(cells.get(c, "") for c in COLUMNS))
+                    key = fold(term)
+                    pair = (key, lang)
                     same = db.execute("SELECT id FROM glossary WHERE scope = ? AND key = ? AND lang = ?",
-                                      (scope, fold(term), lang)).fetchone()
+                                      (scope, key, lang)).fetchone()
                     now = time.time()
                     if same is not None:
                         db.execute("UPDATE glossary SET term = ?, translation = ?, note = ?, updated = ? WHERE id = ?",
                                    (term, translation, note, now, same["id"]))
-                        updated += 1
+                        if pair not in batch_added and pair not in batch_updated:
+                            updated += 1
+                            batch_updated.add(pair)
                     else:
                         self._check_room(db, scope)
                         db.execute("INSERT INTO glossary VALUES (?,?,?,?,?,?,?,?,?)", (
-                            uuid.uuid4().hex[:12], scope, term, fold(term), translation, lang, note, now, now))
+                            uuid.uuid4().hex[:12], scope, term, key, translation, lang, note, now, now))
                         added += 1
+                        batch_added.add(pair)
                 except GlossaryError as exc:
                     errors.append({"line": line, "error": str(exc)})
         return {"added": added, "updated": updated, "errors": errors[:50], "skipped": len(errors)}

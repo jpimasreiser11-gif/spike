@@ -8,6 +8,7 @@ import logging
 import re
 import socket
 import time
+import unicodedata
 from collections.abc import AsyncIterator
 from dataclasses import asdict
 from pathlib import Path
@@ -875,8 +876,9 @@ class AppState:
 
     def index_project_file(self, project_id: str, relative: str) -> bool:
         """Put a project file's text in the project's memory, replacing an older version; False if unreadable."""
-        text = extract_text(self.project_files.path(project_id, relative))
-        scope, source = f"project:{project_id}", f"file:{relative}"
+        norm_rel = unicodedata.normalize("NFC", relative)
+        text = extract_text(self.project_files.path(project_id, norm_rel))
+        scope, source = f"project:{project_id}", f"file:{norm_rel}"
         if text is None:
             self.memory.store.delete_source(scope, source)
             return False

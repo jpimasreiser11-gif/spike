@@ -14,7 +14,7 @@ import httpx
 
 from spike.core.context import estimate_tokens
 from spike.memory.folders import FolderIndex
-from spike.memory.glossary import Entry, Glossary, glossary_lines
+from spike.memory.glossary import Entry, Glossary, fold, glossary_lines
 from spike.memory.graph import Graph
 from spike.memory.store import GLOBAL, Hit, Memory, MemoryStore
 from spike.memory.tutor import Topic, Tutor
@@ -67,10 +67,13 @@ class Recall:
     def event(self) -> dict[str, Any] | None:
         if not self.rules and not self.hits and not self.glossary:
             return None
+        seen_terms: dict[str, str] = {}
+        for e in self.glossary:
+            seen_terms.setdefault(fold(e.term), e.term)
         return {"type": "memory", "rules": len(self.rules), "semantic": self.semantic,
                 "notes": [{"id": h.memory.id, "kind": h.memory.kind, "source": h.memory.source,
                            "preview": h.text[:140], "by": h.by, "chunk": h.chunk} for h in self.hits],
-                **({"glossary": [e.term for e in self.glossary]} if self.glossary else {})}
+                **({"glossary": list(seen_terms.values())} if self.glossary else {})}
 
 
 def scopes_for(project_id: str | None) -> list[str]:

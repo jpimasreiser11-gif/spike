@@ -17,6 +17,7 @@ slashes (`drafts/*`).
 from __future__ import annotations
 
 import asyncio
+import errno
 import fnmatch
 import json
 import logging
@@ -229,15 +230,26 @@ def scan_folder(folder: Folder, protected: list[Path] | None = None) -> Scan:
                 continue
             try:
                 if _is_link(full):  # a link is fine while its target stays inside the folder
-                    target = full.resolve()
+                    try:
+                        target = full.resolve()
+                    except RuntimeError:
+                        scan.skip("link")
+                        continue
+                    except OSError as exc:
+                        scan.skip("link" if exc.errno == errno.ELOOP else "denied")
+                        continue
                     if not within(target, real_root) or any(within(target, b) for b in blocked):
                         scan.skip("outside")
                         continue
                     if not target.is_file():
+                        scan.skip("link")
                         continue
                 st = full.stat()
-            except (OSError, RuntimeError):
-                scan.skip("denied")
+            except RuntimeError:
+                scan.skip("link")
+                continue
+            except OSError as exc:
+                scan.skip("link" if exc.errno == errno.ELOOP else "denied")
                 continue
             if not full.is_file():
                 continue
@@ -538,12 +550,18 @@ class FolderIndex:
             real = cand.path.resolve(strict=True)  # checked again now: a link may have been swapped since the scan
             if not within(real, Path(folder.path).resolve()):
                 status = "outside"
-            elif cand.path.suffix.lower() not in CONTAINERS and b"\0" in _head(real):
-                status = STATUS_BINARY
+            elif real.stat().st_size == 0:
+                status = "empty"
             else:
-                text = extract_text(cand.path)
-                status = STATUS_INDEXED if text is not None else STATUS_UNREADABLE
-        except OSError:
+                head = _head(real)
+                if cand.path.suffix.lower() not in CONTAINERS and b"\0" in head:
+                    status = STATUS_BINARY
+                else:
+                    text = extract_text(cand.path)
+                    status = STATUS_INDEXED if text is not None else STATUS_UNREADABLE
+        except PermissionError:
+            status = "denied"
+        except (OSError, RuntimeError):
             status = STATUS_UNREADABLE
         source = f"file:{Path(folder.path, cand.rel).as_posix()}"
         with self.store.read() as db:  # holds the lock: a folder forgotten meanwhile cannot leave a memory behind
