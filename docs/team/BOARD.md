@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 2 | 1 | 0 | 0 | 19 | 0 | 22 |
+| Claude | 1 | 2 | 0 | 0 | 19 | 0 | 22 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 7 | 1 | 0 | 0 | 7 | 0 | 15 |
 | Opus | 4 | 1 | 0 | 0 | 0 | 0 | 5 |
 | Mac | 3 | 1 | 0 | 0 | 4 | 0 | 8 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **19** | **4** | **0** | **0** | **46** | **0** | **69** |
+| **Total** | **18** | **5** | **0** | **0** | **46** | **0** | **69** |
 
 ## Fase: equipo
 
@@ -85,7 +85,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M9 | Claude | hecha | Router con los 13 especialistas | M8 |
 | M11 | Mac | hecha | Medicina: registrar el adaptador aceptado e instalarlo | M2 |
 | M13 | Claude | hecha | Integrar la procedencia de evaluaciones (PR #2, rama gemini/G12-2) | - |
-| M14 | Claude | pendiente | Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción | M3 |
+| M14 | Claude | en curso | Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción | M3 |
 
 ## Fase: models
 

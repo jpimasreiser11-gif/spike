@@ -808,7 +808,7 @@
   {
    "id": "M14",
    "owner": "claude",
-   "status": "todo",
+   "status": "doing",
    "phase": "modelos",
    "title": "Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción",
    "depends": [
@@ -821,7 +821,8 @@
    "accept": [
     "tests for both patterns",
     "rescore table in STATUS"
-   ]
+   ],
+   "note": "2026-11-09: code and tests on branch claude/m14 (5d0898c: 'Answer Selection: X'; extract_option_text, used only when no letter is found and only when the text equals exactly one option). Merged after M3's final verdict. Then, on the Mac (light, no model run): copy each run directory first (rescore_run rewrites predictions.jsonl in place, and the accepted run is evidence), run evals/run_eval.py --rescore on the copies of medicine's and finance's final runs, report base and adapter side by side in STATUS, and check 20 newly parsed answers by hand (the option the answer states must be the parsed letter)."
   },
   {
    "id": "G18",
