@@ -42,6 +42,12 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const deletePending = useRef(false);
+  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+
+  useEffect(() => {
+    const prev = previous.current;
+    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

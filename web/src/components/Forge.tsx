@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { lang, t } from "../i18n";
 import type { Blueprint, BlueprintStep, ProtoRun, ProviderInfo, Specialist } from "../types";
@@ -121,6 +121,11 @@ export function Forge({ specialists, providers, projectId, initialTask = "", ini
   onRun: (task: string, blueprint: Blueprint, providerId: string | null, extra?: { skills: string[] }) => void;
   onClose: () => void;
 }) {
+  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  useEffect(() => {
+    const prev = previous.current;
+    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
+  }, []);
   const [task, setTask] = useState(initialTask);
   const [providerId, setProviderId] = useState<string | null>(initialProviderId ?? null);
   const [bp, setBp] = useState<Blueprint | null>(initialBlueprint ?? null);

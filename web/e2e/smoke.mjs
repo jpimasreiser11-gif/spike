@@ -62,6 +62,56 @@ await page.unroute(/\/api\/setup(?:\/|$)/);
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
 
+// G28: every view and dialog in App.tsx opens, renders its content, makes zero provider POST calls on open and restores focus on close.
+const g28Posts = [];
+const onG28Request = (r) => { if (r.method() === "POST") g28Posts.push(r.url()); };
+page.on("request", onG28Request);
+const forgeLaunch = page.getByRole("button", { name: "Forge", exact: true });
+await forgeLaunch.click();
+const forgeView = page.getByRole("region", { name: "Forge", exact: true });
+await forgeView.getByLabel("Tarea").waitFor();
+if (g28Posts.length) fail("opening Forge must not make POST requests");
+await forgeView.getByRole("button", { name: "Cerrar", exact: true }).click();
+await forgeView.waitFor({ state: "hidden" });
+if (!(await forgeLaunch.evaluate((el) => el === document.activeElement))) fail("Forge must restore keyboard focus on close");
+
+const creatorLaunch = page.getByRole("button", { name: "Crear", exact: true });
+await creatorLaunch.click();
+const creatorView = page.getByRole("region", { name: "Crear", exact: true });
+await creatorView.locator(".template-card", { hasText: "Dashboard" }).waitFor();
+if (g28Posts.length) fail("opening Creator must not make POST requests");
+await creatorView.getByRole("button", { name: "Cerrar", exact: true }).click();
+await creatorView.waitFor({ state: "hidden" });
+if (!(await creatorLaunch.evaluate((el) => el === document.activeElement))) fail("Creator must restore keyboard focus on close");
+
+const workspaceLaunch = page.getByRole("button", { name: "Trabajos y conocimiento", exact: true });
+await workspaceLaunch.click();
+const workspaceDialog = page.getByRole("dialog", { name: "Trabajos y conocimiento", exact: true });
+await workspaceDialog.getByLabel("Texto del conocimiento").waitFor();
+if (g28Posts.length) fail("opening WorkspacePanel must not make POST requests");
+await workspaceDialog.getByRole("button", { name: "Cerrar", exact: true }).click();
+await workspaceDialog.waitFor({ state: "hidden" });
+if (!(await workspaceLaunch.evaluate((el) => el === document.activeElement))) fail("WorkspacePanel must restore keyboard focus on close");
+
+const newProjectLaunch = page.getByRole("button", { name: "Nuevo proyecto", exact: true });
+await newProjectLaunch.click();
+const newProjectDialog = page.getByRole("dialog", { name: "Nuevo proyecto", exact: true });
+await newProjectDialog.getByLabel("Nombre", { exact: true }).waitFor();
+if (g28Posts.length) fail("opening ProjectDialog must not make POST requests");
+await page.keyboard.press("Escape");
+await newProjectDialog.waitFor({ state: "hidden" });
+if (!(await newProjectLaunch.evaluate((el) => el === document.activeElement))) fail("ProjectDialog must restore keyboard focus on close");
+
+const settingsLaunch = page.getByRole("button", { name: "Ajustes", exact: true });
+await settingsLaunch.click();
+const settingsModal = page.getByRole("dialog", { name: "Ajustes", exact: true });
+await settingsModal.getByLabel("Instrucciones personalizadas").waitFor();
+if (g28Posts.length) fail("opening SettingsDialog must not make POST requests");
+await page.keyboard.press("Escape");
+await settingsModal.waitFor({ state: "hidden" });
+if (!(await settingsLaunch.evaluate((el) => el === document.activeElement))) fail("SettingsDialog must restore keyboard focus on close");
+page.off("request", onG28Request);
+
 // A14: explicit local transcription, editing, downloads and keyboard/mobile layout.
 const subtitlePosts = [];
 page.on("request", (r) => { if (r.method() === "POST" && r.url().includes("/api/subtitles/")) subtitlePosts.push(r.url()); });
@@ -157,6 +207,7 @@ if (researchPosts.filter((p) => p.endsWith("/analyze")).length !== 2) fail("Rese
 await research.locator(".research-result").scrollIntoViewIfNeeded();
 await page.screenshot({ path: `${out}/00-research-contradictions.png` });
 await research.getByRole("button", { name: "Volver al chat" }).click();
+if (!(await page.getByRole("button", { name: "Investigación", exact: true }).evaluate((el) => el === document.activeElement))) fail("Research must restore keyboard focus on close");
 // Search history: no model call, keyboard focus containment, project scope and exact message navigation.
 const searchTraffic = [];
 const historyTraffic = (r) => { if (r.method() === "POST") searchTraffic.push(r.url()); };
@@ -230,6 +281,7 @@ await lab.getByText(/Sin probar/).first().waitFor();
 if (await lab.locator("tbody tr").count() !== 5) fail("Lab must list all five capabilities");
 await page.screenshot({ path: `${out}/00-lab.png` });
 await lab.getByRole("button", { name: "Volver al chat" }).click();
+if (!(await page.getByRole("button", { name: "Lab", exact: true }).evaluate((el) => el === document.activeElement))) fail("Lab must restore keyboard focus on close");
 await page.getByRole("button", { name: "Lab", exact: true }).click();
 await lab.getByRole("button", { name: /· Estimar comparación/ }).first().click(); // a saved run: wait for the history to load
 await lab.locator("tbody tr").nth(1).waitFor();
@@ -315,9 +367,15 @@ await lastAnswer.getByRole("button", { name: "Deshacer" }).click();
 await lastAnswer.getByText("Deshecho: el archivo volvió a como estaba").waitFor({ timeout: 5000 });
 const notes = await page.request.get(`${base}/api/workspace/files/notas.md`);
 if (notes.status() !== 404) fail("undo should remove the file the answer created, got " + notes.status());
-await lastAnswer.getByRole("button", { name: "Ver paso a paso" }).click();
+const replayPosts = [];
+const onReplayRequest = (r) => { if (r.method() === "POST") replayPosts.push(r.url()); };
+page.on("request", onReplayRequest);
+const replayBtn = lastAnswer.getByRole("button", { name: "Ver paso a paso" });
+await replayBtn.click();
 const replay = page.getByRole("dialog", { name: "Paso a paso" });
 await replay.waitFor();
+if (replayPosts.length) fail("opening Replay must not make POST requests");
+page.off("request", onReplayRequest);
 await replay.locator(".replay-steps button").first().click();
 if (await replay.locator(".replay-view .markdown").count()) fail("step 1 should show no answer text yet");
 await replay.locator(".replay-steps button", { hasText: "Usa write_file" }).click();
@@ -327,6 +385,8 @@ await replay.locator(".replay-view", { hasText: "He creado el archivo" }).waitFo
 if (await replay.getByRole("button", { name: "Permitir una vez" }).count()) fail("the replay must not offer live permission buttons");
 await page.screenshot({ path: `${out}/03b-replay.png` });
 await page.keyboard.press("Escape");
+await replay.waitFor({ state: "hidden" });
+if (!(await replayBtn.evaluate((el) => el === document.activeElement))) fail("Replay must restore keyboard focus on close");
 
 // 4. reload restores history
 await chatIdle();
@@ -792,7 +852,8 @@ await labPermission.getByText("Abrirá esta página local en un navegador sin ve
 await labPermission.getByRole("button", { name: "Permitir una vez" }).click();
 const labCard = page.getByRole("region", { name: "Informe de Device Lab" });
 await labCard.getByText(/de 2 perfiles sin problemas/).waitFor({ timeout: 60000 });
-await labCard.getByRole("button", { name: "Ver informe de Device Lab" }).click();
+const labReportBtn = labCard.getByRole("button", { name: "Ver informe de Device Lab" });
+await labReportBtn.click();
 const labFrame = page.frameLocator(".artifact-frame");
 await labFrame.getByRole("heading", { name: "Informe de Device Lab" }).waitFor();
 if (await labFrame.locator("tbody tr").count() !== 2) fail("the Device Lab report must list both profiles");
@@ -800,6 +861,7 @@ await labFrame.locator("img").first().waitFor();
 if (await labFrame.locator("img").evaluateAll((imgs) => imgs.some((i) => i.naturalWidth === 0))) fail("a Device Lab screenshot did not decode");
 await page.screenshot({ path: `${out}/07v-device-lab-report.png` });
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
+if (!(await labReportBtn.evaluate((el) => el === document.activeElement))) fail("ArtifactPanel must restore keyboard focus on close");
 
 await page.getByTestId("device-lab-open-btn").click();
 const labDialog = page.getByRole("dialog", { name: "Device Lab" });
@@ -807,6 +869,11 @@ await labDialog.waitFor();
 await labDialog.getByTestId("device-lab-run").waitFor();
 if (labRequests.length) fail("opening Device Lab must not start anything: " + labRequests.join(", "));
 if (!await labDialog.getByTestId("device-lab-run").isDisabled()) fail("Device Lab must wait for the approval");
+await labDialog.getByTestId("device-lab-close").click();
+await labDialog.waitFor({ state: "hidden" });
+if (!(await page.getByTestId("device-lab-open-btn").evaluate((el) => el === document.activeElement))) fail("DeviceLab must restore keyboard focus on close");
+await page.getByTestId("device-lab-open-btn").click();
+await labDialog.waitFor();
 await labDialog.locator('[name="device-lab-url"]').fill(`${base}/`);
 for (const id of ["small-phone", "large-phone", "tablet-portrait", "tablet-landscape"]) await labDialog.locator(`[name="profile-${id}"]`).uncheck();
 await labDialog.locator('[name="custom-name"]').fill("Quiosco");
@@ -1457,7 +1524,14 @@ await task.getByRole("button", { name: "Abrir el chat" }).click();
 await page.getByTestId("desktop-record").getByText("Clic en (300, 200) — aprobada", { exact: false }).waitFor({ timeout: 10000 });
 await page.screenshot({ path: `${out}/07z-desktop-record.png` });
 // a task the model marks as sensitive offers no "approve the next"; Stop ends it and nothing is done
-await page.getByTestId("desktop-open").click();
+const desktopOpenBtn = page.getByTestId("desktop-open");
+await desktopOpenBtn.click();
+await page.getByTestId("desktop-estimate").getByText("Hasta 21 peticiones", { exact: false }).waitFor({ timeout: 10000 });
+if ((await desktopCalls()).length !== 1) fail("opening DesktopTask must not run an action");
+await page.keyboard.press("Escape");
+await page.getByTestId("desktop-task").waitFor({ state: "hidden" });
+if (!(await desktopOpenBtn.evaluate((el) => el === document.activeElement))) fail("DesktopTask must restore keyboard focus on close");
+await desktopOpenBtn.click();
 await page.getByTestId("desktop-estimate").getByText("Hasta 21 peticiones", { exact: false }).waitFor({ timeout: 10000 });
 await page.getByTestId("desktop-goal").fill("Pulsa Enviar en el correo");
 await page.getByTestId("desktop-begin").click();
