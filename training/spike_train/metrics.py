@@ -15,7 +15,8 @@ def strip_think(text: str) -> str:
 
 def extract_choice(text: str, n_options: int = 10) -> str | None:
     """Return the final option letter (upper case only, so 'the answer is a ...' is not read as A), trying in order:
-    the last 'Answer: X' (markdown allowed; 'Answer: Option X' and 'the correct answer is choice (X)' too); the last
+    the last 'Answer: X' (markdown allowed; 'Answer: Option X', 'Answer Selection: X' and 'the correct answer is choice
+    (X)' too); the last
     line that is only the letter ('**B**'), looked for through up to three short trailing note lines
     ('Confidence: moderate', a clinician disclaimer) that name no letter; the last 'option is X' or 'Option: X'; the
     last 'option X is (the) correct/right/best/answer', 'we select option X' or 'correct letter: X'; and the last
@@ -28,8 +29,10 @@ def extract_choice(text: str, n_options: int = 10) -> str | None:
     opt = rf"(?i:option|choice)\b{deco}{letter}"
     against = r"(?!\s+(?i:is|are)(?i:n't|\s+(?:not|incorrect|wrong|false))\b)"
     # 'Answer: Option X' needs the ':' or 'is' first, so 'the answer choice B is wrong' is not read as B
+    # 'Answer Selection: X' (M11) needs the ':' too, so 'the answer selection B is wrong' is not read as B
     explicit = re.finditer(rf"(?i:\banswer)[*_]*(?:(?:\s+(?i:is))?\s*[:：]?{deco}{letter}"
-                           rf"|(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}{opt}{against})", body)
+                           rf"|(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}{opt}{against}"
+                           rf"|\s+(?i:selection)[*_]*\s*[:：]{deco}(?:{opt}|{letter}){against})", body)
     if found := [m.group(m.lastindex) for m in explicit]:
         return found[-1]
     stated = rf"(?i:\b(?:option|choice))(?:\s+(?i:is)\s*[:：]?|\s*[:：]){deco}{letter}"
@@ -52,6 +55,51 @@ def extract_choice(text: str, n_options: int = 10) -> str | None:
         return found[-1]
     found = re.findall(loose, body + " ")
     return found[-1] if found else None
+
+
+_TEXT_CUE = re.compile(r"(?i:\b(?:(?:final|correct|best|right)\s+)?(?:answer|option|choice|diagnosis)"
+                       r"(?:\s+selection)?(?:[*_]*\s+is\b|[*_]*\s*[:：]))[\s*_]*")
+_CLAUSE_END = re.compile(r"\*\*|[.;,!?](?=\s|$)|\s+(?:because|as|since|which|given|due)\b|\s+[—–-]\s|\s\(")
+
+
+def _plain(text: str) -> str:
+    """Lower case without markdown emphasis or backticks, spaces collapsed, closing punctuation and quotes dropped."""
+    text = unicodedata.normalize("NFKC", text).translate(str.maketrans("", "", "*_`")).lower()
+    return re.sub(r"\s+", " ", text).strip(" \"'“”‘’.,;:!?()[]")
+
+
+def extract_option_text(text: str, options: list[str]) -> str | None:
+    """The letter of the option whose whole text the answer states instead of its letter (M11: about a quarter of
+    the base model's unparsed medicine answers), only when that text equals exactly one option: the last
+    'the answer is <text>' / 'Answer: <text>' / 'the correct option is <text>' / 'the most likely diagnosis is <text>'
+    (the rest of the line or its first clause), else a closing line that is only an option's text, looked for
+    through up to three short trailing notes. Options that share a text, and one-letter options, are never read.
+    Used only when extract_choice finds no letter."""
+    letters: dict[str, set[str]] = {}
+    for i, option in enumerate(options[:10]):
+        key = _plain(option)
+        if key and not (len(key) == 1 and key.isalpha()):
+            letters.setdefault(key, set()).add("ABCDEFGHIJ"[i])
+    picks = {key: next(iter(found)) for key, found in letters.items() if len(found) == 1}
+    if not picks:
+        return None
+    body = strip_think(text)
+    stated = None
+    for m in _TEXT_CUE.finditer(body):
+        rest = body[m.end():].split("\n", 1)[0]
+        for candidate in (_plain(rest), _plain(_CLAUSE_END.split(rest, 1)[0])):
+            if candidate in picks:
+                stated = picks[candidate]
+                break
+    if stated:
+        return stated
+    named = set()
+    for ln in reversed([ln.strip() for ln in body.splitlines() if ln.strip()][-4:]):
+        if _plain(ln) in picks:
+            named.add(picks[_plain(ln)])
+        elif len(ln) > 300:
+            break
+    return named.pop() if len(named) == 1 else None
 
 
 def extract_yes_no(text: str) -> str | None:

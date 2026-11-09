@@ -45,6 +45,18 @@ def mcq_block(question: str, options: list[str]) -> str:
     return f"{question.strip()}\n\n{opts}"
 
 
+def mcq_options(prompt: str, n_options: int) -> list[str]:
+    """The option texts of a prompt laid out by mcq_block, or [] when the layout does not show exactly `n_options`
+    lettered options (no options rather than wrong ones)."""
+    start = prompt.rfind("\n\nA. ")
+    if start < 0:
+        return []
+    parts = re.split(r"\n(?=[B-J]\. )", prompt[start + 2:].split("\n\n", 1)[0])
+    if len(parts) != n_options or any(not p.startswith(f"{LETTERS[i]}. ") for i, p in enumerate(parts)):
+        return []
+    return [p[3:] for p in parts]
+
+
 def mcq_prompt(question: str, options: list[str]) -> str:
     return f"{mcq_block(question, options)}\n\n{MCQ_INSTRUCTION}"
 
