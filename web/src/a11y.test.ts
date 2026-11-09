@@ -5,6 +5,12 @@ const { readFileSync } = await (import(/* @vite-ignore */ fsSpec) as Promise<{
   readFileSync(path: string, encoding: string): string;
 }>);
 const styles = readFileSync('src/styles.css', 'utf-8');
+const deviceLabCss = stripComments(readFileSync('src/components/DeviceLab.css', 'utf-8'));
+const workflowCss = stripComments(readFileSync('src/components/WorkflowBuilder.css', 'utf-8'));
+const forgeSkillsCss = stripComments(readFileSync('src/components/ForgeSkills.css', 'utf-8'));
+const artifactFilesCss = stripComments(readFileSync('src/components/ArtifactFiles.css', 'utf-8'));
+const historySearchCss = stripComments(readFileSync('src/components/HistorySearch.css', 'utf-8'));
+const subtitleStudioCss = stripComments(readFileSync('src/components/SubtitleStudio.css', 'utf-8'));
 
 type Vars = Record<string, string>;
 
@@ -387,6 +393,90 @@ describe('SPIKE stylesheet WCAG 2.1/2.2 AA contrast, focus and motion accessibil
     }
     for (const sel of ['.sidebar', '.composer', '.msg.user .edit-btn']) {
       expect(cascadedProp(sel, 'transition'), `cascaded reduced-motion transition for ${sel}`).toBe('none');
+    }
+  });
+
+  it('meets WCAG 2.1/2.2 AA contrast and focus rings across all view component stylesheets in light and dark modes', () => {
+    for (const [mode, vars] of modes) {
+      // DeviceLab pass status text on --surface (>= 4.5:1)
+      const passFg = effectiveProp(deviceLabCss, '.device-lab tr[data-status=pass] td:nth-child(3)', 'color', mode);
+      expect(passFg).toBeDefined();
+      expect(
+        contrastRatio(resolveColor(passFg!, vars), resolveColor('var(--surface)', vars)),
+        `DeviceLab pass status (${passFg} on --surface) in ${mode}`,
+      ).toBeGreaterThanOrEqual(4.5);
+
+      // WorkflowBuilder SVG node state text and status chip (>= 4.5:1)
+      const wfStateOk = effectiveProp(workflowCss, '.wf-state.st-ok', 'fill', mode);
+      expect(wfStateOk).toBeDefined();
+      for (const bg of ['var(--surface)', 'var(--accent-soft)']) {
+        expect(
+          contrastRatio(resolveColor(wfStateOk!, vars), resolveColor(bg, vars)),
+          `Workflow .wf-state.st-ok (${wfStateOk} on ${bg}) in ${mode}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+
+      const wfChipOk = effectiveProp(workflowCss, '.wf-chip.st-ok', 'color', mode);
+      expect(wfChipOk).toBeDefined();
+      expect(
+        contrastRatio(resolveColor(wfChipOk!, vars), resolveColor('var(--surface)', vars)),
+        `Workflow .wf-chip.st-ok (${wfChipOk} on --surface) in ${mode}`,
+      ).toBeGreaterThanOrEqual(4.5);
+
+      // WorkflowBuilder non-text strokes & borders (>= 3.0:1)
+      const wfBoxOk = effectiveProp(workflowCss, '.wf-node.st-ok .wf-box', 'stroke', mode);
+      expect(wfBoxOk).toBeDefined();
+      expect(
+        contrastRatio(resolveColor(wfBoxOk!, vars), resolveColor('var(--surface-2)', vars)),
+        `Workflow .wf-node.st-ok .wf-box stroke (${wfBoxOk} on --surface-2) in ${mode}`,
+      ).toBeGreaterThanOrEqual(3.0);
+
+      const wfPortTrue = effectiveProp(workflowCss, '.wf-port.out.true', 'stroke', mode);
+      expect(wfPortTrue).toBeDefined();
+      expect(
+        contrastRatio(resolveColor(wfPortTrue!, vars), resolveColor('var(--surface)', vars)),
+        `Workflow .wf-port.out.true stroke (${wfPortTrue} on --surface) in ${mode}`,
+      ).toBeGreaterThanOrEqual(3.0);
+
+      // Memory rule badge and Tutor mastery meter in light and dark modes
+      const ruleBg = effectiveProp(clean, '.badge.kind-rule', 'background', mode) ?? 'var(--accent-soft)';
+      const ruleFg = effectiveProp(clean, '.badge.kind-rule', 'color', mode)!;
+      expect(
+        contrastRatio(resolveColor(ruleFg, vars), resolveColor(ruleBg, vars)),
+        `.badge.kind-rule (${ruleFg} on ${ruleBg}) in ${mode}`,
+      ).toBeGreaterThanOrEqual(4.5);
+      if (mode !== 'light') {
+        expect(resolveColor(ruleBg, vars), `.badge.kind-rule dark background in ${mode}`).not.toBe(
+          resolveColor('var(--mint)', light),
+        );
+      }
+
+      const masteryOn = effectiveProp(clean, '.mastery i.on', 'background', mode)!;
+      expect(
+        contrastRatio(resolveColor(masteryOn, vars), resolveColor('var(--surface)', vars)),
+        `.mastery i.on (${masteryOn} on --surface) in ${mode}`,
+      ).toBeGreaterThanOrEqual(3.0);
+
+      // Component focus-visible outlines (>= 3.0:1 against all surfaces)
+      const focusTargets: [string, string, string][] = [
+        ['ForgeSkills', forgeSkillsCss, '.forge-skills :focus-visible'],
+        ['ArtifactFiles', artifactFilesCss, '.artifact-file-text pre:focus-visible'],
+        ['DeviceLab', deviceLabCss, '.device-lab :focus-visible'],
+        ['HistorySearch', historySearchCss, '.history-dialog :focus-visible'],
+        ['SubtitleStudio', subtitleStudioCss, '.subtitle-studio :focus-visible'],
+        ['WorkflowBuilder', workflowCss, '.linklike:focus-visible'],
+      ];
+      for (const [label, cssText, sel] of focusTargets) {
+        const outline = effectiveProp(cssText, sel, 'outline', mode) ?? '';
+        const colorExpr = outline.replace(/^\d+px\s+\w+\s+/, '').trim();
+        expect(colorExpr, `${label} ${sel} outline in ${mode}`).not.toBe('');
+        for (const bg of ['var(--bg)', 'var(--surface)', 'var(--surface-2)', 'var(--accent-soft)']) {
+          expect(
+            contrastRatio(resolveColor(colorExpr, vars), resolveColor(bg, vars)),
+            `${label} ${sel} (${colorExpr} on ${bg}) in ${mode}`,
+          ).toBeGreaterThanOrEqual(3.0);
+        }
+      }
     }
   });
 });

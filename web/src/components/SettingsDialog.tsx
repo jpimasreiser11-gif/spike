@@ -97,7 +97,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
           <button className="icon-btn" onClick={onClose} aria-label={t.close}><IconClose /></button>
         </div>
         <div className="modal-body">
-          <nav className="tabs" role="tablist">
+          <nav className="tabs" role="tablist" aria-label={L.title}>
             {(["general", "providers", "specialists", "tools", "skills", "design", "finance", "connectors", "memory", "evolution", "privacy", "desktop", "engine"] as Tab[]).map((k) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{L[k]}</button>
             ))}

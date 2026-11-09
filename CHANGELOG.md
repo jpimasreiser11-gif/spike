@@ -23,6 +23,9 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- Accessibility (WCAG 2.1/2.2 AA) checked in real Chromium on every main view and dialog, in light, dark and a
+  375 px touch layout with reduced motion: dark-mode contrast fixed in Device Lab and Workflows, focus rings in
+  Forge skills and artifact files, and names added to the Settings and artifact tab lists and the memory editor (G18).
 - Lab, Creator, Settings and the subtitle studio load their code when first opened: the main bundle went from
   821.6 kB to 623.8 kB (gzip 259.1 to 204.0 kB), measured with `npm run build`.
 - Settings › Especialistas shows each specialist's real state: its catalog status, whether an acceptance record backs

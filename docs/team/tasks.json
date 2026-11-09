@@ -847,7 +847,7 @@
   {
    "id": "G18",
    "owner": "gemini",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Accesibilidad en todas las pantallas",
    "depends": [],
@@ -855,7 +855,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G18 from origin/main, report docs/team/reports/G18.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude. Audit extended to 12 views x 4 contexts; fixes use existing tokens (--ok-ink, --focus-ring). Re-run in the cloud: vitest 252 passed, build OK, node e2e/a11y.mjs ok in all 4 contexts, smoke E2E OK."
   },
   {
    "id": "G19",

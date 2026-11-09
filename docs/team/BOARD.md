@@ -8,11 +8,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Claude | 1 | 2 | 0 | 0 | 21 | 0 | 24 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 27 | 1 | 0 | 0 | 7 | 0 | 35 |
+| Gemini | 27 | 0 | 0 | 0 | 8 | 0 | 35 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **37** | **6** | **0** | **0** | **48** | **0** | **91** |
+| **Total** | **37** | **5** | **0** | **0** | **49** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -56,7 +56,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G15 | Gemini | hecha | Fiabilidad de los conectores MCP | - |
 | G16 | Gemini | hecha | Fiabilidad de Workflows, Device Lab, Reverse Studio y Geo | - |
 | G17 | Gemini | hecha | Auditoría de traducciones | - |
-| G18 | Gemini | en curso | Accesibilidad en todas las pantallas | - |
+| G18 | Gemini | hecha | Accesibilidad en todas las pantallas | - |
 | G19 | Gemini | pendiente | Documentación de usuario en español e inglés | - |
 | G20 | Gemini | pendiente | Revisar documentos desfasados | - |
 | G21 | Gemini | pendiente | Reproducibilidad: revisiones fijadas de datos y modelos | - |

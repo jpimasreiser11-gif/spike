@@ -396,7 +396,7 @@ a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-i
 .memory-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; }
 .memory-edit { display: grid; gap: 6px; margin-top: 6px; }
 .grow { flex: 1; min-width: 160px; }
-.badge.kind-rule { background: var(--mint); color: var(--ink); }
+.badge.kind-rule { background: var(--accent-soft); color: var(--ok-ink); border-color: var(--ok-border); }
 .btn.small { padding: 2px 10px; font-size: 12.5px; }
 
 /* privacy, call log, retry and edit */
@@ -596,7 +596,7 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .glossary-translation { overflow-wrap: anywhere; }
 .mastery { display: inline-flex; gap: 3px; }
 .mastery i { width: 14px; height: 6px; border-radius: 3px; background: var(--border-strong); }
-.mastery i.on { background: var(--ground, #3a8f6b); }
+.mastery i.on { background: var(--ok-ink); }
 .tutor-due { color: var(--warn); }
 .tutor-topic.due { border-color: var(--warn); }
 .graph-img { width: 100%; max-width: 960px; height: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
