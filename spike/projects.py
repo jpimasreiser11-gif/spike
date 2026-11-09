@@ -42,16 +42,16 @@ def clean_path(relative: str) -> PurePosixPath:
         or norm.startswith(("/", "\\"))
         or any(ord(c) < 32 for c in norm)
     ):
-        raise ProjectError(f"invalid file path '{relative}'")
+        raise ProjectError("invalid file path")
     raw_parts = norm.replace("\\", "/").split("/")
     if (
         not raw_parts
         or any(part in ("", ".", "..") for part in raw_parts)
         or any(":" in part for part in raw_parts)
     ):
-        raise ProjectError(f"invalid file path '{relative}'")
+        raise ProjectError("invalid file path")
     if any(is_git_name(part) for part in raw_parts):
-        raise ProjectError(f"invalid file path '{relative}': a .git folder is not part of a project's files")
+        raise ProjectError("invalid file path: a .git folder is not part of a project's files")
     return PurePosixPath(*raw_parts)
 
 

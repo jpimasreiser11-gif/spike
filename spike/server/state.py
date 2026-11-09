@@ -203,6 +203,18 @@ class AppState:
         unknown = set(patch) - SETTING_KEYS
         if unknown:
             raise ValueError(f"unknown settings: {sorted(unknown)}")
+        for key in ("specialist_instructions", "specialist_bindings", "tool_policies", "memory", "evolution",
+                    "local_runtime"):
+            if key in patch and not isinstance(patch[key], dict):
+                raise ValueError(f"'{key}' must be an object")
+        for key in ("custom_specialists", "disabled_skills"):
+            if key in patch and not isinstance(patch[key], list):
+                raise ValueError(f"'{key}' must be a list")
+        if "custom_specialists" in patch:
+            try:
+                load_catalog(extra=patch["custom_specialists"])
+            except (TypeError, KeyError, ValueError) as exc:
+                raise ValueError(f"invalid custom_specialists: {exc}") from exc
         if "browser" in patch:
             patch = {**patch, "browser": browser.clean(patch["browser"])}
         if "sandbox" in patch and patch["sandbox"] not in SANDBOX_MODES:
