@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
+import { useRestoreFocus } from "../useRestoreFocus";
 import type { Specialist } from "../types";
 
 type Job = { id: string; kind: string; status: string };
@@ -8,7 +9,7 @@ type Queue = { limit: number; ram_floor: number; jobs: Job[] };
 type Note = { id: string; text: string; kind: string };
 
 export function WorkspacePanel({ specialists, onClose }: { specialists: Specialist[]; onClose: () => void }) {
-  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  useRestoreFocus();
   const [queue, setQueue] = useState<Queue | null>(null);
   const [scope, setScope] = useState("code");
   const [notes, setNotes] = useState<Note[]>([]);
@@ -17,10 +18,6 @@ export function WorkspacePanel({ specialists, onClose }: { specialists: Speciali
   const [error, setError] = useState("");
   const load = () => api.get<Note[]>(`/api/memory?scope=specialist:${scope}`).then(setNotes).catch((e) => setError(e.message));
   useEffect(() => { load(); }, [scope]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const prev = previous.current;
-    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
-  }, []);
   useEffect(() => {
     let live = true;
     const refresh = () => api.get<Queue>("/api/jobs").then((q) => { if (live) setQueue(q); }).catch((e) => { if (live) setError(e.message); });

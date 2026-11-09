@@ -48,6 +48,9 @@ def _is_loopback_address(address: Any) -> bool:
 @pytest.fixture
 def block_external_network(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, Any]]:
     """Block any socket connection or DNS resolution not targeting 127.0.0.1 / ::1 / localhost."""
+    # A proxy on loopback (common in sandboxes) would turn an external request into an allowed local one.
+    for var in ("HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY", "https_proxy", "http_proxy", "all_proxy"):
+        monkeypatch.delenv(var, raising=False)
     orig_connect = socket.socket.connect
     orig_connect_ex = socket.socket.connect_ex
     orig_create_connection = socket.create_connection

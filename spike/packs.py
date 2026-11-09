@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import shutil
+import sys
 import tempfile
 import zipfile
 import zlib
@@ -55,6 +56,19 @@ def _read_entry(archive: zipfile.ZipFile, info: zipfile.ZipInfo, budget: list[in
     except (zipfile.BadZipFile, zlib.error, RuntimeError, NotImplementedError, EOFError, OSError) as exc:
         raise ProjectError("corrupted zip entry") from exc
     return b"".join(chunks)
+
+
+
+def _rmtree_writable(path: Path) -> None:
+    """rmtree that clears a read-only bit and retries (Windows); never chmods through a symlink."""
+    def retry(func: Any, p: str, _exc: Any) -> None:
+        if not Path(p).is_symlink():
+            Path(p).chmod(0o700)
+        func(p)
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=retry)
+    else:
+        shutil.rmtree(path, onerror=retry)
 
 
 def install_skills(
@@ -112,10 +126,7 @@ def install_skills(
         for skill in parsed:
             final = skills_dir / skill.name
             if final.exists():
-                def _force_remove(func, p, _exc):
-                    Path(p).chmod(0o700)
-                    func(p)
-                shutil.rmtree(final, onerror=_force_remove)
+                _rmtree_writable(final)
             shutil.move(str(skill.path), final)
         return [s.name for s in parsed]
 

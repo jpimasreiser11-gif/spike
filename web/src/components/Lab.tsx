@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api";
 import { t } from "../i18n";
+import { useRestoreFocus } from "../useRestoreFocus";
 import type { ProviderInfo, Specialist } from "../types";
 import "./Lab.css";
 
@@ -20,11 +21,7 @@ const L = t.lab;
 export function Lab({ specialists, providers, onClose }: {
   specialists: Specialist[]; providers: ProviderInfo[]; onClose: () => void;
 }) {
-  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
-  useEffect(() => {
-    const prev = previous.current;
-    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
-  }, []);
+  useRestoreFocus();
   const [targets, setTargets] = useState<Target[]>([{ specialist: "core", provider_id: null }]);
   const [prompt, setPrompt] = useState("");
   const [cases, setCases] = useState("");

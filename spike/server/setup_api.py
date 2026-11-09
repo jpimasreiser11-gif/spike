@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request
@@ -77,7 +78,8 @@ def create_setup_router() -> APIRouter:
         if service.job["status"] == "running":
             raise HTTPException(409, "Installation busy")
         try:
-            dest = service.import_local(body.path, body.sha256)
+            # Hashing and copying a multi-GB file must not block the server's event loop.
+            dest = await asyncio.to_thread(service.import_local, body.path, body.sha256)
         except (ValueError, OSError):
             raise HTTPException(400, detail=service.job["message"]) from None
         return {"ok": True, "model": dest.as_posix(), "job": service.job}

@@ -1048,7 +1048,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         try:
             target = Workspace(workspace_dir()).resolve(path)
         except PermissionError as exc:
-            raise HTTPException(400, "workspace") from exc
+            raise HTTPException(400, "the path is outside the workspace") from exc
         if not target.is_file():
             raise HTTPException(404, "file not found")
         return download(target)

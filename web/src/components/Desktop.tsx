@@ -6,6 +6,7 @@ import {
 } from "../desktop";
 import type { Card, DesktopRecord, DesktopRun, DesktopStatus, Estimate } from "../desktop";
 import { lang } from "../i18n";
+import { useRestoreFocus } from "../useRestoreFocus";
 import type { Settings } from "../types";
 import { IconClose } from "./Icons";
 
@@ -171,13 +172,8 @@ export function DesktopTask({ onClose, onChat, onFinished }: {
   const [problem, setProblem] = useState("");
   const [run, setRun] = useState<DesktopRun>(emptyDesktopRun());
   const abort = useRef<AbortController | null>(null);
-  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  useRestoreFocus();
   const running = run.phase === "starting" || run.phase === "running";
-
-  useEffect(() => {
-    const prev = previous.current;
-    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
-  }, []);
 
   const refreshEstimate = () => {
     setEstimate(null);

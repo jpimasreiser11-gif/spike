@@ -23,6 +23,11 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- First run explains why a download failed (offline, low disk, cut midway with resume, checksum) and offers an
+  external provider or importing a local `.gguf` file (G23); API errors reach the user as Spanish or English
+  sentences without absolute paths (G24); every view and dialog returns keyboard focus when it closes (G28).
+- User guide in Spanish and English for each module, with a FAQ and troubleshooting page tied to `spike doctor`
+  (`docs/guide/`, G19, G32).
 - Accessibility (WCAG 2.1/2.2 AA) checked in real Chromium on every main view and dialog, in light, dark and a
   375 px touch layout with reduced motion: dark-mode contrast fixed in Device Lab and Workflows, focus rings in
   Forge skills and artifact files, and names added to the Settings and artifact tab lists and the memory editor (G18).
@@ -142,6 +147,8 @@ profiles on the base model, marked β, until theirs pass.
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
 ### Security and packaging (release review, L2)
+- A test blocks every non-loopback connection while it walks the main API flows (chat, projects, memory,
+  settings, skills, connectors, first-run status) and fails if any tries to leave the machine (G29).
 - An answer can no longer make the browser load an image, style or media file from another site by itself (text
   the model read could have used that to send conversation data out without approval): such images become links
   (O4-1, `docs/audits/2026-11-security-review.md`).

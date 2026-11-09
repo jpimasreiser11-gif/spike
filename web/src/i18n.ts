@@ -1385,6 +1385,10 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     es: "El archivo no existe. Comprueba el nombre o actualiza la lista de archivos del proyecto.",
     en: "The file was not found. Check the name or refresh the project file list.",
   },
+  "the path is outside the workspace": {
+    es: "La ruta está fuera de la carpeta de trabajo. Usa una ruta relativa dentro de ella.",
+    en: "The path is outside the working folder. Use a relative path inside it.",
+  },
   "invalid file path": {
     es: "La ruta del archivo no es válida. Usa una ruta relativa dentro del proyecto, sin «..» ni enlaces simbólicos.",
     en: "The file path is not valid. Use a relative path inside the project, without '..' or symbolic links.",

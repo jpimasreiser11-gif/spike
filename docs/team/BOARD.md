@@ -8,11 +8,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Claude | 1 | 2 | 0 | 0 | 21 | 0 | 24 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 27 | 0 | 0 | 0 | 8 | 0 | 35 |
+| Gemini | 18 | 0 | 0 | 0 | 17 | 0 | 35 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **37** | **5** | **0** | **0** | **49** | **0** | **91** |
+| **Total** | **28** | **5** | **0** | **0** | **58** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -57,16 +57,16 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G16 | Gemini | hecha | Fiabilidad de Workflows, Device Lab, Reverse Studio y Geo | - |
 | G17 | Gemini | hecha | Auditoría de traducciones | - |
 | G18 | Gemini | hecha | Accesibilidad en todas las pantallas | - |
-| G19 | Gemini | pendiente | Documentación de usuario en español e inglés | - |
-| G20 | Gemini | pendiente | Revisar documentos desfasados | - |
+| G19 | Gemini | hecha | Documentación de usuario en español e inglés | - |
+| G20 | Gemini | hecha | Revisar documentos desfasados | - |
 | G21 | Gemini | pendiente | Reproducibilidad: revisiones fijadas de datos y modelos | - |
-| G22 | Gemini | pendiente | Windows y Linux | - |
-| G23 | Gemini | pendiente | Primer arranque e instalador sin modelo real | - |
-| G24 | Gemini | pendiente | Mensajes de error para usuarios | - |
+| G22 | Gemini | hecha | Windows y Linux | - |
+| G23 | Gemini | hecha | Primer arranque e instalador sin modelo real | - |
+| G24 | Gemini | hecha | Mensajes de error para usuarios | - |
 | G25 | Claude | hecha | Rendimiento de la interfaz: dividir el bundle | - |
 | G26 | Gemini | pendiente | Segunda división del bundle | G25 |
 | G27 | Gemini | pendiente | Actualizar vite y vitest a sus versiones mayores | - |
-| G28 | Gemini | pendiente | Cobertura del smoke: vistas que no abre | - |
+| G28 | Gemini | hecha | Cobertura del smoke: vistas que no abre | - |
 | G33 | Gemini | pendiente | Primer uso guiado | - |
 | G34 | Gemini | pendiente | Copia de seguridad y restauración | - |
 | G35 | Gemini | pendiente | Paleta de comandos y atajos | - |
@@ -124,10 +124,10 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
-| G29 | Gemini | pendiente | Garantía de que SPIKE no sale a internet sin permiso | - |
-| G30 | Gemini | pendiente | Las cifras públicas coinciden con los registros | - |
+| G29 | Gemini | hecha | Garantía de que SPIKE no sale a internet sin permiso | - |
+| G30 | Gemini | hecha | Las cifras públicas coinciden con los registros | - |
 | G31 | Gemini | pendiente | Página de presentación (sin publicar) | - |
-| G32 | Gemini | pendiente | Preguntas frecuentes y solución de problemas | G19, G24 |
+| G32 | Gemini | hecha | Preguntas frecuentes y solución de problemas | G19, G24 |
 | L1 | Mac | pendiente | Grabar la demo real | M2 |
 | L2 | Claude | en curso | Revisión final de seguridad y licencias y notas de versión | I3, L1 |
 | L3 | joan | pendiente | Aprobar: repo público, Hugging Face y anuncio | L2 |

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ProjectBranches } from "./ProjectBranches";
 import { api } from "../api";
 import { lang, t } from "../i18n";
+import { useRestoreFocus } from "../useRestoreFocus";
 import type { DesignSystemInfo, Project, ProjectFile, Specialist } from "../types";
 import { IconClose, IconTrash, IconUpload } from "./Icons";
 
@@ -42,12 +43,7 @@ export function ProjectDialog({ project, specialists, designs = [], onClose, onS
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const deletePending = useRef(false);
-  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
-
-  useEffect(() => {
-    const prev = previous.current;
-    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
-  }, []);
+  useRestoreFocus();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

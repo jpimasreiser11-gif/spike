@@ -861,7 +861,7 @@
   {
    "id": "G19",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Documentación de usuario en español e inglés",
    "depends": [],
@@ -869,12 +869,13 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G19 from origin/main, report docs/team/reports/G19.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude (via G32): docs/guide/ es/en per module with smoke screenshots; numbers spot-checked against STATUS (16 GB bench, M4 Max, medicine verdict, doctor RAM threshold)."
   },
   {
    "id": "G20",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Revisar documentos desfasados",
    "depends": [],
@@ -882,7 +883,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G20 from origin/main, report docs/team/reports/G20.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: README/PLAN/SPECIALISTS/TRAINING brought up to date (medicine accepted, finance round 1 rejected, M7 recipes) and a relative-link test."
   },
   {
    "id": "G21",
@@ -900,7 +902,7 @@
   {
    "id": "G22",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Windows y Linux",
    "depends": [],
@@ -908,12 +910,13 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G22 from origin/main, report docs/team/reports/G22.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: UTF-8 subprocess/file reads, Windows env for Forge checks, empty SPIKE_HOME handling; Claude replaced the deprecated rmtree onerror with a helper that never chmods through a symlink."
   },
   {
    "id": "G23",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Primer arranque e instalador sin modelo real",
    "depends": [],
@@ -921,12 +924,13 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G23 from origin/main, report docs/team/reports/G23.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: first-run reasons (offline, low disk, interrupted with resume, checksum) and local .gguf import. Claude fixes: import runs off the event loop, a denied file permission is no longer reported as a license problem (test), and 'Use an external API' now opens Settings › Providers."
   },
   {
    "id": "G24",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Mensajes de error para usuarios",
    "depends": [],
@@ -934,7 +938,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G24 from origin/main, report docs/team/reports/G24.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: es/en user messages for API errors, no absolute paths in error details, Content-Length and settings shape validation. Claude gave the workspace path error a real message."
   },
   {
    "id": "G25",
@@ -981,7 +986,7 @@
   {
    "id": "G28",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Cobertura del smoke: vistas que no abre",
    "depends": [],
@@ -989,12 +994,13 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G28 from origin/main, report docs/team/reports/G28.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: smoke opens every view and dialog, checks no POST on open and focus restored on close. Claude moved the 9 copies of the focus code into web/src/useRestoreFocus.ts."
   },
   {
    "id": "G29",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "lanzamiento",
    "title": "Garantía de que SPIKE no sale a internet sin permiso",
    "depends": [],
@@ -1002,12 +1008,13 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G29 from origin/main, report docs/team/reports/G29.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: socket-level guard over the main API flows. Claude made the guard clear proxy variables (a loopback proxy let an external request through as a local one)."
   },
   {
    "id": "G30",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "lanzamiento",
    "title": "Las cifras públicas coinciden con los registros",
    "depends": [],
@@ -1015,7 +1022,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G30 from origin/main, report docs/team/reports/G30.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: test that public figures equal the records; README conflict with G20 resolved to G20's wording, which satisfies the test."
   },
   {
    "id": "G31",
@@ -1033,7 +1041,7 @@
   {
    "id": "G32",
    "owner": "gemini",
-   "status": "todo",
+   "status": "done",
    "phase": "lanzamiento",
    "title": "Preguntas frecuentes y solución de problemas",
    "depends": [
@@ -1044,7 +1052,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G32 from origin/main, report docs/team/reports/G32.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: reviewed and merged by Claude: bilingual FAQ and troubleshooting tied to spike doctor messages."
   },
   {
    "id": "G33",

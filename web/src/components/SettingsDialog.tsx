@@ -1,7 +1,8 @@
 import { VisionSetting } from "./VisionSetting";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, streamPost } from "../api";
 import { lang, t } from "../i18n";
+import { useRestoreFocus } from "../useRestoreFocus";
 import { reasonText } from "../isolation";
 import type { Limits, Preset, ProviderInfo, SandboxStatus, Settings, Specialist, ToolInfo } from "../types";
 import { Connectors } from "./Connectors";
@@ -61,24 +62,22 @@ const L = lang === "es"
       sandboxOn: "available", sandboxNone: "not available", sandboxBlocked: "With “Required” and no isolation available, SPIKE will not run python or run_command.",
     };
 
-type Tab = "general" | "providers" | "specialists" | "tools" | "skills" | "design" | "finance" | "connectors" | "memory" | "evolution" | "privacy" | "desktop" | "engine";
+export type SettingsTab = "general" | "providers" | "specialists" | "tools" | "skills" | "design" | "finance" | "connectors" | "memory" | "evolution" | "privacy" | "desktop" | "engine";
 
-export function SettingsDialog({ onClose, specialists, providers, reloadProviders, onDesktop }: {
+type Tab = SettingsTab;
+
+export function SettingsDialog({ onClose, specialists, providers, reloadProviders, onDesktop, initialTab = "general" }: {
   onClose: () => void;
+  initialTab?: SettingsTab;
   onDesktop: () => void; // close the settings and open the desktop task window
   specialists: Specialist[];
   providers: ProviderInfo[];
   reloadProviders: () => void;
 }) {
-  const [tab, setTab] = useState<Tab>("general");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [flash, setFlash] = useState("");
-  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
-
-  useEffect(() => {
-    const prev = previous.current;
-    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
-  }, []);
+  useRestoreFocus();
 
   useEffect(() => {
     api.get<Settings>("/api/settings").then(setSettings);

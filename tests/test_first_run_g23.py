@@ -256,3 +256,12 @@ def test_recovery_by_importing_local_gguf_file(launcher_env, tmp_path: Path) -> 
     assert status["complete"] is True
     assert status["has_local_model"] is True
     assert Path(state.settings()["local_runtime"]["model"]).is_file()
+
+
+def test_failure_reasons_tell_a_denied_file_permission_from_a_license() -> None:
+    license_exc = PermissionError("org/repo has license 'other', which is not on SPIKE's allowlist")
+    assert Setup._classify_failure(license_exc, 0) == ("license", False)
+    assert Setup._classify_failure(PermissionError(13, "Permission denied"), 0) == ("failed", False)
+    assert Setup._classify_failure(ValueError("checksum mismatch for base.gguf"), 0) == ("checksum", False)
+    assert Setup._classify_failure(httpx.ConnectError("no route"), 0) == ("offline", False)
+    assert Setup._classify_failure(httpx.ReadError("cut"), 1024) == ("interrupted", True)

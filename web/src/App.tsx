@@ -7,6 +7,7 @@ import { Composer } from "./components/Composer";
 import { D as DESKTOP, DesktopTask } from "./components/Desktop";
 import { Forge } from "./components/Forge";
 import type { CreatorExtra } from "./components/Creator";
+import type { SettingsTab } from "./components/SettingsDialog";
 import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
 import { DeviceLab } from "./components/DeviceLab";
 import { HistorySearch, type HistoryHit } from "./components/HistorySearch";
@@ -111,6 +112,7 @@ export default function App() {
   const [design, setDesign] = useState(""); // "" = the project's design system (or none)
   const [sidebar, setSidebar] = useState(() => window.innerWidth > 860);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [commentThreads, setCommentThreads] = useState<string[]>([]);
   useEffect(() => {
@@ -379,7 +381,7 @@ export default function App() {
 
   return (
     <ArtifactContext.Provider value={setArtifact}>
-    <SetupWizard />
+    <SetupWizard onUseExternalApi={() => { setSettingsTab("providers"); setSettingsOpen(true); }} />
     <div className={`app ${sidebar ? "with-sidebar" : ""} ${artifact ? "with-artifact" : ""}`}>
       <aside className="sidebar" aria-label={t.conversations}>
         <div className="sidebar-top">
@@ -423,7 +425,7 @@ export default function App() {
         <div className="sidebar-bottom">
           {desktopOn && <button className="side-btn" data-testid="desktop-open" onClick={() => setDesktopOpen(true)}><IconDesktop size={16} /> {DESKTOP.open}</button>}
           <button className="side-btn" onClick={() => setWorkspaceOpen(true)}>{t.workspaceJobs}</button>
-          <button className="side-btn" onClick={() => setSettingsOpen(true)}><IconSettings size={16} /> {t.settings}</button>
+          <button className="side-btn" onClick={() => { setSettingsTab("general"); setSettingsOpen(true); }}><IconSettings size={16} /> {t.settings}</button>
           <div className="engine-status" title={t.localEngine}>
             <span className={`status-dot ${engine?.running ? "on" : ""}`} /> {t.localEngine}: {engine?.running ? t.running : t.stopped2}
           </div>
@@ -532,7 +534,7 @@ export default function App() {
         <Suspense fallback={null}>
           <SettingsDialog onClose={() => { setSettingsOpen(false); loadProviders(); loadDesigns(); loadDesktop(); api.get<{ running: boolean }>("/api/runtime").then(setEngine); }}
             onDesktop={() => { setSettingsOpen(false); loadProviders(); loadDesktop(); setDesktopOpen(true); }}
-            specialists={specialists} providers={providers} reloadProviders={loadProviders} />
+            specialists={specialists} providers={providers} reloadProviders={loadProviders} initialTab={settingsTab} />
         </Suspense>
       )}
 

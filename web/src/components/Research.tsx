@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { api } from "../api";
 import { lang, t } from "../i18n";
+import { useRestoreFocus } from "../useRestoreFocus";
 import type { Blueprint, ProviderInfo, Specialist } from "../types";
 import { Forge } from "./Forge";
 import "./Research.css";
@@ -28,11 +29,7 @@ export function Research({ conversationId, projectId, projectName, specialists, 
   specialists: Specialist[]; providers: ProviderInfo[];
   onRun: (task: string, blueprint: Blueprint, providerId: string | null) => void; onClose: () => void;
 }) {
-  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
-  useEffect(() => {
-    const prev = previous.current;
-    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
-  }, []);
+  useRestoreFocus();
   const [kind, setKind] = useState<"paper" | "contradictions">("paper");
   const [paths, setPaths] = useState("");
   const [providerId, setProviderId] = useState("");

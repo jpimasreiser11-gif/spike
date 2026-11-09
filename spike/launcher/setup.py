@@ -173,7 +173,7 @@ class Setup:
     @staticmethod
     def _classify_failure(exc: BaseException, part_bytes: int) -> tuple[str, bool]:
         msg = str(exc).lower()
-        if isinstance(exc, PermissionError) or "license" in msg:
+        if "license" in msg or "allowlist" in msg:  # a denied file permission is not a license problem
             return "license", False
         if isinstance(exc, ValueError):
             if "checksum mismatch" in msg or "invalid sha-256" in msg or "unverified" in msg or "sha-256" in msg or "hash" in msg:
