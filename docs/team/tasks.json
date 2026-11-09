@@ -935,8 +935,8 @@
   },
   {
    "id": "G25",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Rendimiento de la interfaz: dividir el bundle",
    "depends": [],
@@ -944,7 +944,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G25 from origin/main, report docs/team/reports/G25.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: done by Claude (Argon out of usage): main chunk 821.62 -> 623.82 kB (gzip 259.08 -> 203.97); Lab, Creator, Settings and subtitles load on first open. Report docs/team/reports/G25.md."
   },
   {
    "id": "O1",

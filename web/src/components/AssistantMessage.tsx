@@ -14,7 +14,7 @@ import { ArchitectureCard, GeoCard } from "./Explorer";
 import { LiveOrderCard } from "./Finance";
 import { MakerCard } from "./Maker";
 import { McpAppView } from "./McpApp";
-import { M } from "./Memory";
+import { M } from "./memoryText";
 import { IconChevron, IconCopy, IconLock, IconRetry, IconTool } from "./Icons";
 import { VoiceOutput } from "./VoiceOutput";
 import { Markdown } from "./Markdown";

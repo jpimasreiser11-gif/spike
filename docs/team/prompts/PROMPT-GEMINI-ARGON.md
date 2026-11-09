@@ -16,7 +16,8 @@ Sigue así:
 1. **G18** está a medias en `~/Downloads/Spike-argon` (rama `gemini/G18`, `web/e2e/a11y.mjs` y `web/src/a11y.test.ts`
    modificados, sin commit). Haz `git fetch origin && git rebase origin/main` (o merge) en esa rama, termina la tarea,
    verifica todo y entrégala con su informe.
-2. Después **G19, G20, G21, G22, G23, G24 y G25**, en ese orden, cada una en su rama desde `origin/main` actualizado.
+2. Después **G19, G20, G21, G22, G23 y G24**, en ese orden, cada una en su rama desde `origin/main` actualizado.
+   **G25 ya está hecha por Claude** (9-11-2026): no la hagas.
 3. Lo que dicen las secciones de abajo sigue valiendo entero.
 
 

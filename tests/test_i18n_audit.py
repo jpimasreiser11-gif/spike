@@ -222,8 +222,9 @@ def test_i18n_locale_keys_and_placeholders_match() -> None:
                 if pa != pb:
                     issues.append(f"i18n.{k}: placeholder mismatch ({base_name}={pa}, {other_name}={pb})")
 
-    # Also verify inline `lang === "es" ? { ... } : { ... }` dictionaries in .tsx components
-    for path in sorted(WEB_SRC.rglob("*.tsx")):
+    # Also verify inline `lang === "es" ? { ... } : { ... }` dictionaries in components and in the .ts modules that hold a
+    # component's texts apart from it (components/memoryText.ts)
+    for path in sorted([*WEB_SRC.rglob("*.tsx"), *WEB_SRC.rglob("*.ts")]):
         if ".test." in path.name:
             continue
         rel = path.relative_to(WEB_SRC).as_posix()

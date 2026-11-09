@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 1 | 2 | 0 | 0 | 19 | 0 | 22 |
+| Claude | 1 | 2 | 0 | 0 | 20 | 0 | 23 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 7 | 1 | 0 | 0 | 7 | 0 | 15 |
+| Gemini | 6 | 1 | 0 | 0 | 7 | 0 | 14 |
 | Opus | 4 | 1 | 0 | 0 | 0 | 0 | 5 |
 | Mac | 4 | 1 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **19** | **5** | **0** | **0** | **46** | **0** | **70** |
+| **Total** | **18** | **5** | **0** | **0** | **47** | **0** | **70** |
 
 ## Fase: equipo
 
@@ -63,7 +63,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G22 | Gemini | pendiente | Windows y Linux | - |
 | G23 | Gemini | pendiente | Primer arranque e instalador sin modelo real | - |
 | G24 | Gemini | pendiente | Mensajes de error para usuarios | - |
-| G25 | Gemini | pendiente | Rendimiento de la interfaz: dividir el bundle | - |
+| G25 | Claude | hecha | Rendimiento de la interfaz: dividir el bundle | - |
 | O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Opus | pendiente | Un espacio de tarea unificado | - |
 | O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |

@@ -23,6 +23,8 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- Lab, Creator, Settings and the subtitle studio load their code when first opened: the main bundle went from
+  821.6 kB to 623.8 kB (gzip 259.1 to 204.0 kB), measured with `npm run build`.
 - Settings › Especialistas shows each specialist's real state: its catalog status, whether an acceptance record backs
   it, whether the adapter file is there and loaded, the mode it answers in today and its active context layers (G4);
   the installed adapter file is checked by SHA-256 against the accepted one, whose record ships with SPIKE.
