@@ -17,12 +17,29 @@ from pathlib import Path
 from spike import __version__
 
 
+def _is_this_computer(host: str) -> bool:
+    """True when binding to `host` keeps SPIKE on this computer (a loopback address or localhost)."""
+    import ipaddress
+
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_loopback
+    except ValueError:
+        return False
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
     from spike.server.app import create_app
     from spike.server.state import AppState
 
+    if not _is_this_computer(args.host) and not getattr(args, "allow_network", False):
+        print(f"refused: --host {args.host or '(every interface)'} makes SPIKE reachable from your network, and the app "
+              "has no login. Add --allow-network to do it on purpose (set SPIKE_API_TOKEN to protect /v1).",
+              file=sys.stderr)
+        return 2
     state = AppState()
     if args.host in ("0.0.0.0", "::", ""):
         allowed = None  # reachable by any name; /v1 still needs SPIKE_API_TOKEN from other machines
@@ -713,6 +730,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--port", type=int, default=8740)
     s.add_argument("--open", action="store_true", help="open the browser")
     s.add_argument("--no-local", dest="start_local", action="store_false", help="do not start llama-server")
+    s.add_argument("--allow-network", action="store_true",
+                   help="allow a --host other than this computer (the app has no login)")
     s.set_defaults(func=cmd_serve)
 
     d = sub.add_parser("doctor", help="check hardware, runtime and model memory needs")

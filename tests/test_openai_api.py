@@ -242,7 +242,7 @@ def test_spike_serve_checks_host_names_unless_bound_to_every_interface(host, all
     monkeypatch.setenv("SPIKE_NO_KEYRING", "1")
     seen = {}
     monkeypatch.setattr(uvicorn, "run", lambda app, **kw: seen.update(app=app, **kw))
-    cli.cmd_serve(argparse.Namespace(host=host, port=8740, start_local=False, open=False))
+    cli.cmd_serve(argparse.Namespace(host=host, port=8740, start_local=False, open=False, allow_network=True))
     client = TestClient(seen["app"], base_url=f"http://{host}:8740")
     assert client.get("/api/health").status_code == 200
     assert (client.get("/api/health", headers={"host": "evil.example"}).status_code == 200) is (allowed is None)
