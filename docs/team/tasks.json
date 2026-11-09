@@ -1084,8 +1084,8 @@
   },
   {
    "id": "O4",
-   "owner": "opus",
-   "status": "todo",
+   "owner": "claude",
+   "status": "doing",
    "phase": "app",
    "title": "Revisión de seguridad previa al lanzamiento (para L2)",
    "depends": [],
@@ -1093,7 +1093,8 @@
    "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O4 from origin/main, report docs/team/reports/O4.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: taken by Claude while the Mac is off (Opus out of usage). Builds on the L2 review (docs/release/REVIEW-v0.1.md section 2): this pass covers what it did not, a malicious model answer and a malicious MCP server against the permission broker, spend limits under parallel calls, and secrets in API answers and logs."
   },
   {
    "id": "O5",

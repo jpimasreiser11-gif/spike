@@ -12,7 +12,7 @@ Copia todo lo que hay debajo de la línea y pégalo en una sesión nueva de Clau
 - **O5 ya no hace falta**: Gemini lo hizo como `gemini/G12-2` (recibos SHA-256 del PR #2 sobre `main`). Sáltala. En su
   lugar, **revisa G12-2** con mirada de seguridad y reproducibilidad y escribe tus observaciones en
   `docs/team/reports/O5.md` (sin tocar su rama).
-- Orden: O1 → O2 → O3 → O4 → O5 (revisión). Lo demás de abajo sigue valiendo.
+- Orden: O1 → O2 → O3 → O5 (revisión). **O4 la hace Claude** (9-11-2026): no la hagas. Lo demás de abajo sigue valiendo.
 
 
 Eres un agente **Opus 5.5** que se une al equipo de **SPIKE**: una app local de IA con especialistas, repositorio
