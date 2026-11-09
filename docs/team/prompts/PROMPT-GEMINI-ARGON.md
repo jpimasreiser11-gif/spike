@@ -1,24 +1,28 @@
-# Prompt para Gemini (Argon) — SPIKE, lote G12–G25
+# Prompt para Gemini (Argon) — SPIKE, lote G12–G32
 
 Copia todo lo que hay debajo de la línea y pégalo a Gemini.
 
 ---
 
-## CONTINUACIÓN (6-11-2026): lee esto primero
+## CONTINUACIÓN (9-11-2026): lee esto primero
 
-Ya entregaste G4, G12, G12-2, G13, G14, G15, G16 y G17. Claude las revisó: se combinan sin conflictos sobre `main`
-y pasan juntas (pytest 3058 passed, vitest 239, build, smoke E2E OK, `-X utf8=0` 182 passed); están en la rama
-`claude/argon-integration` esperando que el líder las integre. **No las vuelvas a tocar** salvo que llegue una revisión
-en `docs/team/reviews/<ID>.md`. Configura tu autor una vez en tu copia:
+Ya entregaste G4, G12, G12-2, G13, G14, G15, G16 y G17: Claude las revisó y **ya están todas en `main`** (CI en verde en
+Ubuntu, macOS y Windows). No las vuelvas a tocar salvo que llegue una revisión en `docs/team/reviews/<ID>.md`.
+**G25 la hizo Claude** (9-11-2026): no la hagas. Configura tu autor una vez en tu copia:
 `git config user.name "Gemini (Argon)"` y `git config user.email gemini-argon@users.noreply.github.com`.
 
-Sigue así:
+Ahora tienes mucho más trabajo. Hazlo en este orden, cada tarea en su rama desde `origin/main` actualizado:
+
 1. **G18** está a medias en `~/Downloads/Spike-argon` (rama `gemini/G18`, `web/e2e/a11y.mjs` y `web/src/a11y.test.ts`
-   modificados, sin commit). Haz `git fetch origin && git rebase origin/main` (o merge) en esa rama, termina la tarea,
-   verifica todo y entrégala con su informe.
-2. Después **G19, G20, G21, G22, G23 y G24**, en ese orden, cada una en su rama desde `origin/main` actualizado.
-   **G25 ya está hecha por Claude** (9-11-2026): no la hagas.
-3. Lo que dicen las secciones de abajo sigue valiendo entero.
+   modificados, sin commit). Haz `git fetch origin && git rebase origin/main` en esa rama, termínala, verifica todo y
+   entrégala con su informe.
+2. **G24, G29, G30** (errores, garantía sin red, cifras coherentes): lo que más pesa para el lanzamiento.
+3. **G19, G32, G20** (documentación de usuario, preguntas frecuentes, documentos desfasados).
+4. **G23, G22, G28** (primer arranque, Windows y Linux, cobertura del smoke).
+5. **G26, G27, G31** (segunda división del bundle, actualizar vite y vitest, página de presentación).
+6. **G21** al final: toca `training/`; deja la rama lista y Claude la integra cuando no haya ningún entrenamiento en marcha.
+
+Lo que dicen las secciones de abajo sigue valiendo entero. No esperes respuesta entre tareas.
 
 
 Eres **Gemini (Argon)** y te unes al equipo que construye **SPIKE**: una app local de IA con especialistas,
@@ -152,6 +156,51 @@ recorre las rutas de la API con entradas inválidas y falla si alguna responde 5
 **G25 — Rendimiento de la interfaz.** El bundle principal pesa ~800 kB. Divide por rutas con `import()` dinámico los
 módulos pesados (Motion, Analytics, Workflows, Design, Lab) sin cambiar comportamiento; mide el tamaño antes/después con
 `npm run build` y ponlo en el informe. Test o smoke que confirme que cada vista sigue cargando.
+
+**G26 — Segunda división del bundle.** Sigue a G25 (`docs/team/reports/G25.md`). El chat importa piezas pequeñas de
+módulos grandes: `LiveOrderCard` de `Finance.tsx`, `DeviceLabCard` de `DeviceLab.tsx`, `DesktopRecordView` de
+`Desktop.tsx`. Muévelas (con los textos que usen) a archivos propios, como se hizo con `memoryText.ts`, y carga con
+`React.lazy` las vistas que solo se abren a petición (Forge, Research, Replay, Device Lab, búsqueda en el historial,
+panel de espacio de trabajo, asistente de primer arranque si no se muestra siempre). Sin cambiar comportamiento. Mide
+el trozo principal antes y después con `npm run build` (G25 lo dejó en 623.82 kB) y ponlo en el informe; el smoke y
+vitest deben seguir pasando.
+
+**G27 — Actualizar vite y vitest.** `docs/release/REVIEW-v0.1.md` (sección 2) deja abiertos avisos de seguridad de
+vite 5 y vitest 2 que solo se cierran con sus versiones mayores nuevas. Sube a las versiones mayores actuales que
+tengan al menos dos semanas, con versión exacta en `package.json` y el `package-lock.json` regenerado. Ajusta la
+configuración que cambie entre versiones, sin tocar la app. Antes y después: `npm audit` (pega el resumen), `npx tsc`,
+`npx vitest run`, `npm run build`, el smoke y el tamaño del bundle. Si algo no se puede subir sin cambios grandes, para y
+explícalo en el informe.
+
+**G28 — Cobertura del smoke.** Haz la lista de vistas y diálogos de `web/src/App.tsx` que `web/e2e/smoke.mjs` no abre
+nunca (por ejemplo la búsqueda en el historial y el panel de espacio de trabajo) y añade al smoke un paso corto para
+cada una contra `tests/e2e/serve_scripted.py`: se abre, muestra su contenido, no hace llamadas a proveedores al abrirse
+y devuelve el foco al cerrarse. La lista va en el informe.
+
+**G29 — Garantía de que SPIKE no sale a internet sin permiso.** Un test que arranca la app con el proveedor guionizado,
+bloquea cualquier conexión que no sea a 127.0.0.1/::1 (monkeypatch de `socket.socket.connect` y
+`socket.create_connection`) y recorre los flujos principales de la API: chat, proyectos, memoria, ajustes, especialistas,
+skills, conectores sin configurar, estado del asistente de primer arranque (sin descargar). Falla si algo intenta salir.
+En el informe, la lista de rutas que salen a internet solo cuando el usuario lo pide (descargas, proveedores remotos,
+web_fetch) y cómo lo comprobaste. Si encuentras una salida sin permiso en el núcleo, informe para Claude, no lo arregles tú.
+
+**G30 — Las cifras públicas coinciden con los registros.** Un test que lee los registros
+(`training/runs/medicine/sweep/final/summary.json`, `spike/specialists/acceptance/medicine.json` y
+`evals/results/bench-x86-16gb-20261018/`) y comprueba que las cifras que citan `README.md`, `CHANGELOG.md`,
+`packaging/RELEASE-NOTES.md`, `docs/SPECIALISTS.md` y `docs/STATUS.md` (medicina +35,07 y −0,62 con 2.318 preguntas,
+el SHA-256 del adaptador, las velocidades y la RAM del equipo de 16 GB) son las mismas. Si alguna no coincide, no la
+corrijas en STATUS: ponla en el informe con la cifra del registro.
+
+**G31 — Página de presentación (sin publicar).** Una página estática en `site/` (español e inglés) para cuando joan
+decida publicar en GitHub Pages: qué es SPIKE, qué funciona hoy, cifras medidas con enlace a su registro, instalación en
+2 comandos, licencias y lo que no se afirma. Marca y logo de `brand/` (paleta oficial del cactus), fuentes servidas
+desde la propia página, sin analítica, sin cookies, sin peticiones a terceros. Las cifras se leen de un JSON generado
+desde los registros por un script, nunca escritas a mano. Tests: enlaces que existen, ninguna URL externa salvo GitHub y
+Hugging Face, cifras iguales a los registros. **No actives Pages ni publiques nada**: eso lo decide joan.
+
+**G32 — Preguntas frecuentes y solución de problemas.** `docs/guide/` (con G19): una página en español y otra en inglés
+con cada mensaje de error que puede ver un usuario (lo que dejó G24) y cada comprobación de `spike doctor`: qué
+significa, la causa probable y qué hacer. Un test que falla si una comprobación de `spike doctor` no tiene su entrada.
 
 ## 4. Cuando acabes cada una
 

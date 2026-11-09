@@ -948,6 +948,102 @@
    "note": "2026-11-09: done by Claude (Argon out of usage): main chunk 821.62 -> 623.82 kB (gzip 259.08 -> 203.97); Lab, Creator, Settings and subtitles load on first open. Report docs/team/reports/G25.md."
   },
   {
+   "id": "G26",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Segunda división del bundle",
+   "depends": [
+    "G25"
+   ],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G26 from origin/main, report docs/team/reports/G26.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G27",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Actualizar vite y vitest a sus versiones mayores",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G27 from origin/main, report docs/team/reports/G27.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G28",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Cobertura del smoke: vistas que no abre",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G28 from origin/main, report docs/team/reports/G28.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G29",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Garantía de que SPIKE no sale a internet sin permiso",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G29 from origin/main, report docs/team/reports/G29.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G30",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Las cifras públicas coinciden con los registros",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G30 from origin/main, report docs/team/reports/G30.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G31",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Página de presentación (sin publicar)",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G31 from origin/main, report docs/team/reports/G31.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G32",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "lanzamiento",
+   "title": "Preguntas frecuentes y solución de problemas",
+   "depends": [
+    "G19",
+    "G24"
+   ],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G32 from origin/main, report docs/team/reports/G32.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
    "id": "O1",
    "owner": "opus",
    "status": "doing",

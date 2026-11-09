@@ -8,11 +8,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Claude | 1 | 2 | 0 | 0 | 20 | 0 | 23 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 6 | 1 | 0 | 0 | 7 | 0 | 14 |
+| Gemini | 13 | 1 | 0 | 0 | 7 | 0 | 21 |
 | Opus | 4 | 1 | 0 | 0 | 0 | 0 | 5 |
 | Mac | 4 | 1 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **18** | **5** | **0** | **0** | **47** | **0** | **70** |
+| **Total** | **25** | **5** | **0** | **0** | **47** | **0** | **77** |
 
 ## Fase: equipo
 
@@ -64,6 +64,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G23 | Gemini | pendiente | Primer arranque e instalador sin modelo real | - |
 | G24 | Gemini | pendiente | Mensajes de error para usuarios | - |
 | G25 | Claude | hecha | Rendimiento de la interfaz: dividir el bundle | - |
+| G26 | Gemini | pendiente | Segunda división del bundle | G25 |
+| G27 | Gemini | pendiente | Actualizar vite y vitest a sus versiones mayores | - |
+| G28 | Gemini | pendiente | Cobertura del smoke: vistas que no abre | - |
 | O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Opus | pendiente | Un espacio de tarea unificado | - |
 | O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |
@@ -107,6 +110,10 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | ID | Quién | Estado | Tarea | Depende de |
 |---|---|---|---|---|
+| G29 | Gemini | pendiente | Garantía de que SPIKE no sale a internet sin permiso | - |
+| G30 | Gemini | pendiente | Las cifras públicas coinciden con los registros | - |
+| G31 | Gemini | pendiente | Página de presentación (sin publicar) | - |
+| G32 | Gemini | pendiente | Preguntas frecuentes y solución de problemas | G19, G24 |
 | L1 | Mac | pendiente | Grabar la demo real | M2 |
 | L2 | Claude | en curso | Revisión final de seguridad y licencias y notas de versión | I3, L1 |
 | L3 | joan | pendiente | Aprobar: repo público, Hugging Face y anuncio | L2 |
