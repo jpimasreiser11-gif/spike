@@ -75,3 +75,53 @@ it("hides a completed wizard and exposes the explicit launcher quit action", asy
   expect((fetcher.mock.calls as unknown as [string, RequestInit][])[1][0]).toBe("/api/setup/quit");
   await act(async () => root.unmount());
 });
+
+it("shows specific messages for offline, interrupted and checksum failures and allows resume, external API or local import (G23)", async () => {
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  let currentData: Record<string, unknown> = {
+    enabled: true, complete: false, can_download: true, low_disk: false,
+    disk_free: 20e9, ram_total: 16e9, ram_available: 10e9, required_disk: 6e9, required_ram: 8e9,
+    specialists: [],
+    job: { status: "failed", file: "qwen3.5-4b", done: 1e9, total: 2.7e9, reason: "interrupted", resumable: true },
+  };
+  const fetcher = vi.fn(async (path: string) => {
+    if (path === "/api/setup/import") {
+      currentData = { ...currentData, complete: true, job: { status: "done", file: "local.gguf", done: 100, total: 100 } };
+      return new Response(JSON.stringify({ ok: true }));
+    }
+    return new Response(JSON.stringify(currentData));
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const host = document.createElement("div"); hosts.push(host); document.body.append(host);
+  const root = createRoot(host);
+  await act(async () => root.render(<SetupWizard />));
+
+  // Interrupted case shows interrupted message and Resume button
+  expect(host.textContent).toContain(t.setup.interrupted);
+  expect(host.textContent).toContain(t.setup.resume);
+
+  // Switch to checksum failure
+  currentData = {
+    ...currentData,
+    job: { status: "failed", file: "qwen3.5-4b", done: 0, total: 0, reason: "checksum", resumable: false },
+  };
+  await act(async () => root.render(<SetupWizard />));
+  const importToggle = [...host.querySelectorAll("button")].find((b) => b.textContent === t.setup.importLocal)!;
+  expect(importToggle).toBeTruthy();
+  await act(async () => importToggle.click());
+
+  const pathInput = host.querySelector('input[data-testid="setup-import-path"]') as HTMLInputElement;
+  expect(pathInput).toBeTruthy();
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    setter?.call(pathInput, "/tmp/local.gguf");
+    pathInput.dispatchEvent(new Event("input", { bubbles: true }));
+    pathInput.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  const confirmBtn = [...host.querySelectorAll("button")].find((b) => b.textContent === t.setup.importConfirm)!;
+  await act(async () => confirmBtn.click());
+  const importCall = fetcher.mock.calls.find((c) => c[0] === "/api/setup/import") as unknown as [string, RequestInit];
+  expect(JSON.parse(importCall[1].body as string)).toEqual({ path: "/tmp/local.gguf", sha256: null });
+  await act(async () => root.unmount());
+});
+
