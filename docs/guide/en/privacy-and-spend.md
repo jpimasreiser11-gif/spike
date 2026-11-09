@@ -1,0 +1,26 @@
+# Privacy, Sandbox, Permissions, Trust, and Spend Control
+
+Language: [Español](../es/privacy-and-spend.md) | **English** · [Guide Index](README.md)
+
+![Privacy, Sandbox, Permissions, Trust, and Spend Control](../images/privacy-and-spend.png)
+
+## What it does
+
+Ensures SPIKE runs 100% locally by default with zero telemetry or unapproved network calls, isolates command and Python execution in an OS **sandbox** (`sandbox-exec` on macOS, `bwrap` on Linux, Job Objects and restricted environment on Windows), gates side effects through the permission broker, verifies answer grounding (**Trust Layer** and HMAC-SHA256 `.spike-proof.json` bundles), and blocks paid providers until explicitly enabled with daily and monthly spend caps.
+
+## Step-by-step usage
+
+1. Open **Settings › Permissions & Sandbox** to select the sandbox mode (`Auto`, `Workspace only`, or `Off`) and per-tool policies (`Ask`, `Allow`, `Deny`).
+2. Open **Settings › Providers** to inspect local (`127.0.0.1`) vs remote/paid providers: paid providers cannot be called or receive local files unless you explicitly enable their toggles and configure spend limits.
+3. Open **Settings › Privacy & Spend** to audit the local call log (`calls`), review per-provider token and cost totals, or clear the call log.
+4. On any chat message, inspect the **Trust** badge (verifying whether numbers and citations trace back to tool outputs) or export a signed **Proof** bundle (`.spike-proof.json`) verifiable via `spike proof verify`.
+
+## Real limits
+
+- Strict OS namespace sandboxing on Linux requires `bubblewrap` (`bwrap`) installed on the host; when unavailable, SPIKE reports its status in Settings and enforces workspace path and environment isolation.
+- External paid providers are tested in CI against local stand-in servers without live billing calls; see [../../../SECURITY.md](../../../SECURITY.md) and [../../STATUS.md](../../STATUS.md).
+
+## How to verify
+
+- Run `.venv/bin/python -m pytest -q tests/test_sandbox.py tests/test_security.py tests/test_trust.py tests/test_proof.py`.
+- Run `cd web && npx vitest run src/trust.test.ts src/proof.test.tsx`.
