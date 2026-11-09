@@ -184,10 +184,13 @@ async def download_file(
                 done += len(chunk)
                 if progress:
                     progress(done, total)
+    if size is not None and part.stat().st_size < size:
+        raise ValueError("Incomplete download")
     if digest and sha256_file(part) != digest:
         part.unlink(missing_ok=True)
         raise ValueError(f"checksum mismatch for {dest.name}")
     if size is not None and part.stat().st_size != size:
+        part.unlink(missing_ok=True)
         raise ValueError("Incomplete download")
     part.replace(dest)
     return dest
