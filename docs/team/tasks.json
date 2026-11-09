@@ -825,6 +825,24 @@
    "note": "2026-11-09: code and tests on branch claude/m14 (5d0898c: 'Answer Selection: X'; extract_option_text, used only when no letter is found and only when the text equals exactly one option). Merged after M3's final verdict. Then, on the Mac (light, no model run): copy each run directory first (rescore_run rewrites predictions.jsonl in place, and the accepted run is evidence), run evals/run_eval.py --rescore on the copies of medicine's and finance's final runs, report base and adapter side by side in STATUS, and check 20 newly parsed answers by hand (the option the answer states must be the parsed letter)."
   },
   {
+   "id": "M15",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Medicina: ficha de Hugging Face del adaptador aceptado (sin publicar)",
+   "depends": [
+    "M11"
+   ],
+   "paths": [
+    "training/runs/medicine/hf/"
+   ],
+   "spec": "Light, no model run; after M3's runs are finished, never while one is running. Build medicine's card with training/model_card.py from the pipeline's own records: the data manifest of the round-2 data (training/data/medicine/manifest.json), the export record of the accepted file spike-medicine-it13270-s0.5 and the final run (training/runs/medicine/sweep/final, summary.json + summary.md). If the accepted file has no export.json of its own (the sweep converted the checkpoint), say so in the report instead of writing one by hand; the card must name the file whose SHA-256 is in adapter.json. Exit code must be 0 (accepted). Push mac/m15 with README.md and banner.png. Nothing is uploaded to Hugging Face: that waits on joan (L3).",
+   "accept": [
+    "card built by the script, exit 0",
+    "the card's file name and numbers match adapter.json and the final summary"
+   ]
+  },
+  {
    "id": "G18",
    "owner": "gemini",
    "status": "doing",
