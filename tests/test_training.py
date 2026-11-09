@@ -1038,7 +1038,9 @@ def test_training_configs_fit_a_36gb_mac_with_the_same_effective_batch():
     for path in (ROOT / "training" / "configs").glob("*.yaml"):
         train = yaml.safe_load(path.read_text(encoding="utf-8"))["train"]
         assert train["batch_size"] == 1, path.name
-        assert train["max_seq_length"] <= 768, path.name  # measured: 18.7 GB peak RSS at 768, OOM at 1024
+        # measured with the chunked gated delta (2026-11-09, one LoRA step, M4 Max): 11.08 GB peak at 768 tokens,
+        # 12.75 GB at 1536, 14.46 GB at 2048; without it 768 already took 18.7 GB RSS and 1024 ran out of memory
+        assert train["max_seq_length"] <= 1536, path.name
         if path.stem == "personal":  # tens of examples, not tens of thousands: a smaller effective batch (4) so that two
             assert train["grad_accumulation_steps"] == 4  # epochs still make a few dozen optimizer updates (EV6)
             continue
