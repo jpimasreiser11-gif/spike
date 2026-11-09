@@ -39,7 +39,9 @@ acknowledge reports within 7 days.
   replaced by a notice before the request is built. A test checks the requests on the wire. Not covered: text you
   type or paste yourself, the output of the `python` tool (you approve each script) and custom connectors.
   Optional monthly limits per provider (tokens, or spend at the prices you enter) stop calls before they are
-  sent, and every call is written to a local call log (provider, model, tokens, files sent or withheld, status;
+  sent. They count the calls that have finished: calls already running when the limit is reached (two chats at once,
+  parallel workflow steps) and the call that crosses it can go past it by their own size; a batch of parallel minds is
+  checked as a whole before it starts. Every call is written to a local call log (provider, model, tokens, files sent or withheld, status;
   Settings → Privacy), kept 400 days. An address in the call log, in a proof package (providers and call details) or in an
   exported pack keeps its scheme, host, port and path only: userinfo (`user:key@host`), query (`?api_key=`) and fragment
   are dropped. The text of your messages, and what a tool or a model wrote in a chat, is exported as it is.

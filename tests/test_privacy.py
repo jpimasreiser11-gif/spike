@@ -294,3 +294,20 @@ async def test_a_forge_file_written_from_the_users_file_is_withheld_from_a_remot
     assert len(remote.requests) == 1 and all(SECRET not in m.content for m in remote.requests[0].messages)
     assert "[file content withheld" in remote.requests[0].messages[-1].content  # the checker
     assert events[-1]["type"] == "done" and events[-1]["private"] is True
+
+
+async def test_a_monthly_limit_counts_finished_calls_so_calls_already_running_can_cross_it(tmp_path):
+    """O4-2: the check before each call reads the calls logged so far. Two calls that start before either finishes
+    both pass and together go past the limit; the next call is stopped. SECURITY.md says so. A batch of parallel
+    minds is checked as a whole before it starts (guard_minds in spike/server/app.py)."""
+    store = Store(tmp_path / "s.db")
+    inner = ScriptedProvider([text("x" * 400), text("y" * 400), text("z")], name="x")
+    inner.config.local = False
+    guard = GuardedProvider(inner, store, limits=lambda: {"monthly_tokens": 150})
+    request = ChatRequest(messages=[Message(role="user", content="hola")])
+    first, second = guard.stream(request), guard.stream(request)
+    assert (await first.__anext__()).kind == "text" and (await second.__anext__()).kind == "text"  # both running
+    _ = [e async for e in first], [e async for e in second]
+    assert sum(r["tokens_in"] + r["tokens_out"] for r in store.calls()) > 150
+    third = [e async for e in guard.stream(request)]
+    assert third[0].kind == "error" and "monthly limit is reached" in third[0].text

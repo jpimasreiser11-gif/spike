@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 1 | 3 | 0 | 0 | 20 | 0 | 24 |
+| Claude | 1 | 2 | 0 | 0 | 21 | 0 | 24 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 27 | 1 | 0 | 0 | 7 | 0 | 35 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **37** | **7** | **0** | **0** | **47** | **0** | **91** |
+| **Total** | **37** | **6** | **0** | **0** | **48** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -84,7 +84,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Opus | pendiente | Un espacio de tarea unificado | - |
 | O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |
-| O4 | Claude | en curso | Revisión de seguridad previa al lanzamiento (para L2) | - |
+| O4 | Claude | hecha | Revisión de seguridad previa al lanzamiento (para L2) | - |
 | O5 | Opus | pendiente | Revisar la integración del PR #2 | M13 |
 
 ## Fase: modelos

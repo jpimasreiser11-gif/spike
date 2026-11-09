@@ -1273,7 +1273,7 @@
   {
    "id": "O4",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Revisión de seguridad previa al lanzamiento (para L2)",
    "depends": [],
@@ -1282,7 +1282,7 @@
    "accept": [
     "report and tests reviewed by Claude"
    ],
-   "note": "2026-11-09: taken by Claude while the Mac is off (Opus out of usage). Builds on the L2 review (docs/release/REVIEW-v0.1.md section 2): this pass covers what it did not, a malicious model answer and a malicious MCP server against the permission broker, spend limits under parallel calls, and secrets in API answers and logs."
+   "note": "2026-11-09: done by Claude, docs/audits/2026-11-security-review.md. O4-1 (Medium, fixed): answers could make the browser load remote images/styles/media and leak conversation data; O4-2 (Low, documented): monthly limits count finished calls, so calls in flight can cross them; no stored key comes back from 34 GET routes, the database or logs (guard test)."
   },
   {
    "id": "O5",
