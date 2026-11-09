@@ -21,7 +21,7 @@
 .device-lab-table { overflow-x: auto; margin: 12px 0; }
 .device-lab table { border-collapse: collapse; width: 100%; font-size: 13px; }
 .device-lab th, .device-lab td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.device-lab tr[data-status=pass] td:nth-child(3) { color: var(--accent-ink); font-weight: 600; }
+.device-lab tr[data-status=pass] td:nth-child(3) { color: var(--ok-ink); font-weight: 600; }
 .device-lab tr[data-status=fail] td:nth-child(3), .device-lab tr[data-status=error] td:nth-child(3) { color: var(--danger); font-weight: 600; }
 .device-lab-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
 .device-lab-shot { max-width: 100%; max-height: 520px; border: 1px solid var(--border); border-radius: 8px; }

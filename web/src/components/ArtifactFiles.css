@@ -7,5 +7,5 @@
 .artifact-file-text { margin-top: 10px; }
 .artifact-file-text .row { justify-content: space-between; }
 .artifact-file-text pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; font-size: 13px; }
-.artifact-file-text pre:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.artifact-file-text pre:focus, .artifact-file-text pre:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 .artifact-file-hint { margin: 6px 0 0; }

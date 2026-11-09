@@ -44,7 +44,7 @@ export function ArtifactPanel({ doc, onClose }: { doc: ArtifactDoc; onClose: () 
           <b>{doc.title}</b>
           <span className="muted small">{t.artifactIsolated}</span>
         </div>
-        <div className="seg" role="tablist">
+        <div className="seg" role="tablist" aria-label={t.artifact}>
           <button role="tab" aria-selected={view === "preview"} className={view === "preview" ? "on" : ""} onClick={() => setView("preview")}>{t.preview}</button>
           <button role="tab" aria-selected={view === "code"} className={view === "code" ? "on" : ""} onClick={() => setView("code")}>{t.code}</button>
         <button role="tab" aria-selected={view === "comments"} onClick={() => setView("comments")}>{t.artifactComments}</button>

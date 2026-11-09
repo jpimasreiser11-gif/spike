@@ -7,4 +7,4 @@
 .forge-skills-list article > .badge { margin: 0 0 0 8px; }
 .forge-skills-list .check { display: inline-flex; overflow-wrap: anywhere; }
 .forge-skills-list p { margin-bottom: 0; }
-.forge-skills :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+.forge-skills :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }

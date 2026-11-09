@@ -55,7 +55,7 @@
 .wf-node.target .wf-box { stroke: var(--text); stroke-width: 3; stroke-dasharray: 6 3; }
 .wf-node.chosen .wf-box { stroke: var(--text); stroke-width: 5; stroke-dasharray: none; fill: var(--accent-soft); }
 .wf-node.st-running .wf-box { stroke: var(--accent); stroke-width: 4; animation: wf-pulse 1.2s ease-in-out infinite; }
-.wf-node.st-ok .wf-box { stroke: var(--green-dark); }
+.wf-node.st-ok .wf-box { stroke: var(--ok-ink); }
 .wf-node.st-failed .wf-box, .wf-node.st-denied .wf-box { stroke: var(--danger); stroke-width: 4; }
 .wf-node.st-skipped .wf-box { stroke-dasharray: 3 4; opacity: 0.7; }
 .wf-node.st-cancelled .wf-box { stroke: var(--warn); stroke-width: 4; stroke-dasharray: 8 4; }
@@ -65,14 +65,14 @@
 .wf-name { font: 600 14px var(--font); fill: var(--text); pointer-events: none; }
 .wf-sub { font: 12px var(--font); fill: var(--text-2); pointer-events: none; }
 .wf-state { font: 600 10.5px var(--font); pointer-events: none; fill: var(--text-2); }
-.wf-state.st-ok { fill: var(--green-dark); }
+.wf-state.st-ok { fill: var(--ok-ink); }
 .wf-state.st-failed, .wf-state.st-denied { fill: var(--danger); }
 .wf-state.st-cancelled { fill: var(--warn); }
 .wf-bad { fill: var(--danger); }
 .wf-bad-text { font: 700 11px var(--font); fill: #fff; pointer-events: none; }
 .wf-port { fill: var(--surface); stroke: var(--text-2); stroke-width: 2; }
 .wf-port.out { cursor: crosshair; }
-.wf-port.out.true { stroke: var(--green-dark); }
+.wf-port.out.true { stroke: var(--ok-ink); }
 .wf-port.out.false { stroke: var(--danger); }
 .wf-port.out:hover { fill: var(--accent); }
 .wf-port.in.target { fill: var(--accent); stroke: var(--text); }

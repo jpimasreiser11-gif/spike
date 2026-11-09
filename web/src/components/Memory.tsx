@@ -130,7 +130,7 @@ function Notes({ settings, save }: { settings: Settings; save: (p: Partial<Setti
           </div>
           {editing?.id === m.id ? (
             <div className="memory-edit">
-              <textarea rows={3} value={editing.text} onChange={(e) => setEditing({ ...editing, text: e.target.value })} />
+              <textarea rows={3} aria-label={M.edit} value={editing.text} onChange={(e) => setEditing({ ...editing, text: e.target.value })} />
               <div className="row">
                 <button className="btn primary" onClick={() => run(async () => { await api.put(`/api/memory/${m.id}`, { text: editing.text }); setEditing(null); })}>{M.save}</button>
                 <button className="btn" onClick={() => setEditing(null)}>{M.cancel}</button>
