@@ -1,6 +1,6 @@
-# Prompt para Gemini (Argon), segundo lote — SPIKE, G18–G24 y G26–G40
+# Prompt para Gemini (Argon), segundo lote — SPIKE, G18–G24, G26–G32 y G33–G46
 
-Copia todo lo que hay debajo de la línea y pégalo a Gemini. Sustituye al prompt anterior.
+Copia todo lo que hay debajo de la línea y pégalo a Gemini. Sustituye al prompt anterior. Las IDs G26–G32 son las de Claude en el repo; las nuevas empiezan en G33.
 
 ---
 
@@ -59,71 +59,72 @@ bloquea, déjala con "Preguntas para Claude" y pasa a la siguiente.
 - **G24** Mensajes de error para usuarios (y test de que ninguna ruta responde 500 ni filtra rutas absolutas).
 - (G25 ya está hecho en `main`: no la repitas.)
 
-## 4. Tareas nuevas, en este orden
+Después, **G26–G32**, tal como las especifica Claude en `docs/team/prompts/PROMPT-GEMINI-ARGON.md` de `origin/main`
+(sección de continuación del 9-11): G26 segunda división del bundle, G27 vite y vitest a sus versiones mayores, G28
+cobertura del smoke, G29 garantía de que SPIKE no sale a internet sin permiso, G30 las cifras públicas coinciden con los
+registros, G31 página de presentación sin publicar, G32 preguntas frecuentes y solución de problemas. Lee allí cada
+especificación antes de empezarla.
 
-**G26 — Primer uso guiado.** Un recorrido corto la primera vez que se abre la app (es/en), que se puede saltar y volver a
+## 4. Tareas nuevas (G33–G46), después de G32, en este orden
+
+**G33 — Primer uso guiado.** Un recorrido corto la primera vez que se abre la app (es/en), que se puede saltar y volver a
 abrir desde Ajustes: qué es SPIKE, elegir modelo local o proveedor, primer chat, proyectos, permisos y privacidad. Sin
 llamadas de red. Estado de "visto" en el almacén existente de ajustes (no en localStorage como única fuente). Vitest y paso
 en el smoke.
 
-**G27 — Copia de seguridad y restauración.** Exportar y restaurar la configuración y los datos del usuario de
+**G34 — Copia de seguridad y restauración.** Exportar y restaurar la configuración y los datos del usuario de
 `~/.spike` (ajustes, proyectos, memoria, skills propias, historial) a un ZIP, **sin secretos ni claves** (comprobado por
 test), con manifiesto y SHA-256 por archivo, vista previa antes de restaurar y restauración que no pisa nada sin
 confirmar. Casos hostiles en tests: rutas `../`, enlaces simbólicos, ZIP truncado, versión desconocida.
 
-**G28 — Paleta de comandos y atajos.** `Ctrl/Cmd+K` abre una paleta con las acciones principales (nuevo chat, cambiar
+**G35 — Paleta de comandos y atajos.** `Ctrl/Cmd+K` abre una paleta con las acciones principales (nuevo chat, cambiar
 especialista, abrir proyecto, Forge, Dev, Ajustes, buscar en el historial…), navegable solo con teclado, accesible
 (roles ARIA) y traducida. Lista de atajos en Ajustes. Vitest y smoke.
 
-**G29 — Exportar y borrar todos mis datos.** Una pantalla de privacidad con "exportar todo" (G27 sin secretos) y "borrar
+**G36 — Exportar y borrar todos mis datos.** Una pantalla de privacidad con "exportar todo" (G34 sin secretos) y "borrar
 todo" con doble confirmación, que borra de verdad chats, memoria, índices, vectores, checkpoints, archivos de proyecto y
 cachés de SPIKE (no modelos descargados salvo que se marque). Test que comprueba en disco que no queda nada y que los
 secretos del llavero no se tocan sin pedirlo.
 
-**G30 — Referencia de la API.** Script sin dependencias nuevas que genera `docs/api/` (es/en) desde el OpenAPI de
+**G37 — Referencia de la API.** Script sin dependencias nuevas que genera `docs/api/` (es/en) desde el OpenAPI de
 FastAPI y desde `/v1` y `/mcp`: rutas, parámetros, ejemplos `curl`, códigos de error. Comprobación en CI de que está al
 día (`--check`, como `COMPATIBILITY.md`).
 
-**G31 — Ayuda de la línea de comandos.** Todas las órdenes de `spike` (`serve`, `doctor`, `models`, `bench`, `dev`,
+**G38 — Ayuda de la línea de comandos.** Todas las órdenes de `spike` (`serve`, `doctor`, `models`, `bench`, `dev`,
 `tune`, `evolve`, `skills`, `connectors`, `render`…): `--help` coherente en es/en, ejemplos reales, y una página
 `docs/guide/cli.md`. Test que recorre el parser y falla si una orden u opción no tiene ayuda.
 
-**G32 — Proyectos de ejemplo.** 6 proyectos listos para probar (es/en): una hoja de gastos para Analytics, un informe
+**G39 — Proyectos de ejemplo.** 6 proyectos listos para probar (es/en): una hoja de gastos para Analytics, un informe
 para Creator, una mini web para Dev, un documento largo para memoria y búsqueda, un flujo de Workflows y un caso de
 Finance en modo simulado. Escritos por ti, sin datos personales ni marcas. Se importan desde la pantalla de proyectos
 con un clic. Test de que cada uno se importa y su contenido carga. Servirán para la demo L1.
 
-**G33 — Ajustes: revisión completa.** Recorre todas las pestañas de Ajustes: cada control funciona de verdad (si no,
+**G40 — Ajustes: revisión completa.** Recorre todas las pestañas de Ajustes: cada control funciona de verdad (si no,
 quítalo o márcalo como no disponible), valores por defecto seguros, validación de entradas, textos claros es/en, nada
 que se pierda al recargar. Tests por pestaña.
 
-**G34 — Diseño móvil.** Más allá de G18: todas las vistas a 375 px y 768 px sin scroll horizontal, objetivos táctiles de
+**G41 — Diseño móvil.** Más allá de G18: todas las vistas a 375 px y 768 px sin scroll horizontal, objetivos táctiles de
 al menos 44 px, teclado virtual que no tapa el compositor. Capturas en el informe y smoke en móvil.
 
-**G35 — Arranque rápido del servidor.** Mide cuánto tarda `spike serve` hasta responder `/api/health` (5 repeticiones,
+**G42 — Arranque rápido del servidor.** Mide cuánto tarda `spike serve` hasta responder `/api/health` (5 repeticiones,
 mediana) y qué importa al arrancar (`python -X importtime`). Retrasa con imports perezosos lo pesado que no hace falta
 al inicio (analytics, motion, finance, documentos…) sin cambiar comportamiento. Antes/después en el informe y un test
 de que esos módulos no se importan al arrancar.
 
-**G36 — Registro de errores local.** Un visor de errores en Ajustes con los últimos fallos de la app (sin rutas
+**G43 — Registro de errores local.** Un visor de errores en Ajustes con los últimos fallos de la app (sin rutas
 absolutas, sin contenido de archivos, sin secretos) y un botón "copiar como issue" que prepara el texto, sin enviar nada.
 Rotación con límite de tamaño. Tests de que se anonimiza.
 
-**G37 — Página del proyecto.** Una página estática en `docs/site/` (es/en, HTML/CSS sin dependencias ni scripts de
-terceros) que explica SPIKE con capturas reales generadas por el smoke, la tabla de especialistas con su estado real
-(medicina aceptada; el resto como perfiles de instrucciones hasta pasar su criterio), requisitos y descarga. Todo dato
-sale de `STATUS.md`; nada exagerado. Lista para GitHub Pages pero **sin publicar**.
-
-**G38 — Consistencia del catálogo de especialistas.** Test que comprueba que cada especialista del catálogo tiene receta
+**G44 — Consistencia del catálogo de especialistas.** Test que comprueba que cada especialista del catálogo tiene receta
 de entrenamiento o motivo documentado, suites de evaluación y de selección, avatar y banner, textos es/en, palabras del
 router y una entrada en `docs/SPECIALISTS.md`, y que el estado del adaptador coincide con los recibos de aprobación.
 Arregla lo que falte sin tocar recetas ni criterios.
 
-**G39 — Pruebas de humo de los instaladores sin modelo.** Con el lanzador de escritorio y un modelo de prueba diminuto
+**G45 — Pruebas de humo de los instaladores sin modelo.** Con el lanzador de escritorio y un modelo de prueba diminuto
 de los tests: script que instala desde los artefactos de CI en una carpeta temporal, arranca, comprueba `/api/health` y
 `/v1/models`, y desinstala limpio. Documenta qué cubre y qué no (no sustituye a I3).
 
-**G40 — Revisión final de textos.** Todos los textos visibles (app, README, guía, página): ortografía es/en, tono
+**G46 — Revisión final de textos.** Todos los textos visibles (app, README, guía, página): ortografía es/en, tono
 coherente, sin promesas sin medir, mismos nombres para lo mismo. Lista de cambios en el informe.
 
 ## 5. Al terminar
