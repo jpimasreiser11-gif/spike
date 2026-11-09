@@ -60,7 +60,7 @@ export function Composer({ onSend, onStop, busy, mode, setMode, providerId, setP
   }, [text]);
 
   useEffect(() => {
-    if (autoFocus) ref.current?.focus();
+    if (autoFocus && (!document.activeElement || document.activeElement === document.body)) ref.current?.focus();
   }, [autoFocus]);
 
   const minds = mindsSpec(mindsOn && format === "text", mindsN, custom ? picks : null);
