@@ -23,3 +23,5 @@ Each page explains what the module does, how to use it step by step, its real me
 | [MCP Connectors, Assisted Browser, and Desktop Actions](connectors.md) | `connectors` | [Español](../es/connectors.md) |
 | [Privacy, Sandbox, Permissions, Trust, and Spend Control](privacy-and-spend.md) | `privacy-and-spend` | [Español](../es/privacy-and-spend.md) |
 | [FAQ & Troubleshooting](faq.md) | `faq` | [Español](../es/faq.md) |
+
+Command line: every `spike` command and option is in [cli.md](cli.md), generated from the code.
