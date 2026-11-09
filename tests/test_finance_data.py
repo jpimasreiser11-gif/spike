@@ -477,7 +477,8 @@ def test_finance_recipe_trains_on_audited_sources_and_is_scored_on_the_held_out_
     assert reg["finqa-train"]["format"] == "finqa_train" and reg["finqa-test"]["format"] == "finqa"
     assert cfg["replay"]["ratio"] == 0.3 and [e["source"] for e in cfg["replay"]["sources"]] == ["oasst2"]
     assert set(cfg["decontaminate_against"]) == {"mmlu-pro", "finqa-test", "tatqa-test"}
-    assert cfg["train"]["max_seq_length"] == 768 and eval_args(cfg) == ["--max-tokens", "2048"]
+    # round 2 (M3, 2026-11-09): the one change is the window, 768 -> 1536 tokens (STATUS, "Finance adapter, round 1")
+    assert cfg["train"]["max_seq_length"] == 1536 and eval_args(cfg) == ["--max-tokens", "2048"]
     keep = {"ugursa/Yahoo-Finance-News-Sentences", "zeroshot/twitter-financial-news-topic",
             "zeroshot/twitter-financial-news-sentiment", "yixuantt/FinEntity"}
     assert reg["sujet-finance"]["role"] == "train" and set(reg["sujet-finance"]["filter"]["dataset"]) == keep
