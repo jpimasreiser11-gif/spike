@@ -54,10 +54,13 @@ Scope, data and evaluation of each one: [docs/SPECIALISTS.md](docs/SPECIALISTS.m
    machine at 5.1–6.2 tok/s up to an 8K prompt, with 3.6 GiB of anonymous memory (peak RSS 6.1 GiB, which also counts
    the mapped model file). The slow cases are published too, below.
 2. **Specialists that share one model.** Thirteen specialists share the base in memory and, once trained, switch as
-   ~42 MB adapters (computed) without a reload. Today none has a trained adapter that passed its acceptance test:
-   each runs as a prompt profile on the base model, is marked β, and is not claimed to beat the base until it passes.
+   ~42 MB adapters (computed) without a reload. Today one specialist adapter (Medicine) has passed its acceptance test
+   (+35.07 points on 2,318 medical benchmark questions, −0.62 on general knowledge; not published yet): until a
+   specialist's adapter passes and is installed, it runs as a prompt profile on the base model, is marked β, and is not
+   claimed to beat the base.
 3. **Routing before spending compute.** A lexical router sends clear requests to a specialist without a model
-   call (46/50 on a held-out set, measured); only multi-domain or ambiguous requests get an LLM plan.
+   call (116/130 = 0.89 on the blind holdout set, 48/50 = 0.96 on the original test split, measured); only multi-domain
+   or ambiguous requests get an LLM plan.
 4. **Local first, external APIs when you choose.** The same instructions, specialists and tools run on the local
    model or on providers you allow; paid ones stay blocked until you enable them (tested against stand-in
    endpoints, not yet against live services).
@@ -111,8 +114,9 @@ What they do that SPIKE does not:
 - **LM Studio** is a desktop app with an in-app model catalog, a CLI, SDKs and a headless mode (`llmster`).
 - **Open WebUI** describes itself as multi-user, with roles and groups, document search (RAG) and a model arena.
   SPIKE is one person on one computer.
-- **Jan** is a desktop app with installers for Windows, macOS and Linux. SPIKE is a Python package plus llama.cpp,
-  set up from the terminal or by the installer scripts; it has no packaged desktop app.
+- **Jan** is a desktop app with installers for Windows, macOS and Linux. SPIKE runs as a local Python server plus
+  llama.cpp with script installers (`scripts/`) and unsigned native installer candidates (`.dmg`, `.exe`, `.AppImage`
+  in `packaging/`, tested on clean GitHub runners; not published or code-signed yet).
 - **SPIKE is new**: it has the measurements in this repository and no track record yet.
 
 Not claimed here: that SPIKE answers better than any of them (only Medicine has an accepted verdict, and it is

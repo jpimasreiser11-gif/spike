@@ -28,7 +28,7 @@ claimed until measured.
   writing, business, security) = the brand catalogue; one adapter each except core. Catalogue in
   `spike/specialists/catalog.yaml`, details in [SPECIALISTS.md](SPECIALISTS.md).
 - **Acceptance**: each adapter passes its config's acceptance block; until then it runs as a prompt profile marked β.
-- **Status**: ✅ catalogue, prompts and routing keywords; ⬜ adapters (none trained yet).
+- **Status**: ✅ catalogue, prompts and routing keywords; 🟡 adapters: Medicine accepted (round 2, +35.07 pts, general −0.62, not published yet); Finance round 1 rejected (general −3.00), round 2 in progress; remaining recipes ready.
 
 ## 4. Shared memory / model management
 - **Decision**: one llama-server process, all adapters loaded, per-request explicit scales, `--parallel 1`. [ADR 0004](adr/0004-adapter-serving.md).
@@ -39,12 +39,12 @@ claimed until measured.
 - **Decision**: bf16 LoRA on mlx-lm, verified distillation, replay. [ADR 0002](adr/0002-training-method.md).
 - **Tasks**: per specialist `prepare.py` → (`distill.py`) → `train.sh` → `export_adapter.py` → eval; one command: `training/scripts/run_specialist.sh`.
 - **Acceptance**: config acceptance criteria met on held-out evals; `run.json` + eval `summary.json` committed.
-- **Status**: ✅ pipeline unit/integration tested (export numerically verified); ⬜ first real run (medicine) on the Mac.
+- **Status**: ✅ pipeline unit/integration tested (export numerically verified); ✅ Medicine round 1 (rejected) and round 2 (accepted, 2026-11-05) completed on the Mac; 🟡 Finance round 2 and remaining specialists in progress.
 
 ## 6. Datasets and licenses
 - **Decision**: registry `training/datasets.yaml` with role (train/eval/excluded), license re-checked on the Hub; train allowlist = permissive licenses only.
 - **Acceptance**: prepare.py refuses non-allowlisted or role-mismatched sources; manifest records license and SHA-256 per run.
-- **Status**: ✅ gate tested (`tests/test_training.py`); 🟡 sources for medicine/finance/marketing chosen; others pending.
+- **Status**: ✅ gate tested (`tests/test_training.py`); ✅ 15 sources verified on the Hub (`training/verify_sources.py`, M7) and topic-seeded distillation configured for Marketing, Science and Data (M10).
   Llama-3.1-generated replay (smol-magpie-ultra) excluded after reading the Llama 3.1 license (§1.b.i: models trained on
   its outputs must start their name with "Llama"); human-written OpenAssistant oasst2 replaces it.
 
@@ -78,7 +78,7 @@ claimed until measured.
 
 ## 13. Visual design
 - **Decision**: joan's official cactus logo and palette (`brand/`); derived icons only; specialist colours; light/dark.
-- **Acceptance**: no invented logo; brand consistent in app, README and installers. **Status**: ✅ app (favicons, PWA icons, specialist avatars, empty/error/no-model illustrations) and README from joan's brand set in `brand/`; ✅ Hugging Face model cards (`training/model_card.py`, per-specialist banner); ⬜ native installer icons and DMG/NSIS art, ready in `brand/icons/` and `brand/installers/`, wait for native packages (today's installers are scripts).
+- **Acceptance**: no invented logo; brand consistent in app, README and installers. **Status**: ✅ app (favicons, PWA icons, specialist avatars, empty/error/no-model illustrations) and README from joan's brand set in `brand/`; ✅ Hugging Face model cards (`training/model_card.py`, per-specialist banner); ✅ native installer candidates (`.dmg`, `.exe`, `.AppImage`) and desktop launcher (`spike/launcher/`, `packaging/`) built and tested on clean GitHub runners (I1–I3; unsigned, awaiting release).
 
 ## 14. Tools and connectors
 - **Decision**: built-in tools with per-tool allow/ask/deny: calculator, time, workspace read/list/write, sandboxed Python (rlimits, timeout; network not blocked, documented), web fetch (private IPs blocked).
@@ -95,31 +95,31 @@ claimed until measured.
 
 ## 17. Performance on 16 GB machines
 - **Tasks**: `spike doctor` (memory plan) and `spike bench` on (a) a 16 GB x86 CPU-only machine, (b) Apple Silicon; record build, threads, quant, KV type.
-- **Acceptance**: measured table in STATUS.md; installer refuses or warns below requirements. **Status**: 🟡 tools ready; measurements ⬜.
+- **Acceptance**: measured table in STATUS.md; installer refuses or warns below requirements. **Status**: ✅ measured on the 16 GB 4-core x86 CPU target and on Apple M4 Max ([STATUS.md](STATUS.md#measured-with-real-weights), `evals/results/bench-x86-16gb-20261018`, `evals/results/bench-mac-20261017`).
 
 ## 18. System compatibility
 - **Decision**: claim only tested platforms. Targets: macOS arm64 (Metal), Linux x86_64 (AVX2), Windows x86_64.
 - **Acceptance**: CI green on Linux/macOS/Windows for the app; real-model smoke per platform before claiming it.
-- **Status**: ✅ Linux x86_64 (tests incl. real llama-server); ⬜ others.
+- **Status**: ✅ CI green on Linux, macOS and Windows (`.github/workflows/ci.yml`); ✅ real-model installer runs on Ubuntu 24.04, macOS arm64 and Windows Server 2022/2025 ([STATUS.md](STATUS.md)); ⬜ desktop (non-server) Windows.
 
 ## 19. Installation and distribution
 - **Decision**: `pipx`/`uv tool` install of the Python package with the built web app inside; `scripts/install.sh` / `install.ps1` show and confirm each step, install llama.cpp through its official Homebrew formula or winget package (or point to the official releases) and run `spike doctor`; model download with license check and SHA-256 verification (`spike models pull`).
-- **Acceptance**: fresh-machine install to first answer in ≤ 3 commands, verified per platform. **Status**: ✅ on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): installer, model download and a first answer from the real model (`.github/workflows/installers.yml`, STATUS.md); wheel and sdist build verified; ✅ Windows PowerShell 5.1 and Linux without Homebrew on clean runners (2026-10-20); ⬜ a desktop (non-server) Windows.
+- **Acceptance**: fresh-machine install to first answer in ≤ 3 commands, verified per platform. **Status**: ✅ on clean GitHub runners (Ubuntu 24.04, macOS 26 arm64, Windows Server 2025): installer, model download and a first answer from the real model (`.github/workflows/installers.yml`, STATUS.md); wheel and sdist build verified; ✅ Windows PowerShell 5.1 and Linux without Homebrew on clean runners (2026-10-20); ✅ native installer candidates (`.dmg`, `.exe`, `.AppImage`) tested on clean runners (I2, I3); ⬜ a desktop (non-server) Windows.
 
 ## 20. Tests and benchmarks
 - **Decision**: pytest (unit, API, real llama-server integration, official-converter export), Vitest, Playwright smoke, router eval, model evals with Wilson CIs and McNemar, `spike bench`.
-- **Acceptance**: CI runs everything that needs no weights; model results reproducible from committed configs. **Status**: ✅ 109 Python + 5 web tests; CI workflow (`.github/workflows/ci.yml`: Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) green on GitHub since 2026-10-18; 🟡 model results: Mac benchmarks and baseline measured, adapters pending.
+- **Acceptance**: CI runs everything that needs no weights; model results reproducible from committed configs. **Status**: ✅ 3,000+ Python tests and 250+ web Vitest tests; CI workflow (`.github/workflows/ci.yml`: Python on Linux/macOS/Windows, web, package, browser smoke, llama.cpp integration) green on GitHub since 2026-10-18; ✅ Mac and 16 GB x86 benchmarks, baseline, and Medicine adapter (accepted) measured; 🟡 remaining specialist adapters in progress.
 
 ## 21. Documentation
 - README, ARCHITECTURE, RESEARCH, PLAN, STATUS, SPECIALISTS, TRAINING, ADRs, SECURITY, CONTRIBUTING, THIRD_PARTY. **Status**: ✅ written; kept in sync with evidence.
 
 ## 22. Licensing and publication
 - **Decision**: code Apache-2.0; adapters Apache-2.0 (base is Apache-2.0); datasets used only under allowlisted licenses with attribution in THIRD_PARTY.md and each adapter's manifest; no third-party brand assets.
-- **Acceptance**: every released artifact has a license and provenance record. **Status**: ✅ code; ⬜ adapters (none yet).
+- **Acceptance**: every released artifact has a license and provenance record. **Status**: ✅ code and third-party license bundle (`packaging/collect_licenses.py`, L2); 🟡 Medicine adapter accepted with provenance receipt (`spike/specialists/acceptance/medicine.json`), awaiting publication.
 
 ## 23. Open-source strategy
 - **Plan**: publish when P1 measurements exist (real numbers make the README credible); good-first-issues for new specialists' recipes; reproducible eval tables; issue templates; transparent STATUS.md.
-- **Status**: ✅ issue templates (bug, specialist recipe) and PR template in `.github/`; joan chose a private GitHub repository `spike`, made public once P1 results exist; ⬜ first push.
+- **Status**: ✅ issue templates (bug, specialist recipe) and PR template in `.github/`; code on `main` of joan's private GitHub repository `spike`; ⬜ making the repository and accepted adapters public (waits for joan's OK).
 
 ## 24. Objective completion criteria
 SPIKE 1.0 is done only when all 15 conditions of the directive hold with evidence. Current mapping:
@@ -127,20 +127,20 @@ SPIKE 1.0 is done only when all 15 conditions of the directive hold with evidenc
 | # | Condition | Status |
 |---|---|---|
 | 1 | Viable, documented architecture | ✅ ADRs 0001–0004 |
-| 2 | Real specialist adapters with data, configs, evals | ⬜ pipeline ✅, adapters pending |
+| 2 | Real specialist adapters with data, configs, evals | 🟡 pipeline ✅, Medicine adapter accepted (+35.07 pts, general −0.62), remaining adapters in progress |
 | 3 | Orchestrator coordinates verifiably | ✅ tests + router eval; 🟡 real-weight quality |
-| 4 | Runs on target hardware, limits measured | ⬜ |
+| 4 | Runs on target hardware, limits measured | ✅ 16 GB x86 CPU-only and M4 Max measured ([STATUS.md](STATUS.md#measured-with-real-weights)) |
 | 5 | Real professional app | ✅ |
-| 6 | Local specialists usable | 🟡 as prompt profiles until adapters pass |
+| 6 | Local specialists usable | 🟡 Medicine adapter accepted (local); others run as prompt profiles until their adapters pass |
 | 7 | External providers unified | ✅ unit-tested; ⬜ live |
 | 8 | Configurable instructions work per backend | ✅ tests |
 | 9 | Tools work | ✅ |
 | 10 | Main components tested | ✅ |
-| 11 | Usable install and distribution | 🟡 |
+| 11 | Usable install and distribution | ✅ script and native installers verified on clean Linux/macOS/Windows runners; ⬜ desktop Windows and code signing |
 | 12 | Documented | ✅ |
-| 13 | Licenses respected | ✅ gate; ⬜ adapter releases |
-| 14 | Repo ready for open source | 🟡 waiting for repository |
-| 15 | Reproducible evidence of function, performance, quality | 🟡 function ✅; performance and quality ⬜ |
+| 13 | Licenses respected | ✅ gate + bundled notices (`packaging/collect_licenses.py`); ⬜ public adapter releases |
+| 14 | Repo ready for open source | 🟡 on private GitHub `main` with CI green; waiting for owner's OK to make public |
+| 15 | Reproducible evidence of function, performance, quality | ✅ function and performance measured; 🟡 specialist quality: Medicine ✅, remaining specialists in progress |
 
 ## 25. Improvements adopted from the 2026-10-17 review
 Source: the founder asked to build every viable item of an external proposal; analysis and task list kept in the
@@ -214,17 +214,15 @@ Order of the next rounds, after the medicine verdict:
 
 **Cheap additions to B/C:** answer contracts (`response_format` with validation in `/v1` and the UI) ✅, temporary chats
 (nothing saved, no memory) ✅, branch a chat when a message is edited ✅, human handoff (the agent pauses with a question
-and resumes) ✅, Blueprint as Forge's first phase ✅, proof package export ✅, opt-in folder indexing in Neural Memory,
-citation inspector, deterministic visual critic (Playwright + axe-core, MPL-2.0), dependency doctor (pip-audit,
-Apache-2.0), data-to-software template after Analytics, `spike skills validate` / `spike connectors validate` in CI,
-`spike bench --share` (anonymous JSON for an issue, no telemetry), docs/COMPATIBILITY.md, versioned JSON Schemas.
+and resumes) ✅, Blueprint as Forge's first phase ✅, proof package export ✅, opt-in folder indexing in Neural Memory ✅,
+citation inspector (Trustworthy answers, A6) ✅, deterministic visual critic and dependency doctor (A5) ✅,
+data-to-software template after Analytics (A12) ✅, `spike skills validate` / `spike connectors validate` in CI (A1) ✅,
+`spike bench --share` (anonymous JSON for an issue, no telemetry, A2) ✅, [COMPATIBILITY.md](COMPATIBILITY.md) ✅, versioned JSON Schemas (A2) ✅.
 
 **As skills, no new code:** decision simulator, test inventor, migration architect, performance profiler,
-localization, SVG vector designer, experiment designer, synthetic data (Faker), system diagnostic.
+localization, SVG vector designer, experiment designer, synthetic data (Faker), system diagnostic (all 9 bundled and tested in A1 ✅).
 
-**After launch or not now:** parallel minds, reverse studio, architecture explorer, parallel prototypes, 3D, game,
-audio and subtitle studios, knowledge graph, notebooks, prompt evolution;
-no desktop control with the local model, device lab or multi-user review rooms.
+**Later batches built and tested with fakes/scripted providers (A14–A22, see [STATUS.md](STATUS.md)):** parallel minds and parallel prototypes (A17) ✅, reverse studio (A20) ✅, architecture explorer and geo/recorder (A16) ✅, 3D and game studios with Blender/Godot (A18) ✅, audio and subtitle studio (A14) ✅, knowledge graph (A7) ✅, research notebooks and contradiction map (A15) ✅, prompt regression (EV8) ✅, Device Lab (A21) ✅, Visual Workflow Builder (A22) ✅, and opt-in desktop control restricted to external computer-use APIs (never the local model, A19) ✅. **Not planned:** multi-user review rooms.
 
 **v0.1 launch does not wait for C.** Before the repository goes public (the founder decides, from the founder's
 accounts): measured numbers on a 16 GB x86 machine without GPU, an accepted adapter or an honest status, install in
