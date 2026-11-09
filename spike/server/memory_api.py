@@ -96,7 +96,11 @@ class ProposeIn(BaseModel):
 
 
 async def read_body(request: Request, limit: int) -> bytes:
-    if int(request.headers.get("content-length") or 0) > limit:
+    try:
+        length = int(request.headers.get("content-length") or 0)
+    except ValueError as exc:
+        raise HTTPException(400, "invalid Content-Length header") from exc
+    if length > limit:
         raise HTTPException(413, f"the upload is limited to {limit // 1024**2} MB")
     data = await request.body()
     if len(data) > limit:

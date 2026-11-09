@@ -950,7 +950,11 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             raise HTTPException(400, f"unknown mode '{mode}'")
 
     async def read_body(request: Request, limit: int) -> bytes:
-        if int(request.headers.get("content-length") or 0) > limit:
+        try:
+            length = int(request.headers.get("content-length") or 0)
+        except ValueError as exc:
+            raise HTTPException(400, "invalid Content-Length header") from exc
+        if length > limit:
             raise HTTPException(413, f"the upload is limited to {limit // 1024**2} MB")
         data = await request.body()
         if len(data) > limit:
@@ -1044,7 +1048,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         try:
             target = Workspace(workspace_dir()).resolve(path)
         except PermissionError as exc:
-            raise HTTPException(400, str(exc)) from exc
+            raise HTTPException(400, "workspace") from exc
         if not target.is_file():
             raise HTTPException(404, "file not found")
         return download(target)
@@ -1355,7 +1359,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         except LookupError as exc:
             raise HTTPException(404, str(exc)) from exc
         except FileNotFoundError as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, "the previous adapter file is gone") from exc
         restarted = False
         if body.component.startswith("adapter:") and state.runtime and state.runtime.running():
             await state.start_runtime()  # llama-server loads adapters when it starts
@@ -1487,7 +1491,10 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         try:
             return await st().start_runtime()
         except (ValueError, FileNotFoundError, RuntimeError, TimeoutError) as exc:
-            raise HTTPException(400, str(exc)) from exc
+            msg = str(exc).replace(str(st().home), "~/.spike")
+            if msg.startswith("model file not found: "):
+                msg = f"model file not found: {Path(msg.removeprefix('model file not found: ')).name}"
+            raise HTTPException(400, msg) from exc
 
     @app.post("/api/runtime/stop")
     async def runtime_stop() -> dict:

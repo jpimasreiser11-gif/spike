@@ -360,7 +360,7 @@ def start(root: Path, prototypes_home: Path, task: str, blueprints: list[Bluepri
     top = git(root, "rev-parse", "--show-toplevel", check=False)
     if top.returncode == 0:
         if Path(top.stdout.strip()).resolve() != root:
-            raise PrototypeError(f"{root} is inside the git repository {top.stdout.strip()}: Parallel Prototypes "
+            raise PrototypeError("the folder is inside the git repository of a parent folder: Parallel Prototypes "
                                  "needs a folder that is a repository of its own")
     else:
         files, size = folder_size(root)

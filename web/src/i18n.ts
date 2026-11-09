@@ -1301,9 +1301,440 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     es: "Las notas de proyecto necesitan un almacén de memoria.",
     en: "Project notes require a memory store.",
   },
+  "design system not found": {
+    es: "No se encontró el sistema de diseño. Actualiza la lista o selecciona otro en Diseño.",
+    en: "The design system was not found. Refresh the list or select another one in Design.",
+  },
+  "skill not found": {
+    es: "No se encontró la skill. Actualiza la lista de skills o comprueba su nombre.",
+    en: "The skill was not found. Refresh the skills list or check its name.",
+  },
+  "built-in skills can be disabled, not deleted": {
+    es: "Las skills integradas no se pueden borrar; desactívalas con su interruptor en Ajustes › Skills.",
+    en: "Built-in skills cannot be deleted; disable them with their toggle in Settings › Skills.",
+  },
+  "not a zip archive": {
+    es: "El archivo no es un paquete ZIP válido. Selecciona un archivo .zip.",
+    en: "The file is not a valid ZIP archive. Choose a .zip file.",
+  },
+  "not a SPIKE project archive (zip)": {
+    es: "El archivo no es un paquete de proyecto de SPIKE (.zip). Exporta un proyecto desde SPIKE e inténtalo de nuevo.",
+    en: "The file is not a SPIKE project archive (.zip). Export a project from SPIKE and try again.",
+  },
+  "connector not found": {
+    es: "No se encontró el conector. Actualiza la lista en Ajustes › Conectores.",
+    en: "The connector was not found. Refresh the list in Settings › Connectors.",
+  },
+  "id or preset is required": {
+    es: "Indica un identificador o elige una plantilla de proveedor antes de guardar.",
+    en: "Enter an identifier or choose a provider preset before saving.",
+  },
+  "base_url must be an http(s) URL": {
+    es: "La dirección del proveedor debe empezar por http:// o https://. Corrige la URL e inténtalo de nuevo.",
+    en: "The provider address must start with http:// or https://. Fix the URL and try again.",
+  },
+  "provider not found": {
+    es: "No se encontró el proveedor. Revisa Ajustes › Proveedores o selecciona otro proveedor.",
+    en: "The provider was not found. Check Settings › Providers or select another provider.",
+  },
+  "the built-in local provider cannot be removed": {
+    es: "El proveedor local integrado no se puede eliminar; puedes cambiar el proveedor por defecto en Ajustes.",
+    en: "The built-in local provider cannot be removed; you can change the default provider in Settings.",
+  },
+  "request refused: it comes from another web site": {
+    es: "Petición rechazada porque procede de otro sitio web. Usa la interfaz abierta directamente en este ordenador.",
+    en: "Request refused because it comes from another web site. Use the interface opened directly on this computer.",
+  },
+  "a confirmation must name the order in the body and the X-Spike-Confirm header": {
+    es: "Falta la confirmación de la orden. Confirma la orden desde su tarjeta en el chat o en Finanzas.",
+    en: "The order confirmation is missing. Confirm the order from its card in the chat or in Finance.",
+  },
+  "no open order with that id": {
+    es: "No hay ninguna orden abierta con ese identificador. Actualiza la cartera simulada.",
+    en: "There is no open order with that ID. Refresh the simulated portfolio.",
+  },
+  "no such order": {
+    es: "No existe esa orden. Actualiza la lista de órdenes en Finanzas.",
+    en: "That order does not exist. Refresh the order list in Finance.",
+  },
+  "save an API key for the chosen exchange first": {
+    es: "No hay clave de API guardada para este exchange. Guarda primero la clave en Ajustes › Finanzas.",
+    en: "No API key is saved for this exchange. Save the key in Settings › Finance first.",
+  },
+  "invalid report": {
+    es: "El informe de datos no es válido. Revisa los bloques de la consulta y vuelve a exportarlo.",
+    en: "The data report is not valid. Check the query blocks and export it again.",
+  },
+  "format must be docx or pdf": {
+    es: "El formato del informe debe ser Word (docx) o PDF. Elige uno de esos dos formatos.",
+    en: "The report format must be Word (docx) or PDF. Choose one of those two formats.",
+  },
+  "an image is not valid base64": {
+    es: "Una imagen del informe está dañada. Vuelve a generar el gráfico e inténtalo de nuevo.",
+    en: "A chart image in the report is invalid. Regenerate the chart and try again.",
+  },
+  "invalid Content-Length header": {
+    es: "La cabecera de tamaño de la subida no es válida. Vuelve a enviar el archivo.",
+    en: "The upload size header is invalid. Send the file again.",
+  },
+  "project not found": {
+    es: "El proyecto ya no existe. Selecciona otro proyecto o crea uno nuevo.",
+    en: "The project no longer exists. Select another project or create a new one.",
+  },
+  "file not found": {
+    es: "El archivo no existe. Comprueba el nombre o actualiza la lista de archivos del proyecto.",
+    en: "The file was not found. Check the name or refresh the project file list.",
+  },
+  "invalid file path": {
+    es: "La ruta del archivo no es válida. Usa una ruta relativa dentro del proyecto, sin «..» ni enlaces simbólicos.",
+    en: "The file path is not valid. Use a relative path inside the project, without '..' or symbolic links.",
+  },
+  "invalid file path: a .git folder is not part of a project's files": {
+    es: "No se pueden guardar archivos dentro de una carpeta .git. Elige otra ruta dentro del proyecto.",
+    en: "Files inside a .git folder cannot be saved in a project. Choose another path inside the project.",
+  },
+  "project is not a branch": {
+    es: "Este proyecto no es una rama. Crea primero una rama del proyecto para compararla o fusionarla.",
+    en: "This project is not a branch. Fork the project into a branch first to compare or merge it.",
+  },
+  "conversation not found": {
+    es: "La conversación ya no existe. Selecciona otra en la barra lateral o abre un chat nuevo.",
+    en: "The conversation no longer exists. Select another one in the sidebar or start a new chat.",
+  },
+  "Unknown proof section / Sección de prueba desconocida": {
+    es: "Sección del paquete de pruebas desconocida. Selecciona solo las secciones disponibles y vuelve a exportar.",
+    en: "Unknown proof package section. Select only the available sections and export again.",
+  },
+  "'before' must be a user message of this conversation": {
+    es: "Solo se puede ramificar desde un mensaje tuyo de esta conversación. Elige un mensaje de usuario.",
+    en: "A branch can only start from one of your messages in this conversation. Choose a user message.",
+  },
+  "message not found": {
+    es: "No se encontró el mensaje en esta conversación. Recarga el chat e inténtalo de nuevo.",
+    en: "The message was not found in this conversation. Reload the chat and try again.",
+  },
+  "item not found": {
+    es: "El elemento de Evolución ya no existe. Actualiza la lista.",
+    en: "The Evolution item no longer exists. Refresh the list.",
+  },
+  "failure not found": {
+    es: "No se encontró el registro de fallo. Actualiza la pestaña de fallos en Evolución.",
+    en: "The failure record was not found. Refresh the failures tab in Evolution.",
+  },
+  "an optimisation is already running": {
+    es: "Ya hay una optimización de instrucciones en curso. Espera a que termine o cancélala antes de iniciar otra.",
+    en: "A prompt optimization is already running. Wait for it to finish or cancel it before starting another.",
+  },
+  "job cancelled": {
+    es: "La tarea se canceló. Puedes volver a iniciarla cuando quieras.",
+    en: "The job was cancelled. You can start it again whenever you want.",
+  },
+  "not found": {
+    es: "El recurso solicitado no existe. Actualiza la vista e inténtalo de nuevo.",
+    en: "The requested resource was not found. Refresh the view and try again.",
+  },
+  "turn on “Use my corrections to retrain” in Settings → Evolution first": {
+    es: "Activa primero «Usar mis correcciones para reentrenar» en Ajustes › Evolución.",
+    en: "Turn on “Use my corrections to retrain” in Settings › Evolution first.",
+  },
+  "turn on the personal adapter in Settings → Evolución first": {
+    es: "Activa primero el adaptador personal en Ajustes › Evolución.",
+    en: "Turn on the personal adapter in Settings › Evolution first.",
+  },
+  "that chat is not marked": {
+    es: "Esa conversación no estaba marcada para el adaptador personal. Actualiza la lista.",
+    en: "That conversation was not marked for the personal adapter. Refresh the list.",
+  },
+  "that example is not in the personal set": {
+    es: "Ese ejemplo ya no forma parte del conjunto personal. Actualiza la lista en Evolución.",
+    en: "That example is no longer in the personal set. Refresh the list in Evolution.",
+  },
+  "the previous adapter file is gone": {
+    es: "El archivo del adaptador anterior ya no está en el disco. Instala de nuevo el adaptador aceptado.",
+    en: "The previous adapter file is no longer on disk. Install the accepted adapter again.",
+  },
+  "memory not found": {
+    es: "La nota de memoria ya no existe. Actualiza la lista en Memoria.",
+    en: "The memory note no longer exists. Refresh the list in Memory.",
+  },
+  "folder not found": {
+    es: "La carpeta indexada ya no está registrada. Actualiza la lista en Memoria › Carpetas.",
+    en: "The indexed folder is no longer registered. Refresh the list in Memory › Folders.",
+  },
+  "that folder does not exist or cannot be read": {
+    es: "Esa carpeta no existe o no se puede leer. Comprueba la ruta y los permisos en este ordenador.",
+    en: "That folder does not exist or cannot be read. Check the path and permissions on this computer.",
+  },
+  "that path is not a folder": {
+    es: "La ruta indicada es un archivo, no una carpeta. Escribe la ruta de una carpeta.",
+    en: "The path points to a file, not a folder. Enter the path of a folder.",
+  },
+  "choose a folder, not a whole disk": {
+    es: "No se puede indexar el disco entero. Elige una carpeta concreta dentro de tus documentos.",
+    en: "A whole disk cannot be indexed. Choose a specific folder inside your documents.",
+  },
+  "SPIKE's own data folder cannot be indexed": {
+    es: "La carpeta interna de datos de SPIKE no se puede indexar. Elige otra carpeta.",
+    en: "SPIKE's internal data folder cannot be indexed. Choose another folder.",
+  },
+  "entry not found": {
+    es: "El término del glosario ya no existe. Actualiza el glosario.",
+    en: "The glossary entry no longer exists. Refresh the glossary.",
+  },
+  "topic not found": {
+    es: "El tema de estudio ya no existe. Actualiza la lista en Tutor.",
+    en: "The study topic no longer exists. Refresh the list in Tutor.",
+  },
+  "relation not found": {
+    es: "La relación del grafo ya no existe. Actualiza el grafo de memoria.",
+    en: "The graph relation no longer exists. Refresh the memory graph.",
+  },
+  "no pending permission request with this id": {
+    es: "Esta solicitud de permiso ya se respondió o caducó. Continúa en la conversación.",
+    en: "This permission request was already answered or expired. Continue in the conversation.",
+  },
+  "no pending question with this id": {
+    es: "Esta pregunta ya se respondió o caducó. Continúa en la conversación.",
+    en: "This question was already answered or expired. Continue in the conversation.",
+  },
+  "No local model configured. Download one with `spike models pull` or set it in Settings.": {
+    es: "No hay ningún modelo local configurado. Descarga uno con `spike models pull` o selecciónalo en Ajustes.",
+    en: "No local model is configured. Download one with `spike models pull` or select it in Settings.",
+  },
+  "llama-server not found. Install llama.cpp (e.g. `brew install llama.cpp`) or set SPIKE_LLAMA_SERVER.": {
+    es: "No se encontró llama-server. Instala llama.cpp (`brew install llama.cpp`) o define SPIKE_LLAMA_SERVER.",
+    en: "llama-server was not found. Install llama.cpp (`brew install llama.cpp`) or set SPIKE_LLAMA_SERVER.",
+  },
+  "a tuning run is already in progress": {
+    es: "Ya hay un ajuste del motor local en curso. Espera a que termine.",
+    en: "A local engine tuning run is already in progress. Wait for it to finish.",
+  },
+  "Parallel Prototypes saves files, which needs tools: turn them on in Settings": {
+    es: "Dos enfoques en paralelo guarda archivos y necesita herramientas: actívalas en Ajustes.",
+    en: "Parallel Prototypes saves files and needs tools: turn them on in Settings.",
+  },
+  "each approach must save at least one file (a step with 'deliverables')": {
+    es: "Cada enfoque debe guardar al menos un archivo entregable. Añade un entregable en cada plan.",
+    en: "Each approach must save at least one deliverable file. Add a deliverable to each plan.",
+  },
+  "no such prototype run": {
+    es: "Esa ejecución de prototipos ya no existe. Abre otra o inicia una nueva.",
+    en: "That prototype run no longer exists. Open another one or start a new run.",
+  },
+  "this run is still building": {
+    es: "Esta ejecución de prototipos aún se está construyendo. Espera a que termine antes de descartarla.",
+    en: "This prototype run is still building. Wait for it to finish before discarding it.",
+  },
+  "Parallel Minds needs a prose answer: it cannot be combined with a Forge blueprint or an answer contract (JSON)": {
+    es: "Mentes en paralelo necesita una respuesta en texto: desactiva el plan de Forge o el contrato JSON.",
+    en: "Parallel Minds needs a prose answer: turn off the Forge blueprint or the JSON answer contract.",
+  },
+  "Parallel Minds runs 2 to 4 minds": {
+    es: "Mentes en paralelo ejecuta entre 2 y 4 mentes. Elige entre 2 y 4 en el selector.",
+    en: "Parallel Minds runs 2 to 4 minds. Choose between 2 and 4 in the selector.",
+  },
+  "replace_from needs an existing conversation": {
+    es: "Para editar y reenviar un mensaje hace falta una conversación existente. Envía un mensaje nuevo.",
+    en: "Editing and resending a message requires an existing conversation. Send a new message.",
+  },
+  "replace_from must be a user message of this conversation": {
+    es: "Solo puedes editar y reenviar un mensaje tuyo de esta conversación.",
+    en: "You can only edit and resend one of your own messages in this conversation.",
+  },
+  "a Forge task cannot also have an answer contract": {
+    es: "Una tarea de Forge no puede combinarse con un contrato JSON. Desactiva uno de los dos.",
+    en: "A Forge task cannot be combined with a JSON answer contract. Turn one of them off.",
+  },
+  "this blueprint saves files, which needs tools: turn them on in Settings": {
+    es: "Este plan de Forge guarda archivos y necesita herramientas: actívalas en Ajustes.",
+    en: "This Forge blueprint saves files and needs tools: turn them on in Settings.",
+  },
+  "data_app_expired": {
+    es: "La sesión de la tabla caducó o ya se aplicó. Vuelve a generar la aplicación desde Creador.",
+    en: "The table session expired or was already applied. Generate the app again from Creator.",
+  },
+  "data_app_conflict": {
+    es: "El archivo original cambió en el disco desde que se abrió la vista previa. Vuelve a abrir el archivo.",
+    en: "The source file changed on disk since the preview opened. Reopen the file.",
+  },
+  "data_app_approval": {
+    es: "Confirma la operación antes de crear la aplicación o guardar cambios en el archivo.",
+    en: "Approve the operation before creating the app or saving changes to the file.",
+  },
+  "data_app_project": {
+    es: "El proyecto seleccionado ya no existe. Elige otro proyecto.",
+    en: "The selected project no longer exists. Choose another project.",
+  },
+  "data_app_invalid": {
+    es: "El archivo o los cambios propuestos no son válidos. Revisa que el archivo sea CSV, TSV, JSON o Excel dentro del proyecto.",
+    en: "The file or proposed edits are not valid. Check that the file is a CSV, TSV, JSON or Excel file inside the project.",
+  },
+  "describe what the task is": {
+    es: "Escribe qué tarea quieres que realice en el escritorio antes de empezar.",
+    en: "Describe the desktop task you want to run before starting.",
+  },
+  "no pending desktop action with this id": {
+    es: "Esta acción de escritorio ya se respondió o terminó. Continúa en el panel de escritorio.",
+    en: "This desktop action was already answered or finished. Continue in the desktop panel.",
+  },
+  "screenshot not found": {
+    es: "La captura de pantalla ya no está disponible. Solo se conservan durante la tarea activa.",
+    en: "The screenshot is no longer available. Screenshots are only kept during the active task.",
+  },
+  "Desktop actions are off. Turn them on in Settings → Desktop.": {
+    es: "Las acciones de escritorio están desactivadas. Actívalas primero en Ajustes › Escritorio.",
+    en: "Desktop actions are off. Turn them on in Settings › Desktop first.",
+  },
+  "history_filter": {
+    es: "Los filtros de búsqueda no son válidos. Revisa la consulta y el ámbito seleccionado.",
+    en: "The search filters are not valid. Check the query and the selected scope.",
+  },
+  "project_not_found": {
+    es: "El proyecto seleccionado para la búsqueda ya no existe. Elige otro ámbito.",
+    en: "The project selected for search no longer exists. Choose another scope.",
+  },
+  "invalid_target": {
+    es: "Selecciona entre 1 y 4 combinaciones válidas de especialista y proveedor en Lab.",
+    en: "Select between 1 and 4 valid specialist and provider combinations in Lab.",
+  },
+  "invalid_cases": {
+    es: "Los casos de prueba de Lab no son válidos. Usa una lista JSON con prompt y expected opcional.",
+    en: "The Lab test cases are not valid. Use a JSON list with prompt and optional expected fields.",
+  },
+  "one_probe_target": {
+    es: "La sonda de capacidades prueba un único objetivo cada vez. Deja solo un objetivo seleccionado.",
+    en: "The capability probe tests a single target at a time. Leave only one target selected.",
+  },
+  "expired_quote": {
+    es: "El presupuesto de Lab caducó o ya se usó. Pulsa Vista previa de nuevo antes de ejecutar.",
+    en: "The Lab quote expired or was already used. Click Preview again before executing.",
+  },
+  "changed_quote": {
+    es: "La configuración del proveedor cambió desde la vista previa. Calcula una nueva vista previa en Lab.",
+    en: "The provider configuration changed since the preview. Compute a new preview in Lab.",
+  },
+  "provider_blocked": {
+    es: "El proveedor está bloqueado por el permiso de pago o por un límite mensual. Revisa Ajustes › Proveedores.",
+    en: "The provider is blocked by the paid-request permission or a monthly limit. Check Settings › Providers.",
+  },
+  "unknown_run": {
+    es: "La ejecución de Lab ya no existe. Selecciona otra en el historial de Lab.",
+    en: "The Lab run no longer exists. Select another one from the Lab history.",
+  },
+  "Launcher only": {
+    es: "Esta acción solo está disponible desde el lanzador de escritorio de SPIKE.",
+    en: "This action is only available from the SPIKE desktop launcher.",
+  },
+  "Adapter unavailable": {
+    es: "Uno de los adaptadores seleccionados aún no está disponible para descargar. Desmárcalo e inténtalo de nuevo.",
+    en: "One of the selected adapters is not yet available for download. Uncheck it and try again.",
+  },
+  "Installation busy or insufficient resources": {
+    es: "Ya hay una descarga en curso o falta espacio en disco o memoria RAM libre. Libera espacio e inténtalo de nuevo.",
+    en: "A download is already running or there is not enough free disk space or RAM. Free up space and try again.",
+  },
+  "Local same-origin JSON request required": {
+    es: "Esta acción requiere una petición local desde la propia ventana de SPIKE.",
+    en: "This action requires a local request from the SPIKE window itself.",
+  },
+  "Spike View is not running: turn it on in Settings first": {
+    es: "Spike View no está en marcha. Activa el navegador en Ajustes › Conectores primero.",
+    en: "Spike View is not running. Turn on the browser in Settings › Connectors first.",
+  },
+  "Spike View is not running": {
+    es: "Spike View no está en marcha. Activa el navegador en Ajustes › Conectores primero.",
+    en: "Spike View is not running. Turn on the browser in Settings › Connectors first.",
+  },
+  "this script is being replayed: stop the replay first": {
+    es: "Este guion se está reproduciendo ahora mismo. Detén la reproducción antes de borrarlo.",
+    en: "This script is currently being replayed. Stop the replay before deleting it.",
+  },
+  "there is no such script": {
+    es: "El guion de navegador ya no existe. Actualiza la lista de guiones.",
+    en: "The browser script no longer exists. Refresh the script list.",
+  },
+  "the replay is not waiting for that answer": {
+    es: "La reproducción ya no espera esa respuesta. Consulta el estado actual del guion.",
+    en: "The replay is no longer waiting for that answer. Check the current script status.",
+  },
+  "unknown specialist": {
+    es: "El especialista indicado no existe. Elige un especialista del catálogo.",
+    en: "The specified specialist does not exist. Choose a specialist from the catalog.",
+  },
+  "job not found": {
+    es: "La tarea en segundo plano ya terminó o no existe. Actualiza la cola de tareas.",
+    en: "The background job already finished or does not exist. Refresh the job queue.",
+  },
 };
 
-/** Translate the project archive/path errors introduced by the Studio port; preserve other server diagnostics. */
+const DYNAMIC_ERROR_PATTERNS: Array<[RegExp, (m: RegExpMatchArray) => { es: string; en: string }]> = [
+  [/^"?unknown provider '(.+)'"?$/, (m) => ({
+    es: `El proveedor «${m[1]}» no existe. Elige otro proveedor en Ajustes › Proveedores.`,
+    en: `Provider '${m[1]}' was not found. Choose another provider in Settings › Providers.`,
+  })],
+  [/^unknown project '(.+)'$/, (m) => ({
+    es: `El proyecto «${m[1]}» no existe. Selecciona otro proyecto.`,
+    en: `Project '${m[1]}' was not found. Select another project.`,
+  })],
+  [/^unknown specialist '(.+)'$/, (m) => ({
+    es: `El especialista «${m[1]}» no existe. Elige un especialista del catálogo.`,
+    en: `Specialist '${m[1]}' was not found. Choose a specialist from the catalog.`,
+  })],
+  [/^unknown mode '(.+)'$/, (m) => ({
+    es: `El modo o especialista «${m[1]}» no existe. Elige «Automático» o un especialista válido.`,
+    en: `Mode or specialist '${m[1]}' was not found. Choose 'Automatic' or a valid specialist.`,
+  })],
+  [/^unknown skill '(.+)'$/, (m) => ({
+    es: `La skill «${m[1]}» no existe. Actualiza la lista de skills.`,
+    en: `Skill '${m[1]}' was not found. Refresh the skills list.`,
+  })],
+  [/^unknown design system '(.+)'$/, (m) => ({
+    es: `El sistema de diseño «${m[1]}» no existe. Elige otro en Diseño.`,
+    en: `Design system '${m[1]}' was not found. Choose another one in Design.`,
+  })],
+  [/^unknown memory scope '(.+)'$/, (m) => ({
+    es: `El ámbito de memoria «${m[1]}» no es válido. Elige memoria global, un proyecto o un especialista existente.`,
+    en: `Memory scope '${m[1]}' is not valid. Choose global memory, an existing project or a specialist.`,
+  })],
+  [/^unknown template '(.+)'$/, (m) => ({
+    es: `La plantilla «${m[1]}» no existe. Elige una plantilla en Creador.`,
+    en: `Template '${m[1]}' was not found. Choose a template in Creator.`,
+  })],
+  [/^unknown component '(.+)'$/, (m) => ({
+    es: `El componente «${m[1]}» no existe en Evolución. Elige un componente válido para revertir.`,
+    en: `Component '${m[1]}' does not exist in Evolution. Choose a valid component to roll back.`,
+  })],
+  [/^provider '(.+)' already exists$/, (m) => ({
+    es: `Ya existe un proveedor con el identificador «${m[1]}». Usa otro identificador o edita el existente.`,
+    en: `A provider with ID '${m[1]}' already exists. Use another ID or edit the existing one.`,
+  })],
+  [/^the upload is limited to (\d+) MB$/, (m) => ({
+    es: `El archivo supera el límite de subida de ${m[1]} MB. Sube un archivo más pequeño.`,
+    en: `The file exceeds the ${m[1]} MB upload limit. Upload a smaller file.`,
+  })],
+  [/^(.+) can only be changed on the computer SPIKE runs on$/, () => ({
+    es: "Esta acción solo se puede realizar desde el navegador del propio ordenador donde se ejecuta SPIKE.",
+    en: "This action can only be performed from the browser on the computer where SPIKE is running.",
+  })],
+  [/^it overlaps a folder already indexed: (.+)$/, (m) => ({
+    es: `Esa carpeta se solapa con otra ya indexada (${m[1]}). Elige una carpeta distinta o elimina la anterior.`,
+    en: `That folder overlaps an already indexed folder (${m[1]}). Choose a different folder or remove the existing one.`,
+  })],
+  [/^model file not found: (.+)$/, (m) => ({
+    es: `No se encontró el archivo del modelo (${m[1]}). Descárgalo con spike models pull o revisa Ajustes.`,
+    en: `Model file not found (${m[1]}). Download it with spike models pull or check Settings.`,
+  })],
+];
+
+/** Translate user-facing server error codes and messages into Spanish or English. */
 export function projectError(message: string, language: "es" | "en" = lang): string {
-  return projectErrors[message]?.[language] ?? message;
+  const direct = projectErrors[message]?.[language]
+    ?? dicts[language].workflow.errors[message]
+    ?? dicts[language].research.errors[message];
+  if (direct) return direct;
+  for (const [pattern, build] of DYNAMIC_ERROR_PATTERNS) {
+    const match = message.match(pattern);
+    if (match) return build(match)[language];
+  }
+  return message;
 }

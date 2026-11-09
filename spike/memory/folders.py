@@ -327,7 +327,7 @@ class FolderIndex:
             raise FolderError("SPIKE's own data folder cannot be indexed")
         for other in self.list():
             if within(real, Path(other.path)) or within(Path(other.path), real):
-                raise FolderError(f"it overlaps a folder already indexed: {other.path}")
+                raise FolderError(f"it overlaps a folder already indexed: {Path(other.path).name}")
         folder = Folder(
             id=uuid.uuid4().hex[:12], path=str(real), scope=scope,
             include=list(DEFAULT_INCLUDE) if include is None else clean_patterns(include, "include"),

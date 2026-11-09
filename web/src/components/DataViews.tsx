@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { chartPng, chartSvg, chartView } from "../chart";
-import { lang } from "../i18n";
+import { lang, projectError } from "../i18n";
 import type { ChartUi, CodeRunUi, DataTableInfo, DataTableUi, DataUi, ToolState } from "../types";
 import { AnalyticsEvidence } from "./AnalyticsEvidence";
 import { ArtifactContext } from "./Artifact";
@@ -206,7 +206,7 @@ export async function reportFile(format: "docx" | "pdf", title: string, items: I
   });
   if (!res.ok) {
     const detail = await res.json().then((d) => d.detail).catch(() => res.statusText);
-    throw new Error(String(detail));
+    throw new Error(projectError(String(detail)));
   }
   const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? `${slug(title)}.${format}`;
   const url = URL.createObjectURL(await res.blob());

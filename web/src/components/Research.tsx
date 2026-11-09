@@ -37,7 +37,10 @@ export function Research({ conversationId, projectId, projectName, specialists, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const reset = () => { setPreview(null); setResult(null); setError(""); };
-  const failure = (e: unknown) => { const code = (e as Error).message; setError(R.errors[code] || R.errors.analysis_failed); };
+  const failure = (e: unknown) => {
+    const code = (e as Error).message;
+    setError(R.errors[code] || (Object.values(R.errors).includes(code) ? code : R.errors.analysis_failed));
+  };
   const prepare = async () => {
     reset(); setBusy(true);
     try { setPreview(await api.post<Preview>("/api/research/preview", { kind, paths: paths.split("\n").map((p) => p.trim()).filter(Boolean),
