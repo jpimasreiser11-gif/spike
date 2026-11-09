@@ -231,6 +231,8 @@ def main() -> int:
     ap.add_argument("--config", help="training config (default training/configs/<specialist>.yaml)")
     ap.add_argument("--data", default=str(ROOT / "training" / "data"))
     ap.add_argument("--out", help="default training/runs/<specialist>/hf")
+    ap.add_argument("--export", help="export record of the evaluated file (default training/runs/<specialist>/export.json; "
+                                     "a checkpoint sweep writes one per candidate in sweep/<candidate>/export.json)")
     args = ap.parse_args()
 
     from spike.specialists.catalog import load_catalog
@@ -239,7 +241,8 @@ def main() -> int:
     cfg = yaml.safe_load(Path(args.config or ROOT / "training" / "configs" / f"{spec.id}.yaml").read_text(encoding="utf-8"))
     run_dir = ROOT / "training" / "runs" / spec.id
     manifest = load(Path(args.data) / spec.id / "manifest.json", "data manifest (run training/prepare.py)")
-    export = load(run_dir / "export.json", "export record (run training/export_adapter.py)")
+    export = load(Path(args.export) if args.export else run_dir / "export.json",
+                  "export record (run training/export_adapter.py)")
     eval_dir = Path(args.eval)
     summary = load(eval_dir / "summary.json", "eval summary (run evals/run_eval.py)")
     summary_md = "" if is_pairwise(summary) else (eval_dir / "summary.md").read_text(encoding="utf-8")
