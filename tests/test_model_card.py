@@ -194,7 +194,8 @@ def test_attribution_lines_come_from_the_manifest_for_licenses_that_require_cred
 
 
 # ------------------------------------------------------------------ the command, on records written to a temp tree
-def build(tmp_path, monkeypatch, run: dict, manifest: dict = MARKETING_MANIFEST, summary_md: str | None = None):
+def build(tmp_path, monkeypatch, run: dict, manifest: dict = MARKETING_MANIFEST, summary_md: str | None = None,
+          extra: tuple[str, ...] = ()):
     """Run `model_card.py marketing --eval ...` on a tree of hand-built records; returns (exit code, README or None)."""
     monkeypatch.setattr(model_card, "ROOT", tmp_path)
     (tmp_path / "brand" / "specialists" / "marketing").mkdir(parents=True)
@@ -209,7 +210,7 @@ def build(tmp_path, monkeypatch, run: dict, manifest: dict = MARKETING_MANIFEST,
     (tmp_path / "cfg.yaml").write_text(yaml.safe_dump(CFG), encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["model_card.py", "marketing", "--eval", str(tmp_path / "eval"), "--config",
                                       str(tmp_path / "cfg.yaml"), "--data", str(tmp_path / "data"),
-                                      "--out", str(tmp_path / "hf")])
+                                      "--out", str(tmp_path / "hf"), *extra])
     code = main()
     readme = tmp_path / "hf" / "README.md"
     return code, readme.read_text(encoding="utf-8") if readme.is_file() else None
@@ -241,3 +242,14 @@ def test_command_writes_nothing_for_a_teacher_license_outside_the_allowlist(tmp_
     with pytest.raises(SystemExit, match="refusing to build the card: teacher .* license 'cc-by-nc-4.0' is not allowed"):
         build(tmp_path, monkeypatch, pairwise(), {**MARKETING_MANIFEST, "sources": bad})
     assert not (tmp_path / "hf").exists()
+
+
+def test_command_takes_the_export_record_of_the_file_that_was_accepted(tmp_path, monkeypatch):
+    """A sweep converts the chosen checkpoint itself: its record, not the run's first export, describes the file."""
+    chosen = {**EXPORT, "gguf": "/x/sweep/gguf/spike-marketing-it900-s0.5.gguf",
+              "peft": {**EXPORT["peft"], "lora_alpha": EXPORT["peft"]["lora_alpha"] / 2}}
+    path = tmp_path / "chosen-export.json"
+    path.write_text(json.dumps(chosen), encoding="utf-8")
+    code, card = build(tmp_path, monkeypatch, pairwise(), extra=("--export", str(path)))
+    assert code == 0 and "spike-marketing-it900-s0.5.gguf" in card
+    assert f"alpha {chosen['peft']['lora_alpha']}" in card and Path(EXPORT["gguf"]).name not in card
