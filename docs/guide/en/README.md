@@ -22,3 +22,4 @@ Each page explains what the module does, how to use it step by step, its real me
 | [Spike Finance in Simulated Mode (Paper Trading and Backtesting)](finance.md) | `finance` | [Español](../es/finance.md) |
 | [MCP Connectors, Assisted Browser, and Desktop Actions](connectors.md) | `connectors` | [Español](../es/connectors.md) |
 | [Privacy, Sandbox, Permissions, Trust, and Spend Control](privacy-and-spend.md) | `privacy-and-spend` | [Español](../es/privacy-and-spend.md) |
+| [FAQ & Troubleshooting](faq.md) | `faq` | [Español](../es/faq.md) |
