@@ -168,9 +168,9 @@ def test_tool_names_are_valid_function_names():
 
 def test_every_catalog_entry_is_complete_and_listed_in_third_party():
     entries = load_catalog()
-    raw = yaml.safe_load(CATALOG.read_text())
+    raw = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))
     assert len(entries) == len(raw) >= 1
-    third_party = (Path(__file__).parents[1] / "THIRD_PARTY.md").read_text()
+    third_party = (Path(__file__).parents[1] / "THIRD_PARTY.md").read_text(encoding="utf-8")
     for e in entries:
         assert e.license and e.source.startswith("https://") and e.transport in ("stdio", "http"), e.id
         assert (e.command if e.transport == "stdio" else e.url), e.id

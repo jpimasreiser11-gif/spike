@@ -93,7 +93,8 @@ def install_skills(
                 name = _front_name(staging / "_single")
             except SkillError as exc:
                 raise ProjectError(str(exc)) from exc
-            (staging / "_single").rename(staging / name)
+            if (staging / "_single") != (staging / name):
+                (staging / "_single").replace(staging / name)
             folders = [staging / name]
         else:
             folders = sorted(p for p in staging.iterdir() if p.is_dir())
@@ -111,7 +112,10 @@ def install_skills(
         for skill in parsed:
             final = skills_dir / skill.name
             if final.exists():
-                shutil.rmtree(final)
+                def _force_remove(func, p, _exc):
+                    Path(p).chmod(0o700)
+                    func(p)
+                shutil.rmtree(final, onerror=_force_remove)
             shutil.move(str(skill.path), final)
         return [s.name for s in parsed]
 
