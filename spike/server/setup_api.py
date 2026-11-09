@@ -7,11 +7,16 @@ from urllib.parse import urlsplit
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from spike.launcher.setup import Setup
+from spike.launcher.setup import SETUP_MESSAGES, Setup
 
 
 class DownloadIn(BaseModel):
     specialists: list[str] = Field(default_factory=list, max_length=13)
+
+
+class ImportIn(BaseModel):
+    path: str = Field(..., min_length=1, max_length=1024)
+    sha256: str | None = Field(default=None, max_length=128)
 
 
 def create_setup_router() -> APIRouter:
@@ -45,11 +50,37 @@ def create_setup_router() -> APIRouter:
         selected = list(dict.fromkeys(body.specialists))
         if any(s not in service.artifacts for s in selected):
             raise HTTPException(400, "Adapter unavailable")
-        if service.job["status"] == "running" or not service.resources(selected)["can_download"]:
+        res = service.resources(selected)
+        if service.job["status"] == "running" or not res["can_download"]:
+            if not res["can_download"] and service.job["status"] != "running":
+                service.job.update(
+                    status="failed",
+                    reason="disk",
+                    resumable=False,
+                    message=dict(SETUP_MESSAGES["disk"]),
+                )
             raise HTTPException(409, "Installation busy or insufficient resources")
-        service.job.update(status="running", done=0, total=0)
+        service.job.update(
+            status="running",
+            done=0,
+            total=0,
+            reason="",
+            resumable=False,
+            message=dict(SETUP_MESSAGES["ready"]),
+        )
         request.app.state.spike.background(service.install(selected))
         return service.job
+
+    @router.post("/import")
+    async def import_local_model(request: Request, body: ImportIn):
+        service = setup(request, True)
+        if service.job["status"] == "running":
+            raise HTTPException(409, "Installation busy")
+        try:
+            dest = service.import_local(body.path, body.sha256)
+        except (ValueError, OSError):
+            raise HTTPException(400, detail=service.job["message"]) from None
+        return {"ok": True, "model": dest.as_posix(), "job": service.job}
 
     @router.post("/quit")
     async def quit_app(request: Request):
