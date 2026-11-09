@@ -88,10 +88,14 @@ def _python(code: str, root: Path) -> tuple[bool, str]:
 
     script = Path(tempfile.mkdtemp(prefix="spike-check-")) / "check.py"
     script.write_text(PRELUDE + "\n" + code + "\n", encoding="utf-8")
+    env = {"PATH": os.environ.get("PATH", ""), "PYTHONIOENCODING": "utf-8", "HOME": str(root)}
+    if os.name == "nt":
+        for key in ("SYSTEMROOT", "WINDIR", "TEMP", "TMP", "COMSPEC", "PATHEXT"):
+            if val := os.environ.get(key):
+                env[key] = val
     try:
         proc = subprocess.run([sys.executable, "-I", str(script)], cwd=root, capture_output=True, text=True,
-                              timeout=CHECK_TIMEOUT_S * 2, env={"PATH": os.environ.get("PATH", ""),
-                                                                "PYTHONIOENCODING": "utf-8", "HOME": str(root)},
+                              encoding="utf-8", errors="replace", timeout=CHECK_TIMEOUT_S * 2, env=env,
                               preexec_fn=_limits if os.name == "posix" else None)
     except subprocess.TimeoutExpired:
         return False, "timed out"
