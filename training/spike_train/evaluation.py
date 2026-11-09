@@ -25,6 +25,7 @@ from spike_train.data import (
     LETTERS,
     finqa_answer,
     finqa_prompt,
+    mcq_options,
     mcq_prompt,
     pubmedqa_prompt,
     tatqa_prompt,
@@ -34,6 +35,7 @@ from spike_train.metrics import (
     extract_choice,
     extract_final,
     extract_number,
+    extract_option_text,
     extract_yes_no,
     mcnemar_exact,
     normalize_span,
@@ -161,8 +163,9 @@ def score(item: Item, response: str) -> tuple[str | None, bool]:
     if item.kind == "literal":
         parsed = literal_answer(response)
         return parsed or None, bool(parsed) and parsed == item.gold
-    if item.kind == "mcq":
-        parsed = extract_choice(response, item.n_options or 10)
+    if item.kind == "mcq":  # the letter; the option's text only when no letter is found (M14)
+        n = item.n_options or 10
+        parsed = extract_choice(response, n) or extract_option_text(response, mcq_options(item.prompt, n))
         return parsed, parsed == item.gold
     if item.kind == "yesno":
         parsed = extract_yes_no(response)

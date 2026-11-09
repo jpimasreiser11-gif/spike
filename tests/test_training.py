@@ -25,6 +25,8 @@ from spike_train.data import (  # noqa: E402
     fmt_messages,
     fmt_mmlu_pro,
     fmt_pubmedqa,
+    mcq_options,
+    mcq_prompt,
     mix_and_split,
     oasst_conversations,
     passes_quality,
@@ -48,6 +50,7 @@ from spike_train.export import convert, map_module, read_safetensors, write_safe
 from spike_train.metrics import (  # noqa: E402
     extract_choice,
     extract_number,
+    extract_option_text,
     extract_yes_no,
     mcnemar_exact,
     wilson_interval,
@@ -317,6 +320,66 @@ def test_extract_choice_letter_line_needs_short_notes_after_it():
     assert extract_choice("**B**\n\nOn reflection: C. Confidence: low", 4) == "C"  # a note naming another letter
     assert extract_choice("**B**\n\nThis fits the findings in option D.", 4) == "D"
     assert extract_choice("**B**\n\nA\n\nConfidence: low", 4) == "A"  # the last letter line wins
+
+
+# M14, from M11's reading of the base model's unparsed medicine answers. Hand-written inert fixtures.
+@pytest.mark.parametrize("text,n,expected", [
+    ("The mechanism fits.\n\n**Final Answer Selection:** E", 10, "E"),
+    ("**Final Answer Selection:** E", 4, None),  # past the option count
+    ("Answer Selection: Option C\n\n" + NOTES, 4, "C"),
+    ("**Answer Selection**: B\n\n" + NOTES, 4, "B"),
+    ("Answer Selection: Option B is wrong.\n\nAnswer Selection: D", 4, "D"),
+    ("The answer selection B is wrong because of the dose.", 4, None),  # no ':' after 'selection': not a pick
+])
+def test_extract_choice_answer_selection(text, n, expected):
+    assert extract_choice(text, n) == expected
+
+
+ANTIDOTES = ["Atropine", "Adrenaline", "Atropine and pralidoxime", "Naloxone"]
+
+
+# Answers that state an option's text instead of its letter: read only when the text equals one option exactly.
+@pytest.mark.parametrize("text,expected", [
+    ("The findings fit.\n\nThe answer is **Atropine and pralidoxime**.\n\n" + NOTES, "C"),
+    ("Final answer: Naloxone", "D"),
+    ("**Answer:** Adrenaline, because it reverses the bronchospasm.", "B"),
+    ("Therefore, the correct option is atropine.", "A"),
+    ("The answer is Atropine and pralidoxime", "C"),  # the whole clause, not its first word
+    ("Answer: Atropine, given early.", "A"),
+    ("The reasoning favours it.\n\n**Naloxone**\n\n" + NOTES, "D"),  # the option alone on a closing line
+    ("Answer: Naloxone.\n\nOn reflection, the answer is Adrenaline.", "B"),  # the last statement wins
+    ("The most likely diagnosis is atropine and pralidoxime", "C"),
+    # never a pick
+    ("The answer is not Naloxone.", None),
+    ("Answer: Naloxone is wrong here.", None),
+    ("Naloxone reverses opioids and adrenaline treats anaphylaxis.", None),  # no answer statement
+    ("The answer is Atropine or Naloxone.", None),
+    ("The answer is unclear.\n\n**Atropine** is often confused with the others.", None),
+    ("The answer is Naloxone hydrochloride given intranasally", None),  # not an option's text
+    ("", None),
+])
+def test_extract_option_text(text, expected):
+    assert extract_option_text(text, ANTIDOTES) == expected
+
+
+def test_extract_option_text_needs_distinct_options():
+    assert extract_option_text("The answer is Atropine.", ["Atropine", "atropine.", "Naloxone", "Adrenaline"]) is None
+    assert extract_option_text("The answer is Atropine.", []) is None
+    assert extract_option_text("The answer is A.", ["A", "B", "C", "D"]) is None  # letters are extract_choice's job
+
+
+def test_mcq_options_reads_back_the_prompt_layout():
+    prompt = mcq_prompt("Which antidote fits?", ANTIDOTES)
+    assert mcq_options(prompt, 4) == ANTIDOTES
+    assert mcq_options(prompt, 5) == []  # a different count: no options rather than wrong ones
+    assert mcq_options("no options here", 4) == []
+
+
+def test_score_reads_an_option_text_only_when_no_letter_is_found():
+    item = Item("t/1", "t", mcq_prompt("Which antidote fits?", ANTIDOTES), "mcq", "D", 4)
+    assert score(item, "The answer is **Naloxone**.") == ("D", True)
+    assert score(item, "Answer: B\n\nThe answer is Naloxone.") == ("B", False)  # a letter always wins
+    assert score(item, "Naloxone or adrenaline, hard to say.") == (None, False)
 
 
 def test_distillation_verification_reads_option_endings():
