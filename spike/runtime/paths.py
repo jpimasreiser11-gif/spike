@@ -7,7 +7,8 @@ from pathlib import Path
 
 
 def spike_home() -> Path:
-    home = Path(os.environ.get("SPIKE_HOME", Path.home() / ".spike")).expanduser()
+    env = os.environ.get("SPIKE_HOME")
+    home = Path(env).expanduser() if env else (Path.home() / ".spike")
     home.mkdir(parents=True, exist_ok=True)
     return home
 
@@ -25,7 +26,8 @@ def adapters_dir() -> Path:
 
 
 def workspace_dir() -> Path:
-    d = Path(os.environ.get("SPIKE_WORKSPACE", spike_home() / "workspace")).expanduser()
+    env = os.environ.get("SPIKE_WORKSPACE")
+    d = Path(env).expanduser() if env else (spike_home() / "workspace")
     d.mkdir(parents=True, exist_ok=True)
     return d
 

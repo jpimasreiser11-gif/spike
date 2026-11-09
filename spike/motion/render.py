@@ -167,7 +167,14 @@ def ffmpeg() -> str:
 
 @functools.lru_cache(maxsize=4)
 def encoders(binary: str) -> frozenset[str]:
-    out = subprocess.run([binary, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=30).stdout
+    out = subprocess.run(
+        [binary, "-hide_banner", "-encoders"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+    ).stdout
     return frozenset(m[1] for m in re.finditer(r"^\s*V\S*\s+(\S+)", out, re.M))
 
 

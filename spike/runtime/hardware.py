@@ -34,7 +34,7 @@ def _cpu_model_and_flags() -> tuple[str, list[str]]:
     if system == "Linux":
         model, flags = platform.processor() or "unknown", []
         try:
-            for line in Path("/proc/cpuinfo").read_text().splitlines():
+            for line in Path("/proc/cpuinfo").read_text(encoding="utf-8", errors="replace").splitlines():
                 if line.startswith("model name") and model in ("unknown", ""):
                     model = line.split(":", 1)[1].strip()
                 elif line.startswith(("flags", "Features")) and not flags:
@@ -46,7 +46,7 @@ def _cpu_model_and_flags() -> tuple[str, list[str]]:
     if system == "Darwin":
         try:
             model = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True,
-                                   timeout=2).stdout.strip()
+                                   encoding="utf-8", errors="replace", timeout=2).stdout.strip()
         except (OSError, subprocess.SubprocessError):
             model = "unknown"
         return model or "Apple", ["neon"] if platform.machine() == "arm64" else []
