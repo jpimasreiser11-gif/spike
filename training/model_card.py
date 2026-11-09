@@ -136,6 +136,24 @@ def pairwise_lines(summary: dict, variant: str, result: dict, run: str) -> list[
             *(f"- {reason}" for reason in result["reasons"]), ""]
 
 
+def format_note(summary: dict, cfg: dict, variant: str) -> list[str]:
+    """Unreadable answers count as wrong: when the base model left many (10 % or more of the primary suite), part of
+    the gain is answering in the asked format, so the card says how many and gives the accuracy among readable ones."""
+    suite = ((cfg.get("acceptance") or {}).get("primary") or {}).get("suite")
+    acc = ((summary.get("suites") or {}).get(suite) or {}).get("accuracy") or {}
+    base, ours = acc.get("base"), acc.get(variant)
+    if not (base and ours) or base["unparsed"] < 0.10 * base["n"]:
+        return []
+
+    def readable(a: dict) -> float:
+        return a["correct"] / (a["n"] - a["unparsed"]) if a["n"] > a["unparsed"] else 0.0
+
+    return [f"Answer format: the base model gave no readable answer on {base['unparsed']:,} of {base['n']:,} {suite} "
+            f"questions, {variant} on {ours['unparsed']:,}. Unreadable answers count as wrong, so part of the gain is "
+            f"answering in the asked format. Accuracy among readable answers only: base {readable(base):.3f}, "
+            f"{variant} {readable(ours):.3f}.", ""]
+
+
 def render(spec, cfg: dict, manifest: dict, export: dict, summary: dict, summary_md: str, run: str = "") -> str:
     verdict = verdict_of(summary)
     if verdict is None:
@@ -171,8 +189,9 @@ def render(spec, cfg: dict, manifest: dict, export: dict, summary: dict, summary
         lines += ["> This adapter did not meet its acceptance criteria. It is published only as a research record; "
                   "SPIKE keeps using the base model with a prompt profile for this specialist.", ""]
     lines += ["## Use", "",
-              f"In SPIKE: put `{gguf}` in `~/.spike/adapters/`; the app loads it next to the base model and routes "
-              f"{spec.domain.lower()} requests to it.", "",
+              f"In SPIKE: save it as `~/.spike/adapters/{spec.adapter}.gguf`; the app loads it next to the base model, "
+              f"routes {spec.domain.lower()} requests to it and shows in Settings whether the file is the accepted one "
+              "(SHA-256).", "",
               "With llama.cpp directly:", "", "```bash",
               f"llama-server -m Qwen3.5-4B-Q4_K_M.gguf --lora {gguf}", "```", "",
               "## Training", "",
@@ -202,6 +221,7 @@ def render(spec, cfg: dict, manifest: dict, export: dict, summary: dict, summary
                   f"Variant `{variant}` against the same base model with the same prompts (run "
                   f"`{summary['meta']['run_id']}`). Accuracy is exact-answer scoring; the 95% interval is Wilson's, "
                   "the paired test is McNemar's.", "", body, ""]
+        lines += format_note(summary, cfg, variant)
     live = export.get("live_check")
     if live:
         lines += [f"Export check: with the adapter loaded in llama-server, {live['outputs_changed']} of "

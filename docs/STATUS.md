@@ -268,6 +268,17 @@ Medicine runs as the β profile. Of the base model's unparsed answers (`unparsed
 114 of 409 on MedMCQA and 40 of 241 on health state an option's text instead of its letter (54 and 17 of them the
 right one); most of the rest end with a medical disclaimer and no answer.
 
+**Finance adapter, round 1 (768-token window): REJECTED (2026-11-09).** Same recipe and gate as medicine (finance
++3.0 points at p ≤ 0.05, general drop at most 1.5). Selection suites, best candidates: the final checkpoint at scale 0.5
+finance +5.17 / general −3.00; a second sweep over lower scales, the final checkpoint at 0.25 +1.67 / −5.50, at 0.35
++4.00 / −4.50, and iteration 4400 at 0.5 +3.67 / −5.50 (measured on the Mac; records in
+`training/runs/finance-768/sweep-default/` on the Mac). Every candidate loses more general knowledge than the gate
+allows. One local change on the Mac for this run, recorded here: `prepare.py --fit-domain` kept domain rows down to a
+floor of 0.3 instead of 0.4, because the 768-token window dropped 6,313 of 9,063 self-replay answers.
+**Round 2 changes one thing, the window: 1536 tokens** (`training/configs/finance.yaml`; one LoRA step measured at a
+12.75 GB peak at 1536, 11.08 GB at 768, 14.46 GB at 2048, with the chunked gated delta). Running on the Mac since
+2026-11-09 13:58 UTC with the same gate.
+
 **Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
 2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
 with gradient checkpointing peaks at 11 GB with 128-token sequences, 23 GB at 768 and over 27 GB at 1024 (out of
@@ -345,7 +356,8 @@ yet measured).
 3. ~~Train, export and evaluate the medicine adapter; accept or reject by its criteria~~ (done: rejected for
    forgetting, above).
 4. ~~Fix the forgetting on medicine with the same criteria~~ (done: round 2 accepted, above); finance with the same
-   recipe (running), then marketing (teacher distillation) and the other ten, one at a time.
+   recipe (round 1 rejected, round 2 with a 1536-token window running), then marketing (teacher distillation)
+   and the other ten, one at a time.
 5. Long-context eval; orchestrated vs single-model pairwise eval.
 6. ~~Choose the repository, enable CI~~ (done); publish with measured tables once joan agrees.
 7. ~~Forge: checks SPIKE runs itself on the saved files~~ (built and measured in run 4: no gain). Forge stays

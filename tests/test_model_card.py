@@ -77,6 +77,30 @@ def test_card_is_built_from_the_records():
     assert "not a medical device" in card
 
 
+
+def test_card_names_the_file_spike_loads():
+    """SPIKE loads adapters/<catalog adapter>.gguf: the card must not tell people to keep the sweep's file name."""
+    spec = load_catalog().get("medicine")
+    card = render(spec, CFG, MANIFEST, {**EXPORT, "gguf": "/x/sweep/gguf/spike-medicine-it900-s0.5.gguf"},
+                  summary(True), SUMMARY_MD)
+    assert "`~/.spike/adapters/spike-medicine.gguf`" in card
+    assert "--lora spike-medicine-it900-s0.5.gguf" in card  # llama.cpp takes any name
+
+
+def test_card_says_how_much_of_the_gain_is_answer_format():
+    """When the base model leaves many answers unreadable (they count as wrong), the card says so and gives the
+    accuracy among readable answers, computed from the run's own counts."""
+    spec = load_catalog().get("medicine")
+    cfg, suite = {**CFG, "acceptance": {"primary": {"suite": "medicine"}}}, "medicine"
+    acc = {"base": {"n": 1000, "correct": 300, "unparsed": 400}, "spike-medicine": {"n": 1000, "correct": 640, "unparsed": 20}}
+    card = render(spec, cfg, MANIFEST, EXPORT, {**summary(True), "suites": {suite: {"accuracy": acc}}}, SUMMARY_MD)
+    assert f"no readable answer on 400 of 1,000 {suite} questions" in card
+    assert "base 0.500, spike-medicine 0.653" in card
+    acc["base"]["unparsed"] = 50  # 5 %: no note
+    card = render(spec, cfg, MANIFEST, EXPORT, {**summary(True), "suites": {suite: {"accuracy": acc}}}, SUMMARY_MD)
+    assert "readable answer" not in card
+
+
 def test_rejected_adapter_says_so():
     card = render(load_catalog().get("medicine"), CFG, MANIFEST, EXPORT, summary(False), SUMMARY_MD)
     assert "**Rejected by its acceptance criteria" in card and "research record" in card

@@ -477,7 +477,8 @@
    "spec": "Started on the Mac 2026-11-05 15:50 UTC with medicine's round-2 recipe, finance.yaml unchanged: self_replay.py, prepare --self-replay --fit-domain, train_supervised under the RAM guard, sweep_checkpoints (default candidates incl. final@0.5, then the acceptance suites once). Same gate, one run at a time. 2026-11-06: first sweep rejected (best final@0.5: finance +5.17, general -3.00); the Mac tries scales 0.25/0.35 and it4400@0.5 on the selection suites (evaluation only). Claude's decision if none passes: next single change is the training window (chunked ~1536 tokens instead of 768, which dropped 6,313 of 9,063 replay answers), same gate, measured against this run.",
    "accept": [
     "acceptance record"
-   ]
+   ],
+   "note": "2026-11-09: round 1 (768) rejected after two sweeps (best final@0.5 finance +5.17 / general -3.00; 0.25 +1.67/-5.50, 0.35 +4.00/-4.50, it4400@0.5 +3.67/-5.50). Round 2 changes only the window to 1536 (mac/m3-window fc62739, merged), running since 13:58 UTC from Spike-main, local domain floor 0.3, same gate. Recorded in STATUS."
   },
   {
    "id": "M4",
@@ -827,7 +828,7 @@
   {
    "id": "M15",
    "owner": "mac",
-   "status": "todo",
+   "status": "doing",
    "phase": "modelos",
    "title": "Medicina: ficha de Hugging Face del adaptador aceptado (sin publicar)",
    "depends": [
@@ -840,7 +841,8 @@
    "accept": [
     "card built by the script, exit 0",
     "the card's file name and numbers match adapter.json and the final summary"
-   ]
+   ],
+   "note": "2026-11-09: card built (mac/m15 de128dd, merged; model_card.py --export). Review found two fixes, now in the generator: the Use line must name ~/.spike/adapters/spike-medicine.gguf (the name SPIKE loads), and the card states the base model's unreadable answers (650 of 2,318) with accuracy among readable ones. Left: rebuild the card on the Mac with the same command (light, can run during M3) and push mac/m15-2."
   },
   {
    "id": "G18",
@@ -1039,6 +1041,192 @@
    ],
    "paths": [],
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G32 from origin/main, report docs/team/reports/G32.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G33",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Primer uso guiado",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G33 from origin/main, report docs/team/reports/G33.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G34",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Copia de seguridad y restauración",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G34 from origin/main, report docs/team/reports/G34.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G35",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Paleta de comandos y atajos",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G35 from origin/main, report docs/team/reports/G35.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G36",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Exportar y borrar todos mis datos",
+   "depends": [
+    "G34"
+   ],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G36 from origin/main, report docs/team/reports/G36.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G37",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Referencia de la API",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G37 from origin/main, report docs/team/reports/G37.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G38",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Ayuda de la línea de comandos",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G38 from origin/main, report docs/team/reports/G38.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G39",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Proyectos de ejemplo",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G39 from origin/main, report docs/team/reports/G39.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G40",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Ajustes: revisión completa",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G40 from origin/main, report docs/team/reports/G40.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G41",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Diseño móvil",
+   "depends": [
+    "G18"
+   ],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G41 from origin/main, report docs/team/reports/G41.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G42",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Arranque rápido del servidor",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G42 from origin/main, report docs/team/reports/G42.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G43",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Registro de errores local",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G43 from origin/main, report docs/team/reports/G43.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G44",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Consistencia del catálogo de especialistas",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G44 from origin/main, report docs/team/reports/G44.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G45",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Humo de los instaladores sin modelo",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G45 from origin/main, report docs/team/reports/G45.md.",
+   "accept": [
+    "report and tests reviewed by Claude"
+   ]
+  },
+  {
+   "id": "G46",
+   "owner": "gemini",
+   "status": "todo",
+   "phase": "app",
+   "title": "Revisión final de textos",
+   "depends": [],
+   "paths": [],
+   "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G46 from origin/main, report docs/team/reports/G46.md.",
    "accept": [
     "report and tests reviewed by Claude"
    ]

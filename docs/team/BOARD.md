@@ -8,11 +8,11 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Claude | 1 | 3 | 0 | 0 | 20 | 0 | 24 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 13 | 1 | 0 | 0 | 7 | 0 | 21 |
+| Gemini | 27 | 1 | 0 | 0 | 7 | 0 | 35 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
-| Mac | 4 | 1 | 0 | 0 | 4 | 0 | 9 |
+| Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **24** | **6** | **0** | **0** | **47** | **0** | **77** |
+| **Total** | **37** | **7** | **0** | **0** | **47** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -67,6 +67,20 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G26 | Gemini | pendiente | Segunda división del bundle | G25 |
 | G27 | Gemini | pendiente | Actualizar vite y vitest a sus versiones mayores | - |
 | G28 | Gemini | pendiente | Cobertura del smoke: vistas que no abre | - |
+| G33 | Gemini | pendiente | Primer uso guiado | - |
+| G34 | Gemini | pendiente | Copia de seguridad y restauración | - |
+| G35 | Gemini | pendiente | Paleta de comandos y atajos | - |
+| G36 | Gemini | pendiente | Exportar y borrar todos mis datos | G34 |
+| G37 | Gemini | pendiente | Referencia de la API | - |
+| G38 | Gemini | pendiente | Ayuda de la línea de comandos | - |
+| G39 | Gemini | pendiente | Proyectos de ejemplo | - |
+| G40 | Gemini | pendiente | Ajustes: revisión completa | - |
+| G41 | Gemini | pendiente | Diseño móvil | G18 |
+| G42 | Gemini | pendiente | Arranque rápido del servidor | - |
+| G43 | Gemini | pendiente | Registro de errores local | - |
+| G44 | Gemini | pendiente | Consistencia del catálogo de especialistas | - |
+| G45 | Gemini | pendiente | Humo de los instaladores sin modelo | - |
+| G46 | Gemini | pendiente | Revisión final de textos | - |
 | O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Opus | pendiente | Un espacio de tarea unificado | - |
 | O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |
@@ -89,7 +103,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M11 | Mac | hecha | Medicina: registrar el adaptador aceptado e instalarlo | M2 |
 | M13 | Claude | hecha | Integrar la procedencia de evaluaciones (PR #2, rama gemini/G12-2) | - |
 | M14 | Claude | en curso | Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción | M3 |
-| M15 | Mac | pendiente | Medicina: ficha de Hugging Face del adaptador aceptado (sin publicar) | M11 |
+| M15 | Mac | en curso | Medicina: ficha de Hugging Face del adaptador aceptado (sin publicar) | M11 |
 
 ## Fase: models
 
