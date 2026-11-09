@@ -39,9 +39,42 @@ const marked = new Marked({
   },
 });
 
+// Nothing in an answer may make the browser contact another host by itself: an answer can be steered by text the model
+// read (a web page, a document, a connector's result), and a loaded URL would carry data out with no approval card.
+// So no styles, media or SVG references, and an image from another site becomes a link the user can choose to open.
+const PURIFY = {
+  ADD_ATTR: ["target"],
+  FORBID_TAGS: ["style", "video", "audio", "source", "track", "picture", "object", "embed", "image", "feImage", "use"],
+  FORBID_ATTR: ["style", "srcset", "poster", "background"],
+  RETURN_DOM_FRAGMENT: true as const,
+};
+
+const isLocalImage = (src: string) => /^(?:data:image\/|blob:)/i.test(src) || !/^(?:[a-z][a-z0-9+.-]*:|\/\/|\\\\)/i.test(src);
+
 /** Markdown as sanitized HTML (also used for exported reports). */
 export function markdownHtml(text: string): string {
-  return DOMPurify.sanitize(marked.parse(text, { async: false }) as string, { ADD_ATTR: ["target"] });
+  const html = DOMPurify.sanitize(marked.parse(text, { async: false }) as string, PURIFY);
+  html.querySelectorAll("img").forEach((img) => {
+    const src = (img.getAttribute("src") ?? "").trim();
+    if (isLocalImage(src)) return;
+    const alt = img.getAttribute("alt")?.trim();
+    if (!/^(?:https?:)?\/\//i.test(src)) {
+      img.replaceWith(alt ?? "");
+      return;
+    }
+    const link = img.ownerDocument.createElement("a");
+    link.href = src;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    let host = "";
+    try { host = new URL(src, "https://x.invalid").host; } catch { /* the link text still says what it is */ }
+    const where = [host, t.remoteImage].filter(Boolean).join(", ");
+    link.textContent = alt ? `${alt} (${where})` : where;
+    img.replaceWith(link);
+  });
+  const box = document.createElement("div");
+  box.append(html);
+  return box.innerHTML;
 }
 
 function MarkdownImpl({ text }: { text: string }) {

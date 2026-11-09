@@ -139,6 +139,9 @@ profiles on the base model, marked β, until theirs pass.
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
 ### Security and packaging (release review, L2)
+- An answer can no longer make the browser load an image, style or media file from another site by itself (text
+  the model read could have used that to send conversation data out without approval): such images become links
+  (O4-1, `docs/audits/2026-11-security-review.md`).
 - A path through a `.git` folder is refused in project archives, file uploads, packs and `write_file`: git runs
   programs named in `.git/config`.
 - Pack import brings in only the fields the Connectors form can enter; environment variables, headers, secret
