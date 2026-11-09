@@ -54,8 +54,9 @@ Scope, data and evaluation of each one: [docs/SPECIALISTS.md](docs/SPECIALISTS.m
    machine at 5.1–6.2 tok/s up to an 8K prompt, with 3.6 GiB of anonymous memory (peak RSS 6.1 GiB, which also counts
    the mapped model file). The slow cases are published too, below.
 2. **Specialists that share one model.** Thirteen specialists share the base in memory and, once trained, switch as
-   ~42 MB adapters (computed) without a reload. Today none has a trained adapter that passed its acceptance test:
-   each runs as a prompt profile on the base model, is marked β, and is not claimed to beat the base until it passes.
+   ~42 MB adapters (computed) without a reload. Medicine passed its acceptance gate (+35.07 points on 2,318 questions,
+   −0.62 on general knowledge, not published yet); the others run as prompt profiles on the base model, are marked β,
+   and are not claimed to beat the base until they pass.
 3. **Routing before spending compute.** A lexical router sends clear requests to a specialist without a model
    call (46/50 on a held-out set, measured); only multi-domain or ambiguous requests get an LLM plan.
 4. **Local first, external APIs when you choose.** The same instructions, specialists and tools run on the local
