@@ -1,4 +1,4 @@
-import { createContext, useMemo, useState } from "react";
+import { createContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArtifactComments } from "./ArtifactComments";
 import { t } from "../i18n";
 import { DataAppFrame } from "./DataApp";
@@ -26,6 +26,11 @@ export function artifactFromCode(code: string, lang: string): ArtifactDoc {
 }
 
 export function ArtifactPanel({ doc, onClose }: { doc: ArtifactDoc; onClose: () => void }) {
+  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  useEffect(() => {
+    const prev = previous.current;
+    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
+  }, []);
   const [view, setView] = useState<"preview" | "code" | "comments">("preview");
   const srcDoc = useMemo(() => artifactDocument(doc.html), [doc.html]);
   const download = () => {

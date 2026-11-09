@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { lang, t } from "../i18n";
 import type { Blueprint, DesignSystemInfo, ProviderInfo, Specialist } from "../types";
@@ -51,6 +51,11 @@ export function Creator({ specialists, providers, projectId, designs, projectDes
   onRun: (task: string, blueprint: Blueprint, providerId: string | null, extra: CreatorExtra) => void;
   onClose: () => void;
 }) {
+  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  useEffect(() => {
+    const prev = previous.current;
+    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
+  }, []);
   const openArtifact = useContext(ArtifactContext);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [chosen, setChosen] = useState<Template | null>(null);

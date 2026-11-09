@@ -1,5 +1,5 @@
 import { VisionSetting } from "./VisionSetting";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, streamPost } from "../api";
 import { lang, t } from "../i18n";
 import { reasonText } from "../isolation";
@@ -73,6 +73,12 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
   const [tab, setTab] = useState<Tab>("general");
   const [settings, setSettings] = useState<Settings | null>(null);
   const [flash, setFlash] = useState("");
+  const previous = useRef(typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+
+  useEffect(() => {
+    const prev = previous.current;
+    return () => { if (prev?.isConnected && (!document.activeElement || document.activeElement === document.body)) prev.focus(); };
+  }, []);
 
   useEffect(() => {
     api.get<Settings>("/api/settings").then(setSettings);
