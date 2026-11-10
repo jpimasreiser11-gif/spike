@@ -1,0 +1,41 @@
+date,category,description,amount,method
+2026-01-03,Rent,Studio rent for January,650.00,transfer
+2026-01-05,Materials,White clay 25 kg,48.50,card
+2026-01-07,Utilities,Kiln electricity,92.30,transfer
+2026-01-09,Materials,Assorted glazes,63.90,card
+2026-01-12,Marketing,Printing 200 cards,34.00,card
+2026-01-15,Software,Accounting software,14.99,card
+2026-01-18,Transport,Shipping customer orders,27.40,cash
+2026-01-21,Utilities,Water and gas,41.75,transfer
+2026-01-24,Materials,Bags of plaster,19.60,cash
+2026-01-28,Training,One-day wheel workshop,85.00,card
+2026-02-02,Rent,Studio rent for February,650.00,transfer
+2026-02-04,Materials,Red clay 25 kg,44.00,card
+2026-02-06,Utilities,Kiln electricity,118.20,transfer
+2026-02-09,Marketing,Ad in the neighbourhood newsletter,45.00,card
+2026-02-11,Other,Coffee and tea for classes,22.35,cash
+2026-02-13,Materials,Brushes and sponges,17.80,card
+2026-02-16,Transport,Van rented for the fair,72.00,card
+2026-02-19,Marketing,Stall at the craft fair,120.00,transfer
+2026-02-21,Software,Accounting software,14.99,card
+2026-02-23,Utilities,Water and gas,38.90,transfer
+2026-02-25,Taxes,Quarterly self-employment fee,210.00,transfer
+2026-02-27,Materials,Clear glaze 5 l,58.00,card
+2026-03-02,Rent,Studio rent for March,650.00,transfer
+2026-03-04,Materials,White clay 25 kg,48.50,card
+2026-03-06,Utilities,Kiln electricity,134.80,transfer
+2026-03-08,Other,Studio insurance,96.00,transfer
+2026-03-10,Marketing,Product photos,150.00,transfer
+2026-03-12,Materials,Boxes and packing paper,36.25,card
+2026-03-14,Transport,Shipping customer orders,31.10,cash
+2026-03-17,Training,Online glazing course,59.00,card
+2026-03-19,Software,Web domain and hosting,79.00,card
+2026-03-21,Utilities,Water and gas,44.20,transfer
+2026-03-23,Other,Repair of a work table,65.00,cash
+2026-03-25,Materials,Kiln shelves,112.00,card
+2026-03-26,Marketing,Logo stickers,28.50,card
+2026-03-28,Software,Accounting software,14.99,card
+2026-03-29,Other,Studio cleaning,40.00,cash
+2026-03-30,Transport,Fuel,38.60,card
+2026-03-31,Materials,Quartz 10 kg,21.90,card
+2026-03-31,Other,Office supplies,18.45,card

@@ -62,6 +62,7 @@ from spike.server.openai_api import ApiError, check_access, create_router
 from spike.server.openai_api import _is_loopback as _loopback
 from spike.server.research_api import create_research_router
 from spike.server.reverse_api import create_reverse_router
+from spike.server.samples_api import create_samples_router
 from spike.server.setup_api import create_setup_router
 from spike.server.state import AppState
 from spike.server.subtitles_api import create_subtitles_router
@@ -395,6 +396,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_backup_router(st))  # G34 backup and restore, G36 delete all my data
     app.include_router(create_setup_router())
     app.include_router(create_workflow_router(st))
+    app.include_router(create_samples_router(st))  # G39 sample projects
 
     # ---------------------------------------------------------------- MCP server (Streamable HTTP, JSON answers)
     @app.post("/mcp", include_in_schema=False)

@@ -1,0 +1,29 @@
+{
+ "edges": [
+  {"from": "in", "fromPort": "out", "id": "e1", "to": "read", "toPort": "in"},
+  {"from": "read", "fromPort": "out", "id": "e2", "to": "review", "toPort": "in"},
+  {"from": "review", "fromPort": "out", "id": "e3", "to": "check", "toPort": "in"},
+  {"from": "check", "fromPort": "true", "id": "e4", "to": "alert", "toPort": "in"},
+  {"from": "alert", "fromPort": "out", "id": "e5", "to": "save_alert", "toPort": "in"},
+  {"from": "check", "fromPort": "false", "id": "e6", "to": "show", "toPort": "in"}
+ ],
+ "format": "spike-workflow",
+ "id": "wf-sample-review",
+ "name": "Weekly expense review",
+ "nodes": [
+  {"id": "in", "type": "input", "name": "file", "label": "Expenses file", "kind": "file", "default": "expenses.csv", "x": 40, "y": 160},
+  {"id": "read", "type": "tool", "name": "data", "label": "Read the file", "tool": "read_file", "arguments": {"path": "{{file}}"}, "x": 300, "y": 160},
+  {"id": "review", "type": "specialist", "name": "review", "label": "Review the expenses", "specialist": "data",
+   "prompt": "Review these expenses of a studio. Give the total by category, the costliest month and the three heaviest expenses. Point out anything that looks like a mistake or a repeated expense without a reason. End with one exact last line: \"RISK: yes\" if any expense or category deserves attention this week, or \"RISK: no\" if everything looks normal.\n\n{{input}}",
+   "x": 560, "y": 160},
+  {"id": "check", "type": "condition", "name": "has_risk", "label": "Is there a risk?", "op": "contains", "value": "RISK: yes", "case_sensitive": false, "x": 840, "y": 160},
+  {"id": "alert", "type": "specialist", "name": "warning", "label": "Write a warning", "specialist": "writing",
+   "prompt": "Write a warning of five lines at most for the studio manager, in a calm tone, explaining what is worth looking at this week according to this review:\n\n{{review}}",
+   "x": 1100, "y": 60},
+  {"id": "save_alert", "type": "output", "name": "save_warning", "label": "Save the warning", "mode": "file", "path": "warnings/expense-warning.md", "content": "{{input}}", "title": "", "format": "text", "x": 1360, "y": 60},
+  {"id": "show", "type": "output", "name": "summary", "label": "Show the summary", "mode": "artifact", "path": "", "content": "{{review}}", "title": "Expense summary", "format": "text", "x": 1100, "y": 270}
+ ],
+ "revision": 1,
+ "saved": 1767225600,
+ "version": 1
+}

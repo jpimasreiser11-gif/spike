@@ -1,0 +1,41 @@
+fecha,categoria,concepto,importe,metodo
+2026-01-03,Alquiler,Alquiler del local de enero,650.00,transferencia
+2026-01-05,Materiales,Arcilla blanca 25 kg,48.50,tarjeta
+2026-01-07,Suministros,Electricidad del horno,92.30,transferencia
+2026-01-09,Materiales,Esmaltes surtidos,63.90,tarjeta
+2026-01-12,Marketing,Impresión de 200 tarjetas,34.00,tarjeta
+2026-01-15,Software,Programa de contabilidad,14.99,tarjeta
+2026-01-18,Transporte,Envío de pedidos a clientes,27.40,efectivo
+2026-01-21,Suministros,Agua y gas,41.75,transferencia
+2026-01-24,Materiales,Bolsas de yeso,19.60,efectivo
+2026-01-28,Formación,Taller de torno de un día,85.00,tarjeta
+2026-02-02,Alquiler,Alquiler del local de febrero,650.00,transferencia
+2026-02-04,Materiales,Arcilla roja 25 kg,44.00,tarjeta
+2026-02-06,Suministros,Electricidad del horno,118.20,transferencia
+2026-02-09,Marketing,Anuncio en el boletín del barrio,45.00,tarjeta
+2026-02-11,Otros,Café y té para las clases,22.35,efectivo
+2026-02-13,Materiales,Pinceles y esponjas,17.80,tarjeta
+2026-02-16,Transporte,Furgoneta alquilada para la feria,72.00,tarjeta
+2026-02-19,Marketing,Puesto en la feria de artesanía,120.00,transferencia
+2026-02-21,Software,Programa de contabilidad,14.99,tarjeta
+2026-02-23,Suministros,Agua y gas,38.90,transferencia
+2026-02-25,Impuestos,Cuota trimestral de autónomos,210.00,transferencia
+2026-02-27,Materiales,Esmalte transparente 5 l,58.00,tarjeta
+2026-03-02,Alquiler,Alquiler del local de marzo,650.00,transferencia
+2026-03-04,Materiales,Arcilla blanca 25 kg,48.50,tarjeta
+2026-03-06,Suministros,Electricidad del horno,134.80,transferencia
+2026-03-08,Otros,Seguro del local,96.00,transferencia
+2026-03-10,Marketing,Fotografías de producto,150.00,transferencia
+2026-03-12,Materiales,Cajas y papel de embalaje,36.25,tarjeta
+2026-03-14,Transporte,Envío de pedidos a clientes,31.10,efectivo
+2026-03-17,Formación,Curso en línea de esmaltado,59.00,tarjeta
+2026-03-19,Software,Dominio y alojamiento web,79.00,tarjeta
+2026-03-21,Suministros,Agua y gas,44.20,transferencia
+2026-03-23,Otros,Reparación de una mesa de trabajo,65.00,efectivo
+2026-03-25,Materiales,Placas de horno,112.00,tarjeta
+2026-03-26,Marketing,Pegatinas con el logotipo,28.50,tarjeta
+2026-03-28,Software,Programa de contabilidad,14.99,tarjeta
+2026-03-29,Otros,Limpieza del taller,40.00,efectivo
+2026-03-30,Transporte,Gasolina,38.60,tarjeta
+2026-03-31,Materiales,Cuarzo 10 kg,21.90,tarjeta
+2026-03-31,Otros,Material de oficina,18.45,tarjeta

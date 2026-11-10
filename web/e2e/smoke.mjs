@@ -509,6 +509,13 @@ const importedNotes = await (await ctx.request.get(`${base}/api/memory`, {
 if (!importedNotes.some((m) => m.kind === "decision" && m.text === note.text)) fail("project note lost in export/import");
 await ctx.request.delete(`${base}/api/projects/${importedProject.id}`);
 await ctx.request.delete(`${base}/api/memory/${note.id}`);
+// G39: a bundled sample project imports in one request and its CSV is there
+const sampleResponse = await ctx.request.post(`${base}/api/samples/expenses/import?lang=es`);
+if (!sampleResponse.ok()) throw new Error("sample import failed: " + await sampleResponse.text());
+const sampleProject = await sampleResponse.json();
+const sampleFiles = await (await ctx.request.get(`${base}/api/projects/${sampleProject.id}/files`)).json();
+if (!sampleFiles.some((f) => f.path === "gastos.csv")) fail("sample project lost its CSV");
+await ctx.request.delete(`${base}/api/projects/${sampleProject.id}`);
 await page.locator("#composer-input").fill("Resume las ventas por producto");
 await submitChat();
 await page.getByText("Respuesta del proyecto").waitFor({ timeout: 10000 });

@@ -27,6 +27,8 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- Sample projects: six ready-made projects in Spanish and English (an expenses sheet, a report brief, a mini web page, a
+  long handbook, a workflow and a paper-only finance case), imported with one click from the Projects list (G39).
 - The main web bundle went from 651.5 kB to 577.3 kB (gzip 212.0 to 191.8 kB): Forge, Research, Replay, Device Lab,
   history search, the workspace panel, the first-run wizard and the desktop task load when first opened (G26).
 - `spike --help` covers every command and option; the CLI reference in `docs/guide/` is generated from the parser and

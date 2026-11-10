@@ -1,0 +1,17 @@
+{
+ "feature": "Memory",
+ "es": {
+  "name": "Ejemplo: manual de la biblioteca de barrio",
+  "description": "Un manual largo (unas 3.000 palabras) de una biblioteca inventada, para probar la memoria y la búsqueda: pregunta por plazos, multas o talleres.",
+  "instructions": "Este proyecto es un ejemplo para probar la memoria y la búsqueda. El manual está en manual.md. Contesta solo con lo que diga el manual, cita la sección y, si no lo encuentras, dilo. Responde en español.",
+  "mode": "core",
+  "memories": [{"kind": "fact", "text": "El manual.md describe la Biblioteca Casa del Olivo, una biblioteca de barrio inventada. Los préstamos duran 21 días."}]
+ },
+ "en": {
+  "name": "Sample: neighbourhood library handbook",
+  "description": "A long handbook (about 3,000 words) of an invented library, to try memory and search: ask about loan periods, fines or workshops.",
+  "instructions": "This project is a sample for trying memory and search. The handbook is handbook.md. Answer only with what the handbook says, cite the section and, if you cannot find it, say so. Answer in English.",
+  "mode": "core",
+  "memories": [{"kind": "fact", "text": "handbook.md describes the Olive House Library, an invented neighbourhood library. Loans last 21 days."}]
+ }
+}

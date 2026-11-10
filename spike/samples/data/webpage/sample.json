@@ -1,0 +1,17 @@
+{
+ "feature": "Dev",
+ "es": {
+  "name": "Ejemplo: página web del cuaderno de riego",
+  "description": "Una mini página (HTML, CSS y JS) con un contador de riegos. Pide a Dev que la mejore, añada modo oscuro o la pruebe.",
+  "instructions": "Este proyecto es un ejemplo para Dev. Contiene una página pequeña: index.html, style.css y app.js, sin librerías ni red. Haz cambios pequeños, explica cada uno y no añadas dependencias. Responde en español.",
+  "mode": "code",
+  "memories": [{"kind": "rule", "text": "La página del cuaderno de riego no usa librerías externas ni peticiones de red: todo es HTML, CSS y JavaScript sin dependencias."}]
+ },
+ "en": {
+  "name": "Sample: watering log web page",
+  "description": "A mini page (HTML, CSS and JS) with a watering counter. Ask Dev to improve it, add a dark mode or test it.",
+  "instructions": "This project is a sample for Dev. It holds a small page: index.html, style.css and app.js, with no libraries and no network. Make small changes, explain each one and add no dependencies. Answer in English.",
+  "mode": "code",
+  "memories": [{"kind": "rule", "text": "The watering log page uses no external libraries and no network requests: it is plain HTML, CSS and JavaScript with no dependencies."}]
+ }
+}
