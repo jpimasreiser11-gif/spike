@@ -100,7 +100,7 @@ const openSidebar = async (page) => {
   if (!(await page.locator(".app.with-sidebar").count())) await page.getByRole("button", { name: /Abrir barra lateral|Open sidebar/ }).click();
   await page.waitForTimeout(300);
 };
-const side = async (page, name) => { await openSidebar(page); await page.locator(".sidebar").getByRole("button", { name }).click(); };
+const side = async (page, name) => { await openSidebar(page); await page.locator(".sidebar > .side-btn, .sidebar-bottom > .side-btn").filter({ hasText: name }).first().click(); }; // never a conversation titled alike
 
 const scenes = [
   { id: "chat-welcome", run: async () => {} },
