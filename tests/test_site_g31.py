@@ -83,8 +83,9 @@ def test_generator_check_passes_and_detects_drift(tmp_path: Path) -> None:
     assert subprocess.run([sys.executable, str(SCRIPT), "--out", str(out), "--check"], cwd=ROOT).returncode == 1
     assert subprocess.run([sys.executable, str(SCRIPT), "--out", str(out)], cwd=ROOT).returncode == 0
     assert subprocess.run([sys.executable, str(SCRIPT), "--out", str(out), "--check"], cwd=ROOT).returncode == 0
-    assert (out / "figures.json").read_bytes() == (SITE / "figures.json").read_bytes()
-    assert (out / "es" / "index.html").read_bytes() == PAGES["es"].read_bytes()
+    lf = lambda p: p.read_bytes().replace(b"\r\n", b"\n")  # noqa: E731 (a Windows checkout has CRLF)
+    assert lf(out / "figures.json") == lf(SITE / "figures.json")
+    assert lf(out / "es" / "index.html") == lf(PAGES["es"])
     fig = out / "figures.json"
     fig.write_text(fig.read_text(encoding="utf-8").replace("+35.07", "+99.99"), encoding="utf-8")
     assert subprocess.run([sys.executable, str(SCRIPT), "--out", str(out), "--check"], cwd=ROOT).returncode == 1
@@ -299,3 +300,12 @@ def test_not_claimed_section_is_honest() -> None:
         assert section
         for w in words:
             assert w in section.group(0), (lang, w)
+
+
+def test_check_accepts_windows_line_endings(tmp_path: Path) -> None:
+    """A Windows checkout (core.autocrlf) has CRLF in the generated text files; that is not drift."""
+    out = tmp_path / "site"
+    assert subprocess.run([sys.executable, str(SCRIPT), "--out", str(out)], cwd=ROOT).returncode == 0
+    for page in [*out.rglob("*.html"), *out.rglob("*.json")]:
+        page.write_bytes(page.read_bytes().replace(b"\n", b"\r\n"))
+    assert subprocess.run([sys.executable, str(SCRIPT), "--out", str(out), "--check"], cwd=ROOT).returncode == 0

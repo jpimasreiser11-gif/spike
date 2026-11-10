@@ -27,6 +27,11 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- First use: a short guided tour in Spanish or English (skip it, or open it again from Settings), and a command
+  palette on Ctrl/Cmd+K for views, specialists and projects; Settings lists the keyboard shortcuts (G33, G35).
+  Ctrl/Cmd+K used to open history search, which is now one of the palette's actions.
+- `site/`: a presentation page in Spanish and English whose figures are generated from the evaluation and benchmark
+  records and checked in CI; not published (G31).
 - CI installs the built wheel in an empty folder, starts SPIKE without a model, checks `/api/health` and `/v1/models`
   and removes it again (G45; it does not replace testing the desktop installers on real machines).
 - Settings › Errores: a local log of the app's last failures (no error messages, file contents or keys; paths

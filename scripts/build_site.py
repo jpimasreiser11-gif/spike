@@ -136,6 +136,16 @@ def render(root: Path = ROOT) -> dict[str, bytes]:
     return files
 
 
+def same(found: bytes, wanted: bytes, rel: str) -> bool:
+    """Equal content; for text files a Windows checkout's CRLF line endings do not count as a difference."""
+    if Path(rel).suffix in TEXT_SUFFIXES:
+        return found.replace(b"\r\n", b"\n") == wanted.replace(b"\r\n", b"\n")
+    return found == wanted
+
+
+TEXT_SUFFIXES = {".html", ".json", ".css", ".txt", ".md"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true")
@@ -146,7 +156,7 @@ def main() -> int:
         for rel in HAND_WRITTEN:  # the stylesheet is not generated; a custom --out gets a copy so pages render there
             files[rel] = (ROOT / "site" / rel).read_bytes()
     stale = [rel for rel, data in files.items()
-             if not (args.out / rel).exists() or (args.out / rel).read_bytes() != data]
+             if not (args.out / rel).exists() or not same((args.out / rel).read_bytes(), data, rel)]
     if args.check:
         if stale:
             print("Site is stale / Sitio desactualizado: python scripts/build_site.py")
