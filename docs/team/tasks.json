@@ -1259,7 +1259,7 @@
   },
   {
    "id": "O1",
-   "owner": "opus",
+   "owner": "claude",
    "status": "doing",
    "phase": "app",
    "title": "Sesiones de Spike Dev en la app (API e interfaz)",
@@ -1268,11 +1268,12 @@
    "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O1 from origin/main, report docs/team/reports/O1.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own)."
   },
   {
    "id": "O2",
-   "owner": "opus",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Un espacio de tarea unificado",
@@ -1281,12 +1282,13 @@
    "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O2 from origin/main, report docs/team/reports/O2.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own)."
   },
   {
    "id": "O3",
-   "owner": "opus",
-   "status": "todo",
+   "owner": "claude",
+   "status": "doing",
    "phase": "app",
    "title": "Instalar skills desde una URL de GitHub, con revisión",
    "depends": [],
@@ -1294,7 +1296,8 @@
    "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O3 from origin/main, report docs/team/reports/O3.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own)."
   },
   {
    "id": "O4",
