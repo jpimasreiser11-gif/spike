@@ -6,6 +6,9 @@
 # recorded license is what the gate checks; see training/spike_train/sources.py), or `file:` (a held-out evaluation
 # file written for this repository, role eval only; see training/spike_train/evalfiles.py).
 # `filter: {column: [values]}` keeps only the rows of a Hub source whose column has one of the values.
+# `revision: <40-hex commit>` (optional on a `hub:` source) pins it: prepare.py, run_eval.py, distill.py and
+# verify_sources.py pass it to `load_dataset`, the license gate reads the Hub metadata at that commit, and the data
+# manifest and the eval summary record it. Without it a Hub source follows the Hub's default branch, as before.
 #
 # role: train  -> may be used for training data
 #       eval   -> evaluation only; prepare.py decontaminates training data against these

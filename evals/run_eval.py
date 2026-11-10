@@ -42,7 +42,7 @@ from spike_train.evaluation import (  # noqa: E402
     summarize,
 )
 from spike_train.provenance import atomic_json, sha256, value_hash  # noqa: E402
-from spike_train.sources import filtered, url_rows  # noqa: E402
+from spike_train.sources import filtered, hub_load_kwargs, hub_revision, url_rows  # noqa: E402
 
 
 def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list[Item]:
@@ -57,7 +57,7 @@ def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list
     else:
         from datasets import load_dataset
 
-        ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "test"))
+        ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "test"), **hub_load_kwargs(src))
     rows = list(filtered(src, ds))
     if task.get("categories"):
         rows = [r for r in rows if r.get("category") in set(task["categories"])]
@@ -68,6 +68,19 @@ def load_items(task: dict, registry: dict, seed: int, limit: int | None) -> list
         raise SystemExit(f"task '{task['name']}' produced no items")
     n = min(x for x in (task.get("n"), limit, len(items)) if x)
     return sorted(items[:n], key=lambda it: it.id)
+
+
+def source_revisions(suite_names: list[str], suites: dict, registry: dict) -> dict[str, str | None]:
+    """The pinned revision (commit) of every registry source the selected suites use, None when a source is not pinned
+    (a Hub source then follows the Hub's default branch); recorded in the summary so a result says which data it saw."""
+    out: dict[str, str | None] = {}
+    for suite_name in suite_names:
+        for task in suites[suite_name]["tasks"]:
+            name = task.get("source")
+            if name in registry and name not in out:
+                src = registry[name]
+                out[name] = hub_revision(src) if "hub" in src else src.get("revision")
+    return out
 
 
 def pin_inputs(args: argparse.Namespace, out: Path, tasks: list[tuple]) -> dict:
@@ -172,7 +185,7 @@ async def run(args: argparse.Namespace) -> int:
         meta = {"run_id": run_id, "model": args.model, "adapters": adapters, "server_url": base_url,
                 "parallel": args.parallel, "kv_cache_type": args.kv_cache_type, "max_tokens": args.max_tokens, "seed": args.seed, "limit": args.limit, "suites": args.suites, "decoding": "greedy",
                 "thinking": False, "host": platform.platform(), "machine": platform.machine(),
-                "props": props}
+                "props": props, "source_revisions": source_revisions(args.suites.split(","), suites, registry)}
         if args.resume:
             meta["resumed"] = {"date_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "saved_rows": len(saved)}
         predictions: list[dict] = []
@@ -260,6 +273,9 @@ def render_markdown(summary: dict) -> str:
     lines = [f"# SPIKE eval {meta['run_id']}", "",
              f"Model `{Path(meta['model'] or '').name}`, llama.cpp `{meta.get('props')}`, greedy, thinking off, "
              f"max_tokens {meta['max_tokens']}, host `{meta['host']}`.", "",
+             *([("Data revisions: " + ", ".join(f"`{n}` " + (f"@ `{r[:12]}`" if r else "(not pinned)")
+                                                for n, r in meta["source_revisions"].items()) + "."), ""]
+               if meta.get("source_revisions") else []),
              "| task | variant | n | accuracy | 95% CI | Δ vs base (pts) | McNemar p | unparsed | truncated |",
              "|---|---|---|---|---|---|---|---|---|"]
     for level in ("tasks", "suites"):

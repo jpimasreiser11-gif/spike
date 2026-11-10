@@ -32,6 +32,23 @@ def _get(url: str) -> bytes:
     return httpx.get(url, follow_redirects=True, timeout=120).raise_for_status().content
 
 
+def hub_revision(src: dict) -> str | None:
+    """The commit a Hub source (`hub:`) is pinned to by its optional `revision`, or None (the Hub's current default
+    branch, as before). Must be a full lowercase commit hash, so the pin cannot silently follow a branch or tag."""
+    if "revision" not in src:
+        return None
+    if not isinstance(src["revision"], str) or not re.fullmatch(r"[0-9a-f]{40}", src["revision"]):
+        raise ValueError(f"revision of {src.get('hub', 'source')} must be a 40-character lowercase commit hash, "
+                         f"got {src['revision']!r}")
+    return src["revision"]
+
+
+def hub_load_kwargs(src: dict) -> dict:
+    """Extra keyword arguments for `datasets.load_dataset`: {'revision': hash} when pinned, nothing otherwise."""
+    revision = hub_revision(src)
+    return {"revision": revision} if revision else {}
+
+
 def validate(src: dict) -> None:
     """A URL source must be pinned (commit in every URL, sha256 per file) and carry a license and where to read it."""
     for key in ("urls", "revision", "license", "license_url"):
@@ -117,7 +134,7 @@ def origin(src: dict) -> dict:
     """Where a source's rows come from, as written to the training manifest and the model card."""
     if "file" in src:  # a held-out file written for this repository (evals/data), not fetched from anywhere
         return {"file": src["file"]}
-    out = {"hub": src["hub"]} if "hub" in src else {
+    out = {"hub": src["hub"], **({"revision": r} if (r := hub_revision(src)) else {})} if "hub" in src else {
         "urls": src["urls"], "revision": src["revision"], "repo": src.get("repo"), "license_url": src["license_url"]}
     if src.get("filter"):
         out["filter"] = src["filter"]

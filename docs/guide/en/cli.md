@@ -88,6 +88,7 @@ list or download models
 | `action` (`list`, `pull`, `history`) |  | list: local models; pull: download one; history: versions of a component |
 | `model` |  | model to pull (default qwen3.5-4b); for history, a component |
 | `--quant` |  | pull: quantization, e.g. Q4_K_M (default: the model's own) |
+| `--revision` |  | pull: pin the download to this commit hash of the model repo (default: main) |
 | `--allow-unverified` |  | pull: download even when the Hub publishes no SHA-256 for the file (refused by default) |
 
 ## `spike chat`

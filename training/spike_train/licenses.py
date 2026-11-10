@@ -40,13 +40,19 @@ def source_license(src: dict) -> str | None:
     """The license to gate a registry source on: as published on the Hub for a Hub source; for a URL source, which
     the Hub cannot be asked about, the one recorded in datasets.yaml (with the LICENSE file's URL)."""
     blocked(src)
-    return hub_license(src["hub"]) if "hub" in src else src.get("license")
+    if "hub" not in src:
+        return src.get("license")
+    from .sources import hub_revision
+
+    revision = hub_revision(src)  # a pinned Hub source is gated on the license at that commit
+    return hub_license(src["hub"], revision) if revision else hub_license(src["hub"])
 
 
-def _hub_license(kind: str, repo: str) -> str | None:
+def _hub_license(kind: str, repo: str, revision: str | None = None) -> str | None:
     import httpx
 
-    data = httpx.get(f"https://huggingface.co/api/{kind}/{repo}", timeout=30).raise_for_status().json()
+    url = f"https://huggingface.co/api/{kind}/{repo}" + (f"/revision/{revision}" if revision else "")
+    data = httpx.get(url, timeout=30).raise_for_status().json()
     card = data.get("cardData") or {}
     lic = card.get("license")
     if isinstance(lic, list):
@@ -56,9 +62,9 @@ def _hub_license(kind: str, repo: str) -> str | None:
     return lic
 
 
-def hub_license(repo: str) -> str | None:
-    """Read the license declared on the Hugging Face Hub for a dataset (network)."""
-    return _hub_license("datasets", repo)
+def hub_license(repo: str, revision: str | None = None) -> str | None:
+    """Read the license declared on the Hugging Face Hub for a dataset (network), at `revision` when given."""
+    return _hub_license("datasets", repo, revision)
 
 
 def hub_model_license(repo: str) -> str | None:
