@@ -99,7 +99,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
+html, body, #root { height: var(--vvh, 100%); margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -136,7 +136,7 @@ input, textarea, select { font: inherit; color: inherit; }
 :root[data-theme="dark"] .wordmark { color: var(--mint); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wordmark { color: var(--mint); } }
 .new-chat {
-  margin: 4px 12px 10px; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 10px;
+  margin: 4px 12px 4px; display: flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 10px;
   border: 1px solid var(--border-strong); background: var(--surface); font-weight: 500;
 }
 .new-chat:hover { border-color: var(--green-shade); }
@@ -152,6 +152,11 @@ input, textarea, select { font: inherit; color: inherit; }
 .sidebar-bottom { border-top: 1px solid var(--border); padding: 10px 12px; display: grid; gap: 6px; }
 .side-btn { display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 7px 6px; border-radius: 8px; text-align: left; }
 .side-btn:hover { background: var(--surface-2); }
+/* Every top entry of the sidebar (search, palette, new chat, Forge, Create, Audio, Device Lab) shares one margin, padding and icon. */
+.side-btn.nav-btn { margin: 0 12px 4px; padding: 8px 13px; }
+.side-btn.nav-btn > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-btn svg { flex-shrink: 0; }
+.side-btn.nav-btn.history-launch { padding-right: 10px; }
 .engine-status { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 6px; padding: 0 6px; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
 .status-dot.on { background: var(--green); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -527,7 +532,6 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .forge .deps { display: flex; gap: 14px; flex-wrap: wrap; }
 .forge .deps .check { align-items: center; gap: 6px; color: var(--text); }
 .forge .deps input { width: auto; }
-.side-btn.forge-btn { margin: -4px 12px 6px; padding: 8px 13px; }
 .side-btn.forge-btn.active { background: var(--surface-2); }
 
 /* Spike Design */
@@ -670,3 +674,59 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
 .artifact-comments textarea { min-height: 80px; }
 .artifact-comments article { border-bottom: 1px solid var(--border); padding: 12px 0; overflow-wrap: anywhere; }
 .comment-selection { position: fixed; bottom: 8px; right: 16px; z-index: 25; }
+
+/* ---------------------------------------------------------------- touch and small screens (G41)
+   Coarse pointers (phones, tablets) get 44 x 44 px targets (WCAG 2.5.5 / Apple HIG); mouse layouts are unchanged. */
+@media (pointer: coarse) {
+  button, select, summary, [role="tab"], [role="option"], .btn, a.btn,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]), textarea {
+    min-height: 44px; min-width: 44px;
+  }
+  .icon-btn, .send-btn { width: 44px; height: 44px; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .send-btn { border-radius: 12px; }
+  .select { padding: 8px 14px; }
+  .chip, .btn.small, .link-btn { display: inline-flex; align-items: center; justify-content: center; }
+  .link-btn { padding: 0 6px; }
+  .tabs button, .seg button, .memory-sub button { display: inline-flex; align-items: center; }
+  .tabs button { flex-shrink: 0; white-space: nowrap; }
+  .conv-title, .project-item, .side-btn { padding-top: 10px; padding-bottom: 10px; }
+  .composer textarea { min-height: 44px; }
+  .palette [role="option"] { display: flex; align-items: center; }
+}
+@media (max-width: 860px) {
+  .sidebar, .modal-backdrop, .artifact-panel { max-height: var(--vvh, none); }
+  .sidebar { max-width: 88vw; }
+}
+@media (pointer: coarse) {
+  /* A checkbox or radio is tiny: the whole label (text included) is the 44 px target. */
+  .check, label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { min-height: 44px; align-items: center; }
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; flex-shrink: 0; }
+}
+@media (max-width: 520px) {
+  .topbar { flex-wrap: wrap; }
+  .topbar .btn { white-space: nowrap; }
+  /* Selects, buttons and the send button scroll sideways inside the bar instead of stacking: the composer stays short
+     enough to remain visible above the on-screen keyboard. The send button stays pinned at the right edge. */
+  .composer-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .composer-bar > * { flex-shrink: 0; }
+  .composer-bar .send-btn { position: sticky; right: 0; margin-left: auto; box-shadow: -10px 0 8px -2px var(--surface); }
+  /* pinned over the row: a see-through disabled button would show the select scrolling under it */
+  .composer-bar .send-btn:disabled { opacity: 1; background: color-mix(in srgb, var(--accent) 45%, var(--surface)); }
+  .composer:focus-within .composer-bar > .muted { display: none; }
+  .tab-panel select, .tab-panel input:not([type="checkbox"]):not([type="radio"]), .tab-panel textarea { max-width: 100%; }
+}
+@media (max-width: 640px) {
+  /* A long option label must not widen its select past the dialog: grid items default to min-width:auto. */
+  .field, .field > :not(select), .row-card > :not(select) { min-width: 0; }
+  select { max-width: 100%; text-overflow: ellipsis; }
+  .row-card { grid-template-columns: minmax(0, 1fr) minmax(0, 140px); }
+}
+@media (max-width: 860px) and (max-height: 560px) {
+  /* On-screen keyboard (or a landscape phone): the welcome art makes way so the composer stays in view. */
+  .welcome { padding-bottom: 8px; overflow-y: auto; }
+  .welcome-mark, .welcome h1, .welcome p, .spec-chips { display: none; }
+}
+/* iOS: the layout viewport keeps its height while the keyboard is up, so viewport.ts flags it. */
+:root[data-keyboard] .welcome { padding-bottom: 8px; overflow-y: auto; }
+:root[data-keyboard] .welcome-mark, :root[data-keyboard] .welcome h1, :root[data-keyboard] .welcome p, :root[data-keyboard] .spec-chips { display: none; }

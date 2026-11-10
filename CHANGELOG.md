@@ -27,6 +27,9 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- Phones and tablets: every view and Settings tab fits 375 and 768 px wide without sideways scrolling, buttons are at
+  least 44 px for touch, and the message box stays above the on-screen keyboard (checked in headless Chromium, not
+  yet on a real phone). The sidebar entries share one style on desktop too (G41).
 - Settings: every value is checked by the server before it is saved (a wrong one is refused with a message naming
   the setting, shown in Spanish or English) and the form checks it first; removing a provider no longer leaves the
   default or a specialist pointing at it (G40).

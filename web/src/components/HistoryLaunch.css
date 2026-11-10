@@ -3,4 +3,5 @@
 .history-launch:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
 .history-message:focus { outline: 3px solid var(--text); outline-offset: 4px; border-radius: 8px; }
 .history-launch { display: flex; gap: 8px; justify-content: space-between; }
-.history-launch kbd { font: 11px var(--mono); color: var(--text-2); }
+/* The shortcut hint (title + aria-keyshortcuts keep it) does not fit beside the label in the 272 px sidebar. */
+.history-launch kbd { display: none; }

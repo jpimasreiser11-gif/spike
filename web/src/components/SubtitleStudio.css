@@ -26,3 +26,4 @@
   .subtitle-studio { padding: 16px; }.subtitle-cue { grid-template-columns: 24px 1fr; }
   .subtitle-times { flex-direction: row; }.subtitle-text, .subtitle-cue-actions { grid-column: 1 / -1; }
   .subtitle-cue-actions { flex-direction: row; flex-wrap: wrap; } }
+@media (pointer: coarse) { .subtitle-studio button, .subtitle-studio input:not([type="checkbox"]), .subtitle-studio select, .subtitle-studio summary { min-height: 44px; } }

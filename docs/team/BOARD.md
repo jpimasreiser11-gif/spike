@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 3 | 2 | 0 | 0 | 37 | 0 | 42 |
+| Claude | 3 | 4 | 0 | 0 | 38 | 0 | 45 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
-| Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
+| Opus | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **12** | **5** | **0** | **0** | **74** | **0** | **91** |
+| **Total** | **10** | **6** | **0** | **0** | **75** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -75,15 +75,15 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G38 | Claude | hecha | Ayuda de la línea de comandos | - |
 | G39 | Claude | hecha | Proyectos de ejemplo | - |
 | G40 | Claude | hecha | Ajustes: revisión completa | - |
-| G41 | Claude | pendiente | Diseño móvil | G18 |
+| G41 | Claude | hecha | Diseño móvil | G18 |
 | G42 | Claude | hecha | Arranque rápido del servidor | - |
 | G43 | Claude | hecha | Registro de errores local | - |
 | G44 | Claude | hecha | Consistencia del catálogo de especialistas | - |
 | G45 | Claude | hecha | Humo de los instaladores sin modelo | - |
 | G46 | Claude | pendiente | Revisión final de textos | - |
-| O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
-| O2 | Opus | pendiente | Un espacio de tarea unificado | - |
-| O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |
+| O1 | Claude | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
+| O2 | Claude | pendiente | Un espacio de tarea unificado | - |
+| O3 | Claude | en curso | Instalar skills desde una URL de GitHub, con revisión | - |
 | O4 | Claude | hecha | Revisión de seguridad previa al lanzamiento (para L2) | - |
 | O5 | Opus | pendiente | Revisar la integración del PR #2 | M13 |
 
