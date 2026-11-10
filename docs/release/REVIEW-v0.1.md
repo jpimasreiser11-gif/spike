@@ -76,7 +76,7 @@ the development environment (`pip freeze --exclude-editable`, `-r freeze.txt --n
 | dompurify 3.4.16 | shipped UI: sanitizes Markdown (`web/src/components/Markdown.tsx`) | critical: `SAFE_FOR_TEMPLATES`, `IN_PLACE` and xhtml `PARSER_MEDIA_TYPE` bypasses (SPIKE uses none of these options) | updated to 3.4.17; `npm audit --omit=dev`: 0 |
 | pypdf 6.21.1 | optional `docs` extra: reading PDFs into memory, Paper Rebuilder | 10 CVEs: crafted PDFs cause long runtimes, large memory use or an infinite loop | floor raised to `pypdf>=6.21.4` |
 | certifi 2026.7.22 | dependency of httpx, not declared by SPIKE | PYSEC-2026-4320: a distrusted root CA in the bundle | not pinned: a fresh install takes the current certifi; build machines must not reuse an older one |
-| vite 5.4.10, vitest 2.1.4 | development only (dev server, test runner); not in the built UI | dev-server request forgery and path traversal, test-runner RCE when its UI/API server listens | updated to the fixed 5.x/2.x releases (5.4.21, 2.1.9); the advisories still open need vite 8 and vitest 5 (majors), left for a later upgrade: CI runs `vitest run` with no server, and the dev server should not be exposed beyond localhost |
+| vite 5.4.10, vitest 2.1.4 | development only (dev server, test runner); not in the built UI | dev-server request forgery and path traversal, test-runner RCE when its UI/API server listens | closed in G27 (2026-11-10): vite 8.3.5, vitest 5.0.5, @vitejs/plugin-react 6.1.2; `npm audit` on the whole tree: 0 vulnerabilities |
 
 ### Follow-up on the Low findings (2026-11-02)
 
@@ -153,6 +153,6 @@ THIRD_PARTY.md differ from the build environment for two packages (`duckdb` 1.5.
    The npm packages of llama-server's embedded web UI: `packaging/licenses/llama-ui-npm.txt` (section 4). Building
    llama-server without the UI (`-DLLAMA_USE_PREBUILT_UI=OFF`) would drop them but replace the pinned upstream binaries.
 4. Green CI on the release commit. ~~`pip-audit` and `npm audit` with network~~ Done 2026-11-05 (section 2): shipped
-   dependencies clean after the dompurify and pypdf updates; dev-only vite/vitest advisories wait for a major upgrade.
+   dependencies clean after the dompurify and pypdf updates; dev-only vite/vitest advisories closed by the major upgrade (G27, `npm audit`: 0).
 5. L1 demo, M2 adapter, L3 Hugging Face publication, final release notes: pending as listed in section 1.
 6. The Low findings: L2 to L8 are fixed (section 2); L1 stays open on purpose (the dev server's origin) and does not block v0.1 by itself.

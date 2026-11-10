@@ -975,7 +975,7 @@
   {
    "id": "G27",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Actualizar vite y vitest a sus versiones mayores",
    "depends": [],
@@ -983,7 +983,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G27 from origin/main, report docs/team/reports/G27.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: vite 8.3.5, vitest 5.0.5, @vitejs/plugin-react 6.1.2 (each published >= 2 weeks ago); npm audit 7 -> 0 vulnerabilities; one config change (server.fs.allow for the ?raw import of spike/dev/visual_checks.js). Re-checked by Claude in the worker's tree: tsc clean, vitest 263 passed, build OK, audit 0. Note: npm 10.9.4 'edgesOut' bug on plain npm install of vitest 5; the lock was generated with --legacy-peer-deps."
   },
   {
    "id": "G28",
@@ -1184,7 +1185,7 @@
   {
    "id": "G42",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Arranque rápido del servidor",
    "depends": [],
@@ -1192,7 +1193,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G42 from origin/main, report docs/team/reports/G42.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: measured on the Mac: `spike serve` to /api/health 0.71 s median of 5; importing the app ~0.45 s; lazy imports would save at most ~0.15 s, so no code change (not worth the risk)."
   },
   {
    "id": "G43",

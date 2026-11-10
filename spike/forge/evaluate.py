@@ -94,7 +94,7 @@ def _python(code: str, root: Path) -> tuple[bool, str]:
             if val := os.environ.get(key):
                 env[key] = val
     try:
-        proc = subprocess.run([sys.executable, "-I", str(script)], cwd=root, capture_output=True, text=True,
+        proc = subprocess.run([sys.executable, "-I", "-X", "utf8", str(script)], cwd=root, capture_output=True, text=True,
                               encoding="utf-8", errors="replace", timeout=CHECK_TIMEOUT_S * 2, env=env,
                               preexec_fn=_limits if os.name == "posix" else None)
     except subprocess.TimeoutExpired:

@@ -62,7 +62,7 @@ def test_linux_cpuinfo_non_ascii_under_ascii_locale(
     orig_read_text = Path.read_text
 
     def strict_ascii_read_text(self: Path, encoding: str | None = None, errors: str | None = None) -> str:
-        target = cpuinfo if str(self) == "/proc/cpuinfo" else self
+        target = cpuinfo if self.as_posix() == "/proc/cpuinfo" else self  # str() uses backslashes on Windows
         if encoding is None:
             return target.read_bytes().decode("ascii")
         return orig_read_text(target, encoding=encoding, errors=errors or "strict")
