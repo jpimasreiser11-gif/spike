@@ -2,23 +2,18 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { api, streamChat } from "./api";
 import { ArtifactContext, type ArtifactDoc, ArtifactPanel } from "./components/Artifact";
 import { AssistantMessage } from "./components/AssistantMessage";
-import { WorkspacePanel } from "./components/WorkspacePanel";
 import { Composer } from "./components/Composer";
-import { D as DESKTOP, DesktopTask } from "./components/Desktop";
-import { Forge } from "./components/Forge";
+import { DESKTOP_STRINGS } from "./desktop";
 import type { CreatorExtra } from "./components/Creator";
 import type { SettingsTab } from "./components/SettingsDialog";
 import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
-import { DeviceLab } from "./components/DeviceLab";
-import { HistorySearch, type HistoryHit } from "./components/HistorySearch";
+import type { HistoryHit } from "./components/HistorySearch";
+import "./components/HistoryLaunch.css";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
 import { ProofDownload } from "./components/ProofDownload";
-import { Replay } from "./components/Replay";
-import { Research } from "./components/Research";
-import { SetupWizard } from "./components/SetupWizard";
 import { SpecMark } from "./components/SpecMark";
-import { t } from "./i18n";
+import { lang as LANG, t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
 import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, MindsSpec, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
@@ -27,6 +22,15 @@ const Creator = lazy(() => import("./components/Creator").then((m) => ({ default
 const Lab = lazy(() => import("./components/Lab").then((m) => ({ default: m.Lab })));
 const SettingsDialog = lazy(() => import("./components/SettingsDialog").then((m) => ({ default: m.SettingsDialog })));
 const SubtitleStudio = lazy(() => import("./components/SubtitleStudio").then((m) => ({ default: m.SubtitleStudio })));
+const Forge = lazy(() => import("./components/Forge").then((m) => ({ default: m.Forge })));
+const Research = lazy(() => import("./components/Research").then((m) => ({ default: m.Research })));
+const Replay = lazy(() => import("./components/Replay").then((m) => ({ default: m.Replay })));
+const DeviceLab = lazy(() => import("./components/DeviceLab").then((m) => ({ default: m.DeviceLab })));
+const HistorySearch = lazy(() => import("./components/HistorySearch").then((m) => ({ default: m.HistorySearch })));
+const WorkspacePanel = lazy(() => import("./components/WorkspacePanel").then((m) => ({ default: m.WorkspacePanel })));
+const SetupWizard = lazy(() => import("./components/SetupWizard").then((m) => ({ default: m.SetupWizard })));
+const DesktopTask = lazy(() => import("./components/Desktop").then((m) => ({ default: m.DesktopTask })));
+const DESKTOP = DESKTOP_STRINGS[LANG];
 
 type Item = { kind: "user"; text: string; images?: string[]; id?: string } | { kind: "assistant"; run: RunState; id?: string };
 
@@ -381,7 +385,7 @@ export default function App() {
 
   return (
     <ArtifactContext.Provider value={setArtifact}>
-    <SetupWizard onUseExternalApi={() => { setSettingsTab("providers"); setSettingsOpen(true); }} />
+    <Suspense fallback={null}><SetupWizard onUseExternalApi={() => { setSettingsTab("providers"); setSettingsOpen(true); }} /></Suspense>
     <div className={`app ${sidebar ? "with-sidebar" : ""} ${artifact ? "with-artifact" : ""}`}>
       <aside className="sidebar" aria-label={t.conversations}>
         <div className="sidebar-top">
@@ -453,8 +457,10 @@ export default function App() {
         {fatal && <div className="fatal"><img src="/states/error.webp" alt="" width={150} height={111} /><div className="error-box" role="alert">{fatal}</div></div>}
 
         {researchOpen ? (
-          <Research key={`${project?.id || "workspace"}:${activeId || "new"}`} conversationId={activeId} projectId={project?.id}
-            projectName={project?.name} specialists={specialists} providers={providers} onRun={runForge} onClose={() => setResearchOpen(false)} />
+          <Suspense fallback={null}>
+            <Research key={`${project?.id || "workspace"}:${activeId || "new"}`} conversationId={activeId} projectId={project?.id}
+              projectName={project?.name} specialists={specialists} providers={providers} onRun={runForge} onClose={() => setResearchOpen(false)} />
+          </Suspense>
         ) : labOpen ? (
           <Suspense fallback={null}><Lab specialists={specialists} providers={providers} onClose={() => setLabOpen(false)} /></Suspense>
         ) : creatorOpen ? (
@@ -463,7 +469,7 @@ export default function App() {
               onRun={runForge} onClose={() => setCreatorOpen(false)} />
           </Suspense>
         ) : forgeOpen ? (
-          <Forge specialists={specialists} providers={providers} projectId={project?.id} onRun={runForge} onClose={() => setForgeOpen(false)} />
+          <Suspense fallback={null}><Forge specialists={specialists} providers={providers} projectId={project?.id} onRun={runForge} onClose={() => setForgeOpen(false)} /></Suspense>
         ) : empty ? (
           <section className="welcome">
             {project ? (
@@ -514,15 +520,15 @@ export default function App() {
         )}
       </main>
 
-      {workspaceOpen && <WorkspacePanel specialists={specialists} onClose={() => setWorkspaceOpen(false)} />}
+      {workspaceOpen && <Suspense fallback={null}><WorkspacePanel specialists={specialists} onClose={() => setWorkspaceOpen(false)} /></Suspense>}
       {commentThreads.length > 0 && <button className="btn comment-selection" onClick={() => setCommentThreads([])}>{t.selectedComments}: {commentThreads.length} · {t.clearComments}</button>}
       {artifact && <ArtifactPanel doc={artifact} onClose={() => setArtifact(null)} />}
 
       {subtitlesOpen && <Suspense fallback={null}><SubtitleStudio projectId={project?.id} projectName={project?.name} onClose={() => setSubtitlesOpen(false)} /></Suspense>}
-      {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
-      {searchOpen && <HistorySearch projects={projects} projectId={project?.id} onClose={() => setSearchOpen(false)} onSelect={openSearchResult} />}
+      {deviceLabOpen && <Suspense fallback={null}><DeviceLab onClose={() => setDeviceLabOpen(false)} /></Suspense>}
+      {searchOpen && <Suspense fallback={null}><HistorySearch projects={projects} projectId={project?.id} onClose={() => setSearchOpen(false)} onSelect={openSearchResult} /></Suspense>}
 
-      {replay && <Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} />}
+      {replay && <Suspense fallback={null}><Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} /></Suspense>}
 
       {projectDialog && (
         <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} designs={designs} onClose={() => setProjectDialog(null)}
@@ -539,8 +545,10 @@ export default function App() {
       )}
 
       {desktopOpen && (
-        <DesktopTask onClose={() => { setDesktopOpen(false); loadProviders(); }} onFinished={loadConversations}
-          onChat={(id) => { setDesktopOpen(false); openConversation(id); }} />
+        <Suspense fallback={null}>
+          <DesktopTask onClose={() => { setDesktopOpen(false); loadProviders(); }} onFinished={loadConversations}
+            onChat={(id) => { setDesktopOpen(false); openConversation(id); }} />
+        </Suspense>
       )}
     </div>
     </ArtifactContext.Provider>

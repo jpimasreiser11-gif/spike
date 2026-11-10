@@ -7,11 +7,11 @@ import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, 
 import { ArtifactFiles, fileUrl } from "./ArtifactFiles";
 export { fileUrl } from "./ArtifactFiles";
 import { DataView, ReportActions, isData } from "./DataViews";
-import { DeviceLabCard } from "./DeviceLab";
+import { DeviceLabCard } from "./DeviceLabCard";
 import { DiagnosticCard } from "./DevDiagnostics";
-import { DesktopRecordView } from "./Desktop";
+import { DesktopRecordView } from "./DesktopRecordView";
 import { ArchitectureCard, GeoCard } from "./Explorer";
-import { LiveOrderCard } from "./Finance";
+import { LiveOrderCard } from "./LiveOrderCard";
 import { MakerCard } from "./Maker";
 import { McpAppView } from "./McpApp";
 import { M } from "./memoryText";
