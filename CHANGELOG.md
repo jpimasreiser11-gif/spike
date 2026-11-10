@@ -23,6 +23,11 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- The main web bundle went from 651.5 kB to 577.3 kB (gzip 212.0 to 191.8 kB): Forge, Research, Replay, Device Lab,
+  history search, the workspace panel, the first-run wizard and the desktop task load when first opened (G26).
+- `spike --help` covers every command and option; the CLI reference in `docs/guide/` is generated from the parser and
+  checked in CI (G38). `spike models pull --revision <commit>` pins a model download to a commit of its repository,
+  and dataset sources can pin one too; the commit is recorded in the manifests (G21).
 - First run explains why a download failed (offline, low disk, cut midway with resume, checksum) and offers an
   external provider or importing a local `.gguf` file (G23); API errors reach the user as Spanish or English
   sentences without absolute paths (G24); every view and dialog returns keyboard focus when it closes (G28).
@@ -147,6 +152,8 @@ profiles on the base model, marked β, until theirs pass.
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
 ### Security and packaging (release review, L2)
+- `spike serve` refuses a `--host` that makes it reachable from the network unless `--allow-network` is given,
+  because the app has no login; unknown API routes answer 404 instead of the web page.
 - A test blocks every non-loopback connection while it walks the main API flows (chat, projects, memory,
   settings, skills, connectors, first-run status) and fails if any tries to leave the machine (G29).
 - An answer can no longer make the browser load an image, style or media file from another site by itself (text
