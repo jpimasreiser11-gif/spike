@@ -1289,7 +1289,7 @@
   {
    "id": "O3",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Instalar skills desde una URL de GitHub, con revisión",
    "depends": [],
@@ -1298,7 +1298,7 @@
    "accept": [
     "report and tests reviewed by Claude"
    ],
-   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own)."
+   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own). Done 2026-11-10 by a Claude worker, reviewed and merged: Settings > Skills paste URL > review (license, SKILL.md, every file; nothing written) > install (exact previewed bytes by SHA-256, disabled); codeload only, same-host redirects, size/count/ratio limits, unsafe paths and symlinks refused, only MIT/Apache/BSD/ISC installable; this computer only; no model tool reaches it; 66 tests. Not measured against real GitHub."
   },
   {
    "id": "O4",
