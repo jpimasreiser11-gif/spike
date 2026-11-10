@@ -48,7 +48,6 @@ from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID, is_local_url
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.backup_api import create_backup_router
-from spike.server.skill_import_api import create_skill_import_router
 from spike.server.data_app_api import create_data_app_router
 from spike.server.desktop_api import create_desktop_router
 from spike.server.device_lab_api import create_device_lab_router
@@ -65,6 +64,7 @@ from spike.server.research_api import create_research_router
 from spike.server.reverse_api import create_reverse_router
 from spike.server.samples_api import create_samples_router
 from spike.server.setup_api import create_setup_router
+from spike.server.skill_import_api import create_skill_import_router
 from spike.server.state import AppState
 from spike.server.subtitles_api import create_subtitles_router
 from spike.server.view_api import create_view_router

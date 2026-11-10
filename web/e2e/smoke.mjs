@@ -509,11 +509,10 @@ for (const name of ["decision-simulator", "test-inventor", "migration-architect"
 }
 await page.getByRole("dialog").locator('[data-skill="localization"]').getByText("Traduce textos con el glosario", { exact: false }).waitFor();
 await page.getByRole("dialog").locator('[data-skill="landing-page"]').getByText("Crea una landing page", { exact: false }).waitFor();
-// O3: the GitHub import form refuses a look-alike address without any network access
-await page.getByTestId("skill-import-url").fill("https://github.com.evil.example/o/r");
-await page.getByTestId("skill-import-review").click();
-await page.getByTestId("skill-import-error").waitFor({ timeout: 5000 });
-if (await page.getByTestId("skill-import-preview").count()) fail("a refused GitHub address must not show a preview");
+// O3: the GitHub import form is there; Review stays off until an address is typed (nothing is requested here)
+await page.getByTestId("skill-import-url").waitFor();
+if (!(await page.getByTestId("skill-import-review").isDisabled())) fail("Review must be disabled without an address");
+if (await page.getByTestId("skill-import-preview").count()) fail("no preview before reviewing an address");
 await page.getByRole("tab", { name: "Herramientas" }).click();
 const sandboxCard = page.getByRole("dialog").getByTestId("sandbox");
 await sandboxCard.getByText("Aislamiento del código").waitFor();

@@ -200,11 +200,11 @@ def test_the_folder_name_in_the_repo_does_not_have_to_match_the_skill_name(clien
     ("license: BSD-2-Clause\n", {}, "BSD-2-Clause", True),
     ("", {"LICENSE": MIT.encode()}, "MIT", True),
     ("", {"LICENSE.txt": b"Apache License\nVersion 2.0, January 2004\n"}, "Apache-2.0", True),
-    ("", {"LICENSE": ("Redistribution and use in source and binary forms, with or without modification, are "
-                      "permitted. Neither the name of the copyright holder nor the names of its contributors may be "
-                      "used. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS").encode()}, "BSD-3-Clause", True),
-    ("", {"LICENSE": ("Redistribution and use in source and binary forms, with or without modification, are "
-                      "permitted. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS").encode()}, "BSD-2-Clause", True),
+    ("", {"LICENSE": (b"Redistribution and use in source and binary forms, with or without modification, are "
+                      b"permitted. Neither the name of the copyright holder nor the names of its contributors may be "
+                      b"used. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS")}, "BSD-3-Clause", True),
+    ("", {"LICENSE": (b"Redistribution and use in source and binary forms, with or without modification, are "
+                      b"permitted. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS")}, "BSD-2-Clause", True),
     ("", {"LICENSE": b"ISC License\nPermission to use, copy, modify, and/or distribute this software for any "
                      b"purpose with or without fee is hereby granted"}, "ISC", True),
     ("license: GPL-3.0\n", {}, "GPL-3.0", False),

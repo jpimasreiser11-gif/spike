@@ -16,8 +16,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
 
 from spike.server.backup_api import local_only
 from spike.skills import github_import as gi
@@ -50,17 +50,12 @@ def create_skill_import_router(get_state: Callable[[], Any]) -> APIRouter:
         while len(previews) >= MAX_PREVIEWS:
             del previews[min(previews, key=lambda k: previews[k][0])]
 
-    async def read_body(request: Request, model: type[BaseModel]) -> Any:
-        """Origin, client and content type are checked before the body is even parsed."""
+    def guard(request: Request) -> None:
+        """Runs before the body is parsed: the client, the Origin and the content type are checked first."""
         local_only(request, {"application/json"})
-        try:
-            return model.model_validate(await request.json())
-        except (ValidationError, ValueError):
-            raise HTTPException(422, "invalid_request") from None
 
     @router.post("/api/skills/import-github/preview")
-    async def preview(request: Request) -> dict:
-        body = await read_body(request, PreviewIn)
+    async def preview(body: PreviewIn, _: None = Depends(guard)) -> dict:
         try:
             ref = gi.parse_github_url(body.url)
             blob = await gi.download_zip(ref)
@@ -74,8 +69,7 @@ def create_skill_import_router(get_state: Callable[[], Any]) -> APIRouter:
         return {"preview_id": preview_id, **result.public()}
 
     @router.post("/api/skills/import-github/install")
-    async def install(request: Request) -> dict:
-        body = await read_body(request, InstallIn)
+    async def install(body: InstallIn, _: None = Depends(guard)) -> dict:
         st = get_state()
         async with lock:
             prune()

@@ -76,7 +76,7 @@ Each route lists the codes it declares or raises; these are the usual meanings.
 | `/api/sandbox` | [sandbox.md](sandbox.md) | 1 |
 | `/api/settings` | [settings.md](settings.md) | 2 |
 | `/api/setup` | [setup.md](setup.md) | 4 |
-| `/api/skills` | [skills.md](skills.md) | 5 |
+| `/api/skills` | [skills.md](skills.md) | 7 |
 | `/api/specialist-documents`, `/api/specialists` | [specialists.md](specialists.md) | 2 |
 | `/api/subtitles` | [subtitles.md](subtitles.md) | 6 |
 | `/api/system` | [system.md](system.md) | 1 |

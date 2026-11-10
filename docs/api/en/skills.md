@@ -37,6 +37,63 @@ curl -s -X POST 'http://127.0.0.1:8740/api/skills/import' \
   --data-binary @path/to/file
 ```
 
+### `POST /api/skills/import-github/install`
+
+Handler: `spike/server/skill_import_api.py` → `install`
+
+**Body** (`application/json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `preview_id` | string | yes |  |  |
+| `sha256` | string | yes |  |  |
+
+**Response**: `200` — object
+
+**Errors**
+
+| Code | Message |
+|---|---|
+| `400` | hash_mismatch; invalid_skill |
+| `403` | license_blocked |
+| `404` | preview_expired |
+| `409` | exists |
+| `422` | the request does not match the schema (FastAPI validation) |
+
+**Example**
+
+```bash
+curl -s -X POST 'http://127.0.0.1:8740/api/skills/import-github/install' \
+  -H 'Content-Type: application/json' \
+  -d '{"preview_id": "string", "sha256": "string"}'
+```
+
+### `POST /api/skills/import-github/preview`
+
+Handler: `spike/server/skill_import_api.py` → `preview`
+
+**Body** (`application/json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `url` | string | yes |  |  |
+
+**Response**: `200` — object
+
+**Errors**
+
+| Code | Message |
+|---|---|
+| `422` | the request does not match the schema (FastAPI validation) |
+
+**Example**
+
+```bash
+curl -s -X POST 'http://127.0.0.1:8740/api/skills/import-github/preview' \
+  -H 'Content-Type: application/json' \
+  -d '{"url": "string"}'
+```
+
 ### `GET /api/skills/{name}`
 
 Handler: `spike/server/app.py` → `get_skill`
