@@ -27,6 +27,10 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- Settings › Errores: a local log of the app's last failures (no error messages, file contents or keys; paths
+  shortened), with "copy as issue" that only copies the text; nothing is sent (G43).
+- HTTP API reference in Spanish and English (`docs/api/`), generated from the app's routes with a `curl` example and
+  the error codes of each route, checked in CI (G37).
 - Sample projects: six ready-made projects in Spanish and English (an expenses sheet, a report brief, a mini web page, a
   long handbook, a workflow and a paper-only finance case), imported with one click from the Projects list (G39).
 - The main web bundle went from 651.5 kB to 577.3 kB (gzip 212.0 to 191.8 kB): Forge, Research, Replay, Device Lab,

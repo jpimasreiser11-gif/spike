@@ -169,6 +169,8 @@ Claude Code, Cursor or Codex); see [integrations](docs/INTEGRATIONS.md).
 | [Specialists](docs/SPECIALISTS.md) | scope, data, evaluation and risks per specialist |
 | [Training](docs/TRAINING.md) | train, export and evaluate an adapter on an Apple Silicon Mac |
 | [Integrations](docs/INTEGRATIONS.md) | use SPIKE from Aider, OpenCode, Continue, open-design and OpenAI SDKs |
+| [User guide](docs/guide/) | each module, the command line and troubleshooting, in Spanish and English |
+| [API reference](docs/api/) | every HTTP route with parameters, errors and a `curl` example, in Spanish and English |
 | [Status](docs/STATUS.md) | what is verified, what is pending, blockers |
 | [Decisions](docs/adr/) | ADRs: base model, training method, orchestration, adapter serving |
 
