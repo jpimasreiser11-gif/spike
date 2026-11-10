@@ -273,3 +273,25 @@ def test_the_cli_renders_a_scene(tmp_path, capsys):
     assert (tmp_path / "s.mp4").is_file() and "320x180, 10 fps, 0.3 s, 3 frames, h264" in capsys.readouterr().out
     assert main(["render", str(tmp_path / "nada.html")]) == 1
     assert main(["render", str(tmp_path / "s.html"), "-o", str(tmp_path / "s.mov")]) == 1
+
+
+def test_a_frame_the_browser_fails_to_capture_once_is_taken_again():
+    """Headless Chromium sometimes answers "Unable to capture screenshot" for one frame; one retry, then the error."""
+    from playwright.async_api import Error
+
+    class Page:
+        def __init__(self, failures):
+            self.failures, self.calls = failures, 0
+
+        async def screenshot(self, **kwargs):
+            self.calls += 1
+            if self.calls <= self.failures:
+                raise Error("Protocol error (Page.captureScreenshot): Unable to capture screenshot")
+            return b"png"
+
+    once = Page(1)
+    assert asyncio.run(motion.screenshot(once)) == b"png" and once.calls == 2
+    always = Page(5)
+    with pytest.raises(Error):
+        asyncio.run(motion.screenshot(always))
+    assert always.calls == 2

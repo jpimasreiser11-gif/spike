@@ -7,6 +7,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import sqlite3
 import zipfile
 from pathlib import Path
@@ -117,7 +118,8 @@ def test_export_leaves_out_links_secret_looking_files_and_unrestorable_names(tmp
     (tmp_path / "projects" / "p" / "ok.txt").write_text("ok", encoding="utf-8")
     (tmp_path / "projects" / "p" / ".env").write_text("TOKEN=x", encoding="utf-8")
     (tmp_path / "projects" / "p" / "server.key").write_text("k", encoding="utf-8")
-    (tmp_path / "projects" / "p" / "odd:name").write_text("x", encoding="utf-8")
+    if os.name != "nt":  # on Windows "odd:name" writes a stream of a file called "odd"
+        (tmp_path / "projects" / "p" / "odd:name").write_text("x", encoding="utf-8")
     (tmp_path / "outside.txt").write_text("outside", encoding="utf-8")
     with contextlib.suppress(OSError):  # Windows without the symlink privilege
         (tmp_path / "projects" / "p" / "link").symlink_to(tmp_path / "outside.txt")
