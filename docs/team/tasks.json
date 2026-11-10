@@ -1144,7 +1144,7 @@
   {
    "id": "G39",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Proyectos de ejemplo",
    "depends": [],
@@ -1152,7 +1152,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G39 from origin/main, report docs/team/reports/G39.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: six samples es/en (expenses CSV, report brief, mini web page, handbook, workflow, paper-only finance) under spike/samples/data, /api/samples, one-click dialog in Projects; tests/test_samples.py (25), vitest, smoke step."
   },
   {
    "id": "G40",
