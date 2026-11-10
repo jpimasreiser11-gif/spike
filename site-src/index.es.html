@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPIKE: modelos especialistas pequeños para un ordenador normal de 16 GB</title>
+<meta name="description" content="SPIKE es una aplicación local con un modelo base pequeño, un orquestador y especialistas. Qué funciona hoy, las cifras medidas con su registro, cómo instalarlo y qué no se afirma.">
+<link rel="icon" type="image/png" href="../assets/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" hreflang="en" href="../index.html">
+<link rel="alternate" hreflang="es" href="index.html">
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="../assets/spike-wordmark.png" width="133" height="34" alt="SPIKE"></a>
+    <nav aria-label="Secciones de la página">
+      <ul>
+        <li><a href="#what">Qué es</a></li>
+        <li><a href="#today">Funciona hoy</a></li>
+        <li><a href="#figures">Medido</a></li>
+        <li><a href="#install">Instalar</a></li>
+        <li><a href="#licenses">Licencias</a></li>
+        <li><a href="#not-claimed">Lo que no se afirma</a></li>
+        <li><a href="../index.html" hreflang="en" lang="en">English</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="content">
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Modelos especialistas pequeños, hechos para funcionar en un ordenador normal de 16&nbsp;GB.</h1>
+        <p class="lead">Un modelo base pequeño, un orquestador que elige al especialista y tu propio ordenador primero. Los modelos de API externos funcionan con las mismas instrucciones cuando tú los eliges.</p>
+        <p class="status"><strong>Proyecto temprano y claro sobre ello.</strong> Un especialista, Medicina, ha superado su prueba de aceptación; todavía no está publicado. Los demás aún no están aceptados. Cada número de abajo viene de un registro que puedes abrir.</p>
+        <p><a class="button" href="#install">Instalar</a></p>
+      </div>
+      <img class="mark" src="../assets/spike-mark-512.png" width="512" height="512" alt="Logotipo de SPIKE: un cactus">
+    </div>
+  </div>
+
+  <section id="what" aria-labelledby="what-h">
+    <div class="wrap">
+      <h2 id="what-h">Qué es SPIKE</h2>
+      <p>SPIKE es una aplicación local primero: un servidor en tu ordenador, una interfaz web y el motor llama.cpp. Comparte un único modelo base, Qwen3.5-4B, entre {{specialists_count}} especialistas (Core y los especialistas de dominio, como Finanzas, Medicina, Derecho y Código). Cada especialista de dominio está pensado para añadir un adaptador pequeño entrenado, así que cambiar de especialista no obliga a recargar el modelo.</p>
+      <p>Un orquestador envía las peticiones claras al especialista adecuado con un enrutador léxico de coste cero. Solo las peticiones ambiguas o de varios dominios reciben un plan escrito por el modelo. La aplicación también funciona con los proveedores externos que permitas; los de pago siguen bloqueados hasta que los actives.</p>
+    </div>
+  </section>
+
+  <section id="today" aria-labelledby="today-h">
+    <div class="wrap">
+      <h2 id="today-h">Qué funciona hoy</h2>
+      <ul class="plain">
+        <li><strong>La aplicación y el motor:</strong> la interfaz web, el orquestador, la capa de proveedores y el entorno local con llama.cpp están construidos y probados.</li>
+        <li><strong>Medicina:</strong> su adaptador superó el criterio de aceptación el {{med_date}} (detalles en Medido). Todavía no está publicado.</li>
+        <li><strong>Los demás especialistas:</strong> funcionan como perfiles de instrucciones sobre el modelo base y la aplicación los marca como beta.</li>
+        <li><strong>Herramientas con permisos:</strong> calculadora, archivos del espacio de trabajo, Python en entorno aislado y descarga web, cada una en permitir, preguntar o denegar.</li>
+        <li><strong>Memoria, proyectos, documentos:</strong> todo se guarda en local y se puede editar; los archivos Word, Excel, PowerPoint y PDF se escriben en tu espacio de trabajo.</li>
+        <li><strong>Compatible con tus herramientas:</strong> un endpoint compatible con OpenAI y un servidor MCP permiten que otros agentes y SDK usen SPIKE.</li>
+        <li><strong>Instaladores:</strong> la instalación por línea de comandos funciona hoy. Los instaladores de escritorio existen como candidatos y aún no están publicados ni firmados.</li>
+      </ul>
+      <p class="note">La lista completa, con la evidencia de cada punto, está en <a href="https://github.com/jpimasreiser11-gif/spike/blob/main/docs/STATUS.md">docs/STATUS.md</a> (en inglés).</p>
+    </div>
+  </section>
+
+  <section id="figures" aria-labelledby="figures-h">
+    <div class="wrap">
+      <h2 id="figures-h">Medido, con su registro</h2>
+      <p class="note">Estas cifras las rellena un script a partir de los registros; nadie las escribe a mano. Si un número no está en un registro, esta página no lo muestra.</p>
+
+      <h3>Especialista de Medicina: aceptado</h3>
+      <p>Con {{med_n}} preguntas médicas emparejadas en inglés, la precisión pasó de {{med_base_acc}} con el modelo base solo a {{med_acc}} con el adaptador de Medicina. El archivo del adaptador pesa {{med_bytes}} bytes. Los criterios de aceptación se escribieron antes de entrenar.</p>
+      <div class="table-wrap" role="region" aria-label="Resultado de aceptación de Medicina" tabindex="0">
+        <table>
+          <caption>Adaptador de Medicina frente al modelo base, aceptado el {{med_date}}</caption>
+          <thead><tr><th scope="col">Prueba</th><th scope="col">Preguntas</th><th scope="col">Cambio en puntos</th><th scope="col">Criterio</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Medicina</th><td class="num">{{med_n}}</td><td class="num">{{med_delta}}</td><td>al menos +{{med_need}}</td></tr>
+            <tr><th scope="row">Conocimiento general</th><td class="num">{{gen_n}}</td><td class="num">{{gen_delta}}</td><td>sin caída mayor de {{gen_limit}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">SHA-256 del adaptador: <code>{{med_sha256}}</code></p>
+
+      <h3>Velocidad en un ordenador de 16&nbsp;GB sin GPU</h3>
+      <p>Qwen3.5-4B Q4_K_M, llama.cpp versión {{x86_build}}, caché KV q8_0, 128 tokens generados, mediana de 3 ejecuciones. Máquina: x86, {{x86_cores}} núcleos, {{x86_ram}} GB de RAM, solo CPU.</p>
+      <div class="table-wrap" role="region" aria-label="Velocidad en la máquina de 16 GB solo con CPU" tabindex="0">
+        <table>
+          <caption>x86 de 16 GB, solo CPU</caption>
+          <thead><tr><th scope="col">Prompt</th><th scope="col">Tiempo hasta la primera palabra</th><th scope="col">Prompt, tok/s</th><th scope="col">Generación, tok/s</th><th scope="col">Memoria anónima, GiB</th><th scope="col">RSS máximo, GiB</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">1K tokens</th><td class="num">{{x86_1k_ttft}}</td><td class="num">{{x86_1k_prompt}}</td><td class="num">{{x86_1k_gen}}</td><td class="num">{{x86_1k_anon}}</td><td class="num">{{x86_1k_rss}}</td></tr>
+            <tr><th scope="row">8K tokens</th><td class="num">{{x86_8k_ttft}}</td><td class="num">{{x86_8k_prompt}}</td><td class="num">{{x86_8k_gen}}</td><td class="num">{{x86_8k_anon}}</td><td class="num">{{x86_8k_rss}}</td></tr>
+            <tr><th scope="row">32K tokens</th><td class="num">{{x86_32k_ttft}}</td><td class="num">{{x86_32k_prompt}}</td><td class="num">{{x86_32k_gen}}</td><td class="num">{{x86_32k_anon}}</td><td class="num">{{x86_32k_rss}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">El RSS máximo también cuenta el archivo del modelo mapeado en memoria. Un prompt de 32K tarda horas en dar la primera palabra en esta máquina, por eso SPIKE arranca los ordenadores sin GPU con un contexto de 8K.</p>
+
+      <h3>Velocidad en un portátil Apple</h3>
+      <div class="table-wrap" role="region" aria-label="Velocidad en el Apple M4 Max" tabindex="0">
+        <table>
+          <caption>{{mac_chip}}, {{mac_ram}} GB, Metal, mismo modelo y ajustes</caption>
+          <thead><tr><th scope="col">Prompt</th><th scope="col">Tiempo hasta la primera palabra</th><th scope="col">Generación, tok/s</th><th scope="col">RSS máximo, GiB</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">1K tokens</th><td class="num">{{mac_1k_ttft}}</td><td class="num">{{mac_1k_gen}}</td><td class="num">{{mac_1k_rss}}</td></tr>
+            <tr><th scope="row">8K tokens</th><td class="num">{{mac_8k_ttft}}</td><td class="num">{{mac_8k_gen}}</td><td class="num">{{mac_8k_rss}}</td></tr>
+            <tr><th scope="row">32K tokens</th><td class="num">{{mac_32k_ttft}}</td><td class="num">{{mac_32k_gen}}</td><td class="num">{{mac_32k_rss}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Los registros</h3>
+      <ul class="plain">
+        <li><a href="https://github.com/jpimasreiser11-gif/spike/blob/main/training/runs/medicine/sweep/final/summary.json">Resumen de la evaluación de Medicina</a> (preguntas, precisión, prueba emparejada)</li>
+        <li><a href="https://github.com/jpimasreiser11-gif/spike/blob/main/spike/specialists/acceptance/medicine.json">Recibo de aceptación de Medicina</a> (veredicto, archivo, tamaño, SHA-256)</li>
+        <li><a href="https://github.com/jpimasreiser11-gif/spike/blob/main/evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json">Benchmark de 16 GB con CPU</a> y su <a href="https://github.com/jpimasreiser11-gif/spike/blob/main/evals/results/bench-x86-16gb-20261018/README.md">método</a></li>
+        <li><a href="https://github.com/jpimasreiser11-gif/spike/blob/main/evals/results/bench-mac-20261017/bench-metal-ngl99.json">Benchmark del Apple M4 Max</a></li>
+        <li><a href="https://github.com/jpimasreiser11-gif/spike/blob/main/docs/STATUS.md#measured-with-real-weights">Medido con pesos reales</a> en STATUS.md, con los comandos que reproducen cada número</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="install" aria-labelledby="install-h">
+    <div class="wrap">
+      <h2 id="install-h">Instalar en dos comandos</h2>
+      <p>Necesitas Python 3.11 o superior, llama.cpp (<code>llama-server</code>), npm para construir la interfaz web, 16&nbsp;GB de RAM recomendados y unos 3&nbsp;GB de disco para el modelo. Empieza desde un clon de <a href="https://github.com/jpimasreiser11-gif/spike">el repositorio</a>, dentro de su carpeta:</p>
+      <pre><code>{{cmd_install}}
+{{cmd_run}}</code></pre>
+      <p>El primer comando construye la aplicación web e instala SPIKE; el segundo lo arranca y lo abre en el navegador. La primera vez, descarga el modelo local una sola vez (se comprueban su licencia y su SHA-256), o añade un proveedor externo en Ajustes:</p>
+      <pre><code>{{cmd_pull}}</code></pre>
+      <p class="note">Son los comandos del inicio rápido del README. La guía paso a paso, con lo que hace cada comando, está en <a href="https://github.com/jpimasreiser11-gif/spike/blob/main/docs/guide/es/installation.md">la guía de instalación</a>. No hay versión alojada ni registro de usuarios.</p>
+    </div>
+  </section>
+
+  <section id="licenses" aria-labelledby="licenses-h">
+    <div class="wrap">
+      <h2 id="licenses-h">Licencias</h2>
+      <ul class="plain">
+        <li><strong>Código de SPIKE:</strong> <a href="https://github.com/jpimasreiser11-gif/spike/blob/main/LICENSE">Apache-2.0</a>.</li>
+        <li><strong>Modelo base Qwen3.5-4B:</strong> Apache-2.0. Los conjuntos de datos y los componentes de terceros conservan su propia licencia, listada en <a href="https://github.com/jpimasreiser11-gif/spike/blob/main/THIRD_PARTY.md">THIRD_PARTY.md</a>.</li>
+        <li><strong>Nombre y logotipo del cactus:</strong> son la identidad del proyecto, véase la <a href="https://github.com/jpimasreiser11-gif/spike/blob/main/brand/README.md">carpeta de marca</a>.</li>
+        <li><strong>Tipografía de esta página, Inter:</strong> SIL Open Font License 1.1, servida desde este sitio con su <a href="../assets/fonts/Inter-LICENSE.txt">texto de licencia</a>.</li>
+      </ul>
+      <p class="note">Esta página no usa cookies, no tiene analítica, no ejecuta scripts y no hace peticiones a otros sitios.</p>
+    </div>
+  </section>
+
+  <section id="not-claimed" aria-labelledby="not-claimed-h">
+    <div class="wrap">
+      <h2 id="not-claimed-h">Lo que no se afirma</h2>
+      <ul class="plain">
+        <li><strong>Finanzas y los otros {{others_count}} especialistas aún no están aceptados.</strong> {{accepted_count}} de {{specialists_count}} tiene un adaptador aceptado. Los demás funcionan como perfiles de instrucciones sobre el modelo base, están marcados como beta y no se afirma que lo superen.</li>
+        <li><strong>Medicina: no publicado todavía.</strong> Su resultado es frente a su propio modelo base, en benchmarks en inglés. En los registros citados aquí no hay ningún benchmark médico en español: no medido.</li>
+        <li><strong>Medicina, Finanzas, Derecho y Seguridad no son asesoramiento profesional</strong>, y SPIKE no es un producto sanitario.</li>
+        <li><strong>La velocidad se midió solo en dos máquinas.</strong> Otros ordenadores y otras GPU: no medido.</li>
+        <li><strong>Sin comparación con otras aplicaciones.</strong> No se afirma que SPIKE responda mejor ni vaya más rápido que Ollama, LM Studio, Open WebUI o Jan; no se les hizo benchmark.</li>
+        <li><strong>El enrutado con peticiones de usuarios reales: no medido.</strong> Los proveedores externos se probaron con servidores de pega, no con servicios reales.</li>
+        <li><strong>Los instaladores de escritorio no están publicados</strong> ni firmados.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <img src="../assets/spike-wordmark-white.png" width="133" height="34" alt="SPIKE">
+    <p>Apache-2.0. <a href="https://github.com/jpimasreiser11-gif/spike">Código en GitHub</a>. <a href="../index.html" hreflang="en" lang="en">English version</a>.</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,189 @@
+{
+  "figures": {
+    "accepted_count": {
+      "source": "spike/specialists/acceptance",
+      "value": "1"
+    },
+    "cmd_install": {
+      "source": "README.md",
+      "value": "(cd web && npm ci && npm run build) && pipx install \".[docs,finance,data,motion]\""
+    },
+    "cmd_pull": {
+      "source": "README.md",
+      "value": "spike models pull qwen3.5-4b"
+    },
+    "cmd_run": {
+      "source": "README.md",
+      "value": "spike serve --open"
+    },
+    "gen_delta": {
+      "source": "training/runs/medicine/sweep/final/summary.json",
+      "value": "−0.62"
+    },
+    "gen_limit": {
+      "source": "spike/specialists/acceptance/medicine.json",
+      "value": "1.5"
+    },
+    "gen_n": {
+      "source": "training/runs/medicine/sweep/final/summary.json",
+      "value": "800"
+    },
+    "mac_1k_gen": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "82"
+    },
+    "mac_1k_rss": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "3.6"
+    },
+    "mac_1k_ttft": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "0.9 s"
+    },
+    "mac_32k_gen": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "67"
+    },
+    "mac_32k_rss": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "3.6"
+    },
+    "mac_32k_ttft": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "37 s"
+    },
+    "mac_8k_gen": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "80"
+    },
+    "mac_8k_rss": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "3.6"
+    },
+    "mac_8k_ttft": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "7.2 s"
+    },
+    "mac_chip": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "Apple M4 Max"
+    },
+    "mac_ram": {
+      "source": "evals/results/bench-mac-20261017/bench-metal-ngl99.json",
+      "value": "36"
+    },
+    "med_acc": {
+      "source": "training/runs/medicine/sweep/final/summary.json",
+      "value": "67.0 %"
+    },
+    "med_base_acc": {
+      "source": "training/runs/medicine/sweep/final/summary.json",
+      "value": "31.9 %"
+    },
+    "med_bytes": {
+      "source": "spike/specialists/acceptance/medicine.json",
+      "value": "42,485,024"
+    },
+    "med_date": {
+      "source": "spike/specialists/acceptance/medicine.json",
+      "value": "2026-11-05"
+    },
+    "med_delta": {
+      "source": "training/runs/medicine/sweep/final/summary.json",
+      "value": "+35.07"
+    },
+    "med_n": {
+      "source": "training/runs/medicine/sweep/final/summary.json",
+      "value": "2,318"
+    },
+    "med_need": {
+      "source": "spike/specialists/acceptance/medicine.json",
+      "value": "3.0"
+    },
+    "med_sha256": {
+      "source": "spike/specialists/acceptance/medicine.json",
+      "value": "21caa0a0b24bdd4d5badb5bc1f336d2eb3061a635400a85a15f4cf52f9d40a34"
+    },
+    "others_count": {
+      "source": "spike/specialists/catalog.yaml",
+      "value": "12"
+    },
+    "specialists_count": {
+      "source": "spike/specialists/catalog.yaml",
+      "value": "13"
+    },
+    "x86_1k_anon": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "3.6"
+    },
+    "x86_1k_gen": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "6.2"
+    },
+    "x86_1k_prompt": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "19.6"
+    },
+    "x86_1k_rss": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "6.1"
+    },
+    "x86_1k_ttft": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "52 s"
+    },
+    "x86_32k_anon": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "3.6"
+    },
+    "x86_32k_gen": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "2.1"
+    },
+    "x86_32k_prompt": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "5.9"
+    },
+    "x86_32k_rss": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "6.1"
+    },
+    "x86_32k_ttft": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "~1.5 h"
+    },
+    "x86_8k_anon": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "3.6"
+    },
+    "x86_8k_gen": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "5.1"
+    },
+    "x86_8k_prompt": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "10.6"
+    },
+    "x86_8k_rss": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "6.1"
+    },
+    "x86_8k_ttft": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "13 min"
+    },
+    "x86_build": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "b11709-62318cd57"
+    },
+    "x86_cores": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "4"
+    },
+    "x86_ram": {
+      "source": "evals/results/bench-x86-16gb-20261018/bench-cpu-ngl0.json",
+      "value": "15.7"
+    }
+  },
+  "generated_by": "scripts/build_site.py"
+}
