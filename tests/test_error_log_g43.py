@@ -150,6 +150,9 @@ def test_routes_only_read_and_clear_the_local_file(app_client, monkeypatch):
     assert f"SPIKE: {__version__}" in text and "Python: " in text and "OS: " in text
     assert "render …/out.mp4" in text and "acme" not in text
     other = TestClient(client.app, client=("192.168.1.20", 50000))
+    # reading the log is for this computer too: a server opened to the network does not show it to others
+    assert other.get("/api/errors").status_code == 403
+    assert other.get("/api/errors/report").status_code == 403
     assert other.delete("/api/errors").status_code == 403
     assert client.delete("/api/errors").json() == {"ok": True}
     assert not errorlog.log_files(folder)

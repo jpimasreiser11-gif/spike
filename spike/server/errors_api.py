@@ -40,14 +40,16 @@ def create_errors_router(get_state: Callable[[], Any], this_computer: Callable[[
         return get_state().home / "logs"
 
     @router.get("")
-    def errors(limit: int = 200) -> JSONResponse:
+    def errors(request: Request, limit: int = 200) -> JSONResponse:
+        this_computer(request, "the error log")
         entries = errorlog.read(folder(), min(max(limit, 1), 500))
         return JSONResponse({"entries": entries, "path": f"~/.spike/logs/{errorlog.LOG_NAME}"},
                             headers={"Cache-Control": "no-store"})
 
     @router.get("/report")
-    def report() -> JSONResponse:
+    def report(request: Request) -> JSONResponse:
         """The text for "copy as issue": the browser copies it; nothing leaves this computer from here."""
+        this_computer(request, "the error log")
         return JSONResponse({"text": errorlog.issue_text(errorlog.read(folder(), 50))},
                             headers={"Cache-Control": "no-store"})
 
