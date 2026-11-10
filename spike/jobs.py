@@ -15,6 +15,8 @@ from typing import Any
 
 import psutil
 
+from spike import errorlog
+
 KINDS = {"render", "eval", "indexing", "training"}
 
 
@@ -68,7 +70,8 @@ class JobQueue:
                 row["status"] = "cancelled"
                 row["finished"] = time.time()
             else:
-                task.exception()
+                if (exc := task.exception()) is not None:
+                    errorlog.record("job", kind, exc)  # anonymised and local: type and frames, never the message
 
         task.add_done_callback(finished)
         return jid

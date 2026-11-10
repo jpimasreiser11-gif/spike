@@ -564,6 +564,11 @@ await page.getByRole("tab", { name: "Privacidad" }).click();
 await page.locator("table.calls tr", { hasText: "DeepSeek" }).filter({ hasText: "protegidos" }).first().waitFor({ timeout: 5000 });
 await page.getByTestId("usage-deepseek").filter({ hasText: "500.000 tope" }).waitFor({ timeout: 5000 });
 await page.screenshot({ path: `${out}/07f-privacy.png` });
+// G43: the local error log opens in Settings, read from this computer only
+await page.getByRole("tab", { name: "Errores" }).click();
+await page.getByText("Registro de errores", { exact: true }).waitFor({ timeout: 5000 });
+await page.getByRole("button", { name: "Copiar como incidencia" }).waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07g-error-log.png` });
 await page.keyboard.press("Escape");
 
 // skills: a finance question gets the ratio-analysis skill, shown on the answer

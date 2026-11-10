@@ -408,6 +408,11 @@ a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-i
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
 table.calls { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.calls th, table.calls td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+/* G43 local error log (Settings > Errors) */
+.error-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.error-log code { overflow-wrap: anywhere; }
+.error-log-frames { margin: 6px 0 0; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.error-log-text { width: 100%; font-family: var(--mono, monospace); font-size: 12px; }
 table.calls th { background: var(--surface-2); font-weight: 600; }
 table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--danger); }
 .retry { display: inline-flex; align-items: center; gap: 6px; position: relative; flex-wrap: wrap; }
