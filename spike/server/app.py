@@ -48,6 +48,7 @@ from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID, is_local_url
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
 from spike.server.backup_api import create_backup_router
+from spike.server.skill_import_api import create_skill_import_router
 from spike.server.data_app_api import create_data_app_router
 from spike.server.desktop_api import create_desktop_router
 from spike.server.device_lab_api import create_device_lab_router
@@ -394,6 +395,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_research_router(st))
     app.include_router(create_history_router(st))
     app.include_router(create_backup_router(st))  # G34 backup and restore, G36 delete all my data
+    app.include_router(create_skill_import_router(st))  # O3 install a skill from a GitHub URL, with review
     app.include_router(create_setup_router())
     app.include_router(create_workflow_router(st))
     app.include_router(create_samples_router(st))  # G39 sample projects
