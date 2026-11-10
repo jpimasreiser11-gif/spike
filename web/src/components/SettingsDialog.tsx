@@ -2,6 +2,7 @@ import { VisionSetting } from "./VisionSetting";
 import { useEffect, useState } from "react";
 import { api, streamPost } from "../api";
 import { lang, t } from "../i18n";
+import { parseCount, parseOptionalNumber, providerIdOk, urlOk } from "../settingsInput";
 import { useRestoreFocus } from "../useRestoreFocus";
 import { reasonText } from "../isolation";
 import type { Limits, Preset, ProviderInfo, SandboxStatus, Settings, Specialist, ToolInfo } from "../types";
@@ -80,6 +81,8 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
   const [tab, setTab] = useState<Tab>(initialTab);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [flash, setFlash] = useState("");
+  const [problem, setProblem] = useState(""); // why the last change was not saved (already in the user's language)
+  const [rev, setRev] = useState(0); // bumped after a refused change so the fields show the stored value again
   useRestoreFocus();
 
   useEffect(() => {
@@ -90,11 +93,19 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
   }, [onClose]);
 
   const save = async (patch: Partial<Settings>) => {
-    const next = await api.put<Settings>("/api/settings", patch);
-    setSettings(next);
-    setFlash(L.saved);
-    setTimeout(() => setFlash(""), 1200);
+    try {
+      const next = await api.put<Settings>("/api/settings", patch);
+      setSettings(next);
+      setProblem("");
+      setFlash(L.saved);
+      setTimeout(() => setFlash(""), 1200);
+    } catch (e) {
+      setProblem((e as Error).message); // ApiError messages are already translated
+      setRev((n) => n + 1);
+    }
   };
+  const warn = (message: string) => { setProblem(message); setRev((n) => n + 1); };
+  const refresh = () => { api.get<Settings>("/api/settings").then(setSettings).catch(() => {}); };
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -104,17 +115,18 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
           {flash && <span className="flash">{flash}</span>}
           <button className="icon-btn" onClick={onClose} aria-label={t.close}><IconClose /></button>
         </div>
+        {problem && <div className="error-box" role="alert">{problem}</div>}
         <div className="modal-body">
           <nav className="tabs" role="tablist" aria-label={L.title}>
             {(["general", "providers", "specialists", "tools", "skills", "design", "finance", "connectors", "memory", "evolution", "privacy", "errors", "desktop", "engine"] as Tab[]).map((k) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "active" : ""} onClick={() => setTab(k)}>{L[k]}</button>
             ))}
           </nav>
-          <div className="tab-panel">
+          <div className="tab-panel" key={rev}>
             {!settings ? null : tab === "general" ? (
-              <General settings={settings} save={save} onTour={() => { onClose(); setTimeout(openTour, 0); }} />
+              <General settings={settings} save={save} warn={warn} onTour={() => { onClose(); setTimeout(openTour, 0); }} />
             ) : tab === "providers" ? (
-              <Providers providers={providers} settings={settings} save={save} reload={reloadProviders} />
+              <Providers providers={providers} settings={settings} save={save} reload={reloadProviders} warn={warn} refresh={refresh} />
             ) : tab === "specialists" ? (
               <Specialists specialists={specialists} providers={providers} settings={settings} save={save} />
             ) : tab === "tools" ? (
@@ -138,7 +150,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
             ) : tab === "desktop" ? (
               <Desktop settings={settings} save={save} onStart={onDesktop} />
             ) : (
-              <Engine settings={settings} save={save} reload={() => api.get<Settings>("/api/settings").then(setSettings)} />
+              <Engine settings={settings} save={save} warn={warn} reload={() => api.get<Settings>("/api/settings").then(setSettings)} />
             )}
           </div>
         </div>
@@ -147,13 +159,14 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
   );
 }
 
-function General({ settings, save, onTour }: { settings: Settings; save: (p: Partial<Settings>) => void; onTour: () => void }) {
+function General({ settings, save, warn, onTour }: { settings: Settings; save: (p: Partial<Settings>) => void; warn: (m: string) => void; onTour: () => void }) {
   const [instr, setInstr] = useState(settings.custom_instructions);
   return (
     <div className="form">
+      <p className="small muted">{t.settingsCheck.autosave}</p>
       <label className="field">
         <span>{L.instructions}</span>
-        <textarea rows={6} value={instr} onChange={(e) => setInstr(e.target.value)} onBlur={() => instr !== settings.custom_instructions && save({ custom_instructions: instr })} />
+        <textarea rows={6} maxLength={20000} value={instr} onChange={(e) => setInstr(e.target.value)} onBlur={() => instr !== settings.custom_instructions && save({ custom_instructions: instr })} />
         <small>{L.instructionsHint}</small>
       </label>
       <label className="check"><input type="checkbox" checked={settings.use_planner} onChange={(e) => save({ use_planner: e.target.checked })} />{L.planner}</label>
@@ -161,15 +174,22 @@ function General({ settings, save, onTour }: { settings: Settings; save: (p: Par
       <label className="check"><input type="checkbox" checked={settings.tools_enabled} onChange={(e) => save({ tools_enabled: e.target.checked })} />{L.toolsOn}</label>
       <div className="row">
         <label className="field"><span>{L.temperature}</span>
-          <input type="number" step="0.1" min="0" max="2" defaultValue={settings.temperature ?? ""} onBlur={(e) => save({ temperature: e.target.value === "" ? null : Number(e.target.value) })} />
+          <input type="number" step="0.1" min="0" max="2" defaultValue={settings.temperature ?? ""} onBlur={(e) => {
+            const p = parseOptionalNumber(e.target.value, 0, 2);
+            if (!p.ok) { e.target.value = String(settings.temperature ?? ""); warn(t.settingsCheck.badTemperature); } else if (p.value !== settings.temperature) save({ temperature: p.value });
+          }} />
         </label>
         <label className="field"><span>{L.maxTokens}</span>
-          <input type="number" min="64" max="32768" defaultValue={settings.max_tokens ?? ""} onBlur={(e) => save({ max_tokens: e.target.value === "" ? null : Number(e.target.value) })} />
+          <input type="number" min="64" max="32768" defaultValue={settings.max_tokens ?? ""} onBlur={(e) => {
+            const p = parseCount(e.target.value, 64, 32768);
+            if (!p.ok) { e.target.value = String(settings.max_tokens ?? ""); warn(t.settingsCheck.badMaxTokens); } else if (p.value !== settings.max_tokens) save({ max_tokens: p.value });
+          }} />
         </label>
         <label className="field"><span>{L.reasoning}</span>
           <select value={settings.reasoning === null ? "" : String(settings.reasoning)} onChange={(e) => save({ reasoning: e.target.value === "" ? null : e.target.value === "true" })}>
             <option value="">{L.rDefault}</option><option value="true">{L.rOn}</option><option value="false">{L.rOff}</option>
           </select>
+          <small>{t.settingsCheck.reasoningHint}</small>
         </label>
       </div>
       <TrustSettings settings={settings} save={save} />
@@ -202,7 +222,7 @@ function TrustSettings({ settings, save }: { settings: Settings; save: (p: Parti
   );
 }
 
-function Providers({ providers, settings, save, reload }: { providers: ProviderInfo[]; settings: Settings; save: (p: Partial<Settings>) => void; reload: () => void }) {
+function Providers({ providers, settings, save, reload, warn, refresh }: { providers: ProviderInfo[]; settings: Settings; save: (p: Partial<Settings>) => void; reload: () => void; warn: (m: string) => void; refresh: () => void }) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetId, setPresetId] = useState("");
   const [draft, setDraft] = useState({ id: "", base_url: "", model: "", api_key: "" });
@@ -214,6 +234,8 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
 
   const add = async () => {
     setErr("");
+    if (!providerIdOk(draft.id)) { setErr(t.settingsCheck.badId); return; }
+    if (draft.base_url && !urlOk(draft.base_url)) { setErr(t.settingsCheck.badUrl); return; }
     try {
       await api.post("/api/providers", {
         preset: presetId, id: draft.id || undefined, base_url: draft.base_url || undefined,
@@ -228,8 +250,15 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
     const r = await api.post<{ ok: boolean; models?: string[]; adapters?: string[]; error?: string }>(`/api/providers/${id}/test`);
     setTests((t) => ({ ...t, [id]: r.ok ? `${L.ok} · ${r.models?.length ?? 0} ${L.models}${r.adapters?.length ? ` · ${r.adapters.length} ${L.adapters}` : ""}` : `✕ ${r.error}` }));
   };
-  const patch = async (id: string, body: Record<string, unknown>) => { await api.patch(`/api/providers/${id}`, body); reload(); };
-  const remove = async (id: string) => { await api.del(`/api/providers/${id}`); reload(); };
+  const patch = async (id: string, body: Record<string, unknown>) => {
+    try { await api.patch(`/api/providers/${id}`, body); } catch (e) { warn((e as Error).message); return; }
+    reload();
+  };
+  const remove = async (id: string) => {
+    try { await api.del(`/api/providers/${id}`); } catch (e) { warn((e as Error).message); return; }
+    reload();
+    refresh(); // the server moved the default and any bindings off the removed provider
+  };
 
   return (
     <div className="form">
@@ -256,7 +285,7 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
           {!p.local && (
             <>
               <label className="check"><input type="checkbox" checked={!!p.share_files} onChange={(e) => patch(p.id, { share_files: e.target.checked })} />{L.shareFiles}<small className="hint">{L.shareHint}</small></label>
-              <LimitsEditor limits={p.limits ?? {}} save={(limits) => patch(p.id, { limits })} />
+              <LimitsEditor limits={p.limits ?? {}} save={(limits) => patch(p.id, { limits })} warn={warn} />
             </>
           )}
           <div className="card-actions">
@@ -298,13 +327,14 @@ function Providers({ providers, settings, save, reload }: { providers: ProviderI
   );
 }
 
-function LimitsEditor({ limits, save }: { limits: Limits; save: (l: Limits) => void }) {
+function LimitsEditor({ limits, save, warn }: { limits: Limits; save: (l: Limits) => void; warn: (m: string) => void }) {
   const field = (key: keyof Limits, label: string, step: string) => (
     <label className="field"><span>{label}</span>
       <input type="number" min={key === "monthly_tokens" ? "1" : "0"} step={step} placeholder={key.startsWith("price") ? L.noPrice : L.noLimit} defaultValue={limits[key] ?? ""} aria-label={label}
         onBlur={(e) => {
-          const value = e.target.value === "" ? null : Number(e.target.value);
-          if (value !== (limits[key] ?? null)) save({ ...limits, [key]: value });
+          const p = key === "monthly_tokens" ? parseCount(e.target.value, 1, 1e15) : parseOptionalNumber(e.target.value, 0, 1e12);
+          if (!p.ok) { e.target.value = String(limits[key] ?? ""); warn(t.settingsCheck.badLimit); return; }
+          if (p.value !== (limits[key] ?? null)) save({ ...limits, [key]: p.value });
         }} />
     </label>
   );
@@ -433,7 +463,7 @@ function Tune({ hasModel, onDone }: { hasModel: boolean; onDone: () => void }) {
   );
 }
 
-function Engine({ settings, save, reload }: { settings: Settings; save: (p: Partial<Settings>) => void; reload: () => void }) {
+function Engine({ settings, save, reload, warn }: { settings: Settings; save: (p: Partial<Settings>) => void; reload: () => void; warn: (m: string) => void }) {
   const [sys, setSys] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -459,7 +489,10 @@ function Engine({ settings, save, reload }: { settings: Settings; save: (p: Part
       <div className="card">
         <div className="card-head"><b>{L.engine}</b><span className={`badge ${sys.runtime.running ? "ok" : ""}`}>{sys.runtime.running ? L.running : L.stoppedS}</span></div>
         <label className="field"><span>{L.modelPath}</span><input defaultValue={rt.model} placeholder="~/.spike/models/Qwen3.5-4B-Q4_K_M.gguf" onBlur={(e) => e.target.value !== rt.model && save({ local_runtime: { ...rt, model: e.target.value } })} /></label>
-        <label className="field"><span>{L.ctx}</span><input type="number" key={rt.context ?? "auto"} defaultValue={rt.context ?? ""} placeholder={String(sys.recommendation.context)} onBlur={(e) => save({ local_runtime: { ...rt, context: e.target.value ? Number(e.target.value) : null } })} /></label>
+        <label className="field"><span>{L.ctx}</span><input type="number" key={rt.context ?? "auto"} defaultValue={rt.context ?? ""} placeholder={String(sys.recommendation.context)} onBlur={(e) => {
+          const p = parseCount(e.target.value, 512, 1048576);
+          if (!p.ok) { e.target.value = String(rt.context ?? ""); warn(t.settingsCheck.badContext); } else if (p.value !== rt.context) save({ local_runtime: { ...rt, context: p.value } });
+        }} /></label>
         {!rt.model && <div className="no-models"><img src="/states/no-models.webp" alt="" width={84} height={89} /><small className="muted">{L.pull}</small></div>}
         {sys.runtime.running && <p className="small muted">RSS {sys.runtime.rss_mb} MB · {L.load} {sys.runtime.load_seconds}s · {sys.runtime.adapters.length} {L.adapters}</p>}
         <Tune hasModel={!!rt.model} onDone={() => { reload(); load(); }} />

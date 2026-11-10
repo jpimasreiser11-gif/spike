@@ -47,3 +47,12 @@ Real Windows and macOS behaviour of the sandbox, fuzzing, and the MCP Apps polic
 which exposed the login-less `/api` to every machine on the network. It is now refused with exit code 2 unless
 `--allow-network` is given; loopback hosts (`localhost`, `127.0.0.0/8`, `::1`) need no flag. `/v1` keeps its own
 `SPIKE_API_TOKEN` check. Tests: `tests/test_o4_security.py` (8 cases); the existing Host-check test now passes the flag.
+
+## Addendum (G40 review, 2026-11-10): what `--allow-network` exposes
+
+With `--allow-network` the whole `/api` is open to every machine that can reach the port: settings (including the
+sandbox, tool policies and trust), permission approvals, workspace files and chats. Only real-order settings, desktop
+action settings, backup/delete-all and the error log require the request to come from this computer. Guarding a few
+more settings would not change this, because the same remote client can approve each permission request. The
+supported use of `--allow-network` is therefore a trusted network only, as the refusal message says ("the app has no
+login"). A login or a token for `/api` (like `SPIKE_API_TOKEN` for `/v1`) is the fix; it is not in v0.1.
