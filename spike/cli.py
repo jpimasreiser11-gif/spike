@@ -116,7 +116,8 @@ def cmd_models(args: argparse.Namespace) -> int:
 
     try:
         path, verified = asyncio.run(download(args.model, args.quant, progress=progress,
-                                              allow_unverified=args.allow_unverified))
+                                              allow_unverified=args.allow_unverified,
+                                              **({"revision": args.revision} if args.revision else {})))
     except httpx.HTTPError as exc:
         print(f"\nerror: could not download {args.model} from the Hugging Face Hub: {exc}", file=sys.stderr)
         return 1
@@ -727,6 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("action", choices=["list", "pull", "history"])
     m.add_argument("model", nargs="?", help="model to pull (default qwen3.5-4b); for history, a component")
     m.add_argument("--quant")
+    m.add_argument("--revision", help="pull: pin the download to this commit hash of the model repo (default: main)")
     m.add_argument("--allow-unverified", action="store_true",
                    help="pull: download even when the Hub publishes no SHA-256 for the file (refused by default)")
     m.set_defaults(func=cmd_models)
