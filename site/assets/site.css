@@ -1,0 +1,87 @@
+/* SPIKE landing page. Official palette only; fonts are served from this folder (Inter, SIL OFL 1.1). */
+:root {
+  --ink: #052E1E;
+  --green: #88D445;
+  --shadow: #5FBB47;
+  --mint: #E3FADA;
+  --cream: #FDFDFA;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/inter-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/inter-latin-700-normal.woff2") format("woff2");
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+img { max-width: 100%; height: auto; }
+a { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; text-decoration-color: var(--shadow); }
+a:hover { text-decoration-color: var(--ink); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; box-shadow: 0 0 0 6px var(--green); }
+.skip { position: absolute; left: 16px; top: -100px; background: var(--ink); color: var(--cream); padding: 8px 14px; z-index: 10; }
+.skip:focus { top: 8px; }
+.wrap { max-width: 60rem; margin: 0 auto; padding: 0 16px; }
+header.top { background: var(--cream); border-bottom: 3px solid var(--green); }
+header.top .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-top: 12px; padding-bottom: 12px; }
+.brand { display: flex; align-items: center; text-decoration: none; }
+.brand img { display: block; max-width: 100%; }
+nav ul { display: flex; flex-wrap: wrap; gap: 4px 18px; list-style: none; margin: 0; padding: 0; font-size: 0.95rem; }
+nav a { display: inline-block; padding: 6px 0; }
+.hero { background: var(--mint); padding: 40px 0 44px; }
+.hero .wrap { display: grid; gap: 24px; align-items: center; }
+.hero img.mark { justify-self: center; width: 10rem; }
+h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 12px; }
+h2 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 12px; }
+h3 { font-size: 1.1rem; margin: 24px 0 8px; }
+.lead { font-size: 1.15rem; margin: 0 0 20px; }
+.button { display: inline-block; background: var(--green); color: var(--ink); font-weight: 700; padding: 10px 18px; border: 2px solid var(--ink); border-radius: 8px; text-decoration: none; }
+.button:hover { background: var(--shadow); }
+.status { border-left: 6px solid var(--shadow); background: var(--cream); padding: 10px 14px; margin: 0 0 20px; }
+section { padding: 40px 0; }
+section:nth-of-type(even) { background: var(--mint); }
+ul.plain { padding-left: 1.2rem; margin: 0 0 12px; }
+ul.plain li { margin-bottom: 6px; }
+.table-wrap { max-width: 100%; overflow-x: auto; margin: 12px 0 16px; border: 2px solid var(--ink); border-radius: 8px; background: var(--cream); }
+table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: 0.95rem; }
+caption { text-align: left; font-weight: 700; padding: 10px 12px; }
+th, td { text-align: left; padding: 8px 12px; border-top: 1px solid var(--shadow); vertical-align: top; }
+thead th { background: var(--ink); color: var(--cream); border-top: 0; }
+tbody th { font-weight: 700; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+pre, code { font-family: var(--mono); font-size: 0.9rem; }
+pre { background: var(--ink); color: var(--mint); padding: 14px; border-radius: 8px; overflow-x: auto; max-width: 100%; white-space: pre-wrap; margin: 8px 0 16px; }
+code { background: var(--mint); color: var(--ink); padding: 1px 5px; border-radius: 4px; }
+section:nth-of-type(even) code { background: var(--cream); }
+section:nth-of-type(even) pre code, pre code { background: transparent; color: var(--mint); padding: 0; }
+.note { font-size: 0.95rem; }
+footer { background: var(--ink); color: var(--cream); padding: 32px 0; font-size: 0.95rem; }
+footer a { color: var(--cream); text-decoration-color: var(--green); }
+footer img { display: block; margin-bottom: 12px; }
+@media (min-width: 48rem) {
+  .hero .wrap { grid-template-columns: 1fr 12.5rem; }
+  .hero img.mark { width: 12.5rem; }
+  h1 { font-size: 2.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; animation: none !important; }
+}
