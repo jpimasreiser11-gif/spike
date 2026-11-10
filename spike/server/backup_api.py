@@ -177,6 +177,10 @@ def create_backup_router(get_state: Callable[[], AppState]) -> APIRouter:
         async with lock:
             if words.pop(body.word.strip(), 0) < time.time():
                 raise HTTPException(400, "the confirmation word does not match; ask for a new one")
+            try:  # before anything is closed or any key is removed
+                wipe.check_home(get_state().home)
+            except ValueError as exc:  # the reason (which folder) stays in the exception; the user gets one sentence
+                raise HTTPException(409, "refused: this is not SPIKE's own data folder") from exc
 
             def work(st: AppState) -> dict:
                 removed_keys = 0

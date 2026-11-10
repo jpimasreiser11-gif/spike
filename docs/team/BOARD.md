@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 15 | 2 | 0 | 0 | 25 | 0 | 42 |
+| Claude | 13 | 2 | 0 | 0 | 27 | 0 | 42 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **24** | **5** | **0** | **0** | **62** | **0** | **91** |
+| **Total** | **22** | **5** | **0** | **0** | **64** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -68,9 +68,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G27 | Claude | pendiente | Actualizar vite y vitest a sus versiones mayores | - |
 | G28 | Gemini | hecha | Cobertura del smoke: vistas que no abre | - |
 | G33 | Claude | pendiente | Primer uso guiado | - |
-| G34 | Claude | pendiente | Copia de seguridad y restauración | - |
+| G34 | Claude | hecha | Copia de seguridad y restauración | - |
 | G35 | Claude | pendiente | Paleta de comandos y atajos | - |
-| G36 | Claude | pendiente | Exportar y borrar todos mis datos | G34 |
+| G36 | Claude | hecha | Exportar y borrar todos mis datos | G34 |
 | G37 | Claude | pendiente | Referencia de la API | - |
 | G38 | Claude | hecha | Ayuda de la línea de comandos | - |
 | G39 | Claude | pendiente | Proyectos de ejemplo | - |

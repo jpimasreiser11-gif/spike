@@ -1415,6 +1415,10 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     es: "El archivo no existe. Comprueba el nombre o actualiza la lista de archivos del proyecto.",
     en: "The file was not found. Check the name or refresh the project file list.",
   },
+  "refused: this is not SPIKE's own data folder": {
+    es: "No se ha borrado nada: la carpeta de datos de SPIKE no es una carpeta propia (es tu carpeta personal o contiene archivos tuyos). Revisa SPIKE_HOME.",
+    en: "Nothing was deleted: SPIKE's data folder is not a folder of its own (it is your home folder or holds your files). Check SPIKE_HOME.",
+  },
   "the path is outside the workspace": {
     es: "La ruta está fuera de la carpeta de trabajo. Usa una ruta relativa dentro de ella.",
     en: "The path is outside the working folder. Use a relative path inside it.",

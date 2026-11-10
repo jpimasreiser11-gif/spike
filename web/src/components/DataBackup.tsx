@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
-import { lang, t } from "../i18n";
+import { lang, projectError, t } from "../i18n";
 
 export interface BackupPreview {
   spike_version: string; created: number; include_models: boolean; total_bytes: number;
@@ -9,7 +9,7 @@ export interface BackupPreview {
 interface RestoreResult { added: number; replaced: number; skipped: number; same: number }
 interface DeleteResult { deleted: number; secrets_deleted: boolean; models_deleted: boolean }
 
-const errorText = (e: unknown) => `${t.dataBackup.error} ${e instanceof Error ? e.message : String(e)}`;
+const errorText = (e: unknown) => `${t.dataBackup.error} ${projectError(e instanceof Error ? e.message : String(e))}`;
 
 /** Settings › Privacy: export everything (no secrets), restore with a preview, and delete all data (G34, G36). */
 export function DataBackup() {

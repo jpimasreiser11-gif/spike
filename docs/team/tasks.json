@@ -1073,7 +1073,7 @@
   {
    "id": "G34",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Copia de seguridad y restauración",
    "depends": [],
@@ -1081,7 +1081,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G34 from origin/main, report docs/team/reports/G34.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: ZIP backup with manifest and SHA-256 per file, no secrets (test), sqlite backup API, preview, restore that adds only unless overwrite is confirmed, hostile archives refused (paths, symlinks, truncation, version, SHA, zip bomb)."
   },
   {
    "id": "G35",
@@ -1099,7 +1100,7 @@
   {
    "id": "G36",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Exportar y borrar todos mis datos",
    "depends": [
@@ -1109,7 +1110,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G36 from origin/main, report docs/team/reports/G36.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: delete everything in Settings > Privacy with a single-use typed word; models and keychain keys only with their own checkboxes. Claude added a guard: nothing is deleted (and no key removed) unless the folder has spike.db and is not the user's home, a parent of it, a drive root, or a folder holding a user's Documents/Downloads/etc. (tests)."
   },
   {
    "id": "G37",

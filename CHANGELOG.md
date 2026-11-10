@@ -23,6 +23,10 @@ profiles on the base model, marked β, until theirs pass.
   anonymous memory (6.1 GiB RSS with the mapped model file).
 
 ### App
+- Settings › Privacidad: back up settings, chats, memory, projects and your own skills to a ZIP (no API keys or
+  connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
+  your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
+  is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
 - The main web bundle went from 651.5 kB to 577.3 kB (gzip 212.0 to 191.8 kB): Forge, Research, Replay, Device Lab,
   history search, the workspace panel, the first-run wizard and the desktop task load when first opened (G26).
 - `spike --help` covers every command and option; the CLI reference in `docs/guide/` is generated from the parser and

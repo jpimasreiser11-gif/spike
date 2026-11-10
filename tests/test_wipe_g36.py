@@ -148,3 +148,41 @@ def test_other_computers_cannot_ask_for_the_word_or_delete(tmp_path, monkeypatch
     assert remote.get("/api/privacy/delete-word").status_code == 403
     assert remote.post("/api/privacy/delete", json={"word": word(client)}).status_code == 403
     assert remote.get("/api/backup/export").status_code == 403
+
+
+def test_delete_refuses_a_folder_that_is_not_spikes_own(tmp_path, monkeypatch):
+    import pytest
+
+    from spike import wipe
+
+    user_home = tmp_path / "user"
+    (user_home / "Documents").mkdir(parents=True)
+    (user_home / "Documents" / "thesis.docx").write_text("mine", encoding="utf-8")
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: user_home))
+    for target in (user_home, tmp_path):  # the user's home, and a parent of it
+        with pytest.raises(ValueError, match="home folder"):
+            wipe.delete_everything(target)
+    stray = tmp_path / "not-spike"
+    (stray / "notes").mkdir(parents=True)
+    with pytest.raises(ValueError, match="spike.db"):
+        wipe.delete_everything(stray)
+    (user_home / "spike.db").write_text("", encoding="utf-8")  # even with a database there, a user folder is refused
+    nested = tmp_path / "data"
+    (nested / "Documents").mkdir(parents=True)
+    (nested / "spike.db").write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="documents"):
+        wipe.delete_everything(nested)
+    assert (user_home / "Documents" / "thesis.docx").is_file() and (stray / "notes").is_dir()
+    assert (nested / "Documents").is_dir()
+
+
+def test_the_delete_route_removes_no_key_when_the_folder_is_refused(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    client = make_app(home, monkeypatch)
+    fill(client)
+    secrets_before = (home / "secrets.json").read_bytes()
+    (home / "Documents").mkdir()  # SPIKE_HOME pointed by mistake at a folder that also holds the user's files
+    res = client.post("/api/privacy/delete", json={"word": word(client), "delete_secrets": True, "delete_models": True})
+    assert res.status_code == 409 and "not SPIKE's own data folder" in res.json()["detail"]
+    assert (home / "secrets.json").read_bytes() == secrets_before  # no key removed
+    assert (home / "spike.db").is_file() and (home / "models" / "big.gguf").exists()

@@ -45,9 +45,31 @@ def kept(delete_models: bool = False, delete_secrets: bool = False) -> set[str]:
     return ALWAYS_KEPT | (set() if delete_models else MODELS) | (set() if delete_secrets else SECRETS)
 
 
+# Folders of a user's home that SPIKE never creates in its own ("desktop" is not here: SPIKE keeps the desktop task's
+# screenshots in a folder of that name).
+USER_FOLDERS = {"documents", "downloads", "library", "pictures", "music", "movies", "videos", ".ssh", ".config",
+                "appdata", "applications", "onedrive"}
+
+
+def check_home(home: Path) -> Path:
+    """Refuse to delete anything unless `home` is plainly SPIKE's own data folder. A SPIKE_HOME pointed by mistake at
+    the user's home (or a parent of it, or a drive root) would otherwise lose every file the user has."""
+    real = Path(home).resolve()
+    user = Path.home().resolve()
+    if real == Path(real.anchor) or real == user or real in user.parents:
+        raise ValueError("refused: SPIKE's data folder is the home folder or a parent of it, not a folder of its own")
+    if not (real / "spike.db").is_file():
+        raise ValueError("refused: the folder has no spike.db, so it is not SPIKE's data folder")
+    found = {p.name.lower() for p in real.iterdir()} & USER_FOLDERS
+    if found:
+        raise ValueError(f"refused: the folder holds {sorted(found)[0]!r}, which belongs to a user's home, not SPIKE")
+    return real
+
+
 def delete_everything(home: Path, delete_models: bool = False, delete_secrets: bool = False) -> dict:
-    """Removes every top-level entry of `home` except the kept ones; returns what was removed and what failed."""
-    home = Path(home)
+    """Removes every top-level entry of `home` except the kept ones; returns what was removed and what failed.
+    Raises ValueError, deleting nothing, when `home` is not SPIKE's own data folder (check_home)."""
+    home = check_home(home)
     keep = kept(delete_models, delete_secrets)
     removed, failed = [], []
     for entry in sorted(home.iterdir(), key=lambda p: p.name):
