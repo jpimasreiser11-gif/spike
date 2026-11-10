@@ -49,6 +49,7 @@ Each route lists the codes it declares or raises; these are the usual meanings.
 | `/api/design-systems` | [design.md](design.md) | 5 |
 | `/api/desktop` | [desktop.md](desktop.md) | 6 |
 | `/api/device-lab` | [device.md](device.md) | 4 |
+| `/api/errors` | [errors.md](errors.md) | 3 |
 | `/api/evolution` | [evolution.md](evolution.md) | 22 |
 | `/api/finance` | [finance.md](finance.md) | 11 |
 | `/api/forge` | [forge.md](forge.md) | 7 |
