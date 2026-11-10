@@ -28,3 +28,4 @@
 .device-lab button { min-height: 36px; }
 .device-lab :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
 @media (max-width: 720px) { .device-lab { padding: 16px; } }
+@media (pointer: coarse) { .device-lab button, .device-lab input:not([type="checkbox"]), .device-lab select, .device-lab summary { min-height: 44px; } }
