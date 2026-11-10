@@ -79,7 +79,7 @@ def short_path(filename: str) -> str:
     for base in (_ROOT, _STDLIB):
         if path.is_relative_to(base):
             return path.relative_to(base).as_posix()
-    return anonymise(filename)
+    return anonymise(path.as_posix())  # forward slashes on every system, so frames read the same everywhere
 
 
 def _clip(text: Any, limit: int = MAX_TEXT) -> str:

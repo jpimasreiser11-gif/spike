@@ -137,11 +137,23 @@ def test_routes_only_read_and_clear_the_local_file(app_client, monkeypatch):
               "frames": ["/opt/build/spike/x.py:1 in f"]}]
     (folder / "errors.log").write_text("\n".join(json.dumps(x) for x in lines) + "\nnot json\n", encoding="utf-8")
 
-    def no_network(*args, **kwargs):
-        raise AssertionError("the error log must not use the network")
+    real_connect, real_create = socket.socket.connect, socket.create_connection
 
-    monkeypatch.setattr(socket.socket, "connect", no_network)
-    monkeypatch.setattr(socket, "create_connection", no_network)
+    def loopback_only(address) -> None:  # the event loop's own socket pair (Windows) connects to 127.0.0.1
+        host = address[0] if isinstance(address, tuple) else ""
+        if host not in ("127.0.0.1", "::1", "localhost"):
+            raise AssertionError("the error log must not use the network")
+
+    def connect(self, address):
+        loopback_only(address)
+        return real_connect(self, address)
+
+    def create_connection(address, *args, **kwargs):
+        loopback_only(address)
+        return real_create(address, *args, **kwargs)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket, "create_connection", create_connection)
     body = client.get("/api/errors").json()
     assert [e["where"] for e in body["entries"]] == ["render …/out.mp4", "GET /api/a"]
     assert body["entries"][0]["frames"] == ["…/x.py:1 in f"]
