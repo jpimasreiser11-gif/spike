@@ -148,3 +148,26 @@ export const IconSparkle = ({ size }: P) => (
     <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z" />
   </svg>
 );
+
+export const IconSearch = ({ size }: P) => (
+  <svg {...base(size)}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4.5 4.5" />
+  </svg>
+);
+export const IconCommand = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M5 7l5 5-5 5M12 18h7" />
+  </svg>
+);
+export const IconAudio = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" />
+  </svg>
+);
+export const IconDevice = ({ size }: P) => (
+  <svg {...base(size)}>
+    <rect x="7" y="3" width="10" height="18" rx="2" />
+    <path d="M11 18h2" />
+  </svg>
+);

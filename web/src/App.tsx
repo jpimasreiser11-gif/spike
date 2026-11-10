@@ -6,7 +6,7 @@ import { Composer } from "./components/Composer";
 import { DESKTOP_STRINGS } from "./desktop";
 import type { CreatorExtra } from "./components/Creator";
 import type { SettingsTab } from "./components/SettingsDialog";
-import { IconBack, IconDesktop, IconEdit, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
+import { IconAudio, IconBack, IconCommand, IconDesktop, IconDevice, IconSearch, IconEdit, IconFile, IconFolder, IconForge, IconSparkle, IconMoon, IconPlus, IconSettings, IconSidebar, IconSun, IconTrash, IconUpload, IconTimer } from "./components/Icons";
 import type { HistoryHit } from "./components/HistorySearch";
 import "./components/HistoryLaunch.css";
 import { Markdown } from "./components/Markdown";
@@ -397,15 +397,15 @@ export default function App() {
           <div className="brand"><img src="/spike-mark.png" alt="" width={30} height={30} /><span className="wordmark">SPIKE</span></div>
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label={t.closeSidebar}><IconSidebar /></button>
         </div>
-        <button className="side-btn history-launch" disabled={busy} onClick={() => setSearchOpen(true)}>
-          <span>{t.history.title}</span></button>
-        <button className="side-btn history-launch" onClick={() => setPaletteOpen(true)} aria-keyshortcuts="Control+k Meta+k" title={t.palette.openHint}>
-          <span>{t.palette.open}</span><kbd>⌘ / Ctrl K</kbd></button>
+        <button className="side-btn nav-btn history-launch" disabled={busy} onClick={() => setSearchOpen(true)}>
+          <IconSearch size={16} /> <span>{t.history.title}</span></button>
+        <button className="side-btn nav-btn history-launch" onClick={() => setPaletteOpen(true)} aria-keyshortcuts="Control+k Meta+k" title={t.palette.openHint}>
+          <IconCommand size={16} /> <span>{t.palette.open}</span><kbd>⌘ / Ctrl K</kbd></button>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
-        <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
-        <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
-        <button className="side-btn" disabled={busy} onClick={() => setSubtitlesOpen(true)}>{t.subtitles.title}</button>
-        <button className="side-btn" disabled={busy} data-testid="device-lab-open-btn" onClick={() => setDeviceLabOpen(true)}>{t.deviceLab.title}</button>
+        <button className={`side-btn nav-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
+        <button className={`side-btn nav-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
+        <button className="side-btn nav-btn" disabled={busy} onClick={() => setSubtitlesOpen(true)}><IconAudio size={16} /> {t.subtitles.title}</button>
+        <button className="side-btn nav-btn" disabled={busy} data-testid="device-lab-open-btn" onClick={() => setDeviceLabOpen(true)}><IconDevice size={16} /> {t.deviceLab.title}</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
@@ -436,7 +436,7 @@ export default function App() {
         </nav>
         <div className="sidebar-bottom">
           {desktopOn && <button className="side-btn" data-testid="desktop-open" onClick={() => setDesktopOpen(true)}><IconDesktop size={16} /> {DESKTOP.open}</button>}
-          <button className="side-btn" onClick={() => setWorkspaceOpen(true)}>{t.workspaceJobs}</button>
+          <button className="side-btn" onClick={() => setWorkspaceOpen(true)}><IconFile size={16} /> {t.workspaceJobs}</button>
           <button className="side-btn" onClick={() => { setSettingsTab("general"); setSettingsOpen(true); }}><IconSettings size={16} /> {t.settings}</button>
           <div className="engine-status" title={t.localEngine}>
             <span className={`status-dot ${engine?.running ? "on" : ""}`} /> {t.localEngine}: {engine?.running ? t.running : t.stopped2}

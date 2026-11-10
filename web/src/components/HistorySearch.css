@@ -22,3 +22,4 @@
 .history-dialog button { min-height: 36px; }
 .history-dialog :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
 @media (max-width: 480px) { .history-dialog { padding: 16px; } .history-filters { grid-template-columns: 1fr; } }
+@media (pointer: coarse) { .history-dialog button, .history-dialog input:not([type="checkbox"]), .history-dialog select, .history-dialog summary { min-height: 44px; } }
