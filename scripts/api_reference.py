@@ -574,7 +574,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="exit 1 if docs/api is stale")
     parser.add_argument("--out", type=Path, default=ROOT / "docs" / "api", help="folder to write (default docs/api)")
     args = parser.parse_args()
-    with tempfile.TemporaryDirectory() as home:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as home:  # Windows: the app keeps its SQLite files open
         pages = render(build_app(Path(home)))
     present = {p.relative_to(args.out).as_posix() for p in args.out.glob("**/*.md")} if args.out.exists() else set()
     if args.check:
