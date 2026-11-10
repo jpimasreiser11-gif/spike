@@ -197,8 +197,8 @@ def test_main_api_flows_make_zero_external_network_connections(
     )
     assert conn_res.status_code == 200
     assert any(c["id"] == "remote-example" and not c.get("enabled") for c in client.get("/api/connectors").json())
-    assert client.get("/api/browser/domains").status_code == 200
-    assert client.get("/api/browser/scripts").status_code == 200
+    assert "domains" in client.get("/api/browser").json()
+    assert client.get("/api/browser/recorder").status_code == 200
 
     # 5. Projects & workspace files
     proj = client.post("/api/projects", json={"name": "Offline Project", "specialist": "code"}).json()
@@ -214,7 +214,9 @@ def test_main_api_flows_make_zero_external_network_connections(
     )
     assert client.get(f"/api/projects/{pid}/files/notes.md").status_code == 200
     assert client.get(f"/api/projects/{pid}/export").status_code == 200
-    assert client.get("/api/workspace/files").status_code == 200
+    ws.mkdir(parents=True, exist_ok=True)
+    (ws / "report.txt").write_text("hola", encoding="utf-8")
+    assert client.get("/api/workspace/files/report.txt").content == b"hola"
 
     # 6. Memory, folders, glossary, tutor, and memory graph
     mem_item = client.post(
