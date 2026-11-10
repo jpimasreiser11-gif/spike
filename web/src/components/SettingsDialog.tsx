@@ -10,6 +10,8 @@ import { DesignSystems } from "./Design";
 import { Desktop } from "./Desktop";
 import { Evolution } from "./Evolution";
 import { Finance } from "./Finance";
+import { HelpSettings } from "./HelpSettings";
+import { openTour } from "./Tour";
 import { Memory } from "./Memory";
 import { Privacy } from "./Privacy";
 import { Skills } from "./Skills";
@@ -109,7 +111,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
           </nav>
           <div className="tab-panel">
             {!settings ? null : tab === "general" ? (
-              <General settings={settings} save={save} />
+              <General settings={settings} save={save} onTour={() => { onClose(); setTimeout(openTour, 0); }} />
             ) : tab === "providers" ? (
               <Providers providers={providers} settings={settings} save={save} reload={reloadProviders} />
             ) : tab === "specialists" ? (
@@ -142,7 +144,7 @@ export function SettingsDialog({ onClose, specialists, providers, reloadProvider
   );
 }
 
-function General({ settings, save }: { settings: Settings; save: (p: Partial<Settings>) => void }) {
+function General({ settings, save, onTour }: { settings: Settings; save: (p: Partial<Settings>) => void; onTour: () => void }) {
   const [instr, setInstr] = useState(settings.custom_instructions);
   return (
     <div className="form">
@@ -168,6 +170,7 @@ function General({ settings, save }: { settings: Settings; save: (p: Partial<Set
         </label>
       </div>
       <TrustSettings settings={settings} save={save} />
+      <HelpSettings onTour={onTour} />
     </div>
   );
 }

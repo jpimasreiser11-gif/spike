@@ -29,6 +29,8 @@ const Replay = lazy(() => import("./components/Replay").then((m) => ({ default: 
 const DeviceLab = lazy(() => import("./components/DeviceLab").then((m) => ({ default: m.DeviceLab })));
 const HistorySearch = lazy(() => import("./components/HistorySearch").then((m) => ({ default: m.HistorySearch })));
 const WorkspacePanel = lazy(() => import("./components/WorkspacePanel").then((m) => ({ default: m.WorkspacePanel })));
+const CommandPalette = lazy(() => import("./components/CommandPalette").then((m) => ({ default: m.CommandPalette })));
+const Tour = lazy(() => import("./components/Tour").then((m) => ({ default: m.Tour })));
 const SetupWizard = lazy(() => import("./components/SetupWizard").then((m) => ({ default: m.SetupWizard })));
 const DesktopTask = lazy(() => import("./components/Desktop").then((m) => ({ default: m.DesktopTask })));
 const DESKTOP = DESKTOP_STRINGS[LANG];
@@ -131,6 +133,7 @@ export default function App() {
   const [subtitlesOpen, setSubtitlesOpen] = useState(false);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchTarget, setSearchTarget] = useState<string | null>(null);
   const [labOpen, setLabOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
@@ -192,16 +195,15 @@ export default function App() {
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [items]);
 
-  useEffect(() => {
+  useEffect(() => { // Ctrl+K / Cmd+K toggles the command palette, unless another window is open
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && !e.altKey && !busy
-          && !settingsOpen && !projectDialog && !desktopOpen && !replay && !searchOpen) {
-        e.preventDefault(); setSearchOpen(true);
-      }
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.key.toLowerCase() !== "k") return;
+      if (!paletteOpen && document.querySelector('[aria-modal="true"], dialog[open]')) return;
+      e.preventDefault(); setPaletteOpen(!paletteOpen);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, settingsOpen, projectDialog, desktopOpen, replay, searchOpen]);
+  }, [paletteOpen]);
 
   useEffect(() => {
     if (searchOpen || !searchTarget || !searchJump.current) return;
@@ -387,6 +389,7 @@ export default function App() {
 
   return (
     <ArtifactContext.Provider value={setArtifact}>
+    <Suspense fallback={null}><Tour /></Suspense>
     <Suspense fallback={null}><SetupWizard onUseExternalApi={() => { setSettingsTab("providers"); setSettingsOpen(true); }} /></Suspense>
     <div className={`app ${sidebar ? "with-sidebar" : ""} ${artifact ? "with-artifact" : ""}`}>
       <aside className="sidebar" aria-label={t.conversations}>
@@ -394,8 +397,10 @@ export default function App() {
           <div className="brand"><img src="/spike-mark.png" alt="" width={30} height={30} /><span className="wordmark">SPIKE</span></div>
           <button className="icon-btn" onClick={() => setSidebar(false)} aria-label={t.closeSidebar}><IconSidebar /></button>
         </div>
-        <button className="side-btn history-launch" disabled={busy} onClick={() => setSearchOpen(true)} aria-keyshortcuts="Control+k Meta+k">
-          <span>{t.history.title}</span><kbd>⌘ / Ctrl K</kbd></button>
+        <button className="side-btn history-launch" disabled={busy} onClick={() => setSearchOpen(true)}>
+          <span>{t.history.title}</span></button>
+        <button className="side-btn history-launch" onClick={() => setPaletteOpen(true)} aria-keyshortcuts="Control+k Meta+k" title={t.palette.openHint}>
+          <span>{t.palette.open}</span><kbd>⌘ / Ctrl K</kbd></button>
         <button className="new-chat" onClick={newChat}><IconPlus size={16} /> {t.newChat}</button>
         <button className={`side-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
         <button className={`side-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
@@ -530,6 +535,17 @@ export default function App() {
       {subtitlesOpen && <Suspense fallback={null}><SubtitleStudio projectId={project?.id} projectName={project?.name} onClose={() => setSubtitlesOpen(false)} /></Suspense>}
       {deviceLabOpen && <Suspense fallback={null}><DeviceLab onClose={() => setDeviceLabOpen(false)} /></Suspense>}
       {searchOpen && <Suspense fallback={null}><HistorySearch projects={projects} projectId={project?.id} onClose={() => setSearchOpen(false)} onSelect={openSearchResult} /></Suspense>}
+
+      {paletteOpen && <Suspense fallback={null}>
+        <CommandPalette onClose={() => setPaletteOpen(false)} ctx={{ busy, desktopOn, inProject: !!project, specialists, projects, handlers: {
+          newChat, setMode, selectProject, openHistory: () => setSearchOpen(true), openSamples: () => setSamplesOpen(true),
+          openForge: () => { setResearchOpen(false); setLabOpen(false); setCreatorOpen(false); setForgeOpen(true); },
+          openCreator: () => { setResearchOpen(false); setLabOpen(false); setForgeOpen(false); setCreatorOpen(true); },
+          openResearch: () => { setResearchOpen(true); setLabOpen(false); }, openLab: () => { setResearchOpen(false); setLabOpen(true); },
+          openSubtitles: () => setSubtitlesOpen(true), openDeviceLab: () => setDeviceLabOpen(true), openWorkspace: () => setWorkspaceOpen(true),
+          openSettings: () => { setSettingsTab("general"); setSettingsOpen(true); }, openDesktop: () => setDesktopOpen(true),
+          toggleSidebar: () => setSidebar((v) => !v), toggleTheme } }} />
+      </Suspense>}
 
       {replay && <Suspense fallback={null}><Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} /></Suspense>}
 

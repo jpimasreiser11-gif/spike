@@ -53,11 +53,41 @@ const wizard = page.getByRole("dialog", { name: "Preparar SPIKE" });
 await wizard.waitFor();
 if (setupDownloads) fail("wizard must never download on mount");
 if (!await wizard.getByRole("checkbox").nth(1).isDisabled()) fail("unpublished adapter must be disabled");
+// G33: the first-use tour must wait while the setup wizard is on screen.
+await page.waitForTimeout(1200);
+if (await page.getByRole("dialog", { name: "Primeros pasos con SPIKE" }).count()) fail("the tour must wait for the setup wizard");
 await wizard.getByRole("checkbox").first().check();
 await wizard.getByRole("button", { name: "Descargar todo", exact: true }).click();
 await wizard.waitFor({ state: "hidden" });
 if (setupDownloads !== 1) fail("wizard must submit exactly one download request");
 await page.unroute(/\/api\/setup(?:\/|$)/);
+
+// G33: after the wizard the tour shows once (the fresh profile has not seen it): dialog, focus inside, steps, Escape skips,
+// and "seen" is saved in the server settings, so a reload does not show it again.
+const tourPosts = [];
+const onTourRequest = (r) => { if (r.method() === "POST") tourPosts.push(r.url()); };
+page.on("request", onTourRequest);
+const tourDialog = page.getByRole("dialog", { name: "Primeros pasos con SPIKE" });
+await tourDialog.waitFor();
+if (!(await tourDialog.evaluate((el) => el.contains(document.activeElement)))) fail("the tour must take keyboard focus");
+await tourDialog.getByText("Qué es SPIKE").waitFor();
+await tourDialog.getByRole("button", { name: "Siguiente", exact: true }).click();
+await tourDialog.getByText("Elige un modelo").waitFor();
+await page.keyboard.press("Tab"); await page.keyboard.press("Tab"); await page.keyboard.press("Tab"); await page.keyboard.press("Tab");
+if (!(await tourDialog.evaluate((el) => el.contains(document.activeElement)))) fail("the tour must keep focus inside");
+await tourDialog.getByRole("button", { name: "Siguiente", exact: true }).click();
+await tourDialog.getByRole("button", { name: "Siguiente", exact: true }).click();
+await tourDialog.getByText("Proyectos de ejemplo", { exact: false }).waitFor();
+await page.screenshot({ path: `${out}/01b-tour.png` });
+await page.keyboard.press("Escape");
+await tourDialog.waitFor({ state: "hidden" });
+if (!(await page.evaluate(async () => (await (await fetch("/api/settings")).json()).onboarding.tour_seen))) fail("skipping the tour must save it as seen on the server");
+await page.reload();
+await page.getByText("¿En qué te ayudo hoy?").waitFor();
+await page.waitForTimeout(1500);
+if (await tourDialog.count()) fail("the tour must not show again once seen");
+if (tourPosts.length) fail("the tour must make no POST requests");
+page.off("request", onTourRequest);
 
 await page.getByText("¿En qué te ayudo hoy?").waitFor();
 await page.screenshot({ path: `${out}/01-welcome.png` });
@@ -110,7 +140,55 @@ if (g28Posts.length) fail("opening SettingsDialog must not make POST requests");
 await page.keyboard.press("Escape");
 await settingsModal.waitFor({ state: "hidden" });
 if (!(await settingsLaunch.evaluate((el) => el === document.activeElement))) fail("SettingsDialog must restore keyboard focus on close");
+// G33: Settings lists the shortcuts and opens the tour again; closing it gives focus back.
+await settingsLaunch.click();
+await settingsModal.getByRole("heading", { name: "Atajos de teclado" }).waitFor();
+if (!(await settingsModal.getByText("Abrir o cerrar la paleta de comandos").count())) fail("Settings must list the palette shortcut");
+await settingsModal.getByRole("button", { name: "Ver la guía de primeros pasos" }).click();
+await tourDialog.waitFor();
+await tourDialog.getByRole("button", { name: "Saltar", exact: true }).click();
+await tourDialog.waitFor({ state: "hidden" });
 page.off("request", onG28Request);
+
+// G35: Ctrl+K opens the command palette (combobox + listbox), filtering and arrows work, Escape closes and restores focus.
+const paletteLaunch = page.getByRole("button", { name: /Paleta de comandos/ });
+await paletteLaunch.focus();
+await page.keyboard.press("Control+k");
+const palette = page.getByRole("dialog", { name: "Paleta de comandos", exact: true });
+const paletteInput = palette.getByRole("combobox");
+await paletteInput.waitFor();
+if (!(await paletteInput.evaluate((el) => el === document.activeElement))) fail("the palette must focus its input");
+if ((await palette.getByRole("option").count()) < 10) fail("the palette must list the main actions");
+await paletteInput.fill("forge");
+if ((await palette.getByRole("option").count()) !== 1) fail("typing must filter the palette");
+await paletteInput.fill("");
+await page.keyboard.press("ArrowDown");
+const activeId = await paletteInput.getAttribute("aria-activedescendant");
+if (!activeId || (await page.locator(`#${activeId.replace(/:/g, "\\:")}`).getAttribute("aria-selected")) !== "true") fail("aria-activedescendant must name the selected option");
+await page.screenshot({ path: `${out}/01c-palette.png` });
+await page.keyboard.press("Escape");
+await palette.waitFor({ state: "hidden" });
+if (!(await paletteLaunch.evaluate((el) => el === document.activeElement))) fail("the palette must restore focus on Escape");
+// Enter runs the active action: "Ajustes" opens Settings; Ctrl+K again closes the palette.
+await page.keyboard.press("Control+k");
+await paletteInput.fill("ajustes");
+await page.keyboard.press("Enter");
+await palette.waitFor({ state: "hidden" });
+await settingsModal.getByLabel("Instrucciones personalizadas").waitFor();
+await page.keyboard.press("Control+k");
+if (await palette.count()) fail("the palette must not open over another dialog");
+await page.keyboard.press("Escape");
+await settingsModal.waitFor({ state: "hidden" });
+await page.keyboard.press("Control+k");
+await paletteInput.fill("Especialista: Code");
+await page.keyboard.press("Enter");
+await palette.waitFor({ state: "hidden" });
+if ((await page.locator('select[aria-label="Especialista"]').first().inputValue()) !== "code") fail("the palette must change the specialist");
+await page.locator('select[aria-label="Especialista"]').first().selectOption("auto");
+await page.keyboard.press("Control+k");
+await paletteInput.waitFor();
+await page.keyboard.press("Control+k");
+await palette.waitFor({ state: "hidden" });
 
 // A14: explicit local transcription, editing, downloads and keyboard/mobile layout.
 const subtitlePosts = [];
@@ -214,7 +292,7 @@ const historyTraffic = (r) => { if (r.method() === "POST") searchTraffic.push(r.
 page.on("request", historyTraffic);
 const historyButton = page.getByRole("button", { name: /Buscar conversaciones/ });
 await historyButton.focus();
-await page.keyboard.press("Control+k");
+await page.keyboard.press("Enter");
 const history = page.getByRole("dialog", { name: "Buscar conversaciones" });
 await history.getByLabel("Palabras o frase").waitFor();
 if (searchTraffic.length) fail("opening history must make no POST requests");

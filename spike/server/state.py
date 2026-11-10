@@ -106,6 +106,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "finance": {"exchange": "kraken", "live": dict(live_trading.DEFAULTS)},
     "local_runtime": {"model": "", "adapters": [], "context": None, "threads": None, "gpu_layers": None,
                       "kv_cache_type": "q8_0", "port": 8737},
+    # first-use tour (G33): whether the person has seen or skipped it; Settings can open it again
+    "onboarding": {"tour_seen": False},
 }
 SETTING_KEYS = set(DEFAULT_SETTINGS)
 SUMMARY_EVERY = 6  # messages between automatic chat summaries
@@ -217,6 +219,12 @@ class AppState:
                 raise ValueError(f"invalid custom_specialists: {exc}") from exc
         if "browser" in patch:
             patch = {**patch, "browser": browser.clean(patch["browser"])}
+        if "onboarding" in patch:
+            given = patch["onboarding"]
+            if not isinstance(given, dict) or set(given) - {"tour_seen"} or not all(
+                    isinstance(v, bool) for v in given.values()):
+                raise ValueError("'onboarding' must be an object like {\"tour_seen\": true}")
+            patch = {**patch, "onboarding": {**DEFAULT_SETTINGS["onboarding"], **self.settings()["onboarding"], **given}}
         if "sandbox" in patch and patch["sandbox"] not in SANDBOX_MODES:
             raise ValueError(f"sandbox must be one of {', '.join(SANDBOX_MODES)}")
         if "trust" in patch:

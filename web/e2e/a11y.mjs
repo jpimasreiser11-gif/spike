@@ -31,7 +31,9 @@ import { Creator } from "/src/components/Creator";
 import { DesktopTask } from "/src/components/Desktop";
 import { DeviceLab } from "/src/components/DeviceLab";
 import { Forge } from "/src/components/Forge";
+import { CommandPalette } from "/src/components/CommandPalette";
 import { HistorySearch } from "/src/components/HistorySearch";
+import { Tour } from "/src/components/Tour";
 import { Lab } from "/src/components/Lab";
 import { ProjectDialog, ProjectPanel } from "/src/components/Projects";
 import { Prototypes } from "/src/components/Prototypes";
@@ -172,6 +174,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       evolution: { enabled: true, auto_router: false, training_data: true, auto_strategy: true, personal_adapter: true },
       desktop: { enabled: true, provider_id: "spike-local", max_steps: 20, tool: "auto" },
       local_runtime: { model: "", adapters: [], context: 8192, threads: 6, gpu_layers: -1, kv_cache_type: "q8_0", port: 8740 },
+      onboarding: { tour_seen: false },
     });
   }
   if (p === "/api/specialists") return jsonResp(SPECIALISTS);
@@ -1147,6 +1150,12 @@ function Harness() {
   if (view === "subtitles") {
     return <SubtitleStudio projectId="p-1" projectName="Q1 Margin Audit" onClose={() => {}} />;
   }
+  if (view === "palette") {
+    const none = () => {};
+    const handlers: any = new Proxy({}, { get: () => none });
+    return <CommandPalette onClose={none} ctx={{ busy: false, desktopOn: true, inProject: true, specialists: SPECIALISTS as any, projects: PROJECTS as any, handlers }} />;
+  }
+  if (view === "tour") return <Tour />;
   if (view === "modals") {
     return (
       <div>
@@ -1467,6 +1476,8 @@ const views = [
       await page.locator(".subtitle-cue").first().waitFor();
     },
   },
+  { id: "palette", readySelector: ".palette [role='option']" },
+  { id: "tour", readySelector: ".tour[role='dialog']" },
   {
     id: "modals",
     readySelector: "dialog.history-dialog",
