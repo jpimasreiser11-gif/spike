@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Watering log</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>Watering log</h1>
+    <p class="lead">Note when you watered each plant and see how many days they have gone without water.</p>
+    <form id="form" autocomplete="off">
+      <input id="name" placeholder="Plant (for example, basil)" maxlength="30" required>
+      <button type="submit">Add</button>
+    </form>
+    <ul id="plants" aria-live="polite"></ul>
+    <p id="empty" class="empty">No plants yet. Add the first one.</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

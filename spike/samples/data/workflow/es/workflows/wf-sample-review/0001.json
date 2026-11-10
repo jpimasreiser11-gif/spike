@@ -1,0 +1,29 @@
+{
+ "edges": [
+  {"from": "in", "fromPort": "out", "id": "e1", "to": "read", "toPort": "in"},
+  {"from": "read", "fromPort": "out", "id": "e2", "to": "review", "toPort": "in"},
+  {"from": "review", "fromPort": "out", "id": "e3", "to": "check", "toPort": "in"},
+  {"from": "check", "fromPort": "true", "id": "e4", "to": "alert", "toPort": "in"},
+  {"from": "alert", "fromPort": "out", "id": "e5", "to": "save_alert", "toPort": "in"},
+  {"from": "check", "fromPort": "false", "id": "e6", "to": "show", "toPort": "in"}
+ ],
+ "format": "spike-workflow",
+ "id": "wf-sample-review",
+ "name": "Revisión semanal de gastos",
+ "nodes": [
+  {"id": "in", "type": "input", "name": "archivo", "label": "Archivo de gastos", "kind": "file", "default": "gastos.csv", "x": 40, "y": 160},
+  {"id": "read", "type": "tool", "name": "datos", "label": "Leer el archivo", "tool": "read_file", "arguments": {"path": "{{archivo}}"}, "x": 300, "y": 160},
+  {"id": "review", "type": "specialist", "name": "revision", "label": "Revisar los gastos", "specialist": "data",
+   "prompt": "Revisa estos gastos de un taller. Da el total por categoría, el mes más caro y los tres gastos que más pesan. Señala cualquier cosa que parezca un error o un gasto repetido sin motivo. Termina con una última línea exacta: «RIESGO: sí» si algún gasto o categoría merece atención esta semana, o «RIESGO: no» si todo parece normal.\n\n{{input}}",
+   "x": 560, "y": 160},
+  {"id": "check", "type": "condition", "name": "hay_riesgo", "label": "¿Hay riesgo?", "op": "contains", "value": "RIESGO: sí", "case_sensitive": false, "x": 840, "y": 160},
+  {"id": "alert", "type": "specialist", "name": "aviso", "label": "Redactar un aviso", "specialist": "writing",
+   "prompt": "Escribe un aviso de cinco líneas como máximo para la responsable del taller, con un tono tranquilo, que explique qué conviene mirar esta semana según esta revisión:\n\n{{revision}}",
+   "x": 1100, "y": 60},
+  {"id": "save_alert", "type": "output", "name": "guardar_aviso", "label": "Guardar el aviso", "mode": "file", "path": "avisos/aviso-gastos.md", "content": "{{input}}", "title": "", "format": "text", "x": 1360, "y": 60},
+  {"id": "show", "type": "output", "name": "resumen", "label": "Mostrar el resumen", "mode": "artifact", "path": "", "content": "{{revision}}", "title": "Resumen de gastos", "format": "text", "x": 1100, "y": 270}
+ ],
+ "revision": 1,
+ "saved": 1767225600,
+ "version": 1
+}

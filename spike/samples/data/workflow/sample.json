@@ -1,0 +1,17 @@
+{
+ "feature": "Workflows",
+ "es": {
+  "name": "Ejemplo: flujo de revisión de gastos",
+  "description": "Un flujo listo en Flujos de trabajo: lee gastos.csv, lo revisa y, si hay riesgo, redacta un aviso; si no, muestra un resumen.",
+  "instructions": "Este proyecto es un ejemplo de Flujos de trabajo. Abre el flujo «Revisión semanal de gastos» y ejecútalo: lee gastos.csv, pide una revisión y decide según el resultado. Responde en español.",
+  "mode": "auto",
+  "memories": []
+ },
+ "en": {
+  "name": "Sample: expense review flow",
+  "description": "A ready flow in Workflows: it reads expenses.csv, reviews it and, if there is a risk, writes a warning; otherwise it shows a summary.",
+  "instructions": "This project is a sample for Workflows. Open the flow \"Weekly expense review\" and run it: it reads expenses.csv, asks for a review and decides from the result. Answer in English.",
+  "mode": "auto",
+  "memories": []
+ }
+}

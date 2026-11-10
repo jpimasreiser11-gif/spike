@@ -1,0 +1,17 @@
+{
+ "feature": "Analytics",
+ "es": {
+  "name": "Ejemplo: gastos del taller",
+  "description": "Hoja de 40 gastos inventados de un taller de cerámica (enero a marzo). Pídele totales por categoría, el mes más caro o un gráfico.",
+  "instructions": "Este proyecto es un ejemplo. El archivo gastos.csv tiene los gastos inventados de un pequeño taller de cerámica (columnas: fecha, categoria, concepto, importe, metodo). Responde en español, muestra los totales con dos decimales y di siempre de qué filas sale cada cifra.",
+  "mode": "data",
+  "memories": [{"kind": "fact", "text": "El archivo gastos.csv es un ejemplo con datos inventados: 40 gastos de enero a marzo de 2026 de un taller de cerámica."}]
+ },
+ "en": {
+  "name": "Sample: studio expenses",
+  "description": "A sheet of 40 invented expenses of a pottery studio (January to March). Ask for totals by category, the costliest month or a chart.",
+  "instructions": "This project is a sample. The file expenses.csv holds the invented expenses of a small pottery studio (columns: date, category, description, amount, method). Answer in English, show totals with two decimals and always say which rows each figure comes from.",
+  "mode": "data",
+  "memories": [{"kind": "fact", "text": "The file expenses.csv is a sample with invented data: 40 expenses from January to March 2026 of a pottery studio."}]
+ }
+}

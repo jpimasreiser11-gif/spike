@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cuaderno de riego</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>Cuaderno de riego</h1>
+    <p class="lead">Apunta cuándo regaste cada planta y mira cuántos días llevan sin agua.</p>
+    <form id="form" autocomplete="off">
+      <input id="name" placeholder="Planta (por ejemplo, albahaca)" maxlength="30" required>
+      <button type="submit">Añadir</button>
+    </form>
+    <ul id="plants" aria-live="polite"></ul>
+    <p id="empty" class="empty">Todavía no hay plantas. Añade la primera.</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

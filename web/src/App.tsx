@@ -11,6 +11,7 @@ import type { HistoryHit } from "./components/HistorySearch";
 import "./components/HistoryLaunch.css";
 import { Markdown } from "./components/Markdown";
 import { PL, ProjectDialog, ProjectPanel } from "./components/Projects";
+import { SampleProjects, SPL } from "./components/SampleProjects";
 import { ProofDownload } from "./components/ProofDownload";
 import { SpecMark } from "./components/SpecMark";
 import { lang as LANG, t } from "./i18n";
@@ -104,6 +105,7 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [projectDialog, setProjectDialog] = useState<Project | "new" | null>(null);
+  const [samplesOpen, setSamplesOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<ArtifactDoc | null>(null);
   const [replay, setReplay] = useState<ChatEvent[] | null>(null);
@@ -403,6 +405,7 @@ export default function App() {
           <div className="conv-group project-list-head">
             <span>{PL.projects}</span>
             <button className="icon-btn" onClick={() => importRef.current?.click()} aria-label={PL.importProject} title={PL.importProject}><IconUpload size={14} /></button>
+            <button className="icon-btn" data-testid="sample-projects-open" onClick={() => setSamplesOpen(true)} aria-label={SPL.samples} title={SPL.samples}><IconSparkle size={14} /></button>
             <button className="icon-btn" onClick={() => setProjectDialog("new")} aria-label={PL.newProject} title={PL.newProject}><IconPlus size={14} /></button>
             <input ref={importRef} type="file" accept=".zip,application/zip" hidden data-testid="project-import" onChange={(e) => importProject(e.target.files?.[0])} />
           </div>
@@ -530,6 +533,10 @@ export default function App() {
 
       {replay && <Suspense fallback={null}><Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} /></Suspense>}
 
+      {samplesOpen && (
+        <SampleProjects onClose={() => setSamplesOpen(false)}
+          onImported={(p) => { setSamplesOpen(false); loadProjects(); selectProject(p); }} />
+      )}
       {projectDialog && (
         <ProjectDialog project={projectDialog === "new" ? null : projectDialog} specialists={specialists} designs={designs} onClose={() => setProjectDialog(null)}
           onSaved={(p) => { setProjectDialog(null); loadProjects(); selectProject(p); }}

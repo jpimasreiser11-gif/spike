@@ -1,0 +1,17 @@
+{
+ "feature": "Creator",
+ "es": {
+  "name": "Ejemplo: informe de un huerto",
+  "description": "Un encargo breve para Creator: un informe de dos páginas sobre el primer año de un huerto comunitario inventado.",
+  "instructions": "Este proyecto es un ejemplo para Creator. Lee brief.md (el encargo) y datos.md (las cifras) y escribe el informe pedido. Usa solo las cifras de datos.md; si falta una, dilo en vez de inventarla. Responde en español.",
+  "mode": "writing",
+  "memories": [{"kind": "decision", "text": "El informe del huerto lleva tres secciones: resultados, lo aprendido y próximos pasos. Máximo dos páginas."}]
+ },
+ "en": {
+  "name": "Sample: community garden report",
+  "description": "A short brief for Creator: a two-page report on the first year of an invented community garden.",
+  "instructions": "This project is a sample for Creator. Read brief.md (the assignment) and data.md (the figures) and write the report it asks for. Use only the figures in data.md; if one is missing, say so instead of inventing it. Answer in English.",
+  "mode": "writing",
+  "memories": [{"kind": "decision", "text": "The garden report has three sections: results, lessons learned and next steps. Two pages at most."}]
+ }
+}

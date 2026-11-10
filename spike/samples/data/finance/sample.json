@@ -1,0 +1,17 @@
+{
+ "feature": "Finance",
+ "es": {
+  "name": "Ejemplo: caso de Finanzas en modo papel",
+  "description": "Un caso de práctica con dinero simulado: precios inventados y un plan. Solo cuenta de papel, nunca órdenes reales.",
+  "instructions": "Este proyecto es un ejemplo de Finanzas en modo papel (simulado). Usa solo la cuenta de papel con la herramienta paper_order, con dinero simulado. Nunca propongas ni coloques órdenes reales. Los precios de precios.csv están inventados. Lee plan-papel.md, analiza la serie y explica cada decisión. Esto no es asesoramiento financiero. Responde en español.",
+  "mode": "finance",
+  "memories": [{"kind": "rule", "text": "Regla: en este proyecto solo se opera en modo papel (simulado) con paper_order. Nunca propose_live_order ni órdenes reales."}]
+ },
+ "en": {
+  "name": "Sample: paper-mode finance case",
+  "description": "A practice case with simulated money: invented prices and a plan. Paper account only, never real orders.",
+  "instructions": "This project is a sample of Finance in paper (simulated) mode. Use only the paper account with the paper_order tool, with simulated money. Never propose or place real orders. The prices in prices.csv are invented. Read paper-plan.md, analyse the series and explain each decision. This is not financial advice. Answer in English.",
+  "mode": "finance",
+  "memories": [{"kind": "rule", "text": "Rule: this project trades only in paper (simulated) mode with paper_order. Never propose_live_order and no real orders."}]
+ }
+}
