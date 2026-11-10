@@ -90,10 +90,10 @@ class ProviderIn(BaseModel):
     id: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{0,40}$")
     preset: str | None = None
     kind: str | None = None
-    name: str | None = None
-    base_url: str | None = None
-    model: str | None = None
-    api_key: str | None = None
+    name: str | None = Field(default=None, max_length=120)
+    base_url: str | None = Field(default=None, max_length=500)
+    model: str | None = Field(default=None, max_length=200)
+    api_key: str | None = Field(default=None, max_length=2000)
     paid: bool | None = None
     allow_paid: bool | None = None
     share_files: bool | None = None
@@ -735,6 +735,15 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
         st().store.delete_provider(pid)
         st().secrets.delete(f"provider:{pid}")
         st().invalidate_provider(pid)
+        now = st().settings()  # nothing keeps pointing at a provider that is gone
+        reset: dict[str, Any] = {}
+        if now["default_provider"] == pid:
+            reset["default_provider"] = "spike-local"
+        if any(b.get("provider_id") == pid for b in now["specialist_bindings"].values()):
+            reset["specialist_bindings"] = {k: b for k, b in now["specialist_bindings"].items()
+                                            if b.get("provider_id") != pid}
+        if reset:
+            st().update_settings(reset)
         return {"ok": True}
 
     @app.post("/api/providers/{pid}/test")
