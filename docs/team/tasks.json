@@ -1229,7 +1229,7 @@
   {
    "id": "G45",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Humo de los instaladores sin modelo",
    "depends": [],
@@ -1237,7 +1237,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G45 from origin/main, report docs/team/reports/G45.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: scripts/installer_smoke.py installs the CI wheel in a temp venv, starts spike serve --no-local on loopback, checks /api/health and /v1/models (401 without key), removes everything; CI package step; measured locally on Linux in 29 s. Not a replacement for I3."
   },
   {
    "id": "G46",

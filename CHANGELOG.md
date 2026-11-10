@@ -27,6 +27,8 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- CI installs the built wheel in an empty folder, starts SPIKE without a model, checks `/api/health` and `/v1/models`
+  and removes it again (G45; it does not replace testing the desktop installers on real machines).
 - Settings › Errores: a local log of the app's last failures (no error messages, file contents or keys; paths
   shortened), with "copy as issue" that only copies the text; nothing is sent (G43).
 - HTTP API reference in Spanish and English (`docs/api/`), generated from the app's routes with a `curl` example and
