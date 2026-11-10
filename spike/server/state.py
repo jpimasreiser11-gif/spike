@@ -14,6 +14,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from spike import errorlog
 from spike.analytics.tools import analytics_tools
 from spike.architecture.tools import architecture_tools
 from spike.artifact_comments import ArtifactComments
@@ -910,6 +911,7 @@ class AppState:
         task = asyncio.ensure_future(coro)
         self._background.add(task)
         task.add_done_callback(self._background.discard)
+        task.add_done_callback(errorlog.record_task("background", getattr(coro, "__qualname__", None) or "task"))
         return task
 
     async def maybe_summarize(self, conversation_id: str, override_provider: str | None = None) -> bool:

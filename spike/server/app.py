@@ -51,6 +51,7 @@ from spike.server.backup_api import create_backup_router
 from spike.server.data_app_api import create_data_app_router
 from spike.server.desktop_api import create_desktop_router
 from spike.server.device_lab_api import create_device_lab_router
+from spike.server.errors_api import install_error_log
 from spike.server.evolution_api import create_evolution_router
 from spike.server.history_api import create_history_router
 from spike.server.lab_api import create_lab_router
@@ -1465,6 +1466,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_subtitles_router(st, this_computer))
     app.include_router(create_view_router(st, this_computer))  # A16 browser recorder and replay
     app.include_router(create_device_lab_router(st, this_computer))
+    install_error_log(app, st, this_computer)  # G43 local error log: 500s and failed jobs, anonymised
 
     # ---------------------------------------------------------------- permissions
     @app.post("/api/permissions/{request_id}")

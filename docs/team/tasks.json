@@ -1117,7 +1117,7 @@
   {
    "id": "G37",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Referencia de la API",
    "depends": [],
@@ -1125,7 +1125,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G37 from origin/main, report docs/team/reports/G37.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: scripts/api_reference.py builds docs/api/{en,es} (235 routes, curl, params, error codes from a static scan) from the app's OpenAPI; --check in CI; checked on Python 3.11 and 3.13."
   },
   {
    "id": "G38",
@@ -1200,7 +1201,7 @@
   {
    "id": "G43",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Registro de errores local",
    "depends": [],
@@ -1208,7 +1209,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G43 from origin/main, report docs/team/reports/G43.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: SPIKE_HOME/logs/errors.log (1 MB x 3), 500s, failed jobs and background tasks, anonymised (no messages, paths shortened, keys masked); Settings > Errores with copy-as-issue; review: reading the log is also for this computer only."
   },
   {
    "id": "G44",
@@ -1227,7 +1229,7 @@
   {
    "id": "G45",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Humo de los instaladores sin modelo",
    "depends": [],
@@ -1235,7 +1237,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G45 from origin/main, report docs/team/reports/G45.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: scripts/installer_smoke.py installs the CI wheel in a temp venv, starts spike serve --no-local on loopback, checks /api/health and /v1/models (401 without key), removes everything; CI package step; measured locally on Linux in 29 s. Not a replacement for I3."
   },
   {
    "id": "G46",

@@ -26,3 +26,9 @@ Installs SPIKE as a Python package with the bundled web UI, configures the local
 
 - Run `.venv/bin/spike doctor` and confirm that environment checks pass.
 - Run the offline model and setup wizard test suite: `.venv/bin/python -m pytest -q tests/test_models.py tests/test_setup_wizard.py`.
+- Run the installer smoke test without a model: `python scripts/installer_smoke.py --wheel dist/spike_ai-*.whl` (CI runs it in the `package` job). It installs the built wheel in a fresh temporary venv (the package index is used for dependencies, so it needs network), starts SPIKE with `SPIKE_HOME`, `HOME` and `SPIKE_API_TOKEN` set on a free loopback port, checks `/api/health` and `/v1/models`, stops it, deletes the temporary folder and asserts that it is gone and that the real `~/.spike` was not touched. With `--use-python <python>` it skips the install and starts an interpreter that already has SPIKE (for example the development venv).
+
+### What the installer smoke test covers and what it does not
+
+- It covers: the wheel contains a working server, a clean install starts, the health and OpenAI-compatible endpoints answer, the API token is enforced, and the run leaves nothing behind.
+- It does not replace I3 (the installer tested on real machines), does not test the signed desktop installers (`.dmg`, `.exe`, `.AppImage`) or the native window, and does not load or download a model (it starts with `--no-local`, so `/v1/models` lists `spike-auto`, the specialists and configured providers only). `--use-python` does not test the install at all.

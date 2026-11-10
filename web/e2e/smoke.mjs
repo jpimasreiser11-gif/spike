@@ -660,6 +660,11 @@ if (!(await dataBackup.getByRole("button", { name: "Borrar definitivamente" }).i
 }
 await page.screenshot({ path: `${out}/07g-delete-confirm.png` });
 await dataBackup.getByRole("button", { name: "Cancelar" }).click();
+// G43: the local error log opens in Settings, read from this computer only
+await page.getByRole("tab", { name: "Errores" }).click();
+await page.getByText("Registro de errores", { exact: true }).waitFor({ timeout: 5000 });
+await page.getByRole("button", { name: "Copiar como incidencia" }).waitFor({ timeout: 5000 });
+await page.screenshot({ path: `${out}/07h-error-log.png` });
 await page.keyboard.press("Escape");
 
 // skills: a finance question gets the ratio-analysis skill, shown on the answer

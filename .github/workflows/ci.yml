@@ -45,6 +45,7 @@ jobs:
           spike connectors validate
       - run: python scripts/compat_matrix.py --check
       - run: python scripts/cli_reference.py --check
+      - run: python scripts/api_reference.py --check
       - name: Team task board is valid and BOARD.md is current
         if: runner.os == 'Linux' && matrix.python == '3.13'
         run: |
@@ -107,6 +108,8 @@ jobs:
           python -m venv /tmp/wheel-env
           /tmp/wheel-env/bin/pip install dist/*.whl
           /tmp/wheel-env/bin/spike doctor
+      - name: Installer smoke without a model (install the wheel in a temp folder, start, check /api/health and /v1/models, remove)
+        run: python scripts/installer_smoke.py --wheel dist/*.whl
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist

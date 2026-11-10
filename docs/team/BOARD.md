@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 10 | 2 | 0 | 0 | 30 | 0 | 42 |
+| Claude | 7 | 2 | 0 | 0 | 33 | 0 | 42 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **19** | **5** | **0** | **0** | **67** | **0** | **91** |
+| **Total** | **16** | **5** | **0** | **0** | **70** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -71,15 +71,15 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G34 | Claude | hecha | Copia de seguridad y restauración | - |
 | G35 | Claude | pendiente | Paleta de comandos y atajos | - |
 | G36 | Claude | hecha | Exportar y borrar todos mis datos | G34 |
-| G37 | Claude | pendiente | Referencia de la API | - |
+| G37 | Claude | hecha | Referencia de la API | - |
 | G38 | Claude | hecha | Ayuda de la línea de comandos | - |
 | G39 | Claude | hecha | Proyectos de ejemplo | - |
 | G40 | Claude | pendiente | Ajustes: revisión completa | - |
 | G41 | Claude | pendiente | Diseño móvil | G18 |
 | G42 | Claude | hecha | Arranque rápido del servidor | - |
-| G43 | Claude | pendiente | Registro de errores local | - |
+| G43 | Claude | hecha | Registro de errores local | - |
 | G44 | Claude | hecha | Consistencia del catálogo de especialistas | - |
-| G45 | Claude | pendiente | Humo de los instaladores sin modelo | - |
+| G45 | Claude | hecha | Humo de los instaladores sin modelo | - |
 | G46 | Claude | pendiente | Revisión final de textos | - |
 | O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Opus | pendiente | Un espacio de tarea unificado | - |

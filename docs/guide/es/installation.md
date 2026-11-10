@@ -26,3 +26,9 @@ Instala SPIKE como paquete Python junto con la interfaz web compilada, prepara e
 
 - Ejecuta `.venv/bin/spike doctor` y confirma que todos los controles obligatorios aparecen en estado `ok` o con su aviso esperado si aún no descargaste el modelo.
 - Verifica las pruebas de instalación y primer arranque sin red: `.venv/bin/python -m pytest -q tests/test_models.py tests/test_setup_wizard.py`.
+- Ejecuta la prueba de humo del instalador sin modelo: `python scripts/installer_smoke.py --wheel dist/spike_ai-*.whl` (la CI la ejecuta en el trabajo `package`). Instala el wheel compilado en un venv temporal nuevo (usa el índice de paquetes para las dependencias, así que necesita red), arranca SPIKE con `SPIKE_HOME`, `HOME` y `SPIKE_API_TOKEN` en un puerto libre de loopback, comprueba `/api/health` y `/v1/models`, lo detiene, borra la carpeta temporal y verifica que ya no existe y que el `~/.spike` real no se ha tocado. Con `--use-python <python>` omite la instalación y arranca un intérprete que ya tiene SPIKE (por ejemplo el venv de desarrollo).
+
+### Qué cubre la prueba de humo del instalador y qué no
+
+- Cubre: que el wheel contiene un servidor que funciona, que una instalación limpia arranca, que responden la salud y los endpoints compatibles con OpenAI, que se exige el token de la API y que la ejecución no deja nada.
+- No sustituye a I3 (el instalador probado en máquinas reales), no prueba los instaladores de escritorio firmados (`.dmg`, `.exe`, `.AppImage`) ni la ventana nativa, y no carga ni descarga ningún modelo (arranca con `--no-local`, así que `/v1/models` lista solo `spike-auto`, los especialistas y los proveedores configurados). `--use-python` no prueba la instalación.

@@ -136,6 +136,16 @@ const es = {
     review: "Revisar plan en Forge", export: "Descargar evidencias JSON", back: "Volver a las evidencias", model: "Modelo", local: "local", external: "externo",
     errors: { invalid_path: "La ruta debe ser un archivo de esta carpeta, sin enlaces simbólicos ni saltos fuera de ella.", invalid_format: "Usa PDF, TXT o MD.", invalid_sources: "Revisa el número y tipo de documentos; no repitas archivos.", too_large: "Los documentos superan los límites. Selecciona un extracto más pequeño.", encrypted_pdf: "El PDF está cifrado. Proporciona una copia accesible.", invalid_document: "No se pudo extraer el documento como PDF o texto UTF-8.", no_text: "No hay texto extraíble; no se dispone de OCR para escaneos.", unknown_project: "El proyecto ya no existe.", unknown_provider: "El proveedor ya no existe.", unknown_conversation: "El chat ya no existe.", files_blocked: "El proveedor no tiene permiso para recibir archivos.", provider_blocked: "El proveedor está bloqueado por permisos de pago o límites de uso.", context_limit: "El texto supera el contexto declarado del proveedor.", expired_preview: "La vista previa caducó o ya se utilizó. Genera otra.", changed_preview: "El archivo, proyecto o proveedor cambió. Revisa una nueva vista previa.", invalid_analysis: "El modelo devolvió un formato no válido. No se aceptó ninguna evidencia.", invalid_quote: "Una cita no coincide exactamente con su fuente. No se aceptó ninguna evidencia.", analysis_failed: "Falló el proveedor. No hay resultados comprobados; crea una nueva vista previa para reintentar." } as Record<string, string>,
   },
+  errorLog: {
+    tab: "Errores", title: "Registro de errores",
+    intro: "Los últimos fallos de SPIKE (errores no controlados de la API y de las tareas en segundo plano), guardados solo en este ordenador. Cada entrada dice dónde falló y el tipo de error: sin rutas completas, sin el texto del error, sin el contenido de tus archivos, sin lo que enviaste y sin claves. El archivo rota al llegar a 1 MB y guarda 2 copias.",
+    refresh: "Actualizar", copy: "Copiar como incidencia", clear: "Vaciar el registro",
+    copied: "Copiado al portapapeles. No se ha enviado nada: pégalo tú donde quieras.",
+    copyFailed: "El navegador no dejó copiar. Selecciona el texto de abajo y cópialo a mano.",
+    cleared: "Registro vaciado.", empty: "No hay errores registrados.", loadError: "No se pudo leer el registro local.",
+    file: "Archivo", when: "Cuándo", where: "Dónde", error: "Error", frames: "Pila",
+    kinds: { route: "API", job: "Trabajo en cola", background: "Tarea en segundo plano", log: "Error anotado" } as Record<string, string>,
+  },
   dataBackup: {
     title: "Copia de seguridad", intro: "Guarda en un ZIP tus ajustes, conversaciones, memoria, proyectos y skills propias. No incluye claves de API ni secretos de conectores. Cada archivo lleva su SHA-256.",
     includeModels: "Incluir modelos y adaptadores descargados (pueden ocupar varios GB)", exportAll: "Exportar todo",
@@ -784,6 +794,16 @@ const en: Dict = {
     draft: "Extraction draft. The paper has not been reproduced yet.", methods: "Methods", equations: "Equations", tables: "Tables", empty: "No passages identified in this category.",
     review: "Review plan in Forge", export: "Download evidence JSON", back: "Back to evidence", model: "Model", local: "local", external: "external",
     errors: { invalid_path: "The path must be a file in this folder, without symlinks or escaping paths.", invalid_format: "Use PDF, TXT or MD.", invalid_sources: "Check document count and type; do not repeat files.", too_large: "Documents exceed the limits. Select a smaller extract.", encrypted_pdf: "The PDF is encrypted. Provide an accessible copy.", invalid_document: "Could not extract this document as PDF or UTF-8 text.", no_text: "No extractable text; OCR for scans is unavailable.", unknown_project: "The project no longer exists.", unknown_provider: "The provider no longer exists.", unknown_conversation: "The chat no longer exists.", files_blocked: "This provider is not allowed to receive files.", provider_blocked: "The provider is blocked by paid-call permissions or usage limits.", context_limit: "Text exceeds the provider's declared context.", expired_preview: "The preview expired or was already used. Create another.", changed_preview: "The file, project or provider changed. Review a new preview.", invalid_analysis: "The model returned an invalid format. No evidence was accepted.", invalid_quote: "A quote does not match its source exactly. No evidence was accepted.", analysis_failed: "The provider failed. There are no checked results; create a new preview to retry." } as Record<string, string>,
+  },
+  errorLog: {
+    tab: "Errors", title: "Error log",
+    intro: "SPIKE's latest failures (unhandled errors in the API and in background tasks), kept only on this computer. Each entry says where it failed and the error's type: no full paths, no error text, none of your files' contents, nothing you sent and no keys. The file rotates at 1 MB and keeps 2 copies.",
+    refresh: "Refresh", copy: "Copy as issue", clear: "Clear the log",
+    copied: "Copied to the clipboard. Nothing was sent: paste it wherever you want.",
+    copyFailed: "The browser did not allow copying. Select the text below and copy it by hand.",
+    cleared: "Log cleared.", empty: "No errors recorded.", loadError: "Could not read the local log.",
+    file: "File", when: "When", where: "Where", error: "Error", frames: "Stack",
+    kinds: { route: "API", job: "Queued job", background: "Background task", log: "Logged error" } as Record<string, string>,
   },
   dataBackup: {
     title: "Backup", intro: "Saves your settings, conversations, memory, projects and your own skills to a ZIP. API keys and connector secrets are not included. Every file carries its SHA-256.",
