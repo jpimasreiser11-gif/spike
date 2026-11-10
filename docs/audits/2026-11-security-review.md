@@ -40,3 +40,10 @@ fails on the tree before the fix.
 ## Not covered
 
 Real Windows and macOS behaviour of the sandbox, fuzzing, and the MCP Apps policy beyond the L2 review.
+
+## Addendum (claude/o4-security): a network bind must be asked for by name
+
+`spike serve --host 0.0.0.0` (or `::`, an empty host, or a LAN address) used to start with only a stderr warning,
+which exposed the login-less `/api` to every machine on the network. It is now refused with exit code 2 unless
+`--allow-network` is given; loopback hosts (`localhost`, `127.0.0.0/8`, `::1`) need no flag. `/v1` keeps its own
+`SPIKE_API_TOKEN` check. Tests: `tests/test_o4_security.py` (8 cases); the existing Host-check test now passes the flag.

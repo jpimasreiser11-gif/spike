@@ -17,12 +17,29 @@ from pathlib import Path
 from spike import __version__
 
 
+def _is_this_computer(host: str) -> bool:
+    """True when binding to `host` keeps SPIKE on this computer (a loopback address or localhost)."""
+    import ipaddress
+
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.strip("[]")).is_loopback
+    except ValueError:
+        return False
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
     from spike.server.app import create_app
     from spike.server.state import AppState
 
+    if not _is_this_computer(args.host) and not getattr(args, "allow_network", False):
+        print(f"refused: --host {args.host or '(every interface)'} makes SPIKE reachable from your network, and the app "
+              "has no login. Add --allow-network to do it on purpose (set SPIKE_API_TOKEN to protect /v1).",
+              file=sys.stderr)
+        return 2
     state = AppState()
     if args.host in ("0.0.0.0", "::", ""):
         allowed = None  # reachable by any name; /v1 still needs SPIKE_API_TOKEN from other machines
@@ -694,14 +711,17 @@ def build_parser() -> argparse.ArgumentParser:
         validator = sub.add_parser(kind, help=f"validate {kind} / validar {kind}")
         actions = validator.add_subparsers(dest="action", required=True)
         validate = actions.add_parser("validate", help="offline checks / comprobaciones sin red")
-        validate.add_argument("paths", nargs="*" if kind == "skills" else "?", default=[])
+        validate.add_argument("paths", nargs="*" if kind == "skills" else "?", default=[],
+                              help=("skill folders or SKILL.md files (default: the bundled skills) / carpetas o SKILL.md"
+                                    if kind == "skills" else
+                                    "connectors catalog file (default: the bundled one) / catálogo de conectores"))
         validate.add_argument("--lang", choices=("es", "en"), default="en", help="language / idioma")
         validate.set_defaults(func=cmd_validate)
         if kind == "skills":
             for action in ("list", "install"):
                 market = actions.add_parser(action, help="local marketplace / marketplace local")
                 market.add_argument("index", help="local index JSON / índice JSON local")
-                market.add_argument("--lang", choices=("es", "en"), default="en")
+                market.add_argument("--lang", choices=("es", "en"), default="en", help="language / idioma")
                 if action == "install":
                     market.add_argument("pack", help="pack identifier / identificador de paquete")
                     market.add_argument("--destination", required=True, help="skills folder / carpeta de skills")
@@ -709,33 +729,36 @@ def build_parser() -> argparse.ArgumentParser:
                 market.set_defaults(func=cmd_marketplace)
 
     s = sub.add_parser("serve", help="run the SPIKE app")
-    s.add_argument("--host", default="127.0.0.1")
-    s.add_argument("--port", type=int, default=8740)
+    s.add_argument("--host", default="127.0.0.1", help="address to listen on (default 127.0.0.1: this computer only)")
+    s.add_argument("--port", type=int, default=8740, help="port (default 8740)")
     s.add_argument("--open", action="store_true", help="open the browser")
     s.add_argument("--no-local", dest="start_local", action="store_false", help="do not start llama-server")
+    s.add_argument("--allow-network", action="store_true",
+                   help="allow a --host other than this computer (the app has no login)")
     s.set_defaults(func=cmd_serve)
 
     d = sub.add_parser("doctor", help="check hardware, runtime and model memory needs")
-    d.add_argument("--model")
-    d.add_argument("--context", type=int)
-    d.add_argument("--json", action="store_true")
+    d.add_argument("--model", help="GGUF file to check (default: every local model)")
+    d.add_argument("--context", type=int, help="context length in tokens for the memory estimate (default: recommended)")
+    d.add_argument("--json", action="store_true", help="print the report as JSON")
     d.add_argument("--strict", action="store_true", help="exit 1 when llama-server or a local model is missing")
     d.add_argument("--no-model-check", action="store_true", help="with --strict: do not require a local model")
     d.set_defaults(func=cmd_doctor)
 
     m = sub.add_parser("models", help="list or download models")
-    m.add_argument("action", choices=["list", "pull", "history"])
+    m.add_argument("action", choices=["list", "pull", "history"],
+                   help="list: local models; pull: download one; history: versions of a component")
     m.add_argument("model", nargs="?", help="model to pull (default qwen3.5-4b); for history, a component")
-    m.add_argument("--quant")
+    m.add_argument("--quant", help="pull: quantization, e.g. Q4_K_M (default: the model's own)")
     m.add_argument("--allow-unverified", action="store_true",
                    help="pull: download even when the Hub publishes no SHA-256 for the file (refused by default)")
     m.set_defaults(func=cmd_models)
 
     c = sub.add_parser("chat", help="one-shot chat through the orchestrator")
-    c.add_argument("message")
-    c.add_argument("--mode", default="auto")
-    c.add_argument("--provider")
-    c.add_argument("-q", "--quiet", action="store_true")
+    c.add_argument("message", help="what to ask")
+    c.add_argument("--mode", default="auto", help="auto (the router picks) or a specialist id, e.g. medicine")
+    c.add_argument("--provider", help="provider id to answer with (default: the app's bindings)")
+    c.add_argument("-q", "--quiet", action="store_true", help="print only the answer, no routing or tool events")
     c.set_defaults(func=cmd_chat)
 
     b = sub.add_parser("bench", help="measure TTFT, generation speed and memory of a llama-server model")
@@ -743,13 +766,13 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--adapter", action="append", default=[], help="LoRA GGUF to load (repeatable)")
     b.add_argument("--contexts", default="1024,8192,32768", help="prompt lengths in tokens to test")
     b.add_argument("--gen", type=int, default=128, help="tokens to generate per run")
-    b.add_argument("--repeats", type=int, default=3)
-    b.add_argument("--threads", type=int)
+    b.add_argument("--repeats", type=int, default=3, help="runs per length (default 3)")
+    b.add_argument("--threads", type=int, help="CPU threads (default: llama-server's choice)")
     b.add_argument("--gpu-layers", type=int, default=0, help="0 = CPU only (the 16 GB target); 99 = Metal")
-    b.add_argument("--kv", default="q8_0")
+    b.add_argument("--kv", default="q8_0", help="KV cache type, e.g. q8_0 or f16 (default q8_0)")
     b.add_argument("--server-context", type=int, default=0,
                    help="llama-server context for every length (default: longest prompt + gen + 256)")
-    b.add_argument("--port", type=int, default=8799)
+    b.add_argument("--port", type=int, default=8799, help="port for the temporary llama-server (default 8799)")
     b.add_argument("--out", help="write the JSON report here")
     b.add_argument("--share", action="store_true",
                    help="save and print anonymous JSON / guardar e imprimir JSON anónimo (default: bench-share.json)")
@@ -762,7 +785,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     ev = sub.add_parser("evolve", help="check, learn, optimise or roll back what SPIKE learned from its use")
     ev.add_argument("action", choices=["check", "router", "strategy", "optimize", "candidate", "activate", "dataset",
-                                       "personal-adapter", "rollback", "export"])
+                                       "personal-adapter", "rollback", "export"],
+                    help="what to do; see docs/guide/en/evolution.md")
     ev.add_argument("component", nargs="?", help="optimize, candidate, activate: a specialist; dataset: output "
                                                  "folder; rollback: router, strategy, adapter:<specialist>, "
                                                  "adapter:personal or prompt:<specialist>; export: output file")
@@ -787,11 +811,11 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--llama-cpp", help="personal-adapter: llama.cpp checkout (default $SPIKE_LLAMA_CPP)")
     ev.add_argument("--model", help="personal-adapter: base GGUF (default: the local model in Settings)")
     ev.add_argument("--yes", action="store_true", help="personal-adapter: train without asking")
-    ev.add_argument("--json", action="store_true")
+    ev.add_argument("--json", action="store_true", help="print the result as JSON")
     ev.set_defaults(func=cmd_evolve)
 
     fg = sub.add_parser("forge", help="run the Forge test tasks and measure their success rate")
-    fg.add_argument("action", choices=["eval"])
+    fg.add_argument("action", choices=["eval"], help="eval: run the test tasks")
     fg.add_argument("--provider", help="provider for every role (default: the app's bindings)")
     fg.add_argument("--baseline", action="store_true", help="also run each task with the core model alone")
     fg.add_argument("--only", help="comma-separated task ids")
@@ -825,9 +849,9 @@ def build_parser() -> argparse.ArgumentParser:
     dv.set_defaults(func=cmd_dev)
 
     ad = sub.add_parser("adapters", help="install a trained adapter if its eval results pass acceptance")
-    ad.add_argument("action", choices=["install"])
+    ad.add_argument("action", choices=["install"], help="install: check the eval results and install the adapter")
     ad.add_argument("gguf", help="the LoRA adapter GGUF")
-    ad.add_argument("--specialist", required=True)
+    ad.add_argument("--specialist", required=True, help="specialist id, e.g. medicine")
     ad.add_argument("--eval", required=True,
                     help="eval run directory (or its summary.json) from evals/run_eval.py, or evals/pairwise.py")
     ad.add_argument("--config", help="training config whose acceptance rule to apply (training/configs/<id>.yaml)")
