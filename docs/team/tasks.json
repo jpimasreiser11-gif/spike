@@ -1162,7 +1162,7 @@
   {
    "id": "G40",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Ajustes: revisión completa",
    "depends": [],
@@ -1170,7 +1170,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G40 from origin/main, report docs/team/reports/G40.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: server validation of every setting (spike/server/settings_clean.py, 400 names the setting), UI shows translated errors and checks input, provider removal resets default/bindings; per-tab table in the report. Network exposure finding recorded in docs/audits/2026-11-security-review.md."
   },
   {
    "id": "G41",

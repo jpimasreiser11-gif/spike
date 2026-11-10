@@ -27,6 +27,9 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- Settings: every value is checked by the server before it is saved (a wrong one is refused with a message naming
+  the setting, shown in Spanish or English) and the form checks it first; removing a provider no longer leaves the
+  default or a specialist pointing at it (G40).
 - First use: a short guided tour in Spanish or English (skip it, or open it again from Settings), and a command
   palette on Ctrl/Cmd+K for views, specialists and projects; Settings lists the keyboard shortcuts (G33, G35).
   Ctrl/Cmd+K used to open history search, which is now one of the palette's actions.
