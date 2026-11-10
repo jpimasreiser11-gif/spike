@@ -58,6 +58,7 @@ from spike.runtime.hardware import detect, recommend
 from spike.runtime.llamacpp_server import LlamaServer, ServerConfig, find_binary
 from spike.runtime.models import EMBEDDING_MODEL, MODELS
 from spike.runtime.paths import adapters_dir, models_dir, spike_home, workspace_dir
+from spike.server import settings_clean
 from spike.skills.engine import BUNDLED, SkillLibrary
 from spike.specialists.catalog import Catalog, Specialist, load_catalog
 from spike.store.checkpoints import Checkpoints
@@ -209,41 +210,25 @@ class AppState:
         for key in ("specialist_instructions", "specialist_bindings", "tool_policies", "memory", "evolution",
                     "local_runtime"):
             if key in patch and not isinstance(patch[key], dict):
-                raise ValueError(f"'{key}' must be an object")
+                raise settings_clean.bad(key, "must be an object")
         for key in ("custom_specialists", "disabled_skills"):
             if key in patch and not isinstance(patch[key], list):
-                raise ValueError(f"'{key}' must be a list")
+                raise settings_clean.bad(key, "must be a list")
+        patch = settings_clean.clean_patch(patch, self.settings(), DEFAULT_SETTINGS,
+                                           {p["id"] for p in self.store.list_providers()})
         if "custom_specialists" in patch:
             try:
                 load_catalog(extra=patch["custom_specialists"])
             except (TypeError, KeyError, ValueError) as exc:
-                raise ValueError(f"invalid custom_specialists: {exc}") from exc
-        if "browser" in patch:
-            patch = {**patch, "browser": browser.clean(patch["browser"])}
-        if "onboarding" in patch:
-            given = patch["onboarding"]
-            if not isinstance(given, dict) or set(given) - {"tour_seen"} or not all(
-                    isinstance(v, bool) for v in given.values()):
-                raise ValueError("'onboarding' must be an object like {\"tour_seen\": true}")
-            patch = {**patch, "onboarding": {**DEFAULT_SETTINGS["onboarding"], **self.settings()["onboarding"], **given}}
-        if "sandbox" in patch and patch["sandbox"] not in SANDBOX_MODES:
-            raise ValueError(f"sandbox must be one of {', '.join(SANDBOX_MODES)}")
-        if "trust" in patch:
-            if not isinstance(patch["trust"], dict):
-                raise ValueError("'trust' must be an object")
-            patch = {**patch, "trust": trust_settings.clean({**self.trust_settings(), **patch["trust"]})}
-        if "desktop" in patch:
-            if not isinstance(patch["desktop"], dict):
-                raise ValueError("'desktop' must be an object")
-            patch = {**patch, "desktop": desktop_settings.clean({**desktop_settings.DEFAULTS,
-                                                                 **self.settings()["desktop"], **patch["desktop"]})}
-        if "finance" in patch:
-            now, given = self.settings()["finance"], patch["finance"]
-            if not isinstance(given, dict):
-                raise ValueError("'finance' must be an object")
-            live = {**now.get("live", {}), **given["live"]} if isinstance(given.get("live"), dict) else given.get(
-                "live", now.get("live"))
-            patch = {**patch, "finance": clean_finance({**now, **given, "live": live})}
+                raise settings_clean.bad("custom_specialists", str(exc)) from exc
+        for key, check in (("browser", self._check_browser), ("onboarding", self._check_onboarding),
+                           ("sandbox", self._check_sandbox), ("trust", self._check_trust),
+                           ("desktop", self._check_desktop), ("finance", self._check_finance)):
+            if key in patch:
+                try:
+                    patch = {**patch, key: check(patch[key])}
+                except ValueError as exc:
+                    raise settings_clean.bad(key, str(exc)) from exc
         for key, value in patch.items():
             self.store.set_setting(key, value)
         if "tool_policies" in patch:
@@ -255,6 +240,40 @@ class AppState:
         if "custom_specialists" in patch:
             self.catalog = self._load_catalog()
         return self.settings()
+
+    # each checker returns the value to store or raises ValueError (update_settings names the setting)
+    @staticmethod
+    def _check_browser(value: Any) -> Any:
+        return browser.clean(value)
+
+    def _check_onboarding(self, given: Any) -> Any:
+        if not isinstance(given, dict) or set(given) - {"tour_seen"} or not all(isinstance(v, bool) for v in given.values()):
+            raise ValueError("must be an object like {\"tour_seen\": true}")
+        return {**DEFAULT_SETTINGS["onboarding"], **self.settings()["onboarding"], **given}
+
+    @staticmethod
+    def _check_sandbox(value: Any) -> Any:
+        if value not in SANDBOX_MODES:
+            raise ValueError(f"must be one of {', '.join(SANDBOX_MODES)}")
+        return value
+
+    def _check_trust(self, value: Any) -> Any:
+        if not isinstance(value, dict):
+            raise ValueError("must be an object")
+        return trust_settings.clean({**self.trust_settings(), **value})
+
+    def _check_desktop(self, value: Any) -> Any:
+        if not isinstance(value, dict):
+            raise ValueError("must be an object")
+        return desktop_settings.clean({**desktop_settings.DEFAULTS, **self.settings()["desktop"], **value})
+
+    def _check_finance(self, given: Any) -> Any:
+        now = self.settings()["finance"]
+        if not isinstance(given, dict):
+            raise ValueError("must be an object")
+        live = {**now.get("live", {}), **given["live"]} if isinstance(given.get("live"), dict) else given.get(
+            "live", now.get("live"))
+        return clean_finance({**now, **given, "live": live})
 
     def base_catalog(self) -> Catalog:
         """The catalog with the user's custom specialists, without anything learned."""
