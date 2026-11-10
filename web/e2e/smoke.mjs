@@ -183,7 +183,8 @@ await page.keyboard.press("Control+k");
 await paletteInput.fill("Especialista: Code");
 await page.keyboard.press("Enter");
 await palette.waitFor({ state: "hidden" });
-if ((await page.locator('select[aria-label="Especialista"]').first().inputValue()) !== "code") fail("the palette must change the specialist");
+await page.waitForFunction(() => document.querySelector('select[aria-label="Especialista"]')?.value === "code", null, { timeout: 5000 })
+  .catch(() => fail("the palette must change the specialist"));
 await page.locator('select[aria-label="Especialista"]').first().selectOption("auto");
 await page.keyboard.press("Control+k");
 await paletteInput.waitFor();
