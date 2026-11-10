@@ -94,7 +94,8 @@ def test_forge_evaluate_preserves_windows_env_and_utf8_stderr(
         return SimpleNamespace(returncode=0, stderr="")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(forge_eval, "Path", PosixPath)
+    if forge_eval.os.name != "nt":  # faking "nt" below would make Path() a WindowsPath on Linux and macOS
+        monkeypatch.setattr(forge_eval, "Path", PosixPath)
     monkeypatch.setattr(forge_eval.os, "name", "nt")
     ok2, _ = forge_eval._python("assert 1 + 1 == 2", tmp_path)
     assert ok2 is True
