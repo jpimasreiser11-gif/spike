@@ -1985,6 +1985,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
         @app.get("/{path:path}", include_in_schema=False)
         async def spa(path: str):
+            if path.split("/", 1)[0] in ("api", "v1", "mcp"):  # an unknown API route is a 404, not the web page
+                raise HTTPException(404, "Not Found")
             target = (static / path).resolve()
             if path and target.is_file() and static in target.parents:
                 return FileResponse(target)

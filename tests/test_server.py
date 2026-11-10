@@ -244,3 +244,17 @@ def test_an_answer_contract_in_the_app_gives_checked_json(tmp_path, monkeypatch)
     assert meta["contract"] == {"valid": True, "attempts": 2, "errors": []}
     bad = client.post("/api/chat", json={"message": "x", "response_schema": {"type": 5}})
     assert bad.status_code == 400 and "invalid JSON Schema" in bad.json()["detail"]
+
+
+def test_an_unknown_api_route_is_a_404_even_when_the_web_app_is_built(env, tmp_path, monkeypatch):
+    import spike.server.app as app_module
+    web = tmp_path / "dist"
+    (web / "assets").mkdir(parents=True)
+    (web / "index.html").write_text("<!doctype html><title>SPIKE</title>", encoding="utf-8")
+    monkeypatch.setattr(app_module, "static_dir", lambda: web)
+    _, state, _ = env
+    client = TestClient(create_app(state))
+    for path in ("/api/no-such-route", "/v1/no-such-route", "/mcp/no-such-route"):
+        assert client.get(path).status_code == 404, path
+    page = client.get("/projects/anything")
+    assert page.status_code == 200 and "<title>SPIKE</title>" in page.text
