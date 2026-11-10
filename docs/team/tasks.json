@@ -1176,7 +1176,7 @@
   {
    "id": "G41",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Diseño móvil",
    "depends": [
@@ -1186,7 +1186,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G41 from origin/main, report docs/team/reports/G41.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: done by a Claude worker, reviewed and merged: web/e2e/mobile.mjs checks every view and Settings tab at 375x812 and 768x1024 (touch): no horizontal scroll, targets >= 44 px (exceptions listed); keyboard handled with interactive-widget=resizes-content + visualViewport (--vvh), simulated in headless Chromium only; sidebar entries made consistent on desktop."
   },
   {
    "id": "G42",
