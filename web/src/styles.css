@@ -710,7 +710,9 @@ table.calls tr.call-blocked td, table.calls tr.call-error td { color: var(--dang
      enough to remain visible above the on-screen keyboard. The send button stays pinned at the right edge. */
   .composer-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .composer-bar > * { flex-shrink: 0; }
-  .composer-bar .send-btn { position: sticky; right: 0; margin-left: auto; }
+  .composer-bar .send-btn { position: sticky; right: 0; margin-left: auto; box-shadow: -10px 0 8px -2px var(--surface); }
+  /* pinned over the row: a see-through disabled button would show the select scrolling under it */
+  .composer-bar .send-btn:disabled { opacity: 1; background: color-mix(in srgb, var(--accent) 45%, var(--surface)); }
   .composer:focus-within .composer-bar > .muted { display: none; }
   .tab-panel select, .tab-panel input:not([type="checkbox"]):not([type="radio"]), .tab-panel textarea { max-width: 100%; }
 }
