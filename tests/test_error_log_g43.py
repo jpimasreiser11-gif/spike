@@ -110,6 +110,7 @@ def app_client(homes):
     async def boom_route(item: str) -> dict:
         raise RuntimeError(f"failed on {spike_home}/files/{item}.txt with {KEY}: {BODY}")
 
+    app.router.routes.insert(0, app.router.routes.pop())  # ahead of the web app's catch-all when web/dist exists
     client = TestClient(app, client=("127.0.0.1", 50000), raise_server_exceptions=False)
     yield client, spike_home / "logs"
 
