@@ -20,8 +20,5 @@
 .history-excerpt mark { color: #052e1e; background: #e3fada; border-radius: 3px; }
 .history-more { margin-top: 16px; width: 100%; }
 .history-dialog button { min-height: 36px; }
-.history-dialog :focus-visible, .history-launch:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
-.history-message:focus { outline: 3px solid var(--text); outline-offset: 4px; border-radius: 8px; }
-.history-launch { display: flex; gap: 8px; justify-content: space-between; }
-.history-launch kbd { font: 11px var(--mono); color: var(--text-2); }
+.history-dialog :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
 @media (max-width: 480px) { .history-dialog { padding: 16px; } .history-filters { grid-template-columns: 1fr; } }

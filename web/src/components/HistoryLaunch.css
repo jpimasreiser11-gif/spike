@@ -1,0 +1,6 @@
+/* The search button in the sidebar and the message a search result opens: drawn by the main chunk, so these rules
+   load with it and not with the lazily loaded search dialog (G26). */
+.history-launch:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+.history-message:focus { outline: 3px solid var(--text); outline-offset: 4px; border-radius: 8px; }
+.history-launch { display: flex; gap: 8px; justify-content: space-between; }
+.history-launch kbd { font: 11px var(--mono); color: var(--text-2); }
