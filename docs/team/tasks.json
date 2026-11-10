@@ -888,8 +888,8 @@
   },
   {
    "id": "G21",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Reproducibilidad: revisiones fijadas de datos y modelos",
    "depends": [],
@@ -897,7 +897,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G21 from origin/main, report docs/team/reports/G21.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: optional `revision` (full commit hash) on Hub datasets and model downloads, passed to the loaders and the Hub API and recorded in the data manifest, eval summary and model manifest; no revision = the old calls. Nothing is pinned yet: pinning the M7 sources to their recorded hub_sha is a separate decision (would change what prepare downloads)."
   },
   {
    "id": "G22",
@@ -957,8 +958,8 @@
   },
   {
    "id": "G26",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Segunda división del bundle",
    "depends": [
@@ -968,12 +969,13 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G26 from origin/main, report docs/team/reports/G26.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: chat cards in their own files, Forge/Research/Replay/DeviceLab/HistorySearch/WorkspacePanel/SetupWizard/DesktopTask lazy; main chunk 651.53 -> 577.27 kB (gzip 211.95 -> 191.84), npm run build; guard test bundleSplit.test.ts."
   },
   {
    "id": "G27",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Actualizar vite y vitest a sus versiones mayores",
    "depends": [],
@@ -981,7 +983,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON.md (section 3); branch gemini/G27 from origin/main, report docs/team/reports/G27.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: vite 8.3.5, vitest 5.0.5, @vitejs/plugin-react 6.1.2 (each published >= 2 weeks ago); npm audit 7 -> 0 vulnerabilities; one config change (server.fs.allow for the ?raw import of spike/dev/visual_checks.js). Re-checked by Claude in the worker's tree: tsc clean, vitest 263 passed, build OK, audit 0. Note: npm 10.9.4 'edgesOut' bug on plain npm install of vitest 5; the lock was generated with --legacy-peer-deps."
   },
   {
    "id": "G28",
@@ -1027,7 +1030,7 @@
   },
   {
    "id": "G31",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "lanzamiento",
    "title": "Página de presentación (sin publicar)",
@@ -1057,7 +1060,7 @@
   },
   {
    "id": "G33",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Primer uso guiado",
@@ -1070,8 +1073,8 @@
   },
   {
    "id": "G34",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Copia de seguridad y restauración",
    "depends": [],
@@ -1079,11 +1082,12 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G34 from origin/main, report docs/team/reports/G34.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: ZIP backup with manifest and SHA-256 per file, no secrets (test), sqlite backup API, preview, restore that adds only unless overwrite is confirmed, hostile archives refused (paths, symlinks, truncation, version, SHA, zip bomb)."
   },
   {
    "id": "G35",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Paleta de comandos y atajos",
@@ -1096,8 +1100,8 @@
   },
   {
    "id": "G36",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Exportar y borrar todos mis datos",
    "depends": [
@@ -1107,11 +1111,12 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G36 from origin/main, report docs/team/reports/G36.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-10: built by a Claude worker, reviewed and merged: delete everything in Settings > Privacy with a single-use typed word; models and keychain keys only with their own checkboxes. Claude added a guard: nothing is deleted (and no key removed) unless the folder has spike.db and is not the user's home, a parent of it, a drive root, or a folder holding a user's Documents/Downloads/etc. (tests)."
   },
   {
    "id": "G37",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Referencia de la API",
@@ -1124,8 +1129,8 @@
   },
   {
    "id": "G38",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Ayuda de la línea de comandos",
    "depends": [],
@@ -1133,11 +1138,12 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G38 from origin/main, report docs/team/reports/G38.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: done on the Mac (branch claude/g38), merged 2026-11-10: help on every command and option, docs/guide/{en,es}/cli.md generated by scripts/cli_reference.py with --check."
   },
   {
    "id": "G39",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Proyectos de ejemplo",
@@ -1150,7 +1156,7 @@
   },
   {
    "id": "G40",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Ajustes: revisión completa",
@@ -1163,7 +1169,7 @@
   },
   {
    "id": "G41",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Diseño móvil",
@@ -1178,8 +1184,8 @@
   },
   {
    "id": "G42",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Arranque rápido del servidor",
    "depends": [],
@@ -1187,11 +1193,12 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G42 from origin/main, report docs/team/reports/G42.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: measured on the Mac: `spike serve` to /api/health 0.71 s median of 5; importing the app ~0.45 s; lazy imports would save at most ~0.15 s, so no code change (not worth the risk)."
   },
   {
    "id": "G43",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Registro de errores local",
@@ -1204,8 +1211,8 @@
   },
   {
    "id": "G44",
-   "owner": "gemini",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Consistencia del catálogo de especialistas",
    "depends": [],
@@ -1213,11 +1220,12 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G44 from origin/main, report docs/team/reports/G44.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-09: done on the Mac (branch claude/g44), merged 2026-11-10: tests/test_specialist_catalog_consistency.py (97 cases). Finding: Writing cannot be accepted until evals/data/writing_eval.jsonl (held-out pairwise prompts, human-written) exists."
   },
   {
    "id": "G45",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Humo de los instaladores sin modelo",
@@ -1230,7 +1238,7 @@
   },
   {
    "id": "G46",
-   "owner": "gemini",
+   "owner": "claude",
    "status": "todo",
    "phase": "app",
    "title": "Revisión final de textos",

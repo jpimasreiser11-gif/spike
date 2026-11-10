@@ -23,3 +23,5 @@ Cada página explica qué hace el módulo, cómo se usa paso a paso, sus límite
 | [Conectores MCP, navegador asistido y acciones de escritorio](connectors.md) | `connectors` | [English](../en/connectors.md) |
 | [Privacidad, sandbox, permisos, confianza y control de gasto](privacy-and-spend.md) | `privacy-and-spend` | [English](../en/privacy-and-spend.md) |
 | [Preguntas frecuentes y solución de problemas](faq.md) | `faq` | [English](../en/faq.md) |
+
+Línea de comandos: todas las órdenes y opciones de `spike` están en [cli.md](cli.md), generadas a partir del código.

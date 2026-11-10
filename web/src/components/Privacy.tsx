@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { lang } from "../i18n";
+import { DataBackup } from "./DataBackup";
 import type { CallRow, UsageRow } from "../types";
 
 export const PV = lang === "es"
@@ -78,6 +79,7 @@ export function Privacy() {
           </table>
         </div>
       )}
+      <DataBackup />
     </div>
   );
 }

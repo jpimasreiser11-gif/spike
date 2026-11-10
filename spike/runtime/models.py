@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,7 @@ class ModelEntry:
     notes: str = ""
     kind: str = "chat"  # "chat" or "embedding"
     query_prefix: str = ""  # embedding models: text put before a search query (not before stored passages)
+    revision: str | None = None  # optional pin: a full commit hash of `repo`; None follows the Hub's `main`
 
     def filename(self, quant: str) -> str:
         return self.filename_template.format(quant=quant)
@@ -63,12 +65,20 @@ class UnverifiedDownload(ValueError):
     """The Hub published no SHA-256 for the file, so the download could not be checked."""
 
 
-async def remote_file_info(client: httpx.AsyncClient, repo: str, filename: str) -> dict:
-    """Return {'size', 'sha256', 'license'} for a file in a Hub repo."""
-    model = (await client.get(f"{HF}/api/models/{repo}")).raise_for_status().json()
+def check_revision(revision: str | None) -> str | None:
+    """A model revision is None (the Hub's `main`, as always) or a full lowercase commit hash."""
+    if revision is not None and not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError(f"revision must be a 40-character lowercase commit hash, got {revision!r}")
+    return revision
+
+
+async def remote_file_info(client: httpx.AsyncClient, repo: str, filename: str, revision: str | None = None) -> dict:
+    """Return {'size', 'sha256', 'license'} for a file in a Hub repo, at `revision` (default: main)."""
+    model = (await client.get(f"{HF}/api/models/{repo}" + (f"/revision/{revision}" if revision else ""))
+             ).raise_for_status().json()
     license_id = (model.get("cardData") or {}).get("license") or next(
         (t.split(":", 1)[1] for t in model.get("tags", []) if t.startswith("license:")), None)
-    tree = (await client.get(f"{HF}/api/models/{repo}/tree/main")).raise_for_status().json()
+    tree = (await client.get(f"{HF}/api/models/{repo}/tree/{revision or 'main'}")).raise_for_status().json()
     entry = next((f for f in tree if f.get("path") == filename), None)
     if entry is None:
         raise FileNotFoundError(f"{filename} not found in {repo}")
@@ -98,11 +108,14 @@ async def download(
     client: httpx.AsyncClient | None = None,
     require_hash: bool = False,
     allow_unverified: bool = False,
+    revision: str | None = None,
 ) -> tuple[Path, bool]:
     """Download a model; returns (file, whether the Hub's SHA-256 was checked). Without a hash from the Hub nothing is
     downloaded (UnverifiedDownload) unless `allow_unverified`; the file then gets a manifest that says "unverified".
-    `require_hash` (the desktop setup) refuses either way."""
+    `require_hash` (the desktop setup) refuses either way. `revision` (else the catalogue entry's, else none) pins the
+    listing and the file to a commit of the repo and is recorded in the manifest."""
     entry = MODELS[model_id]
+    revision = check_revision(revision or entry.revision)
     quant = quant or entry.default_quant
     if quant not in entry.quants:
         raise ValueError(f"quant must be one of {entry.quants}")
@@ -111,7 +124,7 @@ async def download(
     own_client = client is None
     client = client or httpx.AsyncClient(timeout=httpx.Timeout(60.0, read=300.0), follow_redirects=True)
     try:
-        info = await remote_file_info(client, entry.repo, filename)
+        info = await remote_file_info(client, entry.repo, filename, revision)
         if info["license"] and info["license"].lower() not in ALLOWED_LICENSES:
             raise PermissionError(f"{entry.repo} has license '{info['license']}', which is not on SPIKE's allowlist")
         if require_hash and (not info["license"] or not info["sha256"]):
@@ -121,9 +134,9 @@ async def download(
                 f"The Hub gave no SHA-256 for {filename}, so the download cannot be checked and nothing was saved. "
                 "Run again with --allow-unverified to download it without the check.")
         manifest_path(dest).unlink(missing_ok=True)  # a record never outlives the file it describes
-        await download_file(client, f"{HF}/{entry.repo}/resolve/main/{filename}", dest,
+        await download_file(client, f"{HF}/{entry.repo}/resolve/{revision or 'main'}/{filename}", dest,
                             info["sha256"], info["size"], progress)
-        record = {"id": model_id, "repo": entry.repo, "file": filename, "quant": quant, "license": info["license"],
+        record = {"id": model_id, "repo": entry.repo, "file": filename, "quant": quant, "revision": revision, "license": info["license"],
                   "size": dest.stat().st_size, "sha256": info["sha256"], "sha256_verified": bool(info["sha256"]),
                   "unverified": not info["sha256"]}
         manifest_path(dest).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")

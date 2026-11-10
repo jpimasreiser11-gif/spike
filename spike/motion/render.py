@@ -222,6 +222,20 @@ async def launch(pw, args: tuple[str, ...] = ()):
                       f"or set SPIKE_CHROMIUM ({str(first).splitlines()[0][:200] if first else ''})")
 
 
+async def screenshot(page) -> bytes:
+    """One frame as PNG. Headless Chromium now and then answers "Unable to capture screenshot" for a frame that is
+    fine on a second try; a second failure is real and is raised."""
+    from playwright.async_api import Error
+
+    try:
+        return await page.screenshot(type="png")
+    except Error as exc:
+        if "Unable to capture screenshot" not in str(exc):
+            raise
+    await asyncio.sleep(0.05)
+    return await page.screenshot(type="png")
+
+
 async def capture(html: str, width: int, height: int, fps: int, seconds: float | None,
                   on_frame: Callable[[bytes], Awaitable[None]], result: Rendered) -> None:
     """Play the scene frame by frame and hand each PNG to `on_frame`; fills in the result's timing and problems."""
@@ -289,7 +303,7 @@ async def capture(html: str, width: int, height: int, fps: int, seconds: float |
             result.seconds, result.frames = round(frames / fps, 3), frames
             for i in range(frames):
                 await page.evaluate("t => __spikeSeek(t)", i * 1000 / fps)
-                await on_frame(await page.screenshot(type="png"))
+                await on_frame(await screenshot(page))
             for url in await page.evaluate("window.__spikeBlocked || []"):
                 block(url)
         finally:

@@ -44,8 +44,13 @@ def launcher_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         yield client, state, app
 
 
-def test_case_1_first_run_without_model_and_continue_with_external_api(launcher_env) -> None:
+def test_case_1_first_run_without_model_and_continue_with_external_api(launcher_env, monkeypatch) -> None:
     client, _, _ = launcher_env
+    # a machine with room for the model: the runner's own disk and RAM must not decide the message
+    monkeypatch.setattr("spike.launcher.setup.shutil.disk_usage",
+                        lambda _: SimpleNamespace(total=500 * 1024**3, used=100 * 1024**3, free=400 * 1024**3))
+    monkeypatch.setattr("spike.launcher.setup.psutil.virtual_memory",
+                        lambda: SimpleNamespace(total=16 * 1024**3, available=12 * 1024**3))
     res = client.get("/api/setup")
     assert res.status_code == 200
     data = res.json()

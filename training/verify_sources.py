@@ -29,7 +29,7 @@ sys.path.insert(0, str(ROOT))
 
 from spike_train import licenses  # noqa: E402
 from spike_train.data import FORMATTERS  # noqa: E402
-from spike_train.sources import filtered  # noqa: E402
+from spike_train.sources import filtered, hub_load_kwargs  # noqa: E402
 
 CARD_CHARS = 12000
 EXAMPLE_CHARS = 1500
@@ -56,7 +56,8 @@ def stream_rows(src: dict) -> Iterable[dict]:
     """Every row of the source's split, streamed (network), with the registry filter applied as prepare.py does."""
     from datasets import load_dataset
 
-    return filtered(src, load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True))
+    return filtered(src, load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True,
+                                     **hub_load_kwargs(src)))
 
 
 def _clip(chat: dict) -> dict:

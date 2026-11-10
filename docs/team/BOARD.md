@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 1 | 2 | 0 | 0 | 21 | 0 | 24 |
+| Claude | 11 | 2 | 0 | 0 | 29 | 0 | 42 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
-| Gemini | 18 | 0 | 0 | 0 | 17 | 0 | 35 |
+| Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **28** | **5** | **0** | **0** | **58** | **0** | **91** |
+| **Total** | **20** | **5** | **0** | **0** | **66** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -59,28 +59,28 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G18 | Gemini | hecha | Accesibilidad en todas las pantallas | - |
 | G19 | Gemini | hecha | Documentación de usuario en español e inglés | - |
 | G20 | Gemini | hecha | Revisar documentos desfasados | - |
-| G21 | Gemini | pendiente | Reproducibilidad: revisiones fijadas de datos y modelos | - |
+| G21 | Claude | hecha | Reproducibilidad: revisiones fijadas de datos y modelos | - |
 | G22 | Gemini | hecha | Windows y Linux | - |
 | G23 | Gemini | hecha | Primer arranque e instalador sin modelo real | - |
 | G24 | Gemini | hecha | Mensajes de error para usuarios | - |
 | G25 | Claude | hecha | Rendimiento de la interfaz: dividir el bundle | - |
-| G26 | Gemini | pendiente | Segunda división del bundle | G25 |
-| G27 | Gemini | pendiente | Actualizar vite y vitest a sus versiones mayores | - |
+| G26 | Claude | hecha | Segunda división del bundle | G25 |
+| G27 | Claude | hecha | Actualizar vite y vitest a sus versiones mayores | - |
 | G28 | Gemini | hecha | Cobertura del smoke: vistas que no abre | - |
-| G33 | Gemini | pendiente | Primer uso guiado | - |
-| G34 | Gemini | pendiente | Copia de seguridad y restauración | - |
-| G35 | Gemini | pendiente | Paleta de comandos y atajos | - |
-| G36 | Gemini | pendiente | Exportar y borrar todos mis datos | G34 |
-| G37 | Gemini | pendiente | Referencia de la API | - |
-| G38 | Gemini | pendiente | Ayuda de la línea de comandos | - |
-| G39 | Gemini | pendiente | Proyectos de ejemplo | - |
-| G40 | Gemini | pendiente | Ajustes: revisión completa | - |
-| G41 | Gemini | pendiente | Diseño móvil | G18 |
-| G42 | Gemini | pendiente | Arranque rápido del servidor | - |
-| G43 | Gemini | pendiente | Registro de errores local | - |
-| G44 | Gemini | pendiente | Consistencia del catálogo de especialistas | - |
-| G45 | Gemini | pendiente | Humo de los instaladores sin modelo | - |
-| G46 | Gemini | pendiente | Revisión final de textos | - |
+| G33 | Claude | pendiente | Primer uso guiado | - |
+| G34 | Claude | hecha | Copia de seguridad y restauración | - |
+| G35 | Claude | pendiente | Paleta de comandos y atajos | - |
+| G36 | Claude | hecha | Exportar y borrar todos mis datos | G34 |
+| G37 | Claude | pendiente | Referencia de la API | - |
+| G38 | Claude | hecha | Ayuda de la línea de comandos | - |
+| G39 | Claude | pendiente | Proyectos de ejemplo | - |
+| G40 | Claude | pendiente | Ajustes: revisión completa | - |
+| G41 | Claude | pendiente | Diseño móvil | G18 |
+| G42 | Claude | hecha | Arranque rápido del servidor | - |
+| G43 | Claude | pendiente | Registro de errores local | - |
+| G44 | Claude | hecha | Consistencia del catálogo de especialistas | - |
+| G45 | Claude | pendiente | Humo de los instaladores sin modelo | - |
+| G46 | Claude | pendiente | Revisión final de textos | - |
 | O1 | Opus | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Opus | pendiente | Un espacio de tarea unificado | - |
 | O3 | Opus | pendiente | Instalar skills desde una URL de GitHub, con revisión | - |
@@ -126,7 +126,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 |---|---|---|---|---|
 | G29 | Gemini | hecha | Garantía de que SPIKE no sale a internet sin permiso | - |
 | G30 | Gemini | hecha | Las cifras públicas coinciden con los registros | - |
-| G31 | Gemini | pendiente | Página de presentación (sin publicar) | - |
+| G31 | Claude | pendiente | Página de presentación (sin publicar) | - |
 | G32 | Gemini | hecha | Preguntas frecuentes y solución de problemas | G19, G24 |
 | L1 | Mac | pendiente | Grabar la demo real | M2 |
 | L2 | Claude | en curso | Revisión final de seguridad y licencias y notas de versión | I3, L1 |

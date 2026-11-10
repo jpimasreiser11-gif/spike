@@ -44,7 +44,7 @@ from spike_train.data import (  # noqa: E402
     text_of,
     write_jsonl,
 )
-from spike_train.sources import filtered, origin, url_rows  # noqa: E402
+from spike_train.sources import filtered, hub_load_kwargs, origin, url_rows  # noqa: E402
 
 
 def load_rows(src: dict, offset: int = 0, limit: int | None = None, per_value: int | None = None):
@@ -53,7 +53,8 @@ def load_rows(src: dict, offset: int = 0, limit: int | None = None, per_value: i
     else:
         from datasets import load_dataset
 
-        ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True)
+        ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True,
+                          **hub_load_kwargs(src))
     for i, row in enumerate(filtered(src, ds, per_value)):  # `filter:` of the registry entry; offset, limit count kept rows
         if i < offset:
             continue

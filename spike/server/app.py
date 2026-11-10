@@ -47,6 +47,7 @@ from spike.providers.guard import CURRENT_CHAT
 from spike.providers.registry import KINDS, PRESETS, PRESETS_BY_ID, is_local_url
 from spike.runtime.hardware import detect, recommend
 from spike.runtime.paths import workspace_dir
+from spike.server.backup_api import create_backup_router
 from spike.server.data_app_api import create_data_app_router
 from spike.server.desktop_api import create_desktop_router
 from spike.server.device_lab_api import create_device_lab_router
@@ -391,6 +392,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_data_app_router(st))
     app.include_router(create_research_router(st))
     app.include_router(create_history_router(st))
+    app.include_router(create_backup_router(st))  # G34 backup and restore, G36 delete all my data
     app.include_router(create_setup_router())
     app.include_router(create_workflow_router(st))
 
@@ -1987,6 +1989,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
 
         @app.get("/{path:path}", include_in_schema=False)
         async def spa(path: str):
+            if path.split("/", 1)[0] in ("api", "v1", "mcp"):  # an unknown API route is a 404, not the web page
+                raise HTTPException(404, "Not Found")
             target = (static / path).resolve()
             if path and target.is_file() and static in target.parents:
                 return FileResponse(target)

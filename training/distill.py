@@ -37,6 +37,7 @@ sys.path.insert(0, str(ROOT))
 from spike_train import licenses, seeding  # noqa: E402
 from spike_train.data import LETTERS, dedupe, mcq_prompt  # noqa: E402
 from spike_train.distill import Task, Teacher, distill_task  # noqa: E402
+from spike_train.sources import hub_load_kwargs  # noqa: E402
 from spike_train.synth import MAX_STALLS, PER_CALL, generate  # noqa: E402
 
 DEFAULT_TEACHER = "mlx-community/Qwen3.6-35B-A3B-4bit"
@@ -78,7 +79,8 @@ def gold_tasks(entry: dict, registry: dict, system: str) -> list[Task]:
     from datasets import load_dataset
 
     src = registry[entry["source"]]
-    ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True)
+    ds = load_dataset(src["hub"], src.get("config"), split=src.get("split", "train"), streaming=True,
+                      **hub_load_kwargs(src))
     tasks: list[Task] = []
     for i, row in enumerate(ds):
         if i < entry.get("offset", 0):

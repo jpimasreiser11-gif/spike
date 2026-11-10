@@ -564,11 +564,22 @@ await page.getByRole("tab", { name: "Privacidad" }).click();
 await page.locator("table.calls tr", { hasText: "DeepSeek" }).filter({ hasText: "protegidos" }).first().waitFor({ timeout: 5000 });
 await page.getByTestId("usage-deepseek").filter({ hasText: "500.000 tope" }).waitFor({ timeout: 5000 });
 await page.screenshot({ path: `${out}/07f-privacy.png` });
+// G34/G36: export link and the two-step delete confirmation (cancelled: nothing is deleted)
+const dataBackup = page.getByTestId("data-backup");
+await dataBackup.locator('a[href="/api/backup/export?include_models=0"]').waitFor({ timeout: 5000 });
+await dataBackup.getByRole("button", { name: "Borrar todo…" }).click();
+await dataBackup.getByRole("button", { name: "Continuar" }).click();
+await dataBackup.getByTestId("delete-word").filter({ hasText: /^BORRAR-\d{4}$/ }).waitFor({ timeout: 5000 });
+if (!(await dataBackup.getByRole("button", { name: "Borrar definitivamente" }).isDisabled())) {
+  throw new Error("delete is enabled before the confirmation word is typed");
+}
+await page.screenshot({ path: `${out}/07g-delete-confirm.png` });
+await dataBackup.getByRole("button", { name: "Cancelar" }).click();
 // G43: the local error log opens in Settings, read from this computer only
 await page.getByRole("tab", { name: "Errores" }).click();
 await page.getByText("Registro de errores", { exact: true }).waitFor({ timeout: 5000 });
 await page.getByRole("button", { name: "Copiar como incidencia" }).waitFor({ timeout: 5000 });
-await page.screenshot({ path: `${out}/07g-error-log.png` });
+await page.screenshot({ path: `${out}/07h-error-log.png` });
 await page.keyboard.press("Escape");
 
 // skills: a finance question gets the ratio-analysis skill, shown on the answer
