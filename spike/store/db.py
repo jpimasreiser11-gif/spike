@@ -67,6 +67,10 @@ class Store:
         history.initialize(self._conn)
         self._lock = threading.Lock()
 
+    def close(self) -> None:
+        with self._lock:
+            self._conn.close()
+
     def _exec(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
         with self._lock:
             cur = self._conn.execute(sql, params)

@@ -48,6 +48,9 @@ def project_instructions(root: Path) -> str:
     return ""
 
 
+WAIT = "__wait__"  # what `decide` / `answer` return when the user will answer later (the app): nothing is resolved yet
+
+
 def no_decision(ev: Event) -> str:
     return "deny"
 
@@ -120,8 +123,8 @@ class DevSession:
             temperature=s["temperature"], max_tokens=s["max_tokens"], reasoning=s["reasoning"], tools_enabled=True,
             checkpoints=RunCheckpoints(self.checkpoints, self.conversation_id), max_steps=MAX_STEPS)
 
-    async def turn(self, text: str, *, skills: list[str] | None = None) -> AsyncIterator[Event]:
-        """Run one request; asks are settled through `decide` / `answer` before the run goes on."""
+    def check_skills(self, skills: list[str] | None) -> list[str]:
+        """The skills chosen for one turn, without repeats; ValueError for an unknown or disabled one."""
         settings = self.state.settings()
         chosen = list(dict.fromkeys(skills or []))
         for name in chosen:
@@ -129,6 +132,11 @@ class DevSession:
                 raise ValueError(f"unknown skill / skill desconocida: {name}")
             if settings["skill_mode"] == "off" or name in settings["disabled_skills"]:
                 raise ValueError(f"skill disabled in settings / skill desactivada en ajustes: {name}")
+        return chosen
+
+    async def turn(self, text: str, *, skills: list[str] | None = None) -> AsyncIterator[Event]:
+        """Run one request; asks are settled through `decide` / `answer` before the run goes on."""
+        chosen = self.check_skills(skills)
         options = self.options(chosen)
         self.store.add_message(self.conversation_id, "user", text,
                                {"dev_mode": "plan" if self.plan_mode else "act", "skills": chosen})
@@ -139,12 +147,14 @@ class DevSession:
                 kind = ev["type"]
                 if kind == "permission_request":
                     decision = self.decide(ev)
-                    self.broker.resolve(ev["id"], decision if decision in DECISIONS else "deny")
+                    if decision != WAIT:  # WAIT: the app shows a card and calls `broker.resolve` when the user answers
+                        self.broker.resolve(ev["id"], decision if decision in DECISIONS else "deny")
                 elif kind == "question":
                     reply = self.answer(ev)
-                    self.broker.answer(ev["id"], reply if reply is not None else
-                                       "(nobody can answer here; go on with your best assumption and say what you "
-                                       "assumed)")
+                    if reply != WAIT:
+                        self.broker.answer(ev["id"], reply if reply is not None else
+                                           "(nobody can answer here; go on with your best assumption and say what "
+                                           "you assumed)")
                 elif kind == "delta" and "subtask" not in ev:
                     parts.append(ev["text"])
                 elif kind == "done":
@@ -174,6 +184,10 @@ class DevSession:
         if not pending:
             raise CheckpointError(400, "nothing to undo")
         return self.checkpoints.undo(pending[-1]["id"], force=force)
+
+    def close(self) -> None:
+        """Release the history database (the app closes a session; the terminal lets the process end)."""
+        self.store.close()
 
     def clear(self) -> None:
         """A new conversation on the same folder; `/undo` still reaches the changes made before."""
