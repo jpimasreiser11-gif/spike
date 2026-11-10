@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 13 | 2 | 0 | 0 | 27 | 0 | 42 |
+| Claude | 11 | 2 | 0 | 0 | 29 | 0 | 42 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 3 | 1 | 0 | 0 | 0 | 0 | 4 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **22** | **5** | **0** | **0** | **64** | **0** | **91** |
+| **Total** | **20** | **5** | **0** | **0** | **66** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -65,7 +65,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G24 | Gemini | hecha | Mensajes de error para usuarios | - |
 | G25 | Claude | hecha | Rendimiento de la interfaz: dividir el bundle | - |
 | G26 | Claude | hecha | Segunda división del bundle | G25 |
-| G27 | Claude | pendiente | Actualizar vite y vitest a sus versiones mayores | - |
+| G27 | Claude | hecha | Actualizar vite y vitest a sus versiones mayores | - |
 | G28 | Gemini | hecha | Cobertura del smoke: vistas que no abre | - |
 | G33 | Claude | pendiente | Primer uso guiado | - |
 | G34 | Claude | hecha | Copia de seguridad y restauración | - |
@@ -76,7 +76,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G39 | Claude | pendiente | Proyectos de ejemplo | - |
 | G40 | Claude | pendiente | Ajustes: revisión completa | - |
 | G41 | Claude | pendiente | Diseño móvil | G18 |
-| G42 | Claude | pendiente | Arranque rápido del servidor | - |
+| G42 | Claude | hecha | Arranque rápido del servidor | - |
 | G43 | Claude | pendiente | Registro de errores local | - |
 | G44 | Claude | hecha | Consistencia del catálogo de especialistas | - |
 | G45 | Claude | pendiente | Humo de los instaladores sin modelo | - |

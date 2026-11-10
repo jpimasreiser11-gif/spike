@@ -156,6 +156,8 @@ profiles on the base model, marked β, until theirs pass.
   answer; Forge tests observe imports under Linux's private /tmp; a chat no longer stores the user's message twice.
 
 ### Security and packaging (release review, L2)
+- Development tools: vite 8.3.5, vitest 5.0.5 and @vitejs/plugin-react 6.1.2 close the dev-server and test-runner
+  advisories; `npm audit` reports 0 vulnerabilities (G27).
 - `spike serve` refuses a `--host` that makes it reachable from the network unless `--allow-network` is given,
   because the app has no login; unknown API routes answer 404 instead of the web page.
 - A test blocks every non-loopback connection while it walks the main API flows (chat, projects, memory,
