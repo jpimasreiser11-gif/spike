@@ -1261,7 +1261,7 @@
   {
    "id": "O1",
    "owner": "claude",
-   "status": "doing",
+   "status": "done",
    "phase": "app",
    "title": "Sesiones de Spike Dev en la app (API e interfaz)",
    "depends": [],
@@ -1270,7 +1270,7 @@
    "accept": [
     "report and tests reviewed by Claude"
    ],
-   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own)."
+   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own). Done 2026-11-11: O1a API (/api/dev, this computer only) and O1b DevSessions view, same DevSession engine; worker stopped on the weekly limit, lead finished checks and report (docs/team/reports/O1.md). Scripted provider only."
   },
   {
    "id": "O2",

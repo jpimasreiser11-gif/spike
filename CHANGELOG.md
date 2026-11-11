@@ -27,6 +27,8 @@ profiles on the base model, marked β, until theirs pass.
   connector secrets; SHA-256 per file; preview before restoring, nothing replaced without confirming), and delete all
   your data with a typed confirmation word; models and stored keys go only if their own boxes are ticked, and nothing
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
+- Dev sessions in the app: open a folder, plan or act, approve each edit and command on a card, see the changes and
+  undo them, from the sidebar or Ctrl/Cmd+K; same engine as `spike dev` (O1).
 - Settings › Skills: install a skill from a GitHub link. SPIKE downloads the archive, shows its license, SKILL.md and
   every file before writing anything, installs exactly what was shown and leaves it off until you turn it on; only
   MIT, Apache-2.0, BSD and ISC skills can be installed, and no model can start an install (O3).
