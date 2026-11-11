@@ -10,9 +10,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
-| Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
+| Mac | 2 | 3 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **9** | **5** | **0** | **0** | **77** | **0** | **91** |
+| **Total** | **8** | **6** | **0** | **0** | **77** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -94,7 +94,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M1 | Mac | hecha | Medicina: arreglar el olvido (fix_forgetting) | - |
 | M2 | Claude | hecha | Decidir medicina con los números y elegir la receta | M1 |
 | M3 | Mac | en curso | Entrenar finanzas con la receta que pase | M2 |
-| M4 | Mac | pendiente | Entrenar marketing | M3 |
+| M4 | Mac | en curso | Entrenar marketing | M3 |
 | M5 | Codex | hecha | Recetas de datos: derecho, ciencia, matemáticas, código y datos | - |
 | M6 | Codex | hecha | Recetas de datos: educación, escritura, negocio, seguridad y core | M5 |
 | M7 | Claude | hecha | Verificar licencias y conteos de las recetas nuevas | M5, M6 |

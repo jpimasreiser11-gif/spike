@@ -276,8 +276,14 @@ finance +5.17 / general −3.00; a second sweep over lower scales, the final che
 allows. One local change on the Mac for this run, recorded here: `prepare.py --fit-domain` kept domain rows down to a
 floor of 0.3 instead of 0.4, because the 768-token window dropped 6,313 of 9,063 self-replay answers.
 **Round 2 changes one thing, the window: 1536 tokens** (`training/configs/finance.yaml`; one LoRA step measured at a
-12.75 GB peak at 1536, 11.08 GB at 768, 14.46 GB at 2048, with the chunked gated delta). Running on the Mac since
+12.75 GB peak at 1536, 11.08 GB at 768, 14.46 GB at 2048, with the chunked gated delta). Ran on the Mac from
 2026-11-09 13:58 UTC with the same gate.
+**Round 2 (1536-token window): REJECTED at selection (2026-11-11).** Data kept 6,145 of 9,063 self-replay answers.
+Selection suites: the final checkpoint at scale 0.5 finance +7.00 (p = 0.00004) / general −2.75; iteration 2600
++4.67 / −12.50; iteration 5000 +6.00 / −7.75; iteration 10000 +4.00 (p = 0.053) / −10.25 (measured on the Mac;
+`training/runs/finance/sweep-default/summary.md` there). The domain gain already clears the gate; general knowledge
+is what fails. Now evaluating lower scales (0.25 and 0.35 of the final checkpoint, iteration 10000 at 0.5), evaluation
+only. If none passes, round 3 changes one thing, more general replay in the mix, measured against round 2.
 
 **Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
 2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
