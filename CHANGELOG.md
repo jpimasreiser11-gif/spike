@@ -189,6 +189,9 @@ profiles on the base model, marked β, until theirs pass.
 - An answer can no longer make the browser load an image, style or media file from another site by itself (text
   the model read could have used that to send conversation data out without approval): such images become links
   (O4-1, `docs/audits/2026-11-security-review.md`).
+- Monthly limits count the calls still running, not only the finished ones: calls that start together (two chats,
+  parallel workflow steps, clients of `/v1`) stop where calls one after another would. Before, six calls started at
+  once under a 13,000-token limit with 3,000 used all ran, 21,600 tokens; now four run (O4-2).
 - A path through a `.git` folder is refused in project archives, file uploads, packs and `write_file`: git runs
   programs named in `.git/config`.
 - Pack import brings in only the fields the Connectors form can enter; environment variables, headers, secret
@@ -232,6 +235,8 @@ profiles on the base model, marked β, until theirs pass.
 - With the user's consent, approved corrections (from SPIKE's local model only) export as SFT and DPO data.
 
 ### Training and evaluation
+- A topics distillation run saves the teacher's tasks and each batch of answers as it goes and continues where it
+  stopped when run again (`<out>.parts/`), with the same rows as a run that never stopped.
 - Resumed evals, checkpoint sweeps and the forgetting fix keep SHA-256 receipts of their inputs and refuse to mix
   results from changed inputs (Codex's PR #2, rebased by Gemini Argon).
 - Multiple-choice answer extraction also reads `Answer: Option B`, a letter line followed by confidence or

@@ -1,12 +1,13 @@
 """Privacy and spending: what reaches a remote provider (checked on the wire), monthly limits and the call log."""
 
+import asyncio
 import json
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from spike.core.types import ChatRequest, Message
+from spike.core.types import ChatRequest, Message, StreamEvent
 from spike.providers.guard import GuardedProvider, call_cost, redact, usage_tokens
 from spike.providers.openai_compat import OpenAICompatProvider
 from spike.server.app import create_app
@@ -296,18 +297,84 @@ async def test_a_forge_file_written_from_the_users_file_is_withheld_from_a_remot
     assert events[-1]["type"] == "done" and events[-1]["private"] is True
 
 
-async def test_a_monthly_limit_counts_finished_calls_so_calls_already_running_can_cross_it(tmp_path):
-    """O4-2: the check before each call reads the calls logged so far. Two calls that start before either finishes
-    both pass and together go past the limit; the next call is stopped. SECURITY.md says so. A batch of parallel
-    minds is checked as a whole before it starts (guard_minds in spike/server/app.py)."""
+class SlowProvider(ScriptedProvider):
+    """Answers `out` tokens (reported as usage) once `go` is set, so several calls can be running at once."""
+
+    def __init__(self, out: int, tokens_in: int = 100):
+        super().__init__([], name="x")
+        self.config.local = False
+        self.go, self.started, self.out, self.tokens_in = asyncio.Event(), 0, out, tokens_in
+
+    async def stream(self, request):
+        self.started += 1
+        yield StreamEvent(kind="text", text="ok")
+        await self.go.wait()
+        yield StreamEvent(kind="usage", usage={"prompt_tokens": self.tokens_in, "completion_tokens": self.out})
+        yield StreamEvent(kind="done", finish_reason="stop")
+
+
+async def run_together(guard, n, request):
+    """Start n calls before any finishes, then let them finish; the first event of each."""
+    calls = [guard.stream(request) for _ in range(n)]
+    firsts = [await c.__anext__() for c in calls]
+    guard.inner.go.set()
+    for c in calls:
+        _ = [e async for e in c]
+    return firsts
+
+
+async def test_calls_running_at_once_stop_where_calls_one_after_another_would(tmp_path):
+    """O4-2: six calls of 3,100 tokens start together under a 13,000-token limit with 3,000 used this month. One after
+    another, four run (3,000, 6,100, 9,200 and 12,300 used before each) and the fifth is stopped. Started together they
+    used to all run (21,600 in all); now each counts the calls still running, at this month's average answer."""
     store = Store(tmp_path / "s.db")
-    inner = ScriptedProvider([text("x" * 400), text("y" * 400), text("z")], name="x")
-    inner.config.local = False
-    guard = GuardedProvider(inner, store, limits=lambda: {"monthly_tokens": 150})
+    store.log_call(provider_id="x", provider="x", status="ok", tokens_in=0, tokens_out=3000)    # a month's history
+    guard = GuardedProvider(SlowProvider(out=3000), store, limits=lambda: {"monthly_tokens": 13000})
     request = ChatRequest(messages=[Message(role="user", content="hola")])
-    first, second = guard.stream(request), guard.stream(request)
-    assert (await first.__anext__()).kind == "text" and (await second.__anext__()).kind == "text"  # both running
-    _ = [e async for e in first], [e async for e in second]
-    assert sum(r["tokens_in"] + r["tokens_out"] for r in store.calls()) > 150
-    third = [e async for e in guard.stream(request)]
-    assert third[0].kind == "error" and "monthly limit is reached" in third[0].text
+    firsts = await run_together(guard, 6, request)
+    ran = [e.kind for e in firsts].count("text")
+    assert ran == 4 and guard.inner.started == 4                              # 3,000 logged + 3 x ~3,000 running
+    assert "calls still running" in [e for e in firsts if e.kind == "error"][0].text
+    assert sum(r["tokens_in"] + r["tokens_out"] for r in store.calls()) <= 13000 + 3100  # at most one call past it
+    assert guard._running() == {}                                             # nothing left counted as running
+
+
+async def test_a_running_call_counts_its_max_tokens_or_its_answer_so_far(tmp_path):
+    store = Store(tmp_path / "s.db")
+    guard = GuardedProvider(SlowProvider(out=10), store, limits=lambda: {"monthly_tokens": 5000})
+    big = ChatRequest(messages=[Message(role="user", content="hola")], max_tokens=5000)
+    first = guard.stream(big)
+    assert (await first.__anext__()).kind == "text"
+    second = [e async for e in guard.stream(ChatRequest(messages=[Message(role="user", content="hola")]))]
+    assert second[0].kind == "error" and "for calls still running" in second[0].text
+    guard.inner.go.set()
+    _ = [e async for e in first]
+    assert guard._running() == {}                                             # finished: only its real 110 tokens count
+    assert guard.blocked() is None
+
+
+async def test_the_spending_limit_counts_running_calls_at_the_prices_entered(tmp_path):
+    store = Store(tmp_path / "s.db")
+    limits = {"monthly_cost": 0.01, "price_in": 1.0, "price_out": 10.0}            # per million tokens
+    guard = GuardedProvider(SlowProvider(out=900), store, limits=lambda: limits)
+    request = ChatRequest(messages=[Message(role="user", content="hola")], max_tokens=1000)  # up to ~0.01 each
+    firsts = await run_together(guard, 3, request)
+    assert [e.kind for e in firsts] == ["text", "error", "error"]
+    assert "counting calls still running" in firsts[1].text
+
+
+async def test_a_call_stopped_early_is_logged_and_no_longer_counted(tmp_path):
+    store = Store(tmp_path / "s.db")
+    guard = GuardedProvider(SlowProvider(out=10), store, limits=lambda: {"monthly_tokens": 1500})
+    call = guard.stream(ChatRequest(messages=[Message(role="user", content="hola")]))
+    assert (await call.__anext__()).kind == "text" and guard._running()
+    await call.aclose()                                                       # the user pressed stop
+    assert guard._running() == {} and store.calls()[0]["status"] == "cancelled"
+    assert guard.blocked() is None
+
+
+async def test_without_limits_nothing_is_counted_as_running(tmp_path):
+    guard = GuardedProvider(SlowProvider(out=10), Store(tmp_path / "s.db"))
+    call = guard.stream(ChatRequest(messages=[Message(role="user", content="hola")]))
+    assert (await call.__anext__()).kind == "text" and guard._running() == {}
+    await call.aclose()

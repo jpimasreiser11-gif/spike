@@ -4,7 +4,10 @@ allowed to see them, stops calls past the monthly limit the user set, and writes
 from __future__ import annotations
 
 import datetime as dt
+import itertools
+import threading
 import time
+import weakref
 from collections.abc import AsyncIterator, Callable, Sequence
 from contextvars import ContextVar
 from dataclasses import replace
@@ -24,6 +27,14 @@ from spike.providers.base import Provider, ProviderConfig
 from spike.runtime.urls import strip_url_secrets
 
 LIMIT_KEYS = ("monthly_tokens", "monthly_cost", "price_in", "price_out")
+ANSWER_TOKENS = 1024  # what a running call without max_tokens is expected to answer, until this month's calls say more
+
+# Calls still running, per call log and provider id, with the tokens (in, out) each is expected to use until it reports
+# (O4-2). Monthly limits count them, so calls that start together stop where calls one after another would. Shared by
+# every GuardedProvider of a provider (the server builds a new one when its settings change) and every thread.
+_RUNNING: weakref.WeakKeyDictionary[Any, dict[str, dict[int, list[int]]]] = weakref.WeakKeyDictionary()
+_RUNNING_LOCK = threading.RLock()
+_KEYS = itertools.count()
 
 
 CURRENT_CHAT: ContextVar[str | None] = ContextVar("spike_chat", default=None)  # set by the chat route
@@ -82,6 +93,12 @@ def usage_tokens(usage: dict[str, Any]) -> tuple[int, int] | None:
     return tokens_in, int(tokens_out or 0)
 
 
+def estimate_request(messages: Sequence[Message], tools: Sequence[Any]) -> int:
+    """Estimated input tokens of a request: its messages and tool definitions."""
+    return sum(estimate_tokens(m.content) for m in messages) + \
+        sum(estimate_tokens(str(t.parameters)) + estimate_tokens(t.description) for t in tools)
+
+
 class GuardedProvider(Provider):
     def __init__(self, inner: Provider, log: CallLog, limits: Callable[[], dict[str, Any]] = dict):
         self.inner = inner  # no Provider.__init__: the config and the HTTP client are the inner provider's
@@ -123,7 +140,23 @@ class GuardedProvider(Provider):
     def receives_files(self) -> bool:
         return self.config.local or self.config.share_files
 
+    def _running(self) -> dict[int, list[int]]:
+        with _RUNNING_LOCK:
+            return _RUNNING.setdefault(self.log, {}).setdefault(self.config.id, {})
+
+    def _usage(self, limits: dict[str, Any]) -> tuple[int, float, int]:
+        """This month's tokens and cost so far, the calls still running counted with what they are expected to use,
+        and how many of those tokens are the running calls'."""
+        used = self.log.usage_since(self.config.id, month_start())
+        with _RUNNING_LOCK:
+            run_in = sum(slot[0] for slot in self._running().values())
+            run_out = sum(slot[1] for slot in self._running().values())
+        return (int(used["tokens_in"] + used["tokens_out"]) + run_in + run_out,
+                float(used["cost"]) + (call_cost(limits, run_in, run_out) or 0.0), run_in + run_out)
+
     def blocked(self) -> str | None:
+        """Why a call may not start now: paid requests not allowed, or a monthly limit reached by the calls logged
+        this month and the calls still running (counted with what they are expected to use)."""
         cfg = self.config
         if cfg.paid and not cfg.allow_paid:
             return str(PaidCallBlocked(f"{cfg.name} may bill your account. Enable 'Allow paid requests' for this "
@@ -134,16 +167,44 @@ class GuardedProvider(Provider):
         token_cap, cost_cap = limits.get("monthly_tokens"), limits.get("monthly_cost")
         if not token_cap and cost_cap is None:
             return None
-        used = self.log.usage_since(cfg.id, month_start())
-        tokens = int(used["tokens_in"] + used["tokens_out"])
+        tokens, cost, running = self._usage(limits)
+        still = f", {running:,} of them for calls still running" if running else ""
         if token_cap and tokens >= int(token_cap):
             return str(SpendLimitReached(f"{cfg.name}: the monthly limit is reached ({tokens:,} of {int(token_cap):,} "
-                                         "tokens this month). Raise or remove it in Settings → Providers."))
-        if cost_cap is not None and used["cost"] >= float(cost_cap):
-            return str(SpendLimitReached(f"{cfg.name}: the monthly spending limit is reached ({used['cost']:.2f} of "
-                                         f"{float(cost_cap):.2f} this month, at the prices you entered). Raise or "
+                                         f"tokens this month{still}). Raise or remove it in Settings → Providers."))
+        if cost_cap is not None and cost >= float(cost_cap):
+            return str(SpendLimitReached(f"{cfg.name}: the monthly spending limit is reached ({cost:.2f} of "
+                                         f"{float(cost_cap):.2f} this month, at the prices you entered"
+                                         f"{', counting calls still running' if running else ''}). Raise or "
                                          "remove it in Settings → Providers."))
         return None
+
+    def _start(self, request: ChatRequest | None) -> tuple[str | None, int | None]:
+        """`blocked`, and when the call may start, its place among the calls still running, in one step, so two
+        calls that start together cannot both read the limit before either is counted."""
+        with _RUNNING_LOCK:
+            if (reason := self.blocked()) is not None:
+                return reason, None
+            limits = self.limits()
+            if self.config.local or (not limits.get("monthly_tokens") and limits.get("monthly_cost") is None):
+                return None, None
+            tokens_in = estimate_request(request.messages, request.tools) if request else 0
+            answer = request.max_tokens if request and request.max_tokens else None
+            if answer is None:
+                used = self.log.usage_since(self.config.id, month_start())
+                answer = max(ANSWER_TOKENS, int(used["tokens_out"] / used["calls"]) if used.get("calls") else 0)
+            key = next(_KEYS)
+            self._running()[key] = [tokens_in, int(answer), int(answer)]
+            return None, key
+
+    def _progress(self, key: int | None, out_chars: int) -> None:
+        if key is not None and (slot := self._running().get(key)):
+            slot[1] = max(slot[2], int(out_chars / CHARS_PER_TOKEN))
+
+    def _finish(self, key: int | None) -> None:
+        if key is not None:
+            with _RUNNING_LOCK:
+                self._running().pop(key, None)
 
     def blocked_for(self, calls: int, tokens_in: int, tokens_out: int) -> str | None:
         """`blocked`, asked before a batch of `calls` calls that will use `tokens_in` + `tokens_out` tokens in all:
@@ -158,19 +219,20 @@ class GuardedProvider(Provider):
         token_cap, cost_cap = limits.get("monthly_tokens"), limits.get("monthly_cost")
         if not token_cap and cost_cap is None:
             return None
-        used = self.log.usage_since(cfg.id, month_start())
-        tokens = int(used["tokens_in"] + used["tokens_out"])
+        tokens, used_cost, running = self._usage(limits)
+        still = f", counting {running:,} for calls still running" if running else ""
         if token_cap and tokens + tokens_in + tokens_out > int(token_cap):
             return str(SpendLimitReached(
                 f"{cfg.name}: {calls} calls of up to {(tokens_in + tokens_out) // calls:,} tokens would cross the "
-                f"monthly limit ({tokens:,} of {int(token_cap):,} tokens used this month). Use fewer calls, or raise "
-                "or remove the limit in Settings → Providers."))
+                f"monthly limit ({tokens:,} of {int(token_cap):,} tokens used this month{still}). Use fewer calls, or "
+                "raise or remove the limit in Settings → Providers."))
         cost = call_cost(limits, tokens_in, tokens_out)
-        if cost_cap is not None and cost is not None and used["cost"] + cost > float(cost_cap):
+        if cost_cap is not None and cost is not None and used_cost + cost > float(cost_cap):
             return str(SpendLimitReached(
                 f"{cfg.name}: {calls} calls (up to {cost:.2f} at the prices you entered) would cross the monthly "
-                f"spending limit ({used['cost']:.2f} of {float(cost_cap):.2f} used this month). Use fewer calls, or "
-                "raise or remove the limit in Settings → Providers."))
+                f"spending limit ({used_cost:.2f} of {float(cost_cap):.2f} used this month"
+                f"{', counting calls still running' if running else ''}). Use fewer calls, or raise or remove the "
+                "limit in Settings → Providers."))
         return None
 
     def screens_blocked(self) -> str | None:
@@ -191,32 +253,51 @@ class GuardedProvider(Provider):
         cfg = self.config
         row: dict[str, Any] = {"provider_id": cfg.id, "provider": cfg.name, "model": payload.get("model") or cfg.model,
                                "local": cfg.local, "conversation_id": CURRENT_CHAT.get()}
-        if (reason := self.screens_blocked()) is not None:
+        with _RUNNING_LOCK:
+            reason, key = self.screens_blocked(), None
+            if reason is None:
+                reason, key = self._start(None)
+        if reason is not None:
             self.log.log_call(**row, status="blocked", detail=reason)
             raise ProviderError(reason)
         try:
-            answer = await self.inner.send_raw(payload, beta=beta)
-        except Exception as exc:
-            self.log.log_call(**row, status="error", detail=strip_url_secrets(str(exc))[:500], tokens_in=0,
-                              tokens_out=0, estimated=False)
-            raise
-        usage = usage_tokens(answer.get("usage") or {}) if isinstance(answer, dict) else None
-        self.log.log_call(**row, status="ok", detail="desktop step", tokens_in=(usage or (0, 0))[0],
-                          tokens_out=(usage or (0, 0))[1], estimated=usage is None,
-                          cost=None if cfg.local or usage is None else call_cost(self.limits(), *usage))
-        return answer
+            try:
+                answer = await self.inner.send_raw(payload, beta=beta)
+            except Exception as exc:
+                self.log.log_call(**row, status="error", detail=strip_url_secrets(str(exc))[:500], tokens_in=0,
+                                  tokens_out=0, estimated=False)
+                raise
+            usage = usage_tokens(answer.get("usage") or {}) if isinstance(answer, dict) else None
+            self.log.log_call(**row, status="ok", detail="desktop step", tokens_in=(usage or (0, 0))[0],
+                              tokens_out=(usage or (0, 0))[1], estimated=usage is None,
+                              cost=None if cfg.local or usage is None else call_cost(self.limits(), *usage))
+            return answer
+        finally:
+            self._finish(key)
 
     async def stream(self, request: ChatRequest) -> AsyncIterator[StreamEvent]:
         cfg = self.config
         row: dict[str, Any] = {"provider_id": cfg.id, "provider": cfg.name, "model": request.model or cfg.model,
                                "local": cfg.local, "conversation_id": CURRENT_CHAT.get()}
-        if (reason := self.blocked()) is not None:
+        reason, key = self._start(request)
+        if reason is not None:
             self.log.log_call(**row, status="blocked", detail=reason)
             yield StreamEvent(kind="error", text=reason)
             return
         if any(m.images for m in request.messages) and not self.receives_files:
+            self._finish(key)
             yield StreamEvent(kind="error", text="images_private")
             return
+        call = self._stream(request, row, key)
+        try:
+            async for ev in call:
+                yield ev
+        finally:
+            await call.aclose()  # a call stopped early is logged now, not when it is garbage-collected
+            self._finish(key)    # after the log: a call always counts, as running or as logged
+
+    async def _stream(self, request: ChatRequest, row: dict[str, Any], key: int | None) -> AsyncIterator[StreamEvent]:
+        cfg = self.config
         messages, withheld = request.messages, 0
         if not self.receives_files:
             messages, withheld = redact(request.messages, withheld_notice(cfg.name))
@@ -228,8 +309,10 @@ class GuardedProvider(Provider):
             async for ev in self.inner.stream(replace(request, messages=messages)):
                 if ev.kind in ("text", "reasoning"):
                     out_chars += len(ev.text)
+                    self._progress(key, out_chars)
                 elif ev.kind == "tool_call" and ev.tool_call:
                     out_chars += len(ev.tool_call.name) + len(str(ev.tool_call.arguments))
+                    self._progress(key, out_chars)
                 elif ev.kind == "usage" and ev.usage:
                     usage = usage_tokens(ev.usage) or usage
                 elif ev.kind == "error":
@@ -245,9 +328,7 @@ class GuardedProvider(Provider):
             if usage is None and status == "error":
                 usage = (0, 0)  # nothing came back: count it as not billed
             elif usage is None:
-                tokens_in = sum(estimate_tokens(m.content) for m in messages) + \
-                    sum(estimate_tokens(str(t.parameters)) + estimate_tokens(t.description) for t in request.tools)
-                usage = (tokens_in, int(out_chars / CHARS_PER_TOKEN) + (1 if out_chars else 0))
+                usage = (estimate_request(messages, request.tools), int(out_chars / CHARS_PER_TOKEN) + (1 if out_chars else 0))
             self.log.log_call(**row, status=status, detail=detail, tokens_in=usage[0], tokens_out=usage[1],
                               estimated=estimated, cost=None if cfg.local else call_cost(self.limits(), *usage),
                               files_sent=files_sent, files_withheld=withheld)
