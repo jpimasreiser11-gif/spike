@@ -11,7 +11,7 @@ export type Command = { id: string; label: string; keywords?: string; run: () =>
 export type PaletteHandlers = {
   newChat: () => void; setMode: (id: string) => void; selectProject: (p: Project | null) => void;
   openForge: () => void; openCreator: () => void; openResearch: () => void; openLab: () => void; openSubtitles: () => void;
-  openDeviceLab: () => void; openWorkspace: () => void; openSettings: () => void; openHistory: () => void;
+  openDeviceLab: () => void; openDev: () => void; openWorkspace: () => void; openSettings: () => void; openHistory: () => void;
   openSamples: () => void; openDesktop: () => void; toggleSidebar: () => void; toggleTheme: () => void;
 };
 export type PaletteContext = {
@@ -36,6 +36,7 @@ export function buildCommands({ busy, desktopOn, inProject, specialists, project
     ...view("lab", t.lab.title, h.openLab),
     ...view("subtitles", t.subtitles.title, h.openSubtitles),
     ...view("devicelab", t.deviceLab.title, h.openDeviceLab),
+    ...view("dev", t.dev.title, h.openDev),
     { id: "workspace", label: t.workspaceJobs, run: h.openWorkspace },
     ...(desktopOn ? [{ id: "desktop", label: DESKTOP_STRINGS[lang].open, run: h.openDesktop }] : []),
     { id: "samples", label: P.samples, run: h.openSamples },

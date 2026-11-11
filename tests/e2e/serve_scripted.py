@@ -240,6 +240,11 @@ class DemoProvider(Provider):
                                                                    arguments={"path": "contrato.md"}))
             yield StreamEvent(kind="done", finish_reason="tool_calls")
             return
+        if last.role == "user" and "dev-e2e edit" in last.content and "edit_file" in tools:  # O1: a Dev session edits calc.py
+            yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="o1", name="edit_file", arguments={
+                "path": "calc.py", "old": "x = 1", "new": "x = 2"}))
+            yield StreamEvent(kind="done", finish_reason="tool_calls")
+            return
         if last.role == "user" and "archivo" in last.content.lower() and request.tools:
             yield StreamEvent(kind="tool_call", tool_call=ToolCall(id="c1", name="write_file",
                               arguments={"path": "notas.md", "content": "# Notas\n"}))
@@ -309,6 +314,10 @@ class DemoProvider(Provider):
             return
         if last.role == "tool" and last.name == "dependency_doctor":
             answer = "Diagnóstico listo en la tarjeta."
+        elif last.role == "user" and "dev-e2e plan" in last.content:  # O1: plan mode offers no editing tools
+            answer = "Plan: 1. Cambiar x a 2 en calc.py. 2. Ejecutar las pruebas."
+        elif last.role == "tool" and last.name == "edit_file":
+            answer = "Cambio aplicado: x vale 2 en calc.py."
         elif last.role == "tool" and last.name == "device_lab":
             answer = "El informe de Device Lab está en la tarjeta."
         elif last.role == "tool" and last.name == "ask_user":

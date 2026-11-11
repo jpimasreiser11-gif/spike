@@ -46,9 +46,10 @@ async function previewText(response: Response): Promise<string> {
 
 /** Files reported by a tool or checked by Forge. A preview reads only after a click; replay never reads current files.
  * HTML/SVG uses the existing isolated panel. Other text is rendered literally, without interpreting markup. */
-export function ArtifactFiles({ files, projectId, replay = false }: {
-  files: ArtifactFile[]; projectId?: string; replay?: boolean;
+export function ArtifactFiles({ files, projectId, replay = false, urlFor }: {
+  files: ArtifactFile[]; projectId?: string; replay?: boolean; urlFor?: (path: string) => string; // urlFor: another root, e.g. a Dev folder
 }) {
+  const urlOf = (path: string) => (urlFor ? urlFor(path) : fileUrl(path, projectId));
   const openArtifact = useContext(ArtifactContext);
   const [preview, setPreview] = useState<{ path: string; loading?: boolean; text?: string; error?: string } | null>(null);
   const active = useRef<{ id: number; controller?: AbortController }>({ id: 0 });
@@ -65,7 +66,7 @@ export function ArtifactFiles({ files, projectId, replay = false }: {
     const controller = new AbortController(); active.current.controller = controller;
     setPreview({ path: file.path, loading: true });
     try {
-      const response = await fetch(fileUrl(file.path, projectId), { signal: controller.signal, redirect: "error" });
+      const response = await fetch(urlOf(file.path), { signal: controller.signal, redirect: "error" });
       if (id !== active.current.id) { await response.body?.cancel(); return; }
       if (!response.ok) { await response.body?.cancel(); throw new Error("preview-unavailable"); }
       const text = await previewText(response);
@@ -89,7 +90,7 @@ export function ArtifactFiles({ files, projectId, replay = false }: {
         return <li key={file.path} data-artifact-file={file.path}>
           <div className="artifact-file-row">
             <IconFile size={16} />
-            {enabled ? <a href={fileUrl(file.path, projectId)} download title={`${t.download}: ${file.path}`}>{file.path}</a> : <code>{file.path}</code>}
+            {enabled ? <a href={urlOf(file.path)} download title={`${t.download}: ${file.path}`}>{file.path}</a> : <code>{file.path}</code>}
             {!file.ok && <span className="small bad">{t.fileMissing}</span>}
             {file.ok && file.bytes !== undefined && <span className="small muted">{file.bytes} B</span>}
             {enabled && canPreview && <button type="button" className="btn small" disabled={current?.loading}

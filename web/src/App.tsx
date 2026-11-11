@@ -27,6 +27,7 @@ const Forge = lazy(() => import("./components/Forge").then((m) => ({ default: m.
 const Research = lazy(() => import("./components/Research").then((m) => ({ default: m.Research })));
 const Replay = lazy(() => import("./components/Replay").then((m) => ({ default: m.Replay })));
 const DeviceLab = lazy(() => import("./components/DeviceLab").then((m) => ({ default: m.DeviceLab })));
+const DevSessions = lazy(() => import("./components/DevSessions").then((m) => ({ default: m.DevSessions })));
 const HistorySearch = lazy(() => import("./components/HistorySearch").then((m) => ({ default: m.HistorySearch })));
 const WorkspacePanel = lazy(() => import("./components/WorkspacePanel").then((m) => ({ default: m.WorkspacePanel })));
 const CommandPalette = lazy(() => import("./components/CommandPalette").then((m) => ({ default: m.CommandPalette })));
@@ -132,6 +133,7 @@ export default function App() {
   const [forgeOpen, setForgeOpen] = useState(false);
   const [subtitlesOpen, setSubtitlesOpen] = useState(false);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
+  const [devOpen, setDevOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchTarget, setSearchTarget] = useState<string | null>(null);
@@ -405,6 +407,7 @@ export default function App() {
         <button className={`side-btn nav-btn forge-btn ${forgeOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setCreatorOpen(false); setForgeOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconForge size={16} /> Forge</button>
         <button className={`side-btn nav-btn forge-btn ${creatorOpen ? "active" : ""}`} onClick={() => { if (!busy) { setResearchOpen(false); setForgeOpen(false); setCreatorOpen(true); if (window.innerWidth <= 860) setSidebar(false); } }} disabled={busy}><IconSparkle size={16} /> {t.create}</button>
         <button className="side-btn nav-btn" disabled={busy} onClick={() => setSubtitlesOpen(true)}><IconAudio size={16} /> {t.subtitles.title}</button>
+        <button className="side-btn nav-btn" disabled={busy} data-testid="dev-sessions-open-btn" onClick={() => setDevOpen(true)}><IconFolder size={16} /> {t.dev.title}</button>
         <button className="side-btn nav-btn" disabled={busy} data-testid="device-lab-open-btn" onClick={() => setDeviceLabOpen(true)}><IconDevice size={16} /> {t.deviceLab.title}</button>
         <div className="project-list" aria-label={PL.projects}>
           <div className="conv-group project-list-head">
@@ -534,6 +537,7 @@ export default function App() {
 
       {subtitlesOpen && <Suspense fallback={null}><SubtitleStudio projectId={project?.id} projectName={project?.name} onClose={() => setSubtitlesOpen(false)} /></Suspense>}
       {deviceLabOpen && <Suspense fallback={null}><DeviceLab onClose={() => setDeviceLabOpen(false)} /></Suspense>}
+      {devOpen && <Suspense fallback={null}><DevSessions onClose={() => setDevOpen(false)} /></Suspense>}
       {searchOpen && <Suspense fallback={null}><HistorySearch projects={projects} projectId={project?.id} onClose={() => setSearchOpen(false)} onSelect={openSearchResult} /></Suspense>}
 
       {paletteOpen && <Suspense fallback={null}>
@@ -542,7 +546,7 @@ export default function App() {
           openForge: () => { setResearchOpen(false); setLabOpen(false); setCreatorOpen(false); setForgeOpen(true); },
           openCreator: () => { setResearchOpen(false); setLabOpen(false); setForgeOpen(false); setCreatorOpen(true); },
           openResearch: () => { setResearchOpen(true); setLabOpen(false); }, openLab: () => { setResearchOpen(false); setLabOpen(true); },
-          openSubtitles: () => setSubtitlesOpen(true), openDeviceLab: () => setDeviceLabOpen(true), openWorkspace: () => setWorkspaceOpen(true),
+          openSubtitles: () => setSubtitlesOpen(true), openDeviceLab: () => setDeviceLabOpen(true), openDev: () => setDevOpen(true), openWorkspace: () => setWorkspaceOpen(true),
           openSettings: () => { setSettingsTab("general"); setSettingsOpen(true); }, openDesktop: () => setDesktopOpen(true),
           toggleSidebar: () => setSidebar((v) => !v), toggleTheme } }} />
       </Suspense>}

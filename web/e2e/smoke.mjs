@@ -992,6 +992,66 @@ await labDialog.getByTestId("device-lab-open").click();
 await page.frameLocator(".artifact-frame").getByRole("heading", { name: "Informe de Device Lab" }).waitFor();
 await page.locator(".artifact-panel").getByRole("button", { name: "Cerrar" }).click();
 
+// O1: a Dev session in the app. Plan mode cannot write; in Act mode the edit waits for the permission card (nothing
+// changes before it is answered, and it is answered through /api/dev, not the chat's route); the change is listed and
+// undone; the session also opens from the Ctrl+K palette. The scripted server and this script share the computer.
+// (The refusals of folders are covered by pytest and vitest: a 4xx would be logged as a browser error here.)
+const devFolder = path.resolve(out, "dev-project");
+fs.mkdirSync(devFolder, { recursive: true });
+fs.writeFileSync(path.join(devFolder, "calc.py"), "x = 1\n", "utf-8");
+const devCalc = () => fs.readFileSync(path.join(devFolder, "calc.py"), "utf-8");
+const chatPermissionPosts = [];
+const devPermissionPosts = [];
+const onDevPost = (r) => {
+  if (r.method() !== "POST") return;
+  if (/\/api\/permissions\//.test(r.url())) chatPermissionPosts.push(r.url());
+  if (/\/api\/dev\/permissions\//.test(r.url())) devPermissionPosts.push(r.url());
+};
+page.on("request", onDevPost);
+await page.getByTestId("dev-sessions-open-btn").click();
+const devDialog = page.locator("dialog.dev-sessions");
+await devDialog.waitFor();
+await devDialog.locator('[name="dev-folder"]').fill(devFolder);
+await devDialog.getByTestId("dev-open").click();
+await devDialog.getByTestId("dev-plan").waitFor();
+await devDialog.getByTestId("dev-plan").click();
+await devDialog.locator('[data-testid="dev-plan"][aria-pressed="true"]').waitFor();
+await devDialog.locator('[name="dev-input"]').fill("dev-e2e plan: cambia x a 2");
+await devDialog.getByTestId("dev-send").click();
+await devDialog.getByText("Plan: 1. Cambiar x a 2 en calc.py.").waitFor({ timeout: 15000 });
+if (await devDialog.locator(".permission").count()) fail("plan mode must not ask to edit anything");
+if (devCalc() !== "x = 1\n") fail("plan mode must not change files");
+await devDialog.getByTestId("dev-act").click();
+await devDialog.locator('[data-testid="dev-act"][aria-pressed="true"]').waitFor();
+await devDialog.locator('[name="dev-input"]').fill("dev-e2e edit: cambia x a 2");
+await devDialog.getByTestId("dev-send").click();
+const devPermission = devDialog.locator(".permission", { hasText: "edit_file" });
+await devPermission.waitFor({ timeout: 15000 });
+await page.waitForTimeout(500);
+if (devCalc() !== "x = 1\n") fail("the edit must wait for the answer to the permission card");
+await page.screenshot({ path: `${out}/07w-dev-permission.png` });
+await devPermission.getByRole("button", { name: "Permitir una vez" }).click();
+await devDialog.getByText("Cambio aplicado: x vale 2 en calc.py.").waitFor({ timeout: 15000 });
+if (devCalc() !== "x = 2\n") fail("the allowed edit must be applied");
+await devDialog.getByTestId("dev-changes").getByText("calc.py").first().waitFor();
+await devDialog.locator('[data-artifact-file="calc.py"]').first().waitFor();
+await page.screenshot({ path: `${out}/07w-dev-session.png` });
+await devDialog.getByTestId("dev-undo").click();
+await devDialog.locator('[data-testid="dev-changes"] li[data-undone="true"]').waitFor();
+if (devCalc() !== "x = 1\n") fail("undo must put the file back");
+if (chatPermissionPosts.length || devPermissionPosts.length !== 1) fail(`permissions must go through /api/dev only: chat ${chatPermissionPosts.length}, dev ${devPermissionPosts.length}`);
+await devDialog.getByTestId("dev-end").click();
+await devDialog.locator('[name="dev-folder"]').waitFor();
+await devDialog.getByTestId("dev-close").click();
+await devDialog.waitFor({ state: "hidden" });
+await page.keyboard.press("Control+k");
+await page.locator('.palette input[role="combobox"]').fill("Sesiones Dev");
+await page.keyboard.press("Enter");
+await devDialog.waitFor();
+await devDialog.getByTestId("dev-close").click();
+await devDialog.waitFor({ state: "hidden" });
+page.off("request", onDevPost);
+
 // A18: Blender renders a preview and Godot checks a game, both with fake programs on the server's PATH (the real ones
 // are the user's own). Every run is approved first; the preview and the check open in the artifacts panel.
 await page.getByRole("button", { name: "Nuevo chat" }).click();

@@ -123,14 +123,14 @@ function Learned({ initial, messageId }: { initial: Learn; messageId: string }) 
 }
 
 /** Human handoff: a specialist's question, answered with one of its options or in the user's own words. */
-export function Question({ q, readOnly }: { q: QuestionState; readOnly?: boolean }) {
+export function Question({ q, readOnly, apiBase = "/api" }: { q: QuestionState; readOnly?: boolean; apiBase?: string }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const reply = async (answer: string) => {
     setSending(true); setError("");
     try {
-      await api.post(`/api/questions/${q.id}`, { answer });
+      await api.post(`${apiBase}/questions/${q.id}`, { answer });
     } catch (e) {
       setError((e as Error).message);
       setSending(false);
@@ -170,11 +170,11 @@ function reviewText(p: PermissionState) {
   return template.replace("{domain}", p.domain ?? "").replace("{element}", element);
 }
 
-export function Permission({ p, onDecided, readOnly }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean }) {
+export function Permission({ p, onDecided, readOnly, apiBase = "/api" }: { p: PermissionState; onDecided: (id: string, d: PermissionState["status"]) => void; readOnly?: boolean; apiBase?: string }) {
   const decide = async (decision: "allow_once" | "allow_always" | "allow_domain" | "block_domain" | "deny") => {
     onDecided(p.id, "sending");
     try {
-      await api.post(`/api/permissions/${p.id}`, { decision });
+      await api.post(`${apiBase}/permissions/${p.id}`, { decision });
     } catch {
       onDecided(p.id, "pending");
     }
@@ -306,7 +306,7 @@ function Retry({ providers, specialists, routed, onRetry, failed }: {
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false, messageId, question = "" }: {
+export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false, messageId, question = "", apiBase, fileUrl }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
@@ -317,6 +317,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   replay?: boolean; // shown inside the step-by-step view: nothing in it acts
   messageId?: string; // the user's message this answers, for what it taught SPIKE
   question?: string; // the user's message, for the data report
+  apiBase?: string; // where the permission and question cards answer: "/api" in the chat, "/api/dev" in a Dev session
+  fileUrl?: (path: string) => string; // where the files a run made are read from (a Dev session's folder)
 }) {
   const [copied, setCopied] = useState(false);
   const live = run.status === "running" || run.status === "planning" || run.status === "verifying" || run.status === "synthesizing";
@@ -403,10 +405,10 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
             : tool.ui?.kind === "video" && !replay ? <VideoCard key={`${tool.id}-${i}`} ui={tool.ui} projectId={projectId} /> : null)}
 
       {run.permissions.map((p) => (
-        <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} />
+        <Permission key={p.id} p={p} onDecided={(id, s) => onPermission?.(id, s)} readOnly={replay} apiBase={apiBase} />
       ))}
 
-      {(run.questions ?? []).map((q) => <Question key={q.id} q={q} readOnly={replay} />)}
+      {(run.questions ?? []).map((q) => <Question key={q.id} q={q} readOnly={replay} apiBase={apiBase} />)}
 
       {run.trimmed ? <div className="notice">{run.trimmed} {t.contextTrimmed}</div> : null}
 
@@ -435,7 +437,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
 
       {run.forge?.report && <ForgeReportCard report={run.forge.report} projectId={projectId} replay={replay} />}
 
-      {files.length > 0 && !replay && <ArtifactFiles files={files.map((path) => ({ path, ok: true }))} projectId={projectId} />}
+      {files.length > 0 && !replay && <ArtifactFiles files={files.map((path) => ({ path, ok: true }))} projectId={projectId} urlFor={fileUrl} />}
 
       {!live && !replay && run.tools.some((x) => isData(x.ui)) && <ReportActions question={question} answer={run.text} tools={run.tools} />}
 

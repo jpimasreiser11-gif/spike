@@ -8,7 +8,7 @@ import { dicts } from "./i18n";
 let host: HTMLDivElement, root: Root;
 const h = () => ({
   newChat: vi.fn(), setMode: vi.fn(), selectProject: vi.fn(), openForge: vi.fn(), openCreator: vi.fn(), openResearch: vi.fn(),
-  openLab: vi.fn(), openSubtitles: vi.fn(), openDeviceLab: vi.fn(), openWorkspace: vi.fn(), openSettings: vi.fn(),
+  openLab: vi.fn(), openSubtitles: vi.fn(), openDeviceLab: vi.fn(), openDev: vi.fn(), openWorkspace: vi.fn(), openSettings: vi.fn(),
   openHistory: vi.fn(), openSamples: vi.fn(), openDesktop: vi.fn(), toggleSidebar: vi.fn(), toggleTheme: vi.fn(),
 });
 let handlers = h();

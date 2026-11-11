@@ -1,0 +1,51 @@
+.dev-sessions { width: min(1120px, calc(100vw - 32px)); height: min(860px, calc(100dvh - 32px)); padding: 20px 24px; overflow: hidden;
+  border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.dev-sessions[open] { display: flex; flex-direction: column; }
+.dev-sessions::backdrop { background: rgba(5, 20, 12, .55); }
+.dev-sessions header { background: var(--surface); padding: 4px 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0; }
+.dev-sessions h2 { font-size: 23px; margin: 4px 0 0; }
+.dev-sessions h3 { font-size: 15px; margin: 16px 0 8px; }
+.dev-eyebrow { font-size: 12px; color: var(--text-2); }
+.dev-sessions p { font-size: 13px; line-height: 1.55; color: var(--text-2); margin: 6px 0; }
+.dev-hint { font-size: 12px; color: var(--text-2); }
+.dev-sessions label { display: flex; flex-direction: column; gap: 7px; color: var(--text-2); font-size: 12px; min-width: 0; margin: 10px 0; }
+.dev-sessions input:not([type=checkbox]), .dev-sessions textarea { width: 100%; min-width: 0; border: 1px solid var(--border-strong);
+  border-radius: 7px; background: var(--bg); color: var(--text); padding: 9px; font: inherit; font-size: 14px; box-sizing: border-box; }
+.dev-sessions textarea { resize: vertical; min-height: 64px; }
+.dev-sessions .dev-check { flex-direction: row; align-items: center; gap: 8px; line-height: 1.5; margin: 6px 0; }
+.dev-check input { width: 20px; height: 20px; flex-shrink: 0; }
+.dev-warn { color: var(--warn); font-weight: 600; }
+.dev-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0; }
+.dev-start { overflow-y: auto; min-height: 0; }
+.dev-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dev-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.dev-list li > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.dev-list small, .dev-bar small { color: var(--text-2); font-size: 12px; }
+.dev-work { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; min-height: 0; flex: 1; }
+.dev-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.dev-side { overflow-y: auto; min-height: 0; border-left: 1px solid var(--border); padding-left: 16px; min-width: 0; }
+.dev-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dev-bar > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.dev-mode { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.dev-log { flex: 1; min-height: 120px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.dev-msg { margin: 10px 0; overflow-wrap: anywhere; }
+.dev-msg > b { font-size: 12px; color: var(--text-2); }
+.dev-msg.user p { background: var(--user-bubble, var(--surface-2)); border-radius: 12px; padding: 8px 12px; margin: 4px 0; color: var(--text); white-space: pre-wrap; }
+.dev-composer textarea { margin-top: 6px; }
+.dev-skills { border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 13px; }
+.dev-skills summary { cursor: pointer; padding: 6px 0; }
+.dev-changes { margin: 0; padding-left: 20px; font-size: 13px; display: grid; gap: 6px; overflow-wrap: anywhere; }
+.dev-changes li[data-undone=true] { color: var(--text-2); text-decoration: line-through; }
+.dev-sessions .notice { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-strong); margin: 8px 0; color: var(--text); }
+.dev-sessions .notice.error { border-color: var(--danger); color: var(--danger); }
+.dev-sessions .notice.warn { border-color: var(--warn); }
+.dev-sessions button { min-height: 36px; }
+.dev-sessions :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+@media (max-width: 860px) {
+  .dev-sessions { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 12px; border-radius: 0; border: 0; }
+  .dev-work { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; overflow-y: auto; gap: 8px; }
+  .dev-main { min-height: 70dvh; }
+  .dev-side { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); overflow: visible; }
+  .dev-list li { flex-wrap: wrap; }
+}
+@media (pointer: coarse) { .dev-sessions button, .dev-sessions input:not([type="checkbox"]), .dev-sessions textarea, .dev-sessions summary { min-height: 44px; } }

@@ -4,6 +4,8 @@
 // the on-screen keyboard. Usage: node web/e2e/mobile.mjs <baseUrl> [screenshotDir]
 import { chromium } from "playwright-core";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const base = (process.argv[2] || "http://127.0.0.1:8767").replace(/\/$/, "");
 const out = process.argv[3] || "e2e/screenshots-mobile";
@@ -102,6 +104,21 @@ const openSidebar = async (page) => {
 };
 const side = async (page, name) => { await openSidebar(page); await page.locator(".sidebar > .side-btn, .sidebar-bottom > .side-btn").filter({ hasText: name }).first().click(); }; // never a conversation titled alike
 
+/** A Dev session on a fresh folder of this computer (the scripted server runs here too). */
+async function openDevSession(page) {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "spike-mobile-dev-"));
+  fs.writeFileSync(path.join(folder, "calc.py"), "x = 1\n", "utf-8");
+  await side(page, /Sesiones Dev/);
+  await page.locator("dialog.dev-sessions").waitFor();
+  await page.locator('[name="dev-folder"]').fill(folder);
+  await page.getByTestId("dev-open").click();
+  await page.getByTestId("dev-send").waitFor();
+}
+async function endDevSessions(page, ctx) {
+  const r = await ctx.request.get(`${base}/api/dev/sessions`);
+  for (const s of (await r.json()).active) await ctx.request.delete(`${base}/api/dev/sessions/${s.id}`);
+}
+
 const scenes = [
   { id: "chat-welcome", run: async () => {} },
   { id: "sidebar-drawer", run: async (page) => { await openSidebar(page); } },
@@ -126,6 +143,15 @@ const scenes = [
   { id: "workspace-panel", run: async (page) => { await side(page, /Trabajos y conocimiento/); await page.getByRole("dialog", { name: "Trabajos y conocimiento" }).waitFor(); } },
   { id: "subtitles", run: async (page) => { await side(page, /Audio y subt/); await page.getByRole("dialog", { name: /Audio y subt/ }).waitFor(); } },
   { id: "device-lab", run: async (page) => { await side(page, /Device Lab/); await page.locator("dialog.device-lab").waitFor(); } },
+  { id: "dev-sessions", run: async (page) => { await side(page, /Sesiones Dev/); await page.locator("dialog.dev-sessions").waitFor(); } },
+  // O1: a Dev session (history, plan/act, changes, files) and, below, its permission card waiting for an answer.
+  { id: "dev-session", cleanup: endDevSessions, run: async (page) => { await openDevSession(page); await page.getByTestId("dev-act").waitFor(); } },
+  { id: "dev-permission", cleanup: endDevSessions, run: async (page) => {
+    await openDevSession(page);
+    await page.locator('[name="dev-input"]').fill("dev-e2e edit: cambia x a 2");
+    await page.getByTestId("dev-send").click();
+    await page.locator("dialog.dev-sessions .permission", { hasText: "edit_file" }).waitFor({ timeout: 15000 });
+  } },
   { id: "forge", run: async (page) => { await side(page, /Forge/); await page.locator(".forge").first().waitFor(); } },
   { id: "creator", run: async (page) => { await side(page, /Crear/); await page.locator(".template-card").first().waitFor(); } },
   { id: "creator-template", run: async (page) => { await side(page, /Crear/); await page.locator(".template-card").first().click(); } },
