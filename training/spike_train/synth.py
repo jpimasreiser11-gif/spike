@@ -22,6 +22,7 @@ import asyncio
 import hashlib
 import json
 import math
+import os
 import random
 import re
 from collections import Counter
@@ -333,35 +334,25 @@ async def generate(teacher: Teacher, spec: Any, topics: list[Topic], kinds: dict
                     return await make_mcq(teacher, system, spec.domain, task_id, topic, rng, seen, min_score, keep_reasoning)
                 return await make_sql(teacher, system, task_id, topic, rng, seen, min_score)
 
-        done = good = 0
-        for i in sorted(saved):
-            row, reason = saved[i]
-            done += 1
-            if row:
-                rows.append(row)
-                kept[kind] += 1
-                good += 1
-            else:
-                dropped[f"{kind}:{reason}"] += 1
+        results: dict[int, tuple[dict | None, str]] = dict(saved)
         if saved:
-            progress(f"  {kind}: {done}/{n} restored from the checkpoint, {good} kept")
+            progress(f"  {kind}: {len(saved)}/{n} restored from the checkpoint, "
+                     f"{sum(1 for row, _ in saved.values() if row)} kept")
         todo = [i for i in range(n) if i not in saved]
         for start in range(0, len(todo), BATCH):
             batch = todo[start:start + BATCH]
-            results = await asyncio.gather(*(job(i) for i in batch))
+            answers = dict(zip(batch, await asyncio.gather(*(job(i) for i in batch)), strict=True))
             if log is not None:
-                with log.open("a", encoding="utf-8") as f:
-                    for i, (row, reason) in zip(batch, results, strict=True):
-                        f.write(json.dumps({"i": i, "row": row, "reason": reason}, ensure_ascii=False) + "\n")
-            for row, reason in results:
-                done += 1
-                if row:
-                    rows.append(row)
-                    kept[kind] += 1
-                    good += 1
-                else:
-                    dropped[f"{kind}:{reason}"] += 1
-            progress(f"  {kind}: {done}/{n} processed, {good} kept")
+                append_answers(log, answers)
+            results.update(answers)
+            progress(f"  {kind}: {len(results)}/{n} processed, {sum(1 for row, _ in results.values() if row)} kept")
+        for i in range(n):          # task order, so a resumed run gives the same file as one that never stopped
+            row, reason = results[i]
+            if row:
+                rows.append(row)
+                kept[kind] += 1
+            else:
+                dropped[f"{kind}:{reason}"] += 1
     return rows, kept, dropped
 
 
@@ -389,6 +380,23 @@ async def saved_tasks(path: Path, n: int, write: Callable[[], Any]) -> list[str]
     tmp.write_text(json.dumps(tasks, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
     return tasks
+
+
+def append_answers(path: Path, answers: dict[int, tuple[dict | None, str]]) -> None:
+    """Append one finished batch and flush it to disk. A line cut by an earlier crash is closed first, so the new lines
+    stay readable."""
+    cut = False
+    if path.exists() and path.stat().st_size > 0:
+        with path.open("rb") as f:
+            f.seek(-1, os.SEEK_END)
+            cut = f.read(1) != b"\n"
+    with path.open("a", encoding="utf-8") as f:
+        if cut:
+            f.write("\n")
+        for i, (row, reason) in answers.items():
+            f.write(json.dumps({"i": i, "row": row, "reason": reason}, ensure_ascii=False) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def read_answers(path: Path) -> dict[int, tuple[dict | None, str]]:

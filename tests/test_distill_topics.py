@@ -829,3 +829,18 @@ def test_distill_py_resumes_a_topics_run_from_out_parts(tmp_path, monkeypatch):
     again = CrashingTeacher()
     rows = run_distill(tmp_path, monkeypatch, cfg, again)
     assert again.instructions == [] and len(rows) == 12
+
+
+def test_a_resumed_run_keeps_task_order_and_survives_a_cut_line(tmp_path, monkeypatch):
+    monkeypatch.setattr(synth, "BATCH", 4)
+    ckpt = tmp_path / "parts"
+    with pytest.raises(RuntimeError):
+        make({"open": 1}, CrashingTeacher(crash_after=6), target=12, checkpoint=ckpt)
+    log = ckpt / "open.jsonl"
+    kept_lines = log.read_text(encoding="utf-8").splitlines()[1:]             # task 0 lost: it is asked again
+    log.write_text("\n".join(kept_lines) + '\n{"i": 11, "row": nul', encoding="utf-8")   # and a write cut, no newline
+    rows, _, _ = make({"open": 1}, FakeTeacher(), target=12, checkpoint=ckpt)
+    ids = [int(r["meta"]["task_id"].rsplit("-", 1)[1]) for r in rows]
+    assert ids == sorted(ids) and ids[0] == 0
+    assert len(synth.read_answers(log)) == 12                                 # every line after the cut is readable
+    assert len(log.read_text(encoding="utf-8").splitlines()) == 13           # the cut line stays, closed and skipped
