@@ -28,7 +28,7 @@ const L = lang === "es"
       temperature: "Temperatura (vacío = la del modelo)", maxTokens: "Máximo de tokens por respuesta", reasoning: "Modo razonamiento", rDefault: "Por defecto del modelo", rOn: "Activado", rOff: "Desactivado",
       save: "Guardar", saved: "Guardado", add: "Añadir proveedor", preset: "Plantilla", key: "API key", keySaved: "clave guardada", model: "Modelo", baseUrl: "URL base",
       allowPaid: "Permitir peticiones de pago", paidWarn: "Este proveedor puede cobrarte. SPIKE no enviará nada hasta que lo permitas.", test: "Probar conexión", default: "Predeterminado",
-      makeDefault: "Usar por defecto", remove: "Eliminar", ok: "Conectado", models: "modelos", adapters: "adaptadores", bind: "Ejecutar en", inherit: "Proveedor por defecto",
+      makeDefault: "Usar por defecto", remove: "Eliminar", ok: "Conectado", models: "modelos", adapters: "adaptadores", bind: "Ejecutar en", inherit: "Proveedor predeterminado",
       adapterStatus: "Adaptador", specInstr: "Instrucciones de este especialista", policy: "Política", allow: "Permitir", ask: "Preguntar", deny: "Bloquear",
       hw: "Hardware", cores: "núcleos", rec: "Recomendado", modelPath: "Ruta del modelo GGUF", ctx: "Contexto (tokens)", start: "Iniciar", stop: "Detener", status: "Estado", running: "En marcha", stoppedS: "Parado", load: "carga",
       secrets: "Almacén de claves", pull: "Descarga el modelo base con: spike models pull", keyLink: "Obtener clave",
@@ -39,7 +39,7 @@ const L = lang === "es"
       tuneQuick: "Prueba rápida (menos precisa)", tuning: "Midiendo…", threads: "hilos", gen: "generación", prompt: "lectura", failedCfg: "no arranca",
       tuneSaved: "Guardado", ctxEstimated: "contexto estimado por memoria, no medido", lastTune: "Última optimización", noModelTune: "Primero elige un modelo local.",
       sandbox: "Aislamiento del código", sandboxMode: "Aislar el código que ejecuta SPIKE",
-      sandboxHint: "El código que escribe un modelo (python, data_python) se ejecuta aislado si tu ordenador lo permite: sin red y escribiendo solo en su carpeta de trabajo y en una temporal privada. Usa bubblewrap (Linux) o sandbox-exec (macOS); en Windows no hay aislamiento. Los comandos de spike dev (run_command) los apruebas tú, uno a uno: en modo automático se ejecutan sin aislar, para que sigan funcionando npm install, git pull y tus herramientas. Solo el modo obligatorio los aísla, y entonces no tienen red.",
+      sandboxHint: "El código que escribe un modelo (python, data_python) se ejecuta aislado si tu ordenador lo permite: sin red y escribiendo solo en su carpeta de trabajo y en una carpeta temporal privada. Usa bubblewrap (Linux) o sandbox-exec (macOS); en Windows no hay aislamiento. Los comandos de spike dev (run_command) los apruebas tú, uno a uno: en modo automático se ejecutan sin aislar, para que sigan funcionando npm install, git pull y tus herramientas. Solo el modo obligatorio los aísla, y entonces no tienen red.",
       sandboxAuto: "Automático: aislar python y data_python si se puede", sandboxOff: "Desactivado: no aislar nada", sandboxRequired: "Obligatorio: aislar también los comandos y no ejecutar código sin aislamiento",
       sandboxOn: "disponible", sandboxNone: "no disponible", sandboxBlocked: "Con «Obligatorio» y sin aislamiento disponible, SPIKE no ejecutará python ni run_command.",
     }

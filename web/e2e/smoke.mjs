@@ -1039,11 +1039,21 @@ await devDialog.getByText("Cambio aplicado: x vale 2 en calc.py.").waitFor({ tim
 if (devCalc() !== "x = 2\n") fail("the allowed edit must be applied");
 await devDialog.getByTestId("dev-changes").getByText("calc.py").first().waitFor();
 await devDialog.locator('[data-artifact-file="calc.py"]').first().waitFor();
+await devDialog.locator('[data-testid="task-actions"] li[data-permission="allow_once"]', { hasText: "edit_file" }).waitFor();
 await page.screenshot({ path: `${out}/07w-dev-session.png` });
 await devDialog.getByTestId("dev-undo").click();
 await devDialog.locator('[data-testid="dev-changes"] li[data-undone="true"]').waitFor();
 if (devCalc() !== "x = 1\n") fail("undo must put the file back");
 if (chatPermissionPosts.length || devPermissionPosts.length !== 1) fail(`permissions must go through /api/dev only: chat ${chatPermissionPosts.length}, dev ${devPermissionPosts.length}`);
+await devDialog.getByTestId("dev-end").click();
+await devDialog.locator('[name="dev-folder"]').waitFor();
+// O2: resuming the saved session rebuilds its task space from the saved events; nothing asks or runs again
+await devDialog.locator('[name="dev-folder"]').fill(devFolder);
+await devDialog.getByTestId("dev-saved").click();
+await devDialog.getByTestId("dev-saved-list").getByRole("button", { name: /^Reanudar/ }).first().click();
+await devDialog.locator('[data-testid="task-actions"] li[data-permission="allow_once"]', { hasText: "edit_file" }).waitFor({ timeout: 10000 });
+if (await devDialog.locator(".permission:not(.done)").count()) fail("a resumed session must not ask anything again");
+if (devCalc() !== "x = 1\n" || devPermissionPosts.length !== 1) fail("resuming must not run anything again");
 await devDialog.getByTestId("dev-end").click();
 await devDialog.locator('[name="dev-folder"]').waitFor();
 await devDialog.getByTestId("dev-close").click();
@@ -1484,6 +1494,20 @@ await report.getByRole("button", { name: "Cerrar", exact: true }).click();
 if (!(await page.locator(".trace").getByText("ronda 2").count())) fail("the sent-back step is not shown");
 if ((await page.locator(".trace .role-verify").count()) < 2) fail("expected two checker passes in the trace");
 await page.screenshot({ path: `${out}/07i-forge-report.png`, fullPage: true });
+// O2: the same task in one place, rebuilt from the answer's saved events: the plan, each action with the permission it
+// got, the changed files and the deliverables
+await page.getByTestId("task-open").last().click();
+const taskDialog = page.getByRole("dialog", { name: "Espacio de tarea" });
+await taskDialog.waitFor();
+if ((await taskDialog.locator('[data-testid="task-actions"] li[data-permission="allow_once"]').count()) !== 2) fail("the task space must list both writes as allowed once");
+if ((await taskDialog.locator('[data-testid="task-steps"] li').count()) < 2) fail("the task space must show the plan's steps");
+await taskDialog.locator('[data-testid="task-files"]').getByText("informe.md").first().waitFor();
+await taskDialog.locator('[data-artifact-file="informe.md"]').first().waitFor();
+await taskDialog.getByText("Terminada", { exact: true }).waitFor();
+await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity));
+await page.screenshot({ path: `${out}/07j-task-space.png` });
+await page.keyboard.press("Escape");
+await taskDialog.waitFor({ state: "hidden" });
 
 // Creator: a template and a few answers become a Forge plan; the run follows the template's skill and design system
 await page.getByRole("button", { name: "Crear", exact: true }).click();

@@ -12,8 +12,9 @@ Provides a terminal software-engineering loop (`spike dev`) with file editing, t
 
 1. For terminal coding sessions, run `.venv/bin/spike dev` inside your project directory (refuses `$HOME` or `/` unless confirmed).
 2. Inside `spike dev`, use `/plan` for read-only planning, `/act` for broker-governed edits, and `/undo` to roll back a step.
-3. For **Device Lab** in the web UI, click **Device Lab** in the sidebar, enter the target URL, select device profiles, check the approval box, and click **Run device check**.
-4. Inspect the per-device screenshots, layout/touch-target findings, and the downloadable report.
+3. In the app, **Dev sessions** (sidebar or Ctrl/Cmd+K) opens the same agent on a folder: every edit and every command asks on a card. On the right (below, on a phone) is the **task space**: the plan, each action with the permission it got, the changed files with **Undo the latest change**, and the deliverables. Resuming a saved session rebuilds it from what was saved: nothing is asked or run again.
+4. For **Device Lab** in the web UI, click **Device Lab** in the sidebar, enter the target URL, select device profiles, check the approval box, and click **Run device check**.
+5. Inspect the per-device screenshots, layout/touch-target findings, and the downloadable report.
 
 ## Real limits
 

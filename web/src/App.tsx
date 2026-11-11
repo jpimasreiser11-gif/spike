@@ -16,6 +16,7 @@ import { ProofDownload } from "./components/ProofDownload";
 import { SpecMark } from "./components/SpecMark";
 import { lang as LANG, t } from "./i18n";
 import { applyEvent, emptyRun, recordEvent, runFromStored } from "./run";
+import { taskFromEvents } from "./taskSpace";
 import type { Blueprint, ChatEvent, Conversation, DesignSystemInfo, MindsSpec, PermissionState, Project, ProviderInfo, RunState, Specialist, StoredMessage } from "./types";
 
 // Views opened on demand load their code when first opened (G25: the main bundle was ~820 kB).
@@ -26,6 +27,7 @@ const SubtitleStudio = lazy(() => import("./components/SubtitleStudio").then((m)
 const Forge = lazy(() => import("./components/Forge").then((m) => ({ default: m.Forge })));
 const Research = lazy(() => import("./components/Research").then((m) => ({ default: m.Research })));
 const Replay = lazy(() => import("./components/Replay").then((m) => ({ default: m.Replay })));
+const TaskDialog = lazy(() => import("./components/TaskSpace").then((m) => ({ default: m.TaskDialog })));
 const DeviceLab = lazy(() => import("./components/DeviceLab").then((m) => ({ default: m.DeviceLab })));
 const DevSessions = lazy(() => import("./components/DevSessions").then((m) => ({ default: m.DevSessions })));
 const HistorySearch = lazy(() => import("./components/HistorySearch").then((m) => ({ default: m.HistorySearch })));
@@ -112,7 +114,11 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<ArtifactDoc | null>(null);
   const [replay, setReplay] = useState<ChatEvent[] | null>(null);
+  const [task, setTask] = useState<number | null>(null); // the answer whose task space is open; it follows a running answer
   const [items, setItems] = useState<Item[]>([]);
+  const taskEntry = task === null ? undefined : items[task];
+  const taskItem = taskEntry?.kind === "assistant" ? taskEntry : null;
+  useEffect(() => setTask(null), [activeId]); // another chat: its answers are other tasks
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState("auto");
   const [temporary, setTemporary] = useState(false); // a chat kept in memory only, without SPIKE's memory
@@ -517,7 +523,7 @@ export default function App() {
                       onBranch={!busy && it.id && activeId ? (text) => branch(text, i) : undefined} />
                   ) : (
                     <AssistantMessage key={i} run={it.run} specialists={specialists} onPermission={onPermission} projectId={project?.id}
-                      providers={providers} onReplay={() => setReplay(it.run.events ?? null)}
+                      providers={providers} onReplay={() => setReplay(it.run.events ?? null)} onTask={() => setTask(i)}
                       messageId={items[i - 1]?.kind === "user" ? (items[i - 1] as { id?: string }).id : undefined}
                       question={items[i - 1]?.kind === "user" ? (items[i - 1] as { text: string }).text : undefined}
                       onRetry={!busy && i === items.length - 1 && lastUser === i - 1 && items[lastUser].kind === "user"
@@ -552,6 +558,7 @@ export default function App() {
       </Suspense>}
 
       {replay && <Suspense fallback={null}><Replay events={replay} specialists={specialists} onClose={() => setReplay(null)} /></Suspense>}
+      {taskItem && <Suspense fallback={null}><TaskDialog view={taskFromEvents(taskItem.run.events, taskItem.run)} projectId={project?.id} onClose={() => setTask(null)} /></Suspense>}
 
       {samplesOpen && (
         <SampleProjects onClose={() => setSamplesOpen(false)}

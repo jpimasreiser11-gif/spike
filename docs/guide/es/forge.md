@@ -12,7 +12,7 @@ Ejecuta tareas de varios pasos con un plan explícito de especialistas, presupue
 
 1. Pulsa **Forge** en la barra lateral para abrir el banco de trabajo.
 2. Escribe el objetivo, los archivos esperados (por ejemplo `informe.md`) y elige si quieres revisar el plan antes de ejecutarlo (**Blueprint**).
-3. Sigue en directo cada paso del plan, las herramientas invocadas, los artefactos creados y el veredicto del verificador.
+3. Sigue en directo cada paso del plan, las herramientas invocadas, los artefactos creados y el veredicto del verificador. **Ver tarea**, debajo de la respuesta, reúne la tarea en un solo sitio: el plan con el estado de cada paso, cada acción con el permiso que recibió, los archivos cambiados y los entregables; se rehace con lo guardado, así que abrirlo otro día no repite nada.
 4. En la pestaña **Prototipos Paralelos**, indica un repositorio Git limpio y dos enfoques distintos: SPIKE crea dos worktrees aislados, ejecuta ambos con las mismas comprobaciones y muestra el diff lado a lado; nada se fusiona en tu rama hasta que eliges `A` o `B` y confirmas.
 
 ## Límites reales

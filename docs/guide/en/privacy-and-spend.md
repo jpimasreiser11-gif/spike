@@ -11,7 +11,7 @@ Ensures SPIKE runs 100% locally by default with zero telemetry or unapproved net
 ## Step-by-step usage
 
 1. Open **Settings › Permissions & Sandbox** to select the sandbox mode (`Auto`, `Workspace only`, or `Off`) and per-tool policies (`Ask`, `Allow`, `Deny`).
-2. Open **Settings › Providers** to inspect local (`127.0.0.1`) vs remote/paid providers: paid providers cannot be called or receive local files unless you explicitly enable their toggles and configure spend limits.
+2. Open **Settings › Providers** to inspect local (`127.0.0.1`) vs remote/paid providers: paid providers cannot be called or receive local files unless you explicitly enable their toggles and configure spend limits. Monthly limits also count the calls still running, so several at once stop where they would one after another.
 3. Open **Settings › Privacy & Spend** to audit the local call log (`calls`), review per-provider token and cost totals, or clear the call log.
 4. On any chat message, inspect the **Trust** badge (verifying whether numbers and citations trace back to tool outputs) or export a signed **Proof** bundle (`.spike-proof.json`) verifiable via `spike proof verify`.
 

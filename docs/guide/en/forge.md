@@ -12,7 +12,7 @@ Runs multi-step tasks with an explicit specialist plan, step and tool budgets, d
 
 1. Click **Forge** in the sidebar to open the Forge workspace.
 2. Enter the goal, expected output files (e.g., `report.md`), and optionally enable **Blueprint** review to edit or approve steps before execution.
-3. Inspect each step's progress, tool calls, generated deliverables, and verifier verdict.
+3. Inspect each step's progress, tool calls, generated deliverables, and verifier verdict. **View task**, under the answer, gathers the task in one place: the plan with each step's state, each action with the permission it got, the changed files and the deliverables; it is rebuilt from what was saved, so opening it another day runs nothing again.
 4. In **Parallel Prototypes**, point to a clean Git repository and describe two approaches: SPIKE runs both in isolated worktrees, compares diffs and test results, and merges nothing until you explicitly pick `A` or `B` and confirm.
 
 ## Real limits

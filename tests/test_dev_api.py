@@ -426,3 +426,33 @@ async def test_clear_starts_a_new_conversation_and_keeps_the_changes(env):
     assert (await env.api.get(f"/api/dev/sessions/{info['id']}/messages")).json()["messages"] == []
     assert len((await env.api.get(f"/api/dev/sessions/{info['id']}/changes")).json()["changes"]) == 1
     await env.state.close()
+
+
+async def test_the_task_space_reopens_from_the_saved_events_after_a_restart(env):
+    """O2: a turn's events are kept with its answer, as the chat keeps them, so the task space rebuilds the actions,
+    the permission each one got and the changed files after a restart without asking the model or running anything."""
+    info = await env.open()
+    env.model._script = [call("edit_file", EDIT, "e"), call("edit_file", {"path": "calc.py", "old": "2", "new": "3"}, "f"),
+                         text("Changed x to 2; 3 was refused.")]
+    live = env.turn(info["id"], "set x")
+    first = await live.until("permission_request")
+    await env.api.post(f"/api/dev/permissions/{first['id']}", {"decision": "allow_once"})
+    second = await live.until("permission_request")
+    await env.api.post(f"/api/dev/permissions/{second['id']}", {"decision": "deny"})
+    await live.rest()
+    await env.state.close()
+
+    env.boot()
+    env.model.requests.clear()
+    env.model._script = []
+    back = await env.open(resume_id=info["conversation_id"])
+    answer = (await env.api.get(f"/api/dev/sessions/{back['id']}/messages")).json()["messages"][1]
+    events = answer["meta"]["events"]
+    assert [e["call_id"] for e in events if e["type"] == "permission_request"] == ["e", "f"]
+    assert [e["decision"] for e in events if e["type"] == "permission_resolved"] == ["allow_once", "deny"]
+    assert [(e["id"], e["ok"], "checkpoint" in e) for e in events if e["type"] == "tool_result"] == [
+        ("e", True, True), ("f", False, False)]
+    assert [e["text"] for e in events if e["type"] == "delta"] == ["Changed x to 2; 3 was refused."]  # pieces merged
+    assert all(isinstance(e["t"], float) for e in events)
+    assert env.model.requests == [] and env.calc() == "x = 2\n"
+    await env.state.close()

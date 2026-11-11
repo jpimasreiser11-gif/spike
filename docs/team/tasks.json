@@ -1258,7 +1258,7 @@
    "accept": [
     "report and tests reviewed by Claude"
    ],
-   "note": "2026-11-11 first pass by Claude: es and en dictionaries compared (only 4 identical strings, all product names: Paper Rebuilder, Dependency Doctor, Visual Critic, Device Lab); README/guide/site scanned for unmeasured claims (none); Dev sessions showed the sandbox reason in English, fixed (c6a1f21). CLI help is English in both guides by design (said on the page). Left: a full proofreading pass of every visible text, when workers are back (weekly limit until 2026-11-16)."
+   "note": "2026-11-11 first pass by Claude: es and en dictionaries compared (only 4 identical strings, all product names: Paper Rebuilder, Dependency Doctor, Visual Critic, Device Lab); README/guide/site scanned for unmeasured claims (none); Dev sessions showed the sandbox reason in English, fixed (c6a1f21). CLI help is English in both guides by design (said on the page). Left: a full proofreading pass of every visible text, when workers are back (weekly limit until 2026-11-16). 2026-11-11: a proofreading pass of the Spanish dictionary (Haiku worker, each finding checked by Claude): 8 fixes (proceso, Espacio de trabajo, the memory rule sentence, conjunto de datos, archivo, carpeta temporal, Proveedor predeterminado also in Settings, the specialist hint). English dictionary pass the same way: 12 fixes (American spelling kept as the majority: canceled, recognizes, labeled; 'Settings → X' as the one path separator in both languages; four unclear sentences). Open: the remaining doubts (number format 2000/20.000, anglicisms such as landing page or postmortem), left as they are unless joan prefers otherwise."
   },
   {
    "id": "O1",
@@ -1277,7 +1277,7 @@
   {
    "id": "O2",
    "owner": "claude",
-   "status": "todo",
+   "status": "done",
    "phase": "app",
    "title": "Un espacio de tarea unificado",
    "depends": [],
@@ -1286,7 +1286,7 @@
    "accept": [
     "report and tests reviewed by Claude"
    ],
-   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own). 2026-11-11: waits for workers (weekly limit until 2026-11-16); O1 is merged, so its events exist to build on."
+   "note": "2026-11-11: done by Claude (workers on their weekly limit). Report docs/team/reports/O2.md: task space rebuilt only from the events kept with each answer (Dev sessions now keep them, shared rule in spike/core/run_record.py); chat 'Ver tarea' for Forge and multi-step answers, Dev side panel; reopens after a restart without running anything (Python test with a restarted server, smoke with a resumed session); mobile.mjs OK."
   },
   {
    "id": "O3",

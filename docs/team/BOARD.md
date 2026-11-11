@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 2 | 3 | 0 | 0 | 41 | 0 | 46 |
+| Claude | 1 | 3 | 0 | 0 | 42 | 0 | 46 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Mac | 2 | 3 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **7** | **6** | **0** | **0** | **78** | **0** | **91** |
+| **Total** | **6** | **6** | **0** | **0** | **79** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -82,7 +82,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G45 | Claude | hecha | Humo de los instaladores sin modelo | - |
 | G46 | Claude | en curso | Revisión final de textos | - |
 | O1 | Claude | hecha | Sesiones de Spike Dev en la app (API e interfaz) | - |
-| O2 | Claude | pendiente | Un espacio de tarea unificado | - |
+| O2 | Claude | hecha | Un espacio de tarea unificado | - |
 | O3 | Claude | hecha | Instalar skills desde una URL de GitHub, con revisión | - |
 | O4 | Claude | hecha | Revisión de seguridad previa al lanzamiento (para L2) | - |
 | O5 | Claude | hecha | Revisar la integración del PR #2 | M13 |

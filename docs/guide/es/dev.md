@@ -12,8 +12,9 @@ Ofrece un bucle de ingeniería de software en terminal (`spike dev`) con lectura
 
 1. Para sesiones de código en terminal, ejecuta `.venv/bin/spike dev` dentro de tu carpeta de trabajo (bloquea arrancar directamente sobre `$HOME` o `/` sin confirmación).
 2. Durante la sesión de `spike dev`, usa `/plan` para pedir una propuesta sin tocar archivos, `/act` para permitir ediciones con permiso y `/undo` para revertir el último paso.
-3. Para **Device Lab** en la web, pulsa **Device Lab** en la barra lateral, escribe la URL a inspeccionar, elige los perfiles de dispositivo y marca la casilla de confirmación antes de pulsar **Probar dispositivos**.
-4. Revisa las capturas reales por perfil, la lista de hallazgos de diseño/accesibilidad y el informe exportable.
+3. En la aplicación, **Sesiones Dev** (barra lateral o Ctrl/Cmd+K) abre el mismo agente sobre una carpeta: cada edición y cada comando piden permiso en una tarjeta. A la derecha (debajo, en el móvil) está el **espacio de tarea**: el plan, cada acción con el permiso que recibió, los archivos cambiados con **Deshacer el último cambio** y los entregables. Al reanudar una sesión guardada se rehace con lo guardado: no se pregunta ni se ejecuta nada otra vez.
+4. Para **Device Lab** en la web, pulsa **Device Lab** en la barra lateral, escribe la URL a inspeccionar, elige los perfiles de dispositivo y marca la casilla de confirmación antes de pulsar **Probar dispositivos**.
+5. Revisa las capturas reales por perfil, la lista de hallazgos de diseño/accesibilidad y el informe exportable.
 
 ## Límites reales
 

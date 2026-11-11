@@ -14,7 +14,7 @@ describe("isolation text", () => {
   it("says aislado / sin aislamiento: <motivo> in Spanish and isolated / not isolated in English", () => {
     const on = { isolated: true, backend: "bwrap", reason: "", code: "" };
     const off = { isolated: false, backend: "none", reason: "bubblewrap (bwrap) is not installed", code: "no_bwrap" };
-    expect(isolationText(on, dicts.es.isolation)).toBe("aislado (bwrap): sin red; escribe solo en la carpeta de trabajo y en una temporal privada");
+    expect(isolationText(on, dicts.es.isolation)).toBe("aislado (bwrap): sin red; escribe solo en la carpeta de trabajo y en una carpeta temporal privada");
     expect(isolationText(off, dicts.es.isolation)).toBe("sin aislamiento: bubblewrap (bwrap) no está instalado");
     expect(isolationText(on, dicts.en.isolation)).toBe("isolated (bwrap): no network; writes only in the working folder and a private temp folder");
     expect(isolationText(off, dicts.en.isolation)).toBe("not isolated: bubblewrap (bwrap) is not installed");

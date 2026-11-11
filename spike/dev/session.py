@@ -4,10 +4,12 @@ edits files and runs commands there; every edit keeps a copy first (`/undo`), ev
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Any
 
+from spike.core.run_record import record_event
 from spike.core.types import Message
 from spike.dev.history import find_session, session_titles
 from spike.dev.tools import dev_tools
@@ -141,10 +143,13 @@ class DevSession:
         self.store.add_message(self.conversation_id, "user", text,
                                {"dev_mode": "plan" if self.plan_mode else "act", "skills": chosen})
         parts: list[str] = []
+        events: list[dict[str, Any]] = []  # kept with the answer: the task space reopens from them, nothing runs again
+        started = time.perf_counter()
         done: Event | None = None
         try:
             async for ev in self.orchestrator.run(self.history, text, options):
                 kind = ev["type"]
+                record_event(events, ev, time.perf_counter() - started)
                 if kind == "permission_request":
                     decision = self.decide(ev)
                     if decision != WAIT:  # WAIT: the app shows a card and calls `broker.resolve` when the user answers
@@ -164,7 +169,7 @@ class DevSession:
             answer = done["text"] if done else "".join(parts)
             meta = {"private": bool(done and done["private"]), "specialists": done["specialists"] if done else [],
                     **({"error": done["error"]} if done and done["error"] else {}),
-                    **({} if done else {"stopped": True})}
+                    **({} if done else {"stopped": True}), "events": events}
             self.store.add_message(self.conversation_id, "assistant", answer, meta)
             self.history.append(Message(role="user", content=text))
             if answer:

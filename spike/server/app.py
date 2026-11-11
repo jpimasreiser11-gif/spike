@@ -26,6 +26,7 @@ from spike.analytics.report import ReportError, build_docx, build_pdf, clean_blo
 from spike.connectors.apps import AppError
 from spike.contracts import schema_error
 from spike.core.context import estimate_tokens
+from spike.core.run_record import record_event
 from spike.core.types import Message, ProviderError
 from spike.design.library import MAX_ZIP as MAX_DESIGN_BYTES
 from spike.design.library import DesignError, preview_html
@@ -322,7 +323,6 @@ class ConversationPatch(BaseModel):
     provider_id: str | None = None
 
 
-MAX_RUN_EVENTS = 3000  # events kept per answer for the step-by-step view
 MAX_REPORT_BYTES = 40 * 1024**2  # an analysis report with its chart images
 PLAYABLE = {".mp4": "video/mp4", ".webm": "video/webm", ".gif": "image/gif"}  # served with their type so the chat plays them
 
@@ -1837,14 +1837,8 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
             started = time.perf_counter()
 
             def record(ev: dict[str, Any]) -> None:
-                """The run's events, for the step-by-step view; consecutive text pieces are merged."""
-                events = meta.setdefault("events", [])
-                last = events[-1] if events else None
-                if (ev["type"] in ("delta", "reasoning") and last and last["type"] == ev["type"]
-                        and last.get("subtask") == ev.get("subtask") and last.get("mind") == ev.get("mind")):
-                    last["text"] += ev["text"]
-                elif len(events) < MAX_RUN_EVENTS:
-                    events.append({**ev, "t": round(time.perf_counter() - started, 3)})
+                """The run's events, for the step-by-step view and the task space."""
+                record_event(meta.setdefault("events", []), ev, time.perf_counter() - started)
             def absorb(m: dict[str, Any], ev: dict[str, Any]) -> None:
                 """What an event adds to the record `m` of an answer (the caller handles `done`)."""
                 kind = ev["type"]

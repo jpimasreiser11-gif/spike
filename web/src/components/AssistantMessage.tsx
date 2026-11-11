@@ -3,6 +3,7 @@ import { ApiError, api } from "../api";
 import { t } from "../i18n";
 import { isolationText } from "../isolation";
 import { teamSteps } from "../run";
+import { hasTask } from "../taskSpace";
 import type { ForgeReport, Learn, PermissionState, ProviderInfo, QuestionState, RunState, Specialist, ToolState, VerifyState, VideoUi } from "../types";
 import { ArtifactFiles, fileUrl } from "./ArtifactFiles";
 export { fileUrl } from "./ArtifactFiles";
@@ -306,7 +307,7 @@ function Retry({ providers, specialists, routed, onRetry, failed }: {
   );
 }
 
-export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, replay = false, messageId, question = "", apiBase, fileUrl }: {
+export function AssistantMessage({ run, specialists, onPermission, projectId, providers = [], onRetry, onReplay, onTask, replay = false, messageId, question = "", apiBase, fileUrl }: {
   run: RunState;
   specialists: Specialist[];
   onPermission?: (id: string, status: PermissionState["status"]) => void;
@@ -314,6 +315,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
   providers?: ProviderInfo[];
   onRetry?: (providerId: string | null, specialist?: string) => void; // only on the chat's last answer
   onReplay?: () => void;
+  onTask?: () => void; // opens the task space of a multi-step answer (plan, actions, changed files, deliverables)
   replay?: boolean; // shown inside the step-by-step view: nothing in it acts
   messageId?: string; // the user's message this answers, for what it taught SPIKE
   question?: string; // the user's message, for the data report
@@ -446,6 +448,8 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
       {run.error && <div className="error-box" role="alert">{t.error}: {run.error}</div>}
       {run.status === "stopped" && <div className="notice">{t.stopped}</div>}
 
+      {live && !replay && onTask && hasTask(run) && <div className="msg-actions">
+        <button className="link-btn small" data-testid="task-open" onClick={onTask}>{t.task.open}</button></div>}
       {!live && !replay && run.text && <VoiceOutput text={run.text} />}
       {!live && !replay && (run.text || onRetry) && (
         <div className="msg-actions">
@@ -455,6 +459,7 @@ export function AssistantMessage({ run, specialists, onPermission, projectId, pr
           {onRetry && <Retry providers={providers} specialists={specialists} routed={(run.route?.specialists ?? []).map((s) => s.id)}
             onRetry={onRetry} failed={run.status === "error"} />}
           {onReplay && run.events?.length ? <button className="link-btn small" onClick={onReplay}>{t.replay}</button> : null}
+          {onTask && hasTask(run) ? <button className="link-btn small" data-testid="task-open" onClick={onTask}>{t.task.open}</button> : null}
           {copied && <span className="muted small">{t.copied}</span>}
           {run.elapsed !== undefined && <span className="muted small">{run.elapsed.toFixed(1)} s</span>}
           {sensitive && <span className="muted small disclaimer">{t.disclaimerSensitive}</span>}

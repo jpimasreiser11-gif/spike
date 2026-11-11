@@ -11,7 +11,7 @@ Garantiza que SPIKE funcione 100 % en local por defecto sin telemetría ni llama
 ## Cómo se usa paso a paso
 
 1. Abre **Ajustes › Permisos y sandbox** para elegir el modo de aislamiento (`Automático`, `Solo carpeta de trabajo` o `Desactivado`) y la política de cada herramienta (`Preguntar`, `Permitir` o `Denegar`).
-2. Abre **Ajustes › Proveedores** para ver qué proveedores son locales (`127.0.0.1`) y cuáles son remotos/de pago: un proveedor de pago no puede recibir llamadas ni archivos locales salvo que actives sus casillas explícitas y fijes límites en euros/dólares.
+2. Abre **Ajustes › Proveedores** para ver qué proveedores son locales (`127.0.0.1`) y cuáles son remotos/de pago: un proveedor de pago no puede recibir llamadas ni archivos locales salvo que actives sus casillas explícitas y fijes límites en euros/dólares. Los límites mensuales cuentan también las llamadas que siguen en marcha, así que varias a la vez se paran donde se pararían una tras otra.
 3. Abre **Ajustes › Privacidad y gasto** para inspeccionar el registro completo de llamadas (`calls`), el gasto acumulado por proveedor y borrar el historial de llamadas cuando quieras.
 4. En cualquier respuesta del chat, revisa la insignia de **Confianza (Trust)** (que comprueba si las cifras y citas proceden de herramientas ejecutadas) o descarga el paquete **Proof** (`.spike-proof.json`) verificable con `spike proof verify`.
 

@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError, streamPost } from "../api";
 import { projectError, t } from "../i18n";
-import { applyEvent, emptyRun } from "../run";
+import { applyEvent, emptyRun, recordEvent } from "../run";
+import { mergeTasks, storedStatus, taskFromEvents } from "../taskSpace";
 import { isolationText } from "../isolation";
 import type { ChatEvent, Isolation, PermissionState, RunState } from "../types";
-import { ArtifactFiles } from "./ArtifactFiles";
 import { AssistantMessage } from "./AssistantMessage";
 import { Markdown } from "./Markdown";
+import { TaskSpace } from "./TaskSpace";
 import "./DevSessions.css";
 
 const D = t.dev;
@@ -113,9 +114,11 @@ export function DevSessions({ onClose }: { onClose: () => void }) {
     setTurns((all) => [...all, { key, user: text, skills: used, run: { ...emptyRun(), status: "running" } }]);
     const update = (fn: (run: RunState) => RunState) => alive.current && setTurns((all) => all.map((x) => (x.key === key ? { ...x, run: fn(x.run) } : x)));
     const ctl = new AbortController(); stream.current = ctl;
+    const started = performance.now();
     try {
       await streamPost(`/api/dev/sessions/${id}/turn`, { message: text, skills: used }, (ev: ChatEvent) =>
-        update((run) => (ev.type === "stopped" ? { ...run, status: "stopped" } : applyEvent(run, ev))), ctl.signal);
+        update((run) => (ev.type === "stopped" ? { ...run, status: "stopped" }
+          : { ...applyEvent(run, ev), events: recordEvent(run.events, ev, (performance.now() - started) / 1000) })), ctl.signal);
       update((run) => (run.status === "running" ? { ...run, status: "done" } : run));
     } catch (e) {
       if (!ctl.signal.aborted) update((run) => ({ ...run, status: "error", error: e instanceof Error ? e.message : D.failed }));
@@ -143,6 +146,15 @@ export function DevSessions({ onClose }: { onClose: () => void }) {
 
   const pending = changes.filter((c) => !c.undone);
   const deliverables = [...new Set(pending.flatMap((c) => c.files))];
+  // O2: the session's task space, rebuilt from the events kept with each saved answer plus the turns of this window
+  const task = useMemo(() => ({
+    ...mergeTasks([
+      ...history.filter((m) => m.role === "assistant").map((m, i) =>
+        taskFromEvents(m.meta?.events ?? [], { status: storedStatus(m.meta), tools: [] }, i)),
+      ...turns.map((turn) => taskFromEvents(turn.run.events ?? [], turn.run, turn.key)),
+    ]),
+    deliverables: deliverables.map((path) => ({ path, ok: true })),
+  }), [history, turns, changes]); // eslint-disable-line react-hooks/exhaustive-deps -- deliverables come from changes
   const toggleSkill = (name: string) => setChosen((c) => (c.includes(name) ? c.filter((x) => x !== name) : c.length < MAX_SKILLS ? [...c, name] : c));
 
   return (
@@ -223,25 +235,23 @@ export function DevSessions({ onClose }: { onClose: () => void }) {
           </form>
         </section>
 
-        <aside className="dev-side" aria-label={D.changes}>
-          <h3>{D.changes}</h3>
-          {changes.length === 0 ? <p className="dev-hint" data-testid="dev-no-changes">{D.noChanges}</p> : <ol className="dev-changes" data-testid="dev-changes">
-            {changes.map((c) => <li key={c.id} data-undone={c.undone}><code>{c.tool}</code> {c.files.join(", ")}{c.undone ? <small> · {D.undone}</small> : null}</li>)}
-          </ol>}
-          <p className="dev-hint">{D.undoHint}</p>
-          <button className="btn" data-testid="dev-undo" disabled={running || pending.length === 0} onClick={() => void undo(false)}>{D.undoLast}</button>
-          {conflict && <div className="notice warn" role="alertdialog" aria-label={D.conflictTitle} data-testid="dev-conflict">
-            <b>{D.conflictTitle}</b>
-            <ul>{conflict.map((p) => <li key={p}><code>{p}</code></li>)}</ul>
-            <div className="dev-actions">
-              <button className="btn danger" data-testid="dev-undo-force" onClick={() => void undo(true)}>{D.undoAnyway}</button>
-              <button className="btn" onClick={() => setConflict(null)}>{D.keep}</button>
-            </div>
-          </div>}
-          {deliverables.length > 0 && <>
-            <h3>{D.files}</h3>
-            <ArtifactFiles files={deliverables.map((path) => ({ path, ok: true }))} urlFor={(path) => `/api/dev/sessions/${session.id}/files/${fileSegments(path)}`} />
-          </>}
+        <aside className="dev-side" aria-label={t.task.title}>
+          <h3 className="dev-side-title">{t.task.title}</h3>
+          <TaskSpace view={task} urlFor={(path) => `/api/dev/sessions/${session.id}/files/${fileSegments(path)}`} files={<>
+            {changes.length === 0 ? <p className="dev-hint" data-testid="dev-no-changes">{D.noChanges}</p> : <ol className="dev-changes" data-testid="dev-changes">
+              {changes.map((c) => <li key={c.id} data-undone={c.undone}><code>{c.tool}</code> {c.files.join(", ")}{c.undone ? <small> · {D.undone}</small> : null}</li>)}
+            </ol>}
+            <p className="dev-hint">{D.undoHint}</p>
+            <button className="btn" data-testid="dev-undo" disabled={running || pending.length === 0} onClick={() => void undo(false)}>{D.undoLast}</button>
+            {conflict && <div className="notice warn" role="alertdialog" aria-label={D.conflictTitle} data-testid="dev-conflict">
+              <b>{D.conflictTitle}</b>
+              <ul>{conflict.map((p) => <li key={p}><code>{p}</code></li>)}</ul>
+              <div className="dev-actions">
+                <button className="btn danger" data-testid="dev-undo-force" onClick={() => void undo(true)}>{D.undoAnyway}</button>
+                <button className="btn" onClick={() => setConflict(null)}>{D.keep}</button>
+              </div>
+            </div>}
+          </>} />
         </aside>
       </div>}
     </dialog>

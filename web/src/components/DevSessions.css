@@ -21,9 +21,13 @@
 .dev-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .dev-list li > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .dev-list small, .dev-bar small { color: var(--text-2); font-size: 12px; }
-.dev-work { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; min-height: 0; flex: 1; }
+.dev-work { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; min-height: 0; flex: 1; }
 .dev-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .dev-side { overflow-y: auto; min-height: 0; border-left: 1px solid var(--border); padding-left: 16px; min-width: 0; }
+.dev-side-title { margin: 0 0 8px; font-size: 15px; }
+.dev-side .task-space section { padding: 8px 10px; }
+.dev-side .task-space h3 { margin: 0 0 6px; font-size: 14px; }
+.dev-side .task-space p { margin: 0; }
 .dev-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dev-bar > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .dev-mode { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
@@ -43,7 +47,7 @@
 .dev-sessions :focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
 @media (max-width: 860px) {
   .dev-sessions { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 12px; border-radius: 0; border: 0; }
-  .dev-work { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; overflow-y: auto; gap: 8px; }
+  .dev-work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; overflow-y: auto; gap: 8px; }
   .dev-main { min-height: 70dvh; }
   .dev-side { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); overflow: visible; }
   .dev-list li { flex-wrap: wrap; }

@@ -29,6 +29,10 @@ profiles on the base model, marked β, until theirs pass.
   is deleted when SPIKE's data folder is not a folder of its own (G34, G36).
 - Dev sessions in the app: open a folder, plan or act, approve each edit and command on a card, see the changes and
   undo them, from the sidebar or Ctrl/Cmd+K; same engine as `spike dev` (O1).
+- Task space for Forge answers, multi-step answers and Dev sessions: the plan with each step's state, each action with
+  the permission it got (allowed once or always, denied, blocked by your settings, unanswered), the changed files and
+  the deliverables, in one view. It is rebuilt from the events kept with each answer (Dev sessions now keep them too),
+  so it reopens after a restart exactly as it ended and nothing runs again; full screen on a phone (O2).
 - Settings › Skills: install a skill from a GitHub link. SPIKE downloads the archive, shows its license, SKILL.md and
   every file before writing anything, installs exactly what was shown and leaves it off until you turn it on; only
   MIT, Apache-2.0, BSD and ISC skills can be installed, and no model can start an install (O3).
