@@ -68,6 +68,7 @@ async def test_open_reports_the_session_and_lists_it(env):
     info = await env.open()
     assert info["folder"] == str(env.folder.resolve()) and info["plan"] is False and info["history"] == 0
     assert info["provider"] and "sandbox" in info
+    assert set(info["isolation"]) >= {"isolated", "backend", "reason", "code"}  # the app translates it by code
     listing = (await env.api.get("/api/dev/sessions")).json()
     assert [s["id"] for s in listing["active"]] == [info["id"]]
     assert (await env.api.get(f"/api/dev/sessions/{info['id']}")).json()["running"] is False

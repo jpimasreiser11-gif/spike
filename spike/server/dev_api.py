@@ -132,10 +132,11 @@ def create_dev_router(get_state: Callable[[], Any], this_computer: Callable[[Req
             provider, model = s.backend()
         except Exception:  # noqa: BLE001 - no provider yet: the first turn explains it
             provider, model = "", ""
+        iso = s.state.sandbox.isolation(command=True)
         return {"id": active.id, "folder": str(s.root), "conversation_id": s.conversation_id, "plan": s.plan_mode,
                 "running": active.running, "specialist": s.specialist, "provider": provider, "model": model,
                 "history": len(s.history), "broad": active.broad,
-                "sandbox": s.state.sandbox.isolation(command=True).line()}
+                "sandbox": iso.line(), "isolation": iso.to_dict()}  # the app translates `isolation` by its code
 
     async def stop(active: Active) -> bool:
         """Cancel the running turn and wait until it has ended (its command is killed on the way)."""

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, streamPost } from "../api";
 import { projectError, t } from "../i18n";
 import { applyEvent, emptyRun } from "../run";
-import type { ChatEvent, PermissionState, RunState } from "../types";
+import { isolationText } from "../isolation";
+import type { ChatEvent, Isolation, PermissionState, RunState } from "../types";
 import { ArtifactFiles } from "./ArtifactFiles";
 import { AssistantMessage } from "./AssistantMessage";
 import { Markdown } from "./Markdown";
@@ -12,7 +13,7 @@ const D = t.dev;
 
 export type DevSummary = {
   id: string; folder: string; conversation_id: string; plan: boolean; running: boolean; specialist: string;
-  provider: string; model: string; history: number; broad: boolean; sandbox: string;
+  provider: string; model: string; history: number; broad: boolean; sandbox: string; isolation?: Isolation;
 };
 type Saved = { id: string; updated: number; mode: string; messages: number; preview: string };
 type Change = { id: string; tool: string; created: number; undone: boolean; files: string[] };
@@ -180,7 +181,7 @@ export function DevSessions({ onClose }: { onClose: () => void }) {
         <section className="dev-main" aria-label={D.conversation}>
           <div className="dev-bar">
             <div><code title={session.folder}>{session.folder}</code>
-              <small>{session.provider}{session.model ? ` · ${session.model}` : ""} · {D.sandbox}: {session.sandbox}</small></div>
+              <small>{session.provider}{session.model ? ` · ${session.model}` : ""} · {D.sandbox}: {session.isolation ? isolationText(session.isolation) : session.sandbox}</small></div>
             <button className="btn" data-testid="dev-end" disabled={busy} onClick={() => void endSession()}>{D.endSession}</button>
           </div>
           {session.broad && <p className="notice warn" role="note">{D.broadNote}</p>}

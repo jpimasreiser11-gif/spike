@@ -6,6 +6,7 @@ import { api, ApiError } from "./api";
 import { buildCommands } from "./components/CommandPalette";
 import { DevSessions } from "./components/DevSessions";
 import { dicts, projectError, t } from "./i18n";
+import { isolationText } from "./isolation";
 import type { ChatEvent } from "./types";
 
 vi.mock("./api", async (original) => ({ ...(await original<typeof import("./api")>()), streamPost: vi.fn() }));
@@ -14,7 +15,8 @@ vi.mock("./api", async (original) => ({ ...(await original<typeof import("./api"
 
 const D = t.dev;
 const SESSION = { id: "dev_1", folder: "/work/app", conversation_id: "c1", plan: false, running: false, specialist: "code", provider: "local",
-  model: "m", history: 2, broad: false, sandbox: "no isolation" };
+  model: "m", history: 2, broad: false, sandbox: "RAW SERVER LINE (English)",
+  isolation: { isolated: false, backend: "none", reason: "approved commands run outside the sandbox in auto mode", code: "approved_command" } };
 const MESSAGES = [{ id: "m1", role: "user", content: "earlier question", meta: { dev_mode: "act" }, created: 1 },
   { id: "m2", role: "assistant", content: "earlier answer", meta: {}, created: 2 }];
 const SKILLS = [{ name: "writing-plans", description: "Plans", enabled: true }, { name: "tdd", description: "Tests", enabled: true }];
@@ -90,6 +92,14 @@ describe("opening a folder", () => {
     await click(q('[data-testid="dev-open"]'));
     await flush();
     expect(posts.at(-1)).toEqual(["/api/dev/sessions", { folder: "/home/me", confirm_broad: true }]);
+  });
+
+  it("says in the user's language whether commands are isolated", async () => {
+    mockApi();
+    await mount();
+    await openFolder();
+    expect(host.textContent).toContain(isolationText(SESSION.isolation));
+    expect(host.textContent).not.toContain("RAW SERVER LINE");  // the line comes from the code, translated, not the raw text
   });
 
   it("lists the saved sessions of the folder and resumes one by id; an open session can be continued", async () => {
