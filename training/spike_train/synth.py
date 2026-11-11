@@ -20,11 +20,14 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import math
+import os
 import random
 import re
 from collections import Counter
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from spike_train import sqlsandbox
@@ -283,18 +286,36 @@ def _row(system: str, prompt: str, answer: str, task_id: str, kind: str, checks:
 # ------------------------------------------------------------------ the whole run
 async def generate(teacher: Teacher, spec: Any, topics: list[Topic], kinds: dict[str, float], target: int, seed: int, *,
                    min_score: int, samples: int, keep_reasoning: bool,
-                   progress: Callable[[str], None] = lambda message: None) -> tuple[list[dict], Counter, Counter]:
+                   progress: Callable[[str], None] = lambda message: None,
+                   checkpoint: Path | None = None) -> tuple[list[dict], Counter, Counter]:
     """Rows for `target` tasks split over `kinds` (see allocate), the rows kept per kind and the tasks dropped per reason.
-    `spec` is the specialist (id, domain, system_prompt)."""
+    `spec` is the specialist (id, domain, system_prompt).
+
+    With `checkpoint` (a folder), the tasks the teacher writes for a style kind (open, explanation) are saved once, and
+    every finished batch of answers is appended, so a run that stops resumes where it was: nothing saved is asked again.
+    The folder is bound to this run's settings and topics; a folder from another run is refused. mcq and sql tasks are
+    not checkpointed (their duplicate checks live in memory)."""
     rows: list[dict] = []
     kept: Counter = Counter()
     dropped: Counter = Counter()
     system = spec.system_prompt
+    if checkpoint is not None:
+        bind_checkpoint(checkpoint, {"specialist": spec.id, "kinds": kinds, "target": target, "seed": seed,
+                                     "min_score": min_score, "samples": samples, "keep_reasoning": keep_reasoning,
+                                     "topics": [list(t) for t in topics]})
     for kind, n in allocate(kinds, target).items():
         if n == 0:
             continue
+        saved: dict[int, tuple[dict | None, str]] = {}
+        log = None
         if kind in STYLES:
-            prompts = await topic_tasks(teacher, topics, spec.domain, STYLES[kind], n, seed)
+            if checkpoint is not None:
+                prompts = await saved_tasks(checkpoint / f"{kind}.prompts.json", n, lambda kind=kind, n=n: topic_tasks(
+                    teacher, topics, spec.domain, STYLES[kind], n, seed))
+                log = checkpoint / f"{kind}.jsonl"
+                saved = read_answers(log)
+            else:
+                prompts = await topic_tasks(teacher, topics, spec.domain, STYLES[kind], n, seed)
 
             async def job(i: int, kind: str = kind, prompts: list[str] = prompts) -> tuple[dict | None, str]:
                 task = Task(id=f"{spec.id}-{kind}-{i}", prompt=prompts[i], system=system)
@@ -313,15 +334,79 @@ async def generate(teacher: Teacher, spec: Any, topics: list[Topic], kinds: dict
                     return await make_mcq(teacher, system, spec.domain, task_id, topic, rng, seen, min_score, keep_reasoning)
                 return await make_sql(teacher, system, task_id, topic, rng, seen, min_score)
 
-        done = good = 0
-        for start in range(0, n, BATCH):
-            for row, reason in await asyncio.gather(*(job(i) for i in range(start, min(n, start + BATCH)))):
-                done += 1
-                if row:
-                    rows.append(row)
-                    kept[kind] += 1
-                    good += 1
-                else:
-                    dropped[f"{kind}:{reason}"] += 1
-            progress(f"  {kind}: {done}/{n} processed, {good} kept")
+        results: dict[int, tuple[dict | None, str]] = dict(saved)
+        if saved:
+            progress(f"  {kind}: {len(saved)}/{n} restored from the checkpoint, "
+                     f"{sum(1 for row, _ in saved.values() if row)} kept")
+        todo = [i for i in range(n) if i not in saved]
+        for start in range(0, len(todo), BATCH):
+            batch = todo[start:start + BATCH]
+            answers = dict(zip(batch, await asyncio.gather(*(job(i) for i in batch)), strict=True))
+            if log is not None:
+                append_answers(log, answers)
+            results.update(answers)
+            progress(f"  {kind}: {len(results)}/{n} processed, {sum(1 for row, _ in results.values() if row)} kept")
+        for i in range(n):          # task order, so a resumed run gives the same file as one that never stopped
+            row, reason = results[i]
+            if row:
+                rows.append(row)
+                kept[kind] += 1
+            else:
+                dropped[f"{kind}:{reason}"] += 1
     return rows, kept, dropped
+
+
+def bind_checkpoint(folder: Path, settings: dict) -> None:
+    """Create `folder` for this run, or check that it was made by a run with exactly these settings."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "run.json"
+    if path.exists():
+        if json.loads(path.read_text(encoding="utf-8")) != json.loads(json.dumps(settings)):
+            raise SystemExit(f"the checkpoint {folder} belongs to another run (different settings or topics); "
+                             "move it away or pass another folder")
+    else:
+        path.write_text(json.dumps(settings, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+async def saved_tasks(path: Path, n: int, write: Callable[[], Any]) -> list[str]:
+    """The `n` tasks saved at `path`, or the teacher's new ones, saved before any is answered."""
+    if path.exists():
+        tasks = json.loads(path.read_text(encoding="utf-8"))
+        if len(tasks) != n:
+            raise SystemExit(f"the checkpoint {path} holds {len(tasks)} tasks, this run needs {n}")
+        return tasks
+    tasks = await write()
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(tasks, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
+    return tasks
+
+
+def append_answers(path: Path, answers: dict[int, tuple[dict | None, str]]) -> None:
+    """Append one finished batch and flush it to disk. A line cut by an earlier crash is closed first, so the new lines
+    stay readable."""
+    cut = False
+    if path.exists() and path.stat().st_size > 0:
+        with path.open("rb") as f:
+            f.seek(-1, os.SEEK_END)
+            cut = f.read(1) != b"\n"
+    with path.open("a", encoding="utf-8") as f:
+        if cut:
+            f.write("\n")
+        for i, (row, reason) in answers.items():
+            f.write(json.dumps({"i": i, "row": row, "reason": reason}, ensure_ascii=False) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def read_answers(path: Path) -> dict[int, tuple[dict | None, str]]:
+    """Answers saved by earlier batches, by task index. A last line cut by a crash is ignored (asked again)."""
+    saved: dict[int, tuple[dict | None, str]] = {}
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            try:
+                item = json.loads(line)
+            except ValueError:
+                continue
+            saved[int(item["i"])] = (item["row"], str(item["reason"]))
+    return saved

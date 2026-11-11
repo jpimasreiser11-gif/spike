@@ -106,6 +106,14 @@ def resolve_teacher(args: argparse.Namespace, dcfg: dict) -> tuple[str, str]:
     return model, args.teacher_repo or (named.get("repo") if recipe_model else None) or model
 
 
+def checkpoint_dir(args: argparse.Namespace) -> Path | None:
+    """Where a topics run saves its progress: --checkpoint, else `<out>.parts` next to the output; None with
+    --no-checkpoint."""
+    if getattr(args, "no_checkpoint", False):
+        return None
+    return Path(getattr(args, "checkpoint", None) or f"{args.out}.parts")
+
+
 async def run(args: argparse.Namespace) -> int:
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     registry = yaml.safe_load((ROOT / "training" / "datasets.yaml").read_text(encoding="utf-8"))["sources"]
@@ -133,7 +141,7 @@ async def run(args: argparse.Namespace) -> int:
                 results, kept_by_kind, dropped = await generate(
                     teacher, spec, list(plan.topics.items), dcfg.get("kinds") or {"open": 1}, target, cfg.get("seed", 0),
                     min_score=dcfg.get("min_score", 8), samples=args.samples, keep_reasoning=args.keep_reasoning,
-                    progress=lambda message: print(message, file=sys.stderr))
+                    progress=lambda message: print(message, file=sys.stderr), checkpoint=checkpoint_dir(args))
             except ValueError as exc:
                 raise SystemExit(str(exc)) from exc
             tasks = range(target)
@@ -184,6 +192,8 @@ def main() -> int:
     ap.add_argument("--concurrency", type=int, default=2)
     ap.add_argument("--limit", type=int)
     ap.add_argument("--keep-reasoning", action="store_true", help="keep teacher reasoning in <think> tags")
+    ap.add_argument("--checkpoint", help="topics: folder for progress, resumed on the next run (default <out>.parts)")
+    ap.add_argument("--no-checkpoint", action="store_true", help="topics: keep progress only in memory")
     return asyncio.run(run(ap.parse_args()))
 
 
