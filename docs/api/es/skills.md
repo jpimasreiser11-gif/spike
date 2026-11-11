@@ -37,6 +37,63 @@ curl -s -X POST 'http://127.0.0.1:8740/api/skills/import' \
   --data-binary @path/to/file
 ```
 
+### `POST /api/skills/import-github/install`
+
+Función: `spike/server/skill_import_api.py` → `install`
+
+**Cuerpo** (`application/json`)
+
+| Campo | Tipo | Obligatorio | Por defecto | Descripción |
+|---|---|---|---|---|
+| `preview_id` | string | sí |  |  |
+| `sha256` | string | sí |  |  |
+
+**Respuesta**: `200` — object
+
+**Errores**
+
+| Código | Mensaje |
+|---|---|
+| `400` | hash_mismatch; invalid_skill |
+| `403` | license_blocked |
+| `404` | preview_expired |
+| `409` | exists |
+| `422` | la petición no cumple el esquema (validación de FastAPI) |
+
+**Ejemplo**
+
+```bash
+curl -s -X POST 'http://127.0.0.1:8740/api/skills/import-github/install' \
+  -H 'Content-Type: application/json' \
+  -d '{"preview_id": "string", "sha256": "string"}'
+```
+
+### `POST /api/skills/import-github/preview`
+
+Función: `spike/server/skill_import_api.py` → `preview`
+
+**Cuerpo** (`application/json`)
+
+| Campo | Tipo | Obligatorio | Por defecto | Descripción |
+|---|---|---|---|---|
+| `url` | string | sí |  |  |
+
+**Respuesta**: `200` — object
+
+**Errores**
+
+| Código | Mensaje |
+|---|---|
+| `422` | la petición no cumple el esquema (validación de FastAPI) |
+
+**Ejemplo**
+
+```bash
+curl -s -X POST 'http://127.0.0.1:8740/api/skills/import-github/preview' \
+  -H 'Content-Type: application/json' \
+  -d '{"url": "string"}'
+```
+
 ### `GET /api/skills/{name}`
 
 Función: `spike/server/app.py` → `get_skill`

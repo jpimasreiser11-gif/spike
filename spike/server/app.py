@@ -65,6 +65,7 @@ from spike.server.research_api import create_research_router
 from spike.server.reverse_api import create_reverse_router
 from spike.server.samples_api import create_samples_router
 from spike.server.setup_api import create_setup_router
+from spike.server.skill_import_api import create_skill_import_router
 from spike.server.state import AppState
 from spike.server.subtitles_api import create_subtitles_router
 from spike.server.view_api import create_view_router
@@ -395,6 +396,7 @@ def create_app(state: AppState | None = None, allowed_hosts: set[str] | None = N
     app.include_router(create_research_router(st))
     app.include_router(create_history_router(st))
     app.include_router(create_backup_router(st))  # G34 backup and restore, G36 delete all my data
+    app.include_router(create_skill_import_router(st))  # O3 install a skill from a GitHub URL, with review
     app.include_router(create_setup_router())
     app.include_router(create_workflow_router(st))
     app.include_router(create_samples_router(st))  # G39 sample projects

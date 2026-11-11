@@ -3,6 +3,7 @@ import { api } from "../api";
 import { lang } from "../i18n";
 import type { Settings, SkillInfo } from "../types";
 import { SkillDescription } from "./SkillDescription";
+import { SkillImport } from "./SkillImport";
 import { IconTrash, IconUpload } from "./Icons";
 
 const K = lang === "es"
@@ -61,6 +62,7 @@ export function Skills({ settings, save }: { settings: Settings; save: (p: Parti
         <input ref={packInput} type="file" accept=".zip" hidden data-testid="pack-import" onChange={(e) => upload("/api/pack/import", e.target.files?.[0], packInput.current)} />
       </div>
       <small className="muted">{K.packHint}</small>
+      <SkillImport onInstalled={load} />
       {msg && <div className="flash-box">{msg}</div>}
       {err && <div className="error-box" role="alert">{err}</div>}
       {skills.map((s) => (

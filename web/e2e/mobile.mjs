@@ -87,6 +87,9 @@ async function measure(page) {
 const seenSkips = {};
 async function audit(page, label, size, shot) {
   await page.waitForTimeout(150);
+  // a drawer or dialog still sliding (CSS transition) is measured half-way otherwise: wait until nothing animates
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
+    null, { timeout: 5000 }).catch(() => {});
   const m = await measure(page);
   if (!m.coarse) fail(`${label}: emulation does not match (pointer: coarse)`);
   if (m.overflow > 0) fail(`${label}: horizontal scroll, scrollWidth exceeds clientWidth by ${m.overflow}px`);

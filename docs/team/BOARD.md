@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 3 | 4 | 0 | 0 | 38 | 0 | 45 |
+| Claude | 3 | 3 | 0 | 0 | 39 | 0 | 45 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
 | Mac | 3 | 2 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **10** | **6** | **0** | **0** | **75** | **0** | **91** |
+| **Total** | **10** | **5** | **0** | **0** | **76** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -83,7 +83,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | G46 | Claude | pendiente | Revisión final de textos | - |
 | O1 | Claude | en curso | Sesiones de Spike Dev en la app (API e interfaz) | - |
 | O2 | Claude | pendiente | Un espacio de tarea unificado | - |
-| O3 | Claude | en curso | Instalar skills desde una URL de GitHub, con revisión | - |
+| O3 | Claude | hecha | Instalar skills desde una URL de GitHub, con revisión | - |
 | O4 | Claude | hecha | Revisión de seguridad previa al lanzamiento (para L2) | - |
 | O5 | Opus | pendiente | Revisar la integración del PR #2 | M13 |
 
