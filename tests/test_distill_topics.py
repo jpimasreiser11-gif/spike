@@ -766,3 +766,66 @@ def test_the_hub_gate_for_the_default_teacher_is_not_a_license_claim_of_this_rep
     for domain in DOMAINS:
         text = (ROOT / "training" / "configs" / f"{domain}.yaml").read_text(encoding="utf-8")
         assert "license read from the Hub first" in text and "Apache" not in text
+
+
+# ------------------------------------------------------------------ checkpoint and resume (long teacher runs)
+class CrashingTeacher(FakeTeacher):
+    """Breaks (like a killed server) once it has answered `crash_after` requests that are not instructions."""
+
+    def __init__(self, crash_after=None, **kw):
+        super().__init__(**kw)
+        self.crash_after = crash_after
+
+    async def chat(self, messages, temperature=0.7, max_tokens=4096, thinking=True):
+        if messages[0]["role"] != "user" and self.crash_after is not None and len(self.requests) >= self.crash_after:
+            raise RuntimeError("teacher went away")
+        return await super().chat(messages, temperature, max_tokens, thinking)
+
+
+def test_an_open_run_resumes_from_its_checkpoint_without_asking_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(synth, "BATCH", 4)
+    ckpt = tmp_path / "parts"
+    first = CrashingTeacher(crash_after=6)
+    with pytest.raises(RuntimeError):
+        make({"open": 1}, first, target=12, checkpoint=ckpt)
+    written = len(first.instructions)
+    saved = [json.loads(line) for line in (ckpt / "open.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert saved and len(saved) % 4 == 0 and len(saved) < 12        # whole batches only
+
+    second = CrashingTeacher()
+    rows, kept, dropped = make({"open": 1}, second, target=12, checkpoint=ckpt)
+    assert second.instructions == []                               # the tasks were not written again
+    assert len(second.requests) < len(first.requests) + 12           # answered tasks were not asked again
+    assert kept["open"] + sum(dropped.values()) == 12
+    fresh, fresh_kept, _ = make({"open": 1}, FakeTeacher(), target=12)
+    assert sorted(r["messages"][1]["content"] for r in rows) == sorted(r["messages"][1]["content"] for r in fresh)
+    assert written > 0 and kept == fresh_kept
+
+
+def test_a_checkpoint_from_another_run_is_refused(tmp_path):
+    ckpt = tmp_path / "parts"
+    make({"open": 1}, FakeTeacher(), target=8, checkpoint=ckpt)
+    with pytest.raises(SystemExit, match="checkpoint"):
+        make({"open": 1}, FakeTeacher(), target=8, seed=1, checkpoint=ckpt)
+    with pytest.raises(SystemExit, match="checkpoint"):
+        make({"open": 1}, FakeTeacher(), target=9, checkpoint=ckpt)
+
+
+def test_without_a_checkpoint_nothing_is_written(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    make({"open": 1}, FakeTeacher(), target=4)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_distill_py_resumes_a_topics_run_from_out_parts(tmp_path, monkeypatch):
+    monkeypatch.setattr(synth, "BATCH", 4)
+    topics = write_topics(tmp_path, {"provenance": PROVENANCE, "groups": [{"labels": [f"pricing {i}" for i in range(4)]}]})
+    cfg = recipe(tmp_path, {"enabled": True, "teacher": TEACHER_CFG, "topics": str(topics), "kinds": {"open": 1},
+                            "expand_to": 12, "min_score": 8})
+    with pytest.raises(RuntimeError):
+        run_distill(tmp_path, monkeypatch, cfg, CrashingTeacher(crash_after=6))
+    parts = tmp_path / "out" / "distilled.jsonl.parts"
+    assert (parts / "open.prompts.json").exists() and not (tmp_path / "out" / "distilled.jsonl").exists()
+    again = CrashingTeacher()
+    rows = run_distill(tmp_path, monkeypatch, cfg, again)
+    assert again.instructions == [] and len(rows) == 12
