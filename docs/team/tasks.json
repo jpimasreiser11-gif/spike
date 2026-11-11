@@ -494,7 +494,7 @@
    "accept": [
     "acceptance record"
    ],
-   "note": "2026-11-11 lead decisions: (1) teacher mlx-community/Qwen3.6-35B-A3B-4bit, Apache-2.0, pinned revision 38740b8, downloading into ~/Downloads/Spike-mkt; distillation starts only after the M3 sweep ends, never both. (2) Approved: distill.py topics mode writes each result as it is produced and resumes from what is saved (a cut must not lose days), with a test; first a --limit 20 speed run. (3) Approved: use medicine's accepted recipe (self_replay.py, prepare --self-replay --fit-domain, sweep including final@0.5), not round-1 768 without replay. Gate unchanged."
+   "note": "2026-11-11 lead decisions: (1) teacher mlx-community/Qwen3.6-35B-A3B-4bit, Apache-2.0, pinned revision 38740b8, downloading into ~/Downloads/Spike-mkt; distillation starts only after the M3 sweep ends, never both. (2) Done: claude/distill-resume merged (85ba0c9, with review fixes: rows keep task order after a resume, appends flushed and safe after a cut line); a topics run saves to <out>.parts and resumes. First a --limit 20 speed run with its own --out, so the real run starts a fresh checkpoint. (3) Approved: use medicine's accepted recipe (self_replay.py, prepare --self-replay --fit-domain, sweep including final@0.5), not round-1 768 without replay. Gate unchanged."
   },
   {
    "id": "M5",
