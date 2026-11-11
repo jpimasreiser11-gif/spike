@@ -1248,7 +1248,7 @@
   {
    "id": "G46",
    "owner": "claude",
-   "status": "todo",
+   "status": "doing",
    "phase": "app",
    "title": "Revisión final de textos",
    "depends": [],
@@ -1256,7 +1256,8 @@
    "spec": "See docs/team/prompts/PROMPT-GEMINI-ARGON-2.md (section 4); branch gemini/G46 from origin/main, report docs/team/reports/G46.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-11 first pass by Claude: es and en dictionaries compared (only 4 identical strings, all product names: Paper Rebuilder, Dependency Doctor, Visual Critic, Device Lab); README/guide/site scanned for unmeasured claims (none); Dev sessions showed the sandbox reason in English, fixed (c6a1f21). CLI help is English in both guides by design (said on the page). Left: a full proofreading pass of every visible text, when workers are back (weekly limit until 2026-11-16)."
   },
   {
    "id": "O1",
@@ -1284,7 +1285,7 @@
    "accept": [
     "report and tests reviewed by Claude"
    ],
-   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own)."
+   "note": "2026-11-10: Opus out of usage; taken by Claude's workers (O1's 13 uncommitted tests stay on the Mac copy; the cloud worker writes its own). 2026-11-11: waits for workers (weekly limit until 2026-11-16); O1 is merged, so its events exist to build on."
   },
   {
    "id": "O3",
