@@ -6,13 +6,13 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 
 | Quién | pendiente | en curso | en revisión | cambios pedidos | hecha | bloqueada | total |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Claude | 2 | 3 | 0 | 0 | 40 | 0 | 45 |
+| Claude | 2 | 3 | 0 | 0 | 41 | 0 | 46 |
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
-| Opus | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
+| Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Mac | 2 | 3 | 0 | 0 | 4 | 0 | 9 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **8** | **6** | **0** | **0** | **77** | **0** | **91** |
+| **Total** | **7** | **6** | **0** | **0** | **78** | **0** | **91** |
 
 ## Fase: equipo
 
@@ -85,7 +85,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | O2 | Claude | pendiente | Un espacio de tarea unificado | - |
 | O3 | Claude | hecha | Instalar skills desde una URL de GitHub, con revisión | - |
 | O4 | Claude | hecha | Revisión de seguridad previa al lanzamiento (para L2) | - |
-| O5 | Opus | pendiente | Revisar la integración del PR #2 | M13 |
+| O5 | Claude | hecha | Revisar la integración del PR #2 | M13 |
 
 ## Fase: modelos
 

@@ -1318,8 +1318,8 @@
   },
   {
    "id": "O5",
-   "owner": "opus",
-   "status": "todo",
+   "owner": "claude",
+   "status": "done",
    "phase": "app",
    "title": "Revisar la integración del PR #2",
    "depends": [
@@ -1329,7 +1329,8 @@
    "spec": "See docs/team/prompts/PROMPT-OPUS-5.5.md (section 3); branch opus/O5 from origin/main, report docs/team/reports/O5.md.",
    "accept": [
     "report and tests reviewed by Claude"
-   ]
+   ],
+   "note": "2026-11-11: done by M13 (80da621, Argon's rebase of PR #2, merged 2026-11-06); reviewed by Claude against this task's three conditions. (1) An old cache without a receipt is never evidence: a cached sweep without provenance is kept and refused (tests/test_sweep_checkpoints.py::test_legacy_cached_sweep_without_provenance_is_preserved_and_refused), a resumed eval with a legacy file or any changed identity (model, seed, max_tokens, system, prompt, gold, suites) stops before writing (tests/test_eval_resume.py). (2) Medicine's accepted record still reads (tests/test_specialists_status.py, test_specialist_catalog_consistency.py). (3) What already worked stays: run_eval --resume, prepare --fit-domain, the answer extractor. 151 tests pass. PR #2 itself stays open until joan says to close it."
   },
   {
    "id": "L1",
