@@ -11,7 +11,7 @@ Incluye una cuenta de **Paper Trading** (cartera simulada local en SQLite con ef
 ## Cómo se usa paso a paso
 
 1. Elige el especialista **Finance** en el chat y pide una operación en cuenta simulada (por ejemplo: `Compra 0,01 BTC en paper`) o un análisis/backtest sobre un CSV de velas.
-2. Abre **Ajustes › Finanzas** para ver el saldo de tu cartera simulada (`Paper`), las órdenes abiertas/ejecutadas o reiniciar el saldo inicial (`Reset`).
+2. Abre **Ajustes → Finanzas** para ver el saldo de tu cartera simulada (`Paper`), las órdenes abiertas/ejecutadas o reiniciar el saldo inicial (`Reset`).
 3. En los informes de backtesting del chat, revisa la separación entre el periodo de ajuste (*in-sample*) y el periodo fuera de muestra (*walk-forward test*), junto con las comisiones aplicadas.
 
 ## Límites reales

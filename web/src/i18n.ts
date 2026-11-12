@@ -1523,8 +1523,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
   "reverse_busy": { es: "Ya hay una generación en curso.", en: "A generation is already running." },
   "reverse_expired": { es: "La vista previa caducó o ya se usó. Vuelve a empezar.", en: "The preview expired or was already used. Start again." },
   "reverse_changed": { es: "El proveedor o el proyecto cambió después de la vista previa. Vuelve a empezar.", en: "The provider or project changed after the preview. Start again." },
-  "reverse_files_blocked": { es: "Este proveedor externo no puede recibir tus archivos. Permítelo en Ajustes › Proveedores.", en: "This external provider may not receive your files. Allow it in Settings › Providers." },
-  "reverse_provider_blocked": { es: "El proveedor está bloqueado por el permiso de pago o por un tope mensual. Revisa Ajustes › Proveedores.", en: "The provider is blocked by the paid-request permission or a monthly limit. Check Settings › Providers." },
+  "reverse_files_blocked": { es: "Este proveedor externo no puede recibir tus archivos. Permítelo en Ajustes → Proveedores.", en: "This external provider may not receive your files. Allow it in Settings → Providers." },
+  "reverse_provider_blocked": { es: "El proveedor está bloqueado por el permiso de pago o por un tope mensual. Revisa Ajustes → Proveedores.", en: "The provider is blocked by the paid-request permission or a monthly limit. Check Settings → Providers." },
   "reverse_context": { es: "La petición no cabe en el contexto del modelo.", en: "The request does not fit the model's context." },
   "reverse_file_missing": { es: "El archivo ya no existe.", en: "The file no longer exists." },
   "reverse_unknown_project": { es: "El proyecto ya no existe.", en: "The project no longer exists." },
@@ -1608,8 +1608,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The skill was not found. Refresh the skills list or check its name.",
   },
   "built-in skills can be disabled, not deleted": {
-    es: "Las skills integradas no se pueden borrar; desactívalas con su interruptor en Ajustes › Skills.",
-    en: "Built-in skills cannot be deleted; disable them with their toggle in Settings › Skills.",
+    es: "Las skills integradas no se pueden borrar; desactívalas con su interruptor en Ajustes → Skills.",
+    en: "Built-in skills cannot be deleted; disable them with their toggle in Settings → Skills.",
   },
   "not a zip archive": {
     es: "El archivo no es un paquete ZIP válido. Selecciona un archivo .zip.",
@@ -1620,8 +1620,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The file is not a SPIKE project archive (.zip). Export a project from SPIKE and try again.",
   },
   "connector not found": {
-    es: "No se encontró el conector. Actualiza la lista en Ajustes › Conectores.",
-    en: "The connector was not found. Refresh the list in Settings › Connectors.",
+    es: "No se encontró el conector. Actualiza la lista en Ajustes → Conectores.",
+    en: "The connector was not found. Refresh the list in Settings → Connectors.",
   },
   "id or preset is required": {
     es: "Indica un identificador o elige una plantilla de proveedor antes de guardar.",
@@ -1632,8 +1632,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The provider address must start with http:// or https://. Fix the URL and try again.",
   },
   "provider not found": {
-    es: "No se encontró el proveedor. Revisa Ajustes › Proveedores o selecciona otro proveedor.",
-    en: "The provider was not found. Check Settings › Providers or select another provider.",
+    es: "No se encontró el proveedor. Revisa Ajustes → Proveedores o selecciona otro proveedor.",
+    en: "The provider was not found. Check Settings → Providers or select another provider.",
   },
   "the built-in local provider cannot be removed": {
     es: "El proveedor local integrado no se puede eliminar; puedes cambiar el proveedor por defecto en Ajustes.",
@@ -1656,8 +1656,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "That order does not exist. Refresh the order list in Finance.",
   },
   "save an API key for the chosen exchange first": {
-    es: "No hay clave de API guardada para este exchange. Guarda primero la clave en Ajustes › Finanzas.",
-    en: "No API key is saved for this exchange. Save the key in Settings › Finance first.",
+    es: "No hay clave de API guardada para este exchange. Guarda primero la clave en Ajustes → Finanzas.",
+    en: "No API key is saved for this exchange. Save the key in Settings → Finance first.",
   },
   "invalid report": {
     es: "El informe de datos no es válido. Revisa los bloques de la consulta y vuelve a exportarlo.",
@@ -1740,12 +1740,12 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The requested resource was not found. Refresh the view and try again.",
   },
   "turn on “Use my corrections to retrain” in Settings → Evolution first": {
-    es: "Activa primero «Usar mis correcciones para reentrenar» en Ajustes › Evolución.",
-    en: "Turn on “Use my corrections to retrain” in Settings › Evolution first.",
+    es: "Activa primero «Usar mis correcciones para reentrenar» en Ajustes → Evolución.",
+    en: "Turn on “Use my corrections to retrain” in Settings → Evolution first.",
   },
   "turn on the personal adapter in Settings → Evolución first": {
-    es: "Activa primero el adaptador personal en Ajustes › Evolución.",
-    en: "Turn on the personal adapter in Settings › Evolution first.",
+    es: "Activa primero el adaptador personal en Ajustes → Evolución.",
+    en: "Turn on the personal adapter in Settings → Evolution first.",
   },
   "that chat is not marked": {
     es: "Esa conversación no estaba marcada para el adaptador personal. Actualiza la lista.",
@@ -1764,8 +1764,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The memory note no longer exists. Refresh the list in Memory.",
   },
   "folder not found": {
-    es: "La carpeta indexada ya no está registrada. Actualiza la lista en Memoria › Carpetas.",
-    en: "The indexed folder is no longer registered. Refresh the list in Memory › Folders.",
+    es: "La carpeta indexada ya no está registrada. Actualiza la lista en Ajustes → Memoria → Carpetas.",
+    en: "The indexed folder is no longer registered. Refresh the list in Settings → Memory → Folders.",
   },
   "that folder does not exist or cannot be read": {
     es: "Esa carpeta no existe o no se puede leer. Comprueba la ruta y los permisos en este ordenador.",
@@ -1832,12 +1832,12 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "This prototype run is still building. Wait for it to finish before discarding it.",
   },
   "Parallel Minds needs a prose answer: it cannot be combined with a Forge blueprint or an answer contract (JSON)": {
-    es: "Mentes en paralelo necesita una respuesta en texto: desactiva el plan de Forge o el contrato JSON.",
-    en: "Parallel Minds needs a prose answer: turn off the Forge blueprint or the JSON answer contract.",
+    es: "Varias mentes necesita una respuesta en texto: desactiva el plan de Forge o el contrato JSON.",
+    en: "Parallel minds needs a prose answer: turn off the Forge blueprint or the JSON answer contract.",
   },
   "Parallel Minds runs 2 to 4 minds": {
-    es: "Mentes en paralelo ejecuta entre 2 y 4 mentes. Elige entre 2 y 4 en el selector.",
-    en: "Parallel Minds runs 2 to 4 minds. Choose between 2 and 4 in the selector.",
+    es: "Varias mentes ejecuta entre 2 y 4 mentes. Elige entre 2 y 4 en el selector.",
+    en: "Parallel minds runs 2 to 4 minds. Choose between 2 and 4 in the selector.",
   },
   "replace_from needs an existing conversation": {
     es: "Para editar y reenviar un mensaje hace falta una conversación existente. Envía un mensaje nuevo.",
@@ -1856,8 +1856,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "This Forge blueprint saves files and needs tools: turn them on in Settings.",
   },
   "data_app_expired": {
-    es: "La sesión de la tabla caducó o ya se aplicó. Vuelve a generar la aplicación desde Creador.",
-    en: "The table session expired or was already applied. Generate the app again from Creator.",
+    es: "La sesión de la tabla caducó o ya se aplicó. Vuelve a generar la aplicación desde la vista Crear.",
+    en: "The table session expired or was already applied. Generate the app again from the Create view.",
   },
   "data_app_conflict": {
     es: "El archivo original cambió en el disco desde que se abrió la vista previa. Vuelve a abrir el archivo.",
@@ -1888,8 +1888,8 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The screenshot is no longer available. Screenshots are only kept during the active task.",
   },
   "Desktop actions are off. Turn them on in Settings → Desktop.": {
-    es: "Las acciones de escritorio están desactivadas. Actívalas primero en Ajustes › Escritorio.",
-    en: "Desktop actions are off. Turn them on in Settings › Desktop first.",
+    es: "Las acciones de escritorio están desactivadas. Actívalas primero en Ajustes → Escritorio.",
+    en: "Desktop actions are off. Turn them on in Settings → Desktop first.",
   },
   "history_filter": {
     es: "Los filtros de búsqueda no son válidos. Revisa la consulta y el ámbito seleccionado.",
@@ -1912,16 +1912,16 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "The capability probe tests a single target at a time. Leave only one target selected.",
   },
   "expired_quote": {
-    es: "El presupuesto de Lab caducó o ya se usó. Pulsa Vista previa de nuevo antes de ejecutar.",
-    en: "The Lab quote expired or was already used. Click Preview again before executing.",
+    es: "El presupuesto de Lab caducó o ya se usó. Vuelve a estimar antes de ejecutar.",
+    en: "The Lab quote expired or was already used. Estimate again before running.",
   },
   "changed_quote": {
     es: "La configuración del proveedor cambió desde la vista previa. Calcula una nueva vista previa en Lab.",
     en: "The provider configuration changed since the preview. Compute a new preview in Lab.",
   },
   "provider_blocked": {
-    es: "El proveedor está bloqueado por el permiso de pago o por un límite mensual. Revisa Ajustes › Proveedores.",
-    en: "The provider is blocked by the paid-request permission or a monthly limit. Check Settings › Providers.",
+    es: "El proveedor está bloqueado por el permiso de pago o por un límite mensual. Revisa Ajustes → Proveedores.",
+    en: "The provider is blocked by the paid-request permission or a monthly limit. Check Settings → Providers.",
   },
   "unknown_run": {
     es: "La ejecución de Lab ya no existe. Selecciona otra en el historial de Lab.",
@@ -1944,12 +1944,12 @@ export const projectErrors: Record<string, { es: string; en: string }> = {
     en: "This action requires a local request from the SPIKE window itself.",
   },
   "Spike View is not running: turn it on in Settings first": {
-    es: "Spike View no está en marcha. Activa el navegador en Ajustes › Conectores primero.",
-    en: "Spike View is not running. Turn on the browser in Settings › Connectors first.",
+    es: "Spike View no está en marcha. Activa el navegador en Ajustes → Conectores primero.",
+    en: "Spike View is not running. Turn on the browser in Settings → Connectors first.",
   },
   "Spike View is not running": {
-    es: "Spike View no está en marcha. Activa el navegador en Ajustes › Conectores primero.",
-    en: "Spike View is not running. Turn on the browser in Settings › Connectors first.",
+    es: "Spike View no está en marcha. Activa el navegador en Ajustes → Conectores primero.",
+    en: "Spike View is not running. Turn on the browser in Settings → Connectors first.",
   },
   "this script is being replayed: stop the replay first": {
     es: "Este guion se está reproduciendo ahora mismo. Detén la reproducción antes de borrarlo.",
@@ -1983,8 +1983,8 @@ const DYNAMIC_ERROR_PATTERNS: Array<[RegExp, (m: RegExpMatchArray) => { es: stri
     en: "SPIKE does not recognise that setting. Reload the page in case the version changed.",
   })],
   [/^"?unknown provider '(.+)'"?$/, (m) => ({
-    es: `El proveedor «${m[1]}» no existe. Elige otro proveedor en Ajustes › Proveedores.`,
-    en: `Provider '${m[1]}' was not found. Choose another provider in Settings › Providers.`,
+    es: `El proveedor «${m[1]}» no existe. Elige otro proveedor en Ajustes → Proveedores.`,
+    en: `Provider '${m[1]}' was not found. Choose another provider in Settings → Providers.`,
   })],
   [/^unknown project '(.+)'$/, (m) => ({
     es: `El proyecto «${m[1]}» no existe. Selecciona otro proyecto.`,
@@ -2011,8 +2011,8 @@ const DYNAMIC_ERROR_PATTERNS: Array<[RegExp, (m: RegExpMatchArray) => { es: stri
     en: `Memory scope '${m[1]}' is not valid. Choose global memory, an existing project or a specialist.`,
   })],
   [/^unknown template '(.+)'$/, (m) => ({
-    es: `La plantilla «${m[1]}» no existe. Elige una plantilla en Creador.`,
-    en: `Template '${m[1]}' was not found. Choose a template in Creator.`,
+    es: `La plantilla «${m[1]}» no existe. Elige una plantilla en la vista Crear.`,
+    en: `Template '${m[1]}' was not found. Choose a template in the Create view.`,
   })],
   [/^unknown component '(.+)'$/, (m) => ({
     es: `El componente «${m[1]}» no existe en Evolución. Elige un componente válido para revertir.`,

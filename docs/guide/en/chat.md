@@ -14,7 +14,7 @@ Provides the main SSE streaming chat with automatic or manual specialist routing
 2. Use the **Specialist** selector above the composer to pick a specific domain or leave it on `Auto`; use the **Design** selector when generating HTML/UI.
 3. When a tool requires approval (`write_file`, `run_command`, `web_fetch`, etc.), an inline permission card shows the exact arguments: click **Allow once** or **Deny**.
 4. Click **Preview** on any HTML, SVG, or diagram block to open the artifact panel, inspect the preview, or attach line comments for follow-up revisions.
-5. To revert file edits made during a turn, click **Undo this step** on the touched-files checkpoint card.
+5. To revert file edits made during a turn, click **Undo** on that file's change, under the answer.
 6. Click **Search** in the sidebar to search across past conversations and messages with highlighted snippets.
 
 ## Real limits

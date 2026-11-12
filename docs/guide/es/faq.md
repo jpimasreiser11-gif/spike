@@ -2,7 +2,7 @@
 
 Idioma: **Español** | [English](../en/faq.md) · [Índice de la guía](README.md)
 
-Esta página documenta todas las comprobaciones diagnósticas de `spike doctor` (`spike/cli.py` y `spike/runtime/hardware.py`) y el catálogo de mensajes de error de cara al usuario (G24): **qué significa**, **causa probable** y **qué hacer** para resolverlo sin perder trabajo.
+Esta página documenta todas las comprobaciones diagnósticas de `spike doctor` (`spike/cli.py` y `spike/runtime/hardware.py`) y el catálogo de mensajes de error de cara al usuario: **qué significa**, **causa probable** y **qué hacer** para resolverlo sin perder trabajo.
 
 ---
 
@@ -33,7 +33,7 @@ Ejecuta `.venv/bin/spike doctor` (o `.venv/bin/spike doctor --json` / `--strict`
 ### `Less than 8 GB RAM: expect slow generation; close other apps.`
 - **Qué significa**: El equipo tiene menos de 7,5 GB de RAM total detectada.
 - **Causa probable**: El modelo base `Qwen3.5-4B Q4_K_M` requiere ~3,6 GiB de memoria anónima residente más el sistema operativo.
-- **Qué hacer**: Cierra navegadores y aplicaciones pesadas antes de usar el motor local, reduce el contexto a 4096/8192 en Ajustes › Motor o conecta un proveedor externo.
+- **Qué hacer**: Cierra navegadores y aplicaciones pesadas antes de usar el motor local, reduce el contexto a 4096/8192 en Ajustes → Motor local o conecta un proveedor externo.
 
 ### `CPU without AVX2 detected: llama.cpp will run, but several times slower.`
 - **Qué significa**: En Linux x86_64/AMD64, el procesador no expone la extensión vectorial `avx2` en `/proc/cpuinfo`.
@@ -43,7 +43,7 @@ Ejecuta `.venv/bin/spike doctor` (o `.venv/bin/spike doctor --json` / `--strict`
 ### `CPU only: context set to 8K because long prompts are slow without a GPU; raise it in Settings if your CPU is fast.`
 - **Qué significa**: Sin aceleración GPU (`gpu_layers == 0`), SPIKE fija la ventana recomendada en 8192 tokens aunque tengas 16 GB o más de RAM.
 - **Causa probable**: En una CPU de 4 núcleos, un prompt de 32K cabe en RAM (3,6 GiB anónimos) pero tarda ~1,5 h hasta la primera palabra, mientras que 8K mantiene tiempos utilizables.
-- **Qué hacer**: Mantén 8192 tokens en equipos solo CPU, o súbelo manualmente en Ajustes › Motor si cuentas con una CPU de muchos núcleos o GPU.
+- **Qué hacer**: Mantén 8192 tokens en equipos solo CPU, o súbelo manualmente en Ajustes → Motor local si cuentas con una CPU de muchos núcleos o GPU.
 
 ### `downloaded without a SHA-256 check`
 - **Qué significa**: El manifiesto junto al archivo `.gguf` indica `unverified: true` (`[downloaded without a SHA-256 check]`).
@@ -68,7 +68,7 @@ Ejecuta `.venv/bin/spike doctor` (o `.venv/bin/spike doctor --json` / `--strict`
 
 ---
 
-## 2. Mensajes de error de la interfaz y de la API (G24)
+## 2. Mensajes de error de la interfaz y de la API
 
 Cada código o mensaje devuelto por el servidor se traduce en la interfaz indicando qué ocurrió y la acción recomendada (sin exponer trazas internas ni rutas absolutas del sistema):
 
@@ -86,8 +86,8 @@ Cada código o mensaje devuelto por el servidor se traduce en la interfaz indica
 | `reverse_busy` | Ya hay una generación en curso. |
 | `reverse_expired` | La vista previa caducó o ya se usó. Vuelve a empezar. |
 | `reverse_changed` | El proveedor o el proyecto cambió después de la vista previa. Vuelve a empezar. |
-| `reverse_files_blocked` | Este proveedor externo no puede recibir tus archivos. Permítelo en Ajustes › Proveedores. |
-| `reverse_provider_blocked` | El proveedor está bloqueado por el permiso de pago o por un tope mensual. Revisa Ajustes › Proveedores. |
+| `reverse_files_blocked` | Este proveedor externo no puede recibir tus archivos. Permítelo en Ajustes → Proveedores. |
+| `reverse_provider_blocked` | El proveedor está bloqueado por el permiso de pago o por un tope mensual. Revisa Ajustes → Proveedores. |
 | `reverse_context` | La petición no cabe en el contexto del modelo. |
 | `reverse_file_missing` | El archivo ya no existe. |
 | `reverse_unknown_project` | El proyecto ya no existe. |
@@ -122,19 +122,19 @@ Cada código o mensaje devuelto por el servidor se traduce en la interfaz indica
 | `project notes need a memory store` | Las notas de proyecto necesitan un almacén de memoria. |
 | `design system not found` | No se encontró el sistema de diseño. Actualiza la lista o selecciona otro en Diseño. |
 | `skill not found` | No se encontró la skill. Actualiza la lista de skills o comprueba su nombre. |
-| `built-in skills can be disabled, not deleted` | Las skills integradas no se pueden borrar; desactívalas con su interruptor en Ajustes › Skills. |
+| `built-in skills can be disabled, not deleted` | Las skills integradas no se pueden borrar; desactívalas con su interruptor en Ajustes → Skills. |
 | `not a zip archive` | El archivo no es un paquete ZIP válido. Selecciona un archivo .zip. |
 | `not a SPIKE project archive (zip)` | El archivo no es un paquete de proyecto de SPIKE (.zip). Exporta un proyecto desde SPIKE e inténtalo de nuevo. |
-| `connector not found` | No se encontró el conector. Actualiza la lista en Ajustes › Conectores. |
+| `connector not found` | No se encontró el conector. Actualiza la lista en Ajustes → Conectores. |
 | `id or preset is required` | Indica un identificador o elige una plantilla de proveedor antes de guardar. |
 | `base_url must be an http(s) URL` | La dirección del proveedor debe empezar por http:// o https://. Corrige la URL e inténtalo de nuevo. |
-| `provider not found` | No se encontró el proveedor. Revisa Ajustes › Proveedores o selecciona otro proveedor. |
+| `provider not found` | No se encontró el proveedor. Revisa Ajustes → Proveedores o selecciona otro proveedor. |
 | `the built-in local provider cannot be removed` | El proveedor local integrado no se puede eliminar; puedes cambiar el proveedor por defecto en Ajustes. |
 | `request refused: it comes from another web site` | Petición rechazada porque procede de otro sitio web. Usa la interfaz abierta directamente en este ordenador. |
 | `a confirmation must name the order in the body and the X-Spike-Confirm header` | Falta la confirmación de la orden. Confirma la orden desde su tarjeta en el chat o en Finanzas. |
 | `no open order with that id` | No hay ninguna orden abierta con ese identificador. Actualiza la cartera simulada. |
 | `no such order` | No existe esa orden. Actualiza la lista de órdenes en Finanzas. |
-| `save an API key for the chosen exchange first` | No hay clave de API guardada para este exchange. Guarda primero la clave en Ajustes › Finanzas. |
+| `save an API key for the chosen exchange first` | No hay clave de API guardada para este exchange. Guarda primero la clave en Ajustes → Finanzas. |
 | `invalid report` | El informe de datos no es válido. Revisa los bloques de la consulta y vuelve a exportarlo. |
 | `format must be docx or pdf` | El formato del informe debe ser Word (docx) o PDF. Elige uno de esos dos formatos. |
 | `an image is not valid base64` | Una imagen del informe está dañada. Vuelve a generar el gráfico e inténtalo de nuevo. |
@@ -153,13 +153,13 @@ Cada código o mensaje devuelto por el servidor se traduce en la interfaz indica
 | `an optimisation is already running` | Ya hay una optimización de instrucciones en curso. Espera a que termine o cancélala antes de iniciar otra. |
 | `job cancelled` | La tarea se canceló. Puedes volver a iniciarla cuando quieras. |
 | `not found` | El recurso solicitado no existe. Actualiza la vista e inténtalo de nuevo. |
-| `turn on “Use my corrections to retrain” in Settings → Evolution first` | Activa primero «Usar mis correcciones para reentrenar» en Ajustes › Evolución. |
-| `turn on the personal adapter in Settings → Evolución first` | Activa primero el adaptador personal en Ajustes › Evolución. |
+| `turn on “Use my corrections to retrain” in Settings → Evolution first` | Activa primero «Usar mis correcciones para reentrenar» en Ajustes → Evolución. |
+| `turn on the personal adapter in Settings → Evolución first` | Activa primero el adaptador personal en Ajustes → Evolución. |
 | `that chat is not marked` | Esa conversación no estaba marcada para el adaptador personal. Actualiza la lista. |
 | `that example is not in the personal set` | Ese ejemplo ya no forma parte del conjunto personal. Actualiza la lista en Evolución. |
 | `the previous adapter file is gone` | El archivo del adaptador anterior ya no está en el disco. Instala de nuevo el adaptador aceptado. |
 | `memory not found` | La nota de memoria ya no existe. Actualiza la lista en Memoria. |
-| `folder not found` | La carpeta indexada ya no está registrada. Actualiza la lista en Memoria › Carpetas. |
+| `folder not found` | La carpeta indexada ya no está registrada. Actualiza la lista en Ajustes → Memoria → Carpetas. |
 | `that folder does not exist or cannot be read` | Esa carpeta no existe o no se puede leer. Comprueba la ruta y los permisos en este ordenador. |
 | `that path is not a folder` | La ruta indicada es un archivo, no una carpeta. Escribe la ruta de una carpeta. |
 | `choose a folder, not a whole disk` | No se puede indexar el disco entero. Elige una carpeta concreta dentro de tus documentos. |
@@ -176,13 +176,13 @@ Cada código o mensaje devuelto por el servidor se traduce en la interfaz indica
 | `each approach must save at least one file (a step with 'deliverables')` | Cada enfoque debe guardar al menos un archivo entregable. Añade un entregable en cada plan. |
 | `no such prototype run` | Esa ejecución de prototipos ya no existe. Abre otra o inicia una nueva. |
 | `this run is still building` | Esta ejecución de prototipos aún se está construyendo. Espera a que termine antes de descartarla. |
-| `Parallel Minds needs a prose answer: it cannot be combined with a Forge blueprint or an answer contract (JSON)` | Mentes en paralelo necesita una respuesta en texto: desactiva el plan de Forge o el contrato JSON. |
-| `Parallel Minds runs 2 to 4 minds` | Mentes en paralelo ejecuta entre 2 y 4 mentes. Elige entre 2 y 4 en el selector. |
+| `Parallel Minds needs a prose answer: it cannot be combined with a Forge blueprint or an answer contract (JSON)` | Varias mentes necesita una respuesta en texto: desactiva el plan de Forge o el contrato JSON. |
+| `Parallel Minds runs 2 to 4 minds` | Varias mentes ejecuta entre 2 y 4 mentes. Elige entre 2 y 4 en el selector. |
 | `replace_from needs an existing conversation` | Para editar y reenviar un mensaje hace falta una conversación existente. Envía un mensaje nuevo. |
 | `replace_from must be a user message of this conversation` | Solo puedes editar y reenviar un mensaje tuyo de esta conversación. |
 | `a Forge task cannot also have an answer contract` | Una tarea de Forge no puede combinarse con un contrato JSON. Desactiva uno de los dos. |
 | `this blueprint saves files, which needs tools: turn them on in Settings` | Este plan de Forge guarda archivos y necesita herramientas: actívalas en Ajustes. |
-| `data_app_expired` | La sesión de la tabla caducó o ya se aplicó. Vuelve a generar la aplicación desde Creador. |
+| `data_app_expired` | La sesión de la tabla caducó o ya se aplicó. Vuelve a generar la aplicación desde la vista Crear. |
 | `data_app_conflict` | El archivo original cambió en el disco desde que se abrió la vista previa. Vuelve a abrir el archivo. |
 | `data_app_approval` | Confirma la operación antes de crear la aplicación o guardar cambios en el archivo. |
 | `data_app_project` | El proyecto seleccionado ya no existe. Elige otro proyecto. |
@@ -190,22 +190,22 @@ Cada código o mensaje devuelto por el servidor se traduce en la interfaz indica
 | `describe what the task is` | Escribe qué tarea quieres que realice en el escritorio antes de empezar. |
 | `no pending desktop action with this id` | Esta acción de escritorio ya se respondió o terminó. Continúa en el panel de escritorio. |
 | `screenshot not found` | La captura de pantalla ya no está disponible. Solo se conservan durante la tarea activa. |
-| `Desktop actions are off. Turn them on in Settings → Desktop.` | Las acciones de escritorio están desactivadas. Actívalas primero en Ajustes › Escritorio. |
+| `Desktop actions are off. Turn them on in Settings → Desktop.` | Las acciones de escritorio están desactivadas. Actívalas primero en Ajustes → Escritorio. |
 | `history_filter` | Los filtros de búsqueda no son válidos. Revisa la consulta y el ámbito seleccionado. |
 | `project_not_found` | El proyecto seleccionado para la búsqueda ya no existe. Elige otro ámbito. |
 | `invalid_target` | Selecciona entre 1 y 4 combinaciones válidas de especialista y proveedor en Lab. |
 | `invalid_cases` | Los casos de prueba de Lab no son válidos. Usa una lista JSON con prompt y expected opcional. |
 | `one_probe_target` | La sonda de capacidades prueba un único objetivo cada vez. Deja solo un objetivo seleccionado. |
-| `expired_quote` | El presupuesto de Lab caducó o ya se usó. Pulsa Vista previa de nuevo antes de ejecutar. |
+| `expired_quote` | El presupuesto de Lab caducó o ya se usó. Vuelve a estimar antes de ejecutar. |
 | `changed_quote` | La configuración del proveedor cambió desde la vista previa. Calcula una nueva vista previa en Lab. |
-| `provider_blocked` | El proveedor está bloqueado por el permiso de pago o por un límite mensual. Revisa Ajustes › Proveedores. |
+| `provider_blocked` | El proveedor está bloqueado por el permiso de pago o por un límite mensual. Revisa Ajustes → Proveedores. |
 | `unknown_run` | La ejecución de Lab ya no existe. Selecciona otra en el historial de Lab. |
 | `Launcher only` | Esta acción solo está disponible desde el lanzador de escritorio de SPIKE. |
 | `Adapter unavailable` | Uno de los adaptadores seleccionados aún no está disponible para descargar. Desmárcalo e inténtalo de nuevo. |
 | `Installation busy or insufficient resources` | Ya hay una descarga en curso o falta espacio en disco o memoria RAM libre. Libera espacio e inténtalo de nuevo. |
 | `Local same-origin JSON request required` | Esta acción requiere una petición local desde la propia ventana de SPIKE. |
-| `Spike View is not running: turn it on in Settings first` | Spike View no está en marcha. Activa el navegador en Ajustes › Conectores primero. |
-| `Spike View is not running` | Spike View no está en marcha. Activa el navegador en Ajustes › Conectores primero. |
+| `Spike View is not running: turn it on in Settings first` | Spike View no está en marcha. Activa el navegador en Ajustes → Conectores primero. |
+| `Spike View is not running` | Spike View no está en marcha. Activa el navegador en Ajustes → Conectores primero. |
 | `this script is being replayed: stop the replay first` | Este guion se está reproduciendo ahora mismo. Detén la reproducción antes de borrarlo. |
 | `there is no such script` | El guion de navegador ya no existe. Actualiza la lista de guiones. |
 | `the replay is not waiting for that answer` | La reproducción ya no espera esa respuesta. Consulta el estado actual del guion. |

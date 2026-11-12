@@ -146,12 +146,12 @@ Server 2022 and Ubuntu 24.04 each installed, downloaded the real model through t
 and uninstalled keeping the user's profile; on macOS only with a tiny test model (details in
 [docs/STATUS.md](docs/STATUS.md)).
 SPIKE works without a local model too: add an external provider in Settings → Providers.
-Pages, slides and documents can follow a design system (`DESIGN.md`): SPIKE's own, 20 generic ones, or yours (Settings → Diseño).
-Spike Finance reads public prices, runs backtests, measures portfolio risk and keeps a paper trading account; real orders stay off unless you set them up, and each one waits for your click (Settings → Finanzas).
+Pages, slides and documents can follow a design system (`DESIGN.md`): SPIKE's own, 20 generic ones, or yours (Settings → Design).
+Spike Finance reads public prices, runs backtests, measures portfolio risk and keeps a paper trading account; real orders stay off unless you set them up, and each one waits for your click (Settings → Finance).
 Spike Data answers questions about CSV, Excel, Parquet, JSON or SQLite files with SQL it shows you, draws charts from the results and exports the analysis as a page, Word or PDF.
-Crear (Create) turns a template (web page, app, dashboard, data to app, Word document, presentation, automation) and a few answers into a Forge plan you review; the team builds it with the template's skill and your design system and checks it against the plan.
+Create turns a template (web page, app, dashboard, data to app, Word document, presentation, animated video, automation) and a few answers into a Forge plan you review; the team builds it with the template's skill and your design system and checks it against the plan.
 Spike Motion makes videos from code: the model writes an animated HTML/SVG scene and SPIKE renders it frame by frame to MP4, WebM or GIF, in the chat or with `spike render escena.html` (needs ffmpeg and Chrome or Chromium; `spike render --install-browser` downloads Chromium).
-SPIKE improves from your use, on your computer: it tries the rules from your corrections on each specialist's prompt and keeps them only if more of your eval questions pass (`spike evolve optimize medicine`); with your consent, approved corrections become retraining data (`spike evolve dataset`).
+SPIKE can learn from your corrections, on your computer: it tries the rules from your corrections on each specialist's prompt and keeps them only if more of your eval questions pass (`spike evolve optimize medicine`); with your consent, approved corrections become retraining data (`spike evolve dataset`).
 To code in a folder from the terminal: `spike dev [folder]` (edits and commands ask first; `/undo` puts files back).
 Use `--plan` or `/plan` for read-only planning, `/act` to return to action mode, and `/skills` or `/skill <name> <task>`
 for explicit skills. See [the Dev workflow guide (EN/ES)](docs/DEV-WORKFLOW.md) for behavior and limits.

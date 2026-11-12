@@ -10,7 +10,7 @@ Stores persistent local knowledge in SQLite across chats: memories (`fact`, `dec
 
 ## Step-by-step usage
 
-1. Open **Settings › Memory** to add facts, preferences, decisions, or always-active rules (`rule`), filter by scope or kind, and export/import JSON.
+1. Open **Settings → Memory** to add facts, preferences, decisions, or always-active rules (`rule`), filter by scope or kind, and export/import JSON.
 2. In the **Folders** sub-tab, enter an absolute folder path and click **Add folder and index it**: SPIKE indexes text, Markdown, code, HTML, PDF, and Word files while skipping hidden files, `node_modules`, `.git`, virtual environments, and symlinks pointing outside the folder.
 3. In **Glossary**, add terms and their required translation or definition so SPIKE enforces them whenever the term appears in chat.
 4. In **Tutor**, track study topics and grade reviews (`0–5`) using SM-2 spaced repetition.
@@ -18,7 +18,7 @@ Stores persistent local knowledge in SQLite across chats: memories (`fact`, `dec
 
 ## Real limits
 
-- Zero folders are indexed until you explicitly add one in **Settings › Memory › Folders**; forgetting a folder removes all indexed chunks and vectors from SQLite without touching your files on disk.
+- Zero folders are indexed until you explicitly add one in **Settings → Memory → Folders**; forgetting a folder removes all indexed chunks and vectors from SQLite without touching your files on disk.
 - Semantic vector search is optional; when no embedding model is configured, memory search operates with full SQLite FTS5 keyword matching (`words only`); see [../../STATUS.md](../../STATUS.md).
 
 ## How to verify

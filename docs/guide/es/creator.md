@@ -1,25 +1,26 @@
-# Spike Creator, Workflows, Research Workbench y Subtítulos
+# Crear, Flujos de trabajo, Investigación y Audio y subtítulos
 
 Idioma: **Español** | [English](../en/creator.md) · [Índice de la guía](README.md)
 
-![Spike Creator, Workflows, Research Workbench y Subtítulos](../images/creator.png)
+![Crear, Flujos de trabajo, Investigación y Audio y subtítulos](../images/creator.png)
 
 ## Qué hace
 
-Agrupa los estudios de producción guiada de SPIKE: **Creator** (plantillas paso a paso con revisión de plan antes de redactar y **Data Apps** sobre tablas), **Workflows** (flujos reutilizables encadenados con variables `{{var}}`, condiciones y paradas de aprobación), **Research Workbench** (cuadernos con citas verificadas página/párrafo sobre PDFs locales y detección de contradicciones) y **Subtitle Studio** (edición de subtítulos `SRT`/`VTT`, comprobación de velocidad de lectura CPS y transcripción local).
+Agrupa las herramientas de producción guiada de SPIKE: **Crear** (plantillas que se convierten en un plan de Forge que revisas antes de ejecutar, y la plantilla **De datos a aplicación** para editar tablas), **Flujos de trabajo** (pasos encadenados en un lienzo con variables `{{nombre}}` y condiciones), **Investigación** (evidencias con citas exactas comprobadas contra el documento) y **Audio y subtítulos** (edición de `SRT`/`VTT` y transcripción local).
 
 ## Cómo se usa paso a paso
 
-1. Pulsa **Creator** en la barra lateral, elige una plantilla (informe ejecutivo, propuesta, lanzamiento, etc.), rellena los campos, genera el **Plan (Blueprint)**, edita las secciones si lo deseas y pulsa **Generar entregable**.
-2. Pulsa **Workflows** en la barra lateral para diseñar una cadena de pasos con entradas tipadas, condiciones `if` y archivo de salida opcional; cada paso que escriba en disco respeta el broker de permisos.
-3. Pulsa **Research** para crear un cuaderno de investigación a partir de archivos PDF/texto de tu proyecto: SPIKE extrae el texto por página y verifica que cada cita (`[p. X]`) corresponda al documento.
-4. Pulsa **Subtítulos** para importar un archivo `.srt` o `.vtt`, corregir tiempos o líneas con exceso de caracteres por segundo (CPS) y exportar el resultado en `.srt` o `.vtt`.
+1. Pulsa **Crear** en la barra lateral y elige una plantilla (página web, aplicación, dashboard, documento, presentación, vídeo animado, automatización…). Responde las preguntas y pulsa **Preparar el plan**: se abre el plan de Forge con pasos, archivos y criterios; cámbialo si quieres y pulsa **Aprobar y ejecutar**. La plantilla **De datos a aplicación** abre en su lugar una tabla editable; los cambios se revisan y se aprueban con **Aprobar escritura** antes de tocar el archivo original.
+2. Dentro de **Crear**, abre **Flujos de trabajo** para encadenar entradas, especialistas, herramientas, condiciones y salidas. **Comprobar** valida el flujo antes de guardarlo o ejecutarlo, y cada herramienta pide permiso como en el chat.
+3. Pulsa **Investigación** en la barra superior. Elige **Paper Rebuilder** (un PDF) o **Mapa de contradicciones** (de 2 a 4 archivos PDF, TXT o MD), pulsa **Revisar texto y destino** y después **Enviar y analizar una vez**. Solo se aceptan citas que coinciden exactamente con su fuente; puedes descargar las evidencias en JSON o revisar el plan en Forge. **Descargar cuaderno .ipynb** exporta el chat abierto sin ejecutar código.
+4. Pulsa **Audio y subtítulos** en la barra lateral para importar un `.srt` o `.vtt` (o transcribir un archivo en local), corregir tiempos y textos, dividir, unir o desplazar segmentos y pulsar **Descargar**.
 
 ## Límites reales
 
-- La transcripción automática de audio/vídeo en Subtitle Studio requiere `whisper-cli` (`whisper.cpp`) y `ffmpeg` instalados localmente; la importación, edición manual, validación CPS y exportación `SRT`/`VTT` funcionan siempre sin dependencias externas; consulta [../../SUBTITLES.md](../../SUBTITLES.md), [../../WORKFLOWS.md](../../WORKFLOWS.md) y [../../STATUS.md](../../STATUS.md).
+- Investigación envía el texto mostrado al proveedor elegido en una sola solicitud, sin herramientas ni OCR: como máximo 2 MB por archivo, 80 páginas y 20.000 caracteres en total. Una cita exacta no demuestra que la interpretación sea correcta.
+- La transcripción necesita `whisper.cpp` activado en el control **Imagen y voz** del chat (hasta 10 minutos y 250 MB); crear un MP4 con subtítulos incrustados necesita `ffmpeg` con libass y `ffprobe`. Importar, editar y exportar `SRT`/`VTT` funciona sin nada más. Consulta [../../SUBTITLES.md](../../SUBTITLES.md), [../../WORKFLOWS.md](../../WORKFLOWS.md) y [../../STATUS.md](../../STATUS.md).
 
 ## Cómo comprobarlo
 
-- Ejecuta `.venv/bin/python -m pytest -q tests/test_creator.py tests/test_workflows.py tests/test_research_workbench.py tests/test_subtitles.py`.
+- Ejecuta `.venv/bin/python -m pytest -q tests/test_creator.py tests/test_workflows.py tests/test_research.py tests/test_subtitles.py`.
 - Ejecuta `cd web && npx vitest run src/workflowBuilder.test.tsx src/research.test.tsx src/subtitles.test.tsx`.

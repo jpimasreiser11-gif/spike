@@ -12,8 +12,8 @@ Agrupa conversaciones, instrucciones propias, archivos de contexto, sistema de d
 
 1. En la barra lateral izquierda, pulsa **Proyectos** (o el botón `+` junto a Proyectos) para crear un proyecto con nombre, instrucciones, especialista por defecto y sistema de diseño.
 2. Dentro del proyecto, sube archivos de referencia (documentos, CSV, código) para que estén disponibles en su carpeta aislada bajo `~/.spike/projects/<id>/files/`.
-3. Abre el panel **Archivos** (Workspace Panel) en la cabecera para inspeccionar el árbol de archivos del espacio de trabajo y del proyecto activo.
-4. Usa **Exportar ZIP** para guardar el proyecto completo (conversaciones, archivos e instrucciones) o **Importar ZIP** para restaurarlo en otro equipo.
+3. Abre el panel **Archivos** (el panel lateral del espacio de trabajo) en la cabecera para inspeccionar el árbol de archivos del espacio de trabajo y del proyecto activo.
+4. Usa **Exportar (.zip)** para guardar el proyecto completo (conversaciones, archivos e instrucciones) o **Importar proyecto** para restaurarlo en otro equipo.
 
 ## Límites reales
 

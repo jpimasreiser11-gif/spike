@@ -6,18 +6,22 @@ Language: [Español](../es/lab.md) | **English** · [Guide Index](README.md)
 
 ## What it does
 
-Compares side by side (up to 4 columns in parallel) how different specialists, providers, or temperature settings answer the exact same prompt, measuring time-to-first-token (TTFT), generation speed (`tok/s`), word count, and estimated cost.
+Compares the same prompt, or up to 16 JSON cases, across specialists and providers, with each answer's latency, tokens and estimated cost. Nothing is sent until you click **Run now**.
 
 ## Step-by-step usage
 
-1. Click **Lab** in the sidebar to open Model Lab.
-2. Configure 2 to 4 slots (**Add slot**), choosing the provider (`spike-local` or another configured provider), specialist, and temperature for each column.
-3. Enter your test prompt and click **Compare**: all columns stream in parallel and display their measured latency and token metrics.
+1. Click **Lab** in the top bar to open the comparator.
+2. Type the **Prompt** or, in **Evaluation cases (optional JSON)**, paste a list of `{"prompt": "…", "expected": "…"}` cases; those with `expected` are scored by exact match.
+3. Choose a **Specialist** and a **Provider** in each row; **Add comparison** adds another row (up to 8).
+4. Click **Estimate comparison**: it shows how many requests will be made and their estimated cost without sending anything. Then click **Run now**.
+5. Each result shows the latency (ms), the input and output tokens and, with cases, the exact-match score. The last 50 runs stay in **Saved runs** and can be exported as JSON.
+6. **Estimate provider probe** checks, with up to five small requests, what the first row's provider supports (tools, JSON, images, streaming and context). It never runs tools.
 
 ## Real limits
 
-- When multiple columns target the same local `llama-server`, concurrency is bounded by the local server's parallel slot configuration.
-- Paid external providers remain blocked in Model Lab unless `allow_paid` is explicitly enabled for that provider in Settings; see [../../STATUS.md](../../STATUS.md).
+- At most 32 answers per run and 128 output tokens per answer, without tools.
+- When several rows use the same local `llama-server`, they share its parallel slots, so the total time depends on how many it has.
+- A paid provider is blocked unless you allowed it or when it would reach its monthly limit (Settings → Providers); see [../../STATUS.md](../../STATUS.md).
 
 ## How to verify
 

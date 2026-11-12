@@ -27,8 +27,8 @@ const L = lang === "es"
     }
   : {
       prompts: "Learned instructions", promptsHint: "For one specialist, SPIKE tries adding or dropping the rules you saved from your corrections (and any you type here) and turning its skills on or off. It keeps a change only if it passes more of that specialist's accepted questions, fails none it passed before, and does so again on a second run. It runs the model: it can take a while.",
-      questions: "questions with checks", needMore: "Accept at least 3 questions for this specialist to optimise it.",
-      inUse: "In use", none: "Nothing learned", optimize: "Optimise", optimizing: "Trying", stop: "Stop",
+      questions: "questions with checks", needMore: "Accept at least 3 questions for this specialist to optimize it.",
+      inUse: "In use", none: "Nothing learned", optimize: "Optimize", optimizing: "Trying", stop: "Stop",
       tryLines: "Other instructions to try (one per line)", rollback: "Go back to the previous one", ideas: "ideas to try",
       done: (a: number, b: number, n: number) => `Accepted: ${a} → ${b} of ${n} questions.`, notDone: "No change",
       answers: "answers", skill: "skill",

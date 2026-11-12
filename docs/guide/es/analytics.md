@@ -6,18 +6,19 @@ Idioma: **Español** | [English](../en/analytics.md) · [Índice de la guía](RE
 
 ## Qué hace
 
-Analiza hojas de cálculo y tablas (`CSV`, `TSV`, `Parquet`, `JSON`, `Excel .xlsx`) localmente con **DuckDB**, genera gráficos Vega-Lite interactivos exportables a SVG/PNG, construye mapas **Geo** (GeoJSON y capas de puntos sobre lienzo offline sin servidores de teselas externos), exporta informes a Word (`.docx`) y PDF, y permite publicar una tabla como **Data App** editable con vista previa de cambios y token de confirmación.
+Analiza hojas de cálculo y tablas (`CSV`, `TSV`, `Parquet`, `JSON`, `Excel .xlsx`) localmente con **DuckDB**, genera gráficos Vega-Lite interactivos exportables a SVG/PNG, construye mapas **Geo** (GeoJSON y capas de puntos sobre lienzo offline sin servidores de teselas externos), exporta informes a Word (`.docx`) y PDF, y convierte una tabla en una aplicación editable con la plantilla **De datos a aplicación**, donde revisas cada cambio antes de escribirlo.
 
 ## Cómo se usa paso a paso
 
 1. Sube un archivo `.csv`, `.xlsx` o `.parquet` a un proyecto o al espacio de trabajo y pide al especialista **Data** que lo explore o grafique.
 2. En la tarjeta de resultados de datos, inspecciona la consulta SQL exacta ejecutada en DuckDB, las filas resultantes y el gráfico Vega-Lite (**SVG** / **PNG**).
 3. Pulsa **Ver informe** para abrir la vista de evidencia analítica, donde cada cifra está vinculada a su consulta SQL real, o descárgalo en **Word** o **PDF**.
-4. Para editar celdas desde una interfaz segura, abre **Creator › Data App**, elige el archivo del proyecto, previsualiza el diff celda por celda y confirma con el botón de aprobación.
+4. Para editar celdas, pulsa **Crear** en la barra lateral, elige la plantilla **De datos a aplicación** y el archivo del proyecto, pulsa **Crear app local (escribe app.html)**, propón los cambios, revísalos celda por celda y pulsa **Aprobar escritura**.
 
 ## Límites reales
 
-- Los números de los informes analíticos salen de consultas SQL ejecutadas por DuckDB, nunca inventados por el modelo; los archivos grandes se limitan por tamaño y número de filas devueltas a la interfaz.
+- Los números de los informes salen de consultas SQL ejecutadas por DuckDB, y cada consulta se muestra junto a su resultado; los archivos grandes se limitan por tamaño y número de filas devueltas a la interfaz.
+- **De datos a aplicación** solo edita tablas CSV UTF-8 o la primera hoja de un XLSX (máximo 2000 filas y 20000 celdas; XLSX necesita `openpyxl`).
 - El lienzo cartográfico Geo renderiza costas simplificadas offline y capas locales sin descargar teselas de internet; consulta [../../STATUS.md](../../STATUS.md).
 
 ## Cómo comprobarlo

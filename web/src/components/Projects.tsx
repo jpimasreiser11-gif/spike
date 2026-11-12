@@ -13,7 +13,7 @@ export const PL = lang === "es"
       mode: "Especialista por defecto", auto: "Auto (el orquestador elige)", save: "Guardar", create: "Crear", remove: "Eliminar proyecto",
       confirmRemove: "Pulsa otra vez para borrar el proyecto, sus chats y sus archivos", files: "Archivos", filesHint: "Las herramientas de archivos de los chats de este proyecto trabajan en esta carpeta.",
       upload: "Subir archivos", removeFile: "Eliminar archivo", noFiles: "Todavía no hay archivos.", export: "Exportar (.zip)", edit: "Editar", back: "Todos los chats", chats: "Chats del proyecto",
-      design: "Sistema de diseño", designNone: "Ninguno", designHint: "Las páginas, presentaciones y documentos de este proyecto lo siguen (tu marca, por ejemplo). Importa el tuyo en Ajustes › Diseño.",
+      design: "Sistema de diseño", designNone: "Ninguno", designHint: "Las páginas, presentaciones y documentos de este proyecto lo siguen (tu marca, por ejemplo). Importa el tuyo en Ajustes → Diseño.",
     }
   : {
       projects: "Projects", newProject: "New project", importProject: "Import project", editProject: "Edit project",
@@ -21,7 +21,7 @@ export const PL = lang === "es"
       mode: "Default specialist", auto: "Auto (the orchestrator picks)", save: "Save", create: "Create", remove: "Delete project",
       confirmRemove: "Click again to delete the project, its chats and its files", files: "Files", filesHint: "File tools in this project's chats work in this folder.",
       upload: "Upload files", removeFile: "Delete file", noFiles: "No files yet.", export: "Export (.zip)", edit: "Edit", back: "All chats", chats: "Project chats",
-      design: "Design system", designNone: "None", designHint: "Pages, slides and documents in this project follow it (your brand, for example). Import yours in Settings › Design.",
+      design: "Design system", designNone: "None", designHint: "Pages, slides and documents in this project follow it (your brand, for example). Import yours in Settings → Design.",
     };
 
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);

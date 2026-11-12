@@ -14,7 +14,7 @@ Instala SPIKE como paquete Python junto con la interfaz web compilada, prepara e
 2. Para instalación manual en entorno virtual: `python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev,keyring]"` y compila la interfaz con `cd web && npm ci && npm run build`.
 3. Comprueba el entorno local con `.venv/bin/spike doctor`: revisa Python, versión de `llama-server`, espacio en `~/.spike`, estado del modelo base y secretos.
 4. Descarga el modelo base verificado con `.venv/bin/spike models pull qwen3.5-4b` (comprueba licencia Apache-2.0 y hash SHA-256 antes de mover el archivo a `~/.spike/models/`).
-5. Inicia el servidor local con `.venv/bin/spike serve` y abre `http://127.0.0.1:8741` en el navegador (o usa el lanzador de escritorio si instalaste el paquete nativo).
+5. Inicia el servidor local con `.venv/bin/spike serve` y abre `http://127.0.0.1:8740` en el navegador (o usa el lanzador de escritorio si instalaste el paquete nativo).
 
 ## Límites reales
 
@@ -31,4 +31,4 @@ Instala SPIKE como paquete Python junto con la interfaz web compilada, prepara e
 ### Qué cubre la prueba de humo del instalador y qué no
 
 - Cubre: que el wheel contiene un servidor que funciona, que una instalación limpia arranca, que responden la salud y los endpoints compatibles con OpenAI, que se exige el token de la API y que la ejecución no deja nada.
-- No sustituye a I3 (el instalador probado en máquinas reales), no prueba los instaladores de escritorio firmados (`.dmg`, `.exe`, `.AppImage`) ni la ventana nativa, y no carga ni descarga ningún modelo (arranca con `--no-local`, así que `/v1/models` lista solo `spike-auto`, los especialistas y los proveedores configurados). `--use-python` no prueba la instalación.
+- No sustituye a probar el instalador en máquinas reales, no prueba los instaladores de escritorio firmados (`.dmg`, `.exe`, `.AppImage`) ni la ventana nativa, y no carga ni descarga ningún modelo (arranca con `--no-local`, así que `/v1/models` lista solo `spike-auto`, los especialistas y los proveedores configurados). `--use-python` no prueba la instalación.

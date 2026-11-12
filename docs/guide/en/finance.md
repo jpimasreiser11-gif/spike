@@ -11,7 +11,7 @@ Provides a local **Paper Trading** account in SQLite (simulated cash balance, ma
 ## Step-by-step usage
 
 1. Select the **Finance** specialist in chat and request a simulated paper trade (e.g., `Buy 0.01 BTC on paper`) or a walk-forward backtest on a CSV candle file.
-2. Open **Settings › Finance** to inspect your simulated paper balances, open/filled orders, or reset the starting cash balance.
+2. Open **Settings → Finance** to inspect your simulated paper balances, open/filled orders, or reset the starting cash balance.
 3. In backtest result cards, inspect both the in-sample and walk-forward out-of-sample metrics alongside fee and slippage assumptions.
 
 ## Real limits

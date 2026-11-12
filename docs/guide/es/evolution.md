@@ -10,10 +10,10 @@ Gestiona la mejora continua de SPIKE bajo control del usuario: recoge señales e
 
 ## Cómo se usa paso a paso
 
-1. Cuando corriges a SPIKE en el chat, aparece una tarjeta **¿Guardar como regla aprendida?**: pulsa **Guardar** para conservarla o **Descartar**.
-2. Abre **Ajustes › Evolución** para revisar la cola de elementos aprendidos, eliminar cualquiera con un clic o exportar un informe anonimizado.
+1. Cuando corriges a SPIKE en el chat, SPIKE pregunta **¿Guardo tu corrección como regla para los próximos chats?**: pulsa **Guardar regla** para conservarla o **Ahora no**.
+2. Abre **Ajustes → Evolución** para revisar la cola de elementos aprendidos, eliminar cualquiera con un clic o exportar un informe anonimizado.
 3. Añade preguntas de comprobación con su respuesta esperada para un especialista y pulsa **Comprobar ahora** para medir cuántos aciertos obtiene la configuración actual.
-4. Usa **Probar mejora de instrucciones** para que SPIKE proponga un candidato y lo evalúe contra tus preguntas: solo se puede activar si iguala o mejora la puntuación anterior sin perder ninguna pregunta que ya pasaba.
+4. Usa **Optimizar** para que SPIKE proponga un candidato y lo evalúe contra tus preguntas: solo se puede activar si iguala o mejora la puntuación anterior sin perder ninguna pregunta que ya pasaba.
 5. En **Adaptador personal**, marca conversaciones ejemplares (con filtro automático de secretos y exclusiones) para preparar un conjunto de entrenamiento local.
 
 ## Límites reales

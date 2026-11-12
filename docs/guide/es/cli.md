@@ -133,7 +133,7 @@ measure threads and KV cache on this machine and save the fastest settings
 
 ## `spike evolve`
 
-check, learn, optimise or roll back what SPIKE learned from its use
+check, learn, optimize or roll back what SPIKE learned from its use
 
 | Opción | Por defecto | Qué hace |
 |---|---|---|

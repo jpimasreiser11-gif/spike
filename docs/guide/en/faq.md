@@ -2,7 +2,7 @@
 
 Language: [Español](../es/faq.md) | **English** · [Guide Index](README.md)
 
-This page documents every diagnostic check emitted by `spike doctor` (`spike/cli.py` and `spike/runtime/hardware.py`) and every user-facing error message (G24): **what it means**, **probable cause**, and **what to do** to recover cleanly.
+This page documents every diagnostic check emitted by `spike doctor` (`spike/cli.py` and `spike/runtime/hardware.py`) and every user-facing error message: **what it means**, **probable cause**, and **what to do** to recover cleanly.
 
 ---
 
@@ -33,7 +33,7 @@ Run `.venv/bin/spike doctor` (or `.venv/bin/spike doctor --json` / `--strict`) t
 ### `Less than 8 GB RAM: expect slow generation; close other apps.`
 - **What it means**: The machine has less than 7.5 GB of total system RAM.
 - **Probable cause**: The `Qwen3.5-4B Q4_K_M` base model needs ~3.6 GiB of anonymous resident RAM on top of the OS.
-- **What to do**: Close memory-heavy applications before starting the local engine, lower the context window in Settings › Engine, or use an external provider.
+- **What to do**: Close memory-heavy applications before starting the local engine, lower the context window in Settings → Local engine, or use an external provider.
 
 ### `CPU without AVX2 detected: llama.cpp will run, but several times slower.`
 - **What it means**: On Linux x86_64/AMD64, the processor does not advertise the `avx2` instruction flag in `/proc/cpuinfo`.
@@ -43,7 +43,7 @@ Run `.venv/bin/spike doctor` (or `.venv/bin/spike doctor --json` / `--strict`) t
 ### `CPU only: context set to 8K because long prompts are slow without a GPU; raise it in Settings if your CPU is fast.`
 - **What it means**: When running on CPU only (`gpu_layers == 0`), SPIKE caps the default recommended context at 8192 tokens even if 16+ GB of RAM is present.
 - **Probable cause**: On a 4-core CPU, a 32K prompt fits in RAM (3.6 GiB anonymous) but takes ~1.5 h to the first token, whereas 8K remains interactive.
-- **What to do**: Keep the 8192 context on CPU-only machines, or raise it manually in Settings › Engine on a high-core-count CPU or GPU.
+- **What to do**: Keep the 8192 context on CPU-only machines, or raise it manually in Settings → Local engine on a high-core-count CPU or GPU.
 
 ### `downloaded without a SHA-256 check`
 - **What it means**: The model manifest next to the `.gguf` file has `unverified: true` (`[downloaded without a SHA-256 check]`).
@@ -68,7 +68,7 @@ Run `.venv/bin/spike doctor` (or `.venv/bin/spike doctor --json` / `--strict`) t
 
 ---
 
-## 2. User-Facing UI and API Error Messages (G24)
+## 2. User-Facing UI and API Error Messages
 
 Every server error code or message is translated in the UI with a clear explanation and recovery action (never exposing internal tracebacks or host absolute paths):
 
@@ -86,14 +86,14 @@ Every server error code or message is translated in the UI with a clear explanat
 | `reverse_busy` | A generation is already running. |
 | `reverse_expired` | The preview expired or was already used. Start again. |
 | `reverse_changed` | The provider or project changed after the preview. Start again. |
-| `reverse_files_blocked` | This external provider may not receive your files. Allow it in Settings › Providers. |
-| `reverse_provider_blocked` | The provider is blocked by the paid-request permission or a monthly limit. Check Settings › Providers. |
+| `reverse_files_blocked` | This external provider may not receive your files. Allow it in Settings → Providers. |
+| `reverse_provider_blocked` | The provider is blocked by the paid-request permission or a monthly limit. Check Settings → Providers. |
 | `reverse_context` | The request does not fit the model's context. |
 | `reverse_file_missing` | The file no longer exists. |
 | `reverse_unknown_project` | The project no longer exists. |
 | `reverse_unknown_provider` | The provider no longer exists. |
 | `subtitles_invalid` | Invalid subtitles: check timing, overlaps, text and limits. |
-| `subtitles_limit` | File exceeds limits: 10 minutes, 250 MB, 1000 segments or 4096 \u00d7 2160 resolution. |
+| `subtitles_limit` | File exceeds limits: 10 minutes, 250 MB, 1000 segments or 4096 × 2160 resolution. |
 | `subtitles_unsupported` | Plain text only: subtitle styling and positioning are not supported. |
 | `subtitles_split` | Splitting requires two words and at least two milliseconds. |
 | `subtitles_path` | Choose a relative path without symbolic links inside the project. |
@@ -122,19 +122,19 @@ Every server error code or message is translated in the UI with a clear explanat
 | `project notes need a memory store` | Project notes require a memory store. |
 | `design system not found` | The design system was not found. Refresh the list or select another one in Design. |
 | `skill not found` | The skill was not found. Refresh the skills list or check its name. |
-| `built-in skills can be disabled, not deleted` | Built-in skills cannot be deleted; disable them with their toggle in Settings › Skills. |
+| `built-in skills can be disabled, not deleted` | Built-in skills cannot be deleted; disable them with their toggle in Settings → Skills. |
 | `not a zip archive` | The file is not a valid ZIP archive. Choose a .zip file. |
 | `not a SPIKE project archive (zip)` | The file is not a SPIKE project archive (.zip). Export a project from SPIKE and try again. |
-| `connector not found` | The connector was not found. Refresh the list in Settings › Connectors. |
+| `connector not found` | The connector was not found. Refresh the list in Settings → Connectors. |
 | `id or preset is required` | Enter an identifier or choose a provider preset before saving. |
 | `base_url must be an http(s) URL` | The provider address must start with http:// or https://. Fix the URL and try again. |
-| `provider not found` | The provider was not found. Check Settings › Providers or select another provider. |
+| `provider not found` | The provider was not found. Check Settings → Providers or select another provider. |
 | `the built-in local provider cannot be removed` | The built-in local provider cannot be removed; you can change the default provider in Settings. |
 | `request refused: it comes from another web site` | Request refused because it comes from another web site. Use the interface opened directly on this computer. |
 | `a confirmation must name the order in the body and the X-Spike-Confirm header` | The order confirmation is missing. Confirm the order from its card in the chat or in Finance. |
 | `no open order with that id` | There is no open order with that ID. Refresh the simulated portfolio. |
 | `no such order` | That order does not exist. Refresh the order list in Finance. |
-| `save an API key for the chosen exchange first` | No API key is saved for this exchange. Save the key in Settings › Finance first. |
+| `save an API key for the chosen exchange first` | No API key is saved for this exchange. Save the key in Settings → Finance first. |
 | `invalid report` | The data report is not valid. Check the query blocks and export it again. |
 | `format must be docx or pdf` | The report format must be Word (docx) or PDF. Choose one of those two formats. |
 | `an image is not valid base64` | A chart image in the report is invalid. Regenerate the chart and try again. |
@@ -153,13 +153,13 @@ Every server error code or message is translated in the UI with a clear explanat
 | `an optimisation is already running` | A prompt optimization is already running. Wait for it to finish or cancel it before starting another. |
 | `job cancelled` | The job was cancelled. You can start it again whenever you want. |
 | `not found` | The requested resource was not found. Refresh the view and try again. |
-| `turn on “Use my corrections to retrain” in Settings → Evolution first` | Turn on “Use my corrections to retrain” in Settings › Evolution first. |
-| `turn on the personal adapter in Settings → Evolución first` | Turn on the personal adapter in Settings › Evolution first. |
+| `turn on “Use my corrections to retrain” in Settings → Evolution first` | Turn on “Use my corrections to retrain” in Settings → Evolution first. |
+| `turn on the personal adapter in Settings → Evolución first` | Turn on the personal adapter in Settings → Evolution first. |
 | `that chat is not marked` | That conversation was not marked for the personal adapter. Refresh the list. |
 | `that example is not in the personal set` | That example is no longer in the personal set. Refresh the list in Evolution. |
 | `the previous adapter file is gone` | The previous adapter file is no longer on disk. Install the accepted adapter again. |
 | `memory not found` | The memory note no longer exists. Refresh the list in Memory. |
-| `folder not found` | The indexed folder is no longer registered. Refresh the list in Memory › Folders. |
+| `folder not found` | The indexed folder is no longer registered. Refresh the list in Settings → Memory → Folders. |
 | `that folder does not exist or cannot be read` | That folder does not exist or cannot be read. Check the path and permissions on this computer. |
 | `that path is not a folder` | The path points to a file, not a folder. Enter the path of a folder. |
 | `choose a folder, not a whole disk` | A whole disk cannot be indexed. Choose a specific folder inside your documents. |
@@ -176,13 +176,13 @@ Every server error code or message is translated in the UI with a clear explanat
 | `each approach must save at least one file (a step with 'deliverables')` | Each approach must save at least one deliverable file. Add a deliverable to each plan. |
 | `no such prototype run` | That prototype run no longer exists. Open another one or start a new run. |
 | `this run is still building` | This prototype run is still building. Wait for it to finish before discarding it. |
-| `Parallel Minds needs a prose answer: it cannot be combined with a Forge blueprint or an answer contract (JSON)` | Parallel Minds needs a prose answer: turn off the Forge blueprint or the JSON answer contract. |
-| `Parallel Minds runs 2 to 4 minds` | Parallel Minds runs 2 to 4 minds. Choose between 2 and 4 in the selector. |
+| `Parallel Minds needs a prose answer: it cannot be combined with a Forge blueprint or an answer contract (JSON)` | Parallel minds needs a prose answer: turn off the Forge blueprint or the JSON answer contract. |
+| `Parallel Minds runs 2 to 4 minds` | Parallel minds runs 2 to 4 minds. Choose between 2 and 4 in the selector. |
 | `replace_from needs an existing conversation` | Editing and resending a message requires an existing conversation. Send a new message. |
 | `replace_from must be a user message of this conversation` | You can only edit and resend one of your own messages in this conversation. |
 | `a Forge task cannot also have an answer contract` | A Forge task cannot be combined with a JSON answer contract. Turn one of them off. |
 | `this blueprint saves files, which needs tools: turn them on in Settings` | This Forge blueprint saves files and needs tools: turn them on in Settings. |
-| `data_app_expired` | The table session expired or was already applied. Generate the app again from Creator. |
+| `data_app_expired` | The table session expired or was already applied. Generate the app again from the Create view. |
 | `data_app_conflict` | The source file changed on disk since the preview opened. Reopen the file. |
 | `data_app_approval` | Approve the operation before creating the app or saving changes to the file. |
 | `data_app_project` | The selected project no longer exists. Choose another project. |
@@ -190,22 +190,22 @@ Every server error code or message is translated in the UI with a clear explanat
 | `describe what the task is` | Describe the desktop task you want to run before starting. |
 | `no pending desktop action with this id` | This desktop action was already answered or finished. Continue in the desktop panel. |
 | `screenshot not found` | The screenshot is no longer available. Screenshots are only kept during the active task. |
-| `Desktop actions are off. Turn them on in Settings → Desktop.` | Desktop actions are off. Turn them on in Settings › Desktop first. |
+| `Desktop actions are off. Turn them on in Settings → Desktop.` | Desktop actions are off. Turn them on in Settings → Desktop first. |
 | `history_filter` | The search filters are not valid. Check the query and the selected scope. |
 | `project_not_found` | The project selected for search no longer exists. Choose another scope. |
 | `invalid_target` | Select between 1 and 4 valid specialist and provider combinations in Lab. |
 | `invalid_cases` | The Lab test cases are not valid. Use a JSON list with prompt and optional expected fields. |
 | `one_probe_target` | The capability probe tests a single target at a time. Leave only one target selected. |
-| `expired_quote` | The Lab quote expired or was already used. Click Preview again before executing. |
+| `expired_quote` | The Lab quote expired or was already used. Estimate again before running. |
 | `changed_quote` | The provider configuration changed since the preview. Compute a new preview in Lab. |
-| `provider_blocked` | The provider is blocked by the paid-request permission or a monthly limit. Check Settings › Providers. |
+| `provider_blocked` | The provider is blocked by the paid-request permission or a monthly limit. Check Settings → Providers. |
 | `unknown_run` | The Lab run no longer exists. Select another one from the Lab history. |
 | `Launcher only` | This action is only available from the SPIKE desktop launcher. |
 | `Adapter unavailable` | One of the selected adapters is not yet available for download. Uncheck it and try again. |
 | `Installation busy or insufficient resources` | A download is already running or there is not enough free disk space or RAM. Free up space and try again. |
 | `Local same-origin JSON request required` | This action requires a local request from the SPIKE window itself. |
-| `Spike View is not running: turn it on in Settings first` | Spike View is not running. Turn on the browser in Settings › Connectors first. |
-| `Spike View is not running` | Spike View is not running. Turn on the browser in Settings › Connectors first. |
+| `Spike View is not running: turn it on in Settings first` | Spike View is not running. Turn on the browser in Settings → Connectors first. |
+| `Spike View is not running` | Spike View is not running. Turn on the browser in Settings → Connectors first. |
 | `this script is being replayed: stop the replay first` | This script is currently being replayed. Stop the replay before deleting it. |
 | `there is no such script` | The browser script no longer exists. Refresh the script list. |
 | `the replay is not waiting for that answer` | The replay is no longer waiting for that answer. Check the current script status. |

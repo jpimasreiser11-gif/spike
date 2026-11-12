@@ -11,8 +11,8 @@ Provides 21 curated design systems (including the official **SPIKE** cactus pale
 ## Step-by-step usage
 
 1. Select a design system in the composer's **Design** dropdown (e.g., `SPIKE` or `Minimal`) before asking for a landing page or UI component.
-2. Open **Settings › Design** to browse all 21 design systems, open their live **Preview**, or import a custom `.zip` design system.
-3. In **Settings › Design › Reverse Studio**, enter a URL you own or upload an HTML/screenshot file, check the ownership authorization box, and click **Generate editable HTML**.
+2. Open **Settings → Design** to browse all 21 design systems, open their live **Preview**, or import a custom `.zip` design system.
+3. In **Settings → Design → Reverse Studio**, enter a URL you own or upload an HTML/screenshot file, check the ownership authorization box, and click **Generate HTML**.
 4. Open the generated template in the artifact panel to inspect the clean HTML and measured similarity score.
 
 ## Real limits

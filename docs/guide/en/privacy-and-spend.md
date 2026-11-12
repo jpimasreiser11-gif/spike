@@ -6,13 +6,13 @@ Language: [Español](../es/privacy-and-spend.md) | **English** · [Guide Index](
 
 ## What it does
 
-Ensures SPIKE runs 100% locally by default with zero telemetry or unapproved network calls, isolates command and Python execution in an OS **sandbox** (`sandbox-exec` on macOS, `bwrap` on Linux, Job Objects and restricted environment on Windows), gates side effects through the permission broker, verifies answer grounding (**Trust Layer** and HMAC-SHA256 `.spike-proof.json` bundles), and blocks paid providers until explicitly enabled with daily and monthly spend caps.
+Keeps SPIKE local by default, with no telemetry and no network calls you did not approve (a test checks it: see the FAQ), isolates command and Python execution in an OS **sandbox** (`sandbox-exec` on macOS, `bwrap` on Linux, Job Objects and restricted environment on Windows), gates side effects through the permission broker, verifies answer grounding (**Trust Layer** and HMAC-SHA256 `.spike-proof.json` bundles), and blocks paid providers until explicitly enabled with daily and monthly spend caps.
 
 ## Step-by-step usage
 
-1. Open **Settings › Permissions & Sandbox** to select the sandbox mode (`Auto`, `Workspace only`, or `Off`) and per-tool policies (`Ask`, `Allow`, `Deny`).
-2. Open **Settings › Providers** to inspect local (`127.0.0.1`) vs remote/paid providers: paid providers cannot be called or receive local files unless you explicitly enable their toggles and configure spend limits. Monthly limits also count the calls still running, so several at once stop where they would one after another.
-3. Open **Settings › Privacy & Spend** to audit the local call log (`calls`), review per-provider token and cost totals, or clear the call log.
+1. Open **Settings → Tools** to choose how code is isolated (**Automatic**, **Off** or **Required**) and each tool's policy (**Allow**, **Ask** or **Block**).
+2. Open **Settings → Providers** to inspect local (`127.0.0.1`) vs remote/paid providers: paid providers cannot be called or receive local files unless you explicitly enable their toggles and configure spend limits. Monthly limits also count the calls still running, so calls started together stop at the same limit as calls made one after another.
+3. Open **Settings → Privacy** to audit the local call log (`calls`), review per-provider token and cost totals, or clear the call log.
 4. On any chat message, inspect the **Trust** badge (verifying whether numbers and citations trace back to tool outputs) or export a signed **Proof** bundle (`.spike-proof.json`) verifiable via `spike proof verify`.
 
 ## Real limits

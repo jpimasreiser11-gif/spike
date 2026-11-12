@@ -212,7 +212,7 @@ def cmd_evolve(args: argparse.Namespace) -> int:
                 return 0 if report["accepted"] else 1
             if args.action == "optimize":
                 if not args.component:
-                    print("error: name the specialist to optimise, e.g. spike evolve optimize medicine", file=sys.stderr)
+                    print("error: name the specialist to optimize, e.g. spike evolve optimize medicine", file=sys.stderr)
                     return 2
 
                 async def show(ev: dict) -> None:
@@ -785,7 +785,7 @@ def build_parser() -> argparse.ArgumentParser:
     t.add_argument("--quick", action="store_true", help="shorter runs (less precise)")
     t.set_defaults(func=cmd_tune)
 
-    ev = sub.add_parser("evolve", help="check, learn, optimise or roll back what SPIKE learned from its use")
+    ev = sub.add_parser("evolve", help="check, learn, optimize or roll back what SPIKE learned from its use")
     ev.add_argument("action", choices=["check", "router", "strategy", "optimize", "candidate", "activate", "dataset",
                                        "personal-adapter", "rollback", "export"],
                     help="what to do; see docs/guide/en/evolution.md")

@@ -12,8 +12,8 @@ Groups conversations, custom instructions, reference files, preferred design sys
 
 1. In the left sidebar, click **Projects** (or the `+` button) to create a project with a name, custom instructions, default specialist, and design system.
 2. Upload reference files (Markdown, CSV, PDFs, code) into the project's isolated folder under `~/.spike/projects/<id>/files/`.
-3. Click **Files** (Workspace Panel) in the header to inspect and preview files in the workspace and active project.
-4. Use **Export ZIP** to back up the project (conversations, files, and instructions) or **Import ZIP** to restore it.
+3. Click **Files** (the Workspace side panel) in the header to inspect and preview files in the workspace and active project.
+4. Use **Export (.zip)** to back up the project (conversations, files, and instructions) or **Import project** to restore it.
 
 ## Real limits
 

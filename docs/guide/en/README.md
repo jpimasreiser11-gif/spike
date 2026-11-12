@@ -15,7 +15,7 @@ Each page explains what the module does, how to use it step by step, its real me
 | [Spike Dev and Device Lab](dev.md) | `dev` | [Español](../es/dev.md) |
 | [Spike Analytics, Verified Reports, and Geo](analytics.md) | `analytics` | [Español](../es/analytics.md) |
 | [Spike Design, Design Systems, and Reverse Studio](design.md) | `design` | [Español](../es/design.md) |
-| [Spike Creator, Workflows, Research Workbench, and Subtitles](creator.md) | `creator` | [Español](../es/creator.md) |
+| [Create, Workflows, Research, and Audio and subtitles](creator.md) | `creator` | [Español](../es/creator.md) |
 | [Spike Motion, 3D Scenes, and External Engines (Blender / Godot)](motion.md) | `motion` | [Español](../es/motion.md) |
 | [Model Lab (A/B Model and Specialist Comparator)](lab.md) | `lab` | [Español](../es/lab.md) |
 | [Spike Evolution (Governed Learning and Local Evaluation)](evolution.md) | `evolution` | [Español](../es/evolution.md) |

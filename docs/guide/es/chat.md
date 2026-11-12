@@ -14,7 +14,7 @@ Proporciona la conversación principal en streaming SSE con enrutado automático
 2. Para elegir un especialista concreto en vez de `Auto`, usa el selector **Especialista** sobre el compositor; para aplicar un sistema visual al código generado, usa el selector **Diseño**.
 3. Cuando una herramienta requiere permiso (`write_file`, `run_command`, `web_fetch`, etc.), aparece una tarjeta en el chat con los argumentos exactos: pulsa **Permitir una vez** o **Denegar**.
 4. Si la respuesta incluye bloques HTML, SVG o diagramas, pulsa **Vista previa** para abrir el panel de artefactos o añadir comentarios por línea para pedir revisiones.
-5. Para deshacer cambios en archivos realizados por un turno, pulsa **Deshacer este paso** en la tarjeta de archivos tocados (`Checkpoints`).
+5. Para deshacer cambios en archivos realizados por un turno, pulsa **Deshacer** en el cambio de ese archivo, bajo la respuesta.
 6. Para buscar en conversaciones anteriores por palabra clave, proyecto o especialista, pulsa el botón **Buscar** en la barra lateral.
 
 ## Límites reales

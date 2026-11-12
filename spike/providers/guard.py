@@ -46,7 +46,7 @@ class CallLog(Protocol):
 
 def withheld_notice(provider_name: str) -> str:
     return (f"[file content withheld: {provider_name} is not allowed to receive the user's files. If it is needed, "
-            "tell the user they can allow it for this provider in Settings › Providers.]")
+            "tell the user they can allow it for this provider in Settings → Providers.]")
 
 
 def redact(messages: list[Message], notice: str) -> tuple[list[Message], int]:

@@ -11,8 +11,8 @@ Reúne 21 sistemas de diseño curados (incluyendo el tema oficial de **SPIKE** c
 ## Cómo se usa paso a paso
 
 1. En el compositor del chat (o en la configuración de un proyecto), selecciona un sistema en el desplegable **Diseño** (por ejemplo `SPIKE` o `Minimal`) antes de pedir una página o componente.
-2. Abre **Ajustes › Diseño** para explorar las tarjetas de los 21 sistemas, abrir su **Vista previa** en vivo o importar un paquete `.zip` con tus propios tokens.
-3. En **Ajustes › Diseño › Reverse Studio**, introduce la URL de una página tuya o sube un archivo HTML/captura, marca la casilla de confirmación de titularidad y pulsa **Generar HTML editable**.
+2. Abre **Ajustes → Diseño** para explorar las tarjetas de los 21 sistemas, abrir su **Vista previa** en vivo o importar un paquete `.zip` con tus propios tokens.
+3. En **Ajustes → Diseño → Reverse Studio**, introduce la URL de una página tuya o sube un archivo HTML/captura, marca la casilla de confirmación de titularidad y pulsa **Generar HTML**.
 4. Abre el resultado en el panel de artefactos para inspeccionar el código limpio y la puntuación de similitud estructural/visual.
 
 ## Límites reales

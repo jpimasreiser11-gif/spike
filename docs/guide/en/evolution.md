@@ -10,10 +10,10 @@ Manages governed self-improvement under user control: captures explicit feedback
 
 ## Step-by-step usage
 
-1. When you correct SPIKE in chat, a **Save as learned rule?** card appears: click **Save** to keep it or **Dismiss**.
-2. Open **Settings › Evolution** to inspect learned items, delete any item, or generate a sanitized issue report.
+1. When you correct SPIKE in chat, SPIKE asks **Save your correction as a rule for future chats?**: click **Save rule** to keep it or **Not now**.
+2. Open **Settings → Evolution** to inspect learned items, delete any item, or generate a sanitized issue report.
 3. Add verification questions with expected answers for a specialist and click **Check now** to score the active configuration.
-4. Use **Optimize instructions** to generate and score a candidate prompt variant: SPIKE only allows activation when it loses zero previously passing questions.
+4. Use **Optimize** to generate and score a candidate prompt variant: SPIKE only allows activation when it loses zero previously passing questions.
 5. In **Personal adapter**, bookmark exemplary conversations (with secret scrubbing and exclusions) to curate a local fine-tuning dataset.
 
 ## Real limits

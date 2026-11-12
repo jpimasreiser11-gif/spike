@@ -15,7 +15,7 @@ Cada página explica qué hace el módulo, cómo se usa paso a paso, sus límite
 | [Spike Dev y Device Lab](dev.md) | `dev` | [English](../en/dev.md) |
 | [Spike Analytics, informes verificados y Geo](analytics.md) | `analytics` | [English](../en/analytics.md) |
 | [Spike Design, sistemas de diseño y Reverse Studio](design.md) | `design` | [English](../en/design.md) |
-| [Spike Creator, Workflows, Research Workbench y Subtítulos](creator.md) | `creator` | [English](../en/creator.md) |
+| [Crear, Flujos de trabajo, Investigación y Audio y subtítulos](creator.md) | `creator` | [English](../en/creator.md) |
 | [Spike Motion, escenas 3D y motores externos (Blender / Godot)](motion.md) | `motion` | [English](../en/motion.md) |
 | [Model Lab (comparador A/B de modelos y especialistas)](lab.md) | `lab` | [English](../en/lab.md) |
 | [Spike Evolution (aprendizaje gobernado y evaluación local)](evolution.md) | `evolution` | [English](../en/evolution.md) |
