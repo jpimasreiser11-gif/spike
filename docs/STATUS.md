@@ -283,8 +283,13 @@ floor of 0.3 instead of 0.4, because the 768-token window dropped 6,313 of 9,063
 Selection suites: the final checkpoint at scale 0.5 finance +7.00 (p = 0.00004) / general −2.75; iteration 2600
 +4.67 / −12.50; iteration 5000 +6.00 / −7.75; iteration 10000 +4.00 (p = 0.053) / −10.25 (measured on the Mac;
 `training/runs/finance/sweep-default/summary.md` there). The domain gain already clears the gate; general knowledge
-is what fails. Now evaluating lower scales (0.25 and 0.35 of the final checkpoint, iteration 10000 at 0.5), evaluation
-only. If none passes, round 3 changes one thing, more general replay in the mix, measured against round 2.
+is what fails. A second sweep, evaluation only, tried lower scales (2026-11-12, measured on the Mac,
+`training/runs/finance/sweep/summary.md` there); none passes: final at 0.25 +3.67 (p = 0.017) / −3.75, final at 0.35
++5.50 (p = 0.0004) / −5.00, iteration 10000 at 0.5 +6.17 (p = 0.0006) / −5.25. With 400 general-select questions the
+paired difference is uncertain by about ±4.7 points, so the differences between scales are noisy; the best of the round
+stays the final checkpoint at 0.5.
+**Round 3 changes one thing, the replay share: 0.30 → 0.45** (decided 2026-11-12; the same self-replay answers, so the
+domain rows are sampled down to keep the share; the same window, schedule, sweep and gate), measured against round 2.
 
 **Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
 2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
