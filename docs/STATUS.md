@@ -291,6 +291,12 @@ stays the final checkpoint at 0.5.
 **Round 3 changes one thing, the replay share: 0.30 → 0.45** (decided 2026-11-12; the same self-replay answers, so the
 domain rows are sampled down to keep the share; the same window, schedule, sweep and gate), measured against round 2.
 
+**Marketing teacher speed**, measured 2026-11-12 on the Mac: Qwen3.6-35B-A3B-4bit under `mlx_lm.server` took about
+17 s per call (49 answers in 836 s, 2 requests in parallel). The server then stopped with a Metal error ("Resource
+limit (499000) exceeded") from its prompt cache, not from RAM; the cache is now capped (`--prompt-cache-size 2`). The
+6000-task distillation started the same day with 4 requests in parallel and a supervisor that restarts the teacher and
+resumes from the checkpoint; about 3 days is an estimate from that speed, not a measurement.
+
 **Training memory and speed, Qwen3.5-4B LoRA with mlx-lm on the M4 Max (36 GB)**, measured on joan's Mac
 2026-10-17: the first medicine run (batch 4, 2048 tokens) ran out of Metal memory on its first step. One LoRA step
 with gradient checkpointing peaks at 11 GB with 128-token sequences, 23 GB at 768 and over 27 GB at 1024 (out of
@@ -368,7 +374,8 @@ yet measured).
 3. ~~Train, export and evaluate the medicine adapter; accept or reject by its criteria~~ (done: rejected for
    forgetting, above).
 4. ~~Fix the forgetting on medicine with the same criteria~~ (done: round 2 accepted, above); finance with the same
-   recipe (round 1 rejected, round 2 with a 1536-token window running), then marketing (teacher distillation)
+   recipe (rounds 1 and 2 rejected for forgetting; round 3 with more general replay runs after the marketing
+   distillation), then marketing (teacher distillation running)
    and the other ten, one at a time.
 5. Long-context eval; orchestrated vs single-model pairwise eval.
 6. ~~Choose the repository, enable CI~~ (done); publish with measured tables once joan agrees.
