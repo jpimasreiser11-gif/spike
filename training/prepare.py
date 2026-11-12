@@ -274,8 +274,8 @@ def main() -> int:
         distilled[path] = chats
         # offline: trust the license distill.py recorded, still on the allowlist; otherwise live from the Hub
         manifest["sources"][f"distilled:{Path(path).name}"] = {
-            "role": "train", "teachers": check_generators(path, teachers, "teacher", args.skip_license_check),
-            "tasks_made_by": made}
+            "role": "train", "sha256": sha256(Path(path)),  # sweep_checkpoints.py finds the teacher's tasks with it
+            "teachers": check_generators(path, teachers, "teacher", args.skip_license_check), "tasks_made_by": made}
     self_rows: list[tuple[str, dict]] = []
     if args.self_replay:  # the base model's answers: its terms travel with them like a teacher's (the model card reads `teachers`)
         self_path = Path(args.self_replay)

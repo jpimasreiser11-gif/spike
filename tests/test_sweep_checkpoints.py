@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / "training"))
 
 import export_adapter  # noqa: E402
 import sweep_checkpoints as sweep  # noqa: E402
-from spike_train.evaluation import check_acceptance  # noqa: E402
+from spike_train.evaluation import check_acceptance, check_pairwise_acceptance, general_regression  # noqa: E402
 from spike_train.export import convert, read_safetensors, write_safetensors  # noqa: E402
 
 LLAMA_CPP = os.environ.get("SPIKE_LLAMA_CPP")
@@ -44,6 +44,11 @@ SELECT = {"it200-s1": {"medicine-select": (6.0, 0.001), "general-select": (-0.5,
           "it400-s1": {"medicine-select": (9.0, 0.001), "general-select": (-3.0, 0.01)},   # best gain, forgets
           "it1000-s0.5": {"medicine-select": (7.5, 0.001), "general-select": (-1.0, 0.3)}}
 FINAL = {"it1000-s0.5": {"medicine": (7.0, 0.001), "general": (-1.0, 0.3)}}
+# marketing (pairwise): win rate and sign test p on the selection prompts, and on the acceptance prompts
+MK_SELECT = {"it200-s1": {"general-select": (-0.5, 0.4), "pairs": (0.70, 0.01)},
+             "it400-s1": {"general-select": (-3.0, 0.01), "pairs": (0.80, 0.001)},    # best win rate, forgets
+             "it1000-s0.5": {"general-select": (-1.0, 0.3), "pairs": (0.65, 0.03)}}
+MK_FINAL = {"it200-s1": {"general": (-1.0, 0.3), "final-pairs": (0.66, 0.02)}}
 
 
 def flag(cmd: list[str], name: str) -> str | None:
@@ -60,15 +65,20 @@ def adapter_weights(seed: int) -> dict[str, np.ndarray]:
             for m, (d_in, d_out) in DIMS.items() for ab in ("lora_a", "lora_b")}
 
 
-class Fake:
-    """Replaces sweep.run: records every command and leaves what export_adapter.py / run_eval.py would."""
+def key(stem: str) -> str:
+    return stem.split("-", 2)[2]   # spike-<specialist>-it<N>-s<S> -> it<N>-s<S>
 
-    def __init__(self):
+
+class Fake:
+    """Replaces sweep.run: records every command and leaves what export_adapter.py / run_eval.py / pairwise.py would."""
+
+    def __init__(self, select=SELECT, final=FINAL):
         self.calls: list[list[str]] = []
-        # "it<N>-s<S>" -> {suite: (delta_points, p_value)}; a copy, tests change it
-        self.table = {k: {**SELECT.get(k, {}), **FINAL.get(k, {})} for k in {*SELECT, *FINAL}}
+        # "it<N>-s<S>" -> {suite: (delta_points, p_value)}, or "pairs" / "final-pairs": (win_rate, sign_test_p)
+        self.table = {k: {**select.get(k, {}), **final.get(k, {})} for k in {*select, *final}}
         self.exit = {}                    # script name -> exit code to fail with
         self.exported: dict[str, dict] = {}
+        self.judge_down = False
 
     def scripts(self) -> list[str]:
         return [Path(c[1]).name for c in self.calls]
@@ -78,6 +88,8 @@ class Fake:
         script = Path(cmd[1]).name
         if code := self.exit.get(script):
             return code
+        if script == "pairwise.py":
+            return self.pairwise(cmd)
         return self.export(cmd) if script == "export_adapter.py" else self.evaluate(cmd)
 
     def export(self, cmd: list[str]) -> int:
@@ -97,7 +109,7 @@ class Fake:
             assert (out / "predictions.jsonl").is_file()
         out.mkdir(parents=True, exist_ok=True)
         stems = [Path(a).stem for a in flags(cmd, "--adapter")]
-        measured = {stem: self.table[stem.removeprefix("spike-medicine-")] for stem in stems}
+        measured = {stem: self.table[key(stem)] for stem in stems}
         summary = {"meta": {"suites": flag(cmd, "--suites")}, "variants": ["base", *stems], "tasks": {},
                    "suites": {s: {"accuracy": {}, "vs_base": {
                        stem: {"paired_n": 400, "delta_points": m[s][0], "p_value": m[s][1]} for stem, m in measured.items()}}
@@ -114,20 +126,43 @@ class Fake:
         (out / "summary.json").write_text(json.dumps(summary))
         return code
 
+    def pairwise(self, cmd: list[str]) -> int:
+        """What evals/pairwise.py leaves: answers first; without the judge, exit 3; then a summary (flat for one
+        adapter, under `adapters` for several) and, with --acceptance, the verdict with the general suite."""
+        out = Path(flag(cmd, "--out"))
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "answers.jsonl").write_text("{}\n")
+        if self.judge_down and not (out / "summary.json").is_file():   # a finished folder needs no judge
+            return 3
+        stems = [Path(a).stem for a in flags(cmd, "--adapter")]
+        column = "final-pairs" if "--acceptance" in cmd else "pairs"
+        results = {stem: {"n": 40, "wins": 0, "losses": 0, "ties": 0, "win_rate": self.table[key(stem)][column][0],
+                          "sign_test_p": self.table[key(stem)][column][1]} for stem in stems}
+        summary = ({"adapter": stems[0], **results[stems[0]]} if len(stems) == 1 else {"adapters": results})
+        code = 0
+        if "--acceptance" in cmd:
+            acceptance = yaml.safe_load(Path(flag(cmd, "--acceptance")).read_text(encoding="utf-8"))["acceptance"]
+            if flag(cmd, "--general-eval"):
+                general = json.loads((Path(flag(cmd, "--general-eval")) / "summary.json").read_text(encoding="utf-8"))
+                summary["general"] = general_regression(general, acceptance["regression"]["suite"], stems[0])
+            summary["accepted"], summary["reasons"] = check_pairwise_acceptance(summary, acceptance)
+            code = 0 if summary["accepted"] else 2
+        (out / "summary.json").write_text(json.dumps(summary))
+        return code
 
-@pytest.fixture
-def world(tmp_path, monkeypatch):
-    """A repo root with the real medicine recipe and suites, a finished (fake) training run and a recording runner."""
+
+def make_world(tmp_path, monkeypatch, spec: str, fake: Fake, run_extra: dict | None = None) -> SimpleNamespace:
+    """A repo root with the real recipe and suites, a finished (fake) training run and a recording runner."""
     root = tmp_path / "repo"
     (root / "training" / "configs").mkdir(parents=True)
     (root / "evals").mkdir()
-    shutil.copy(ROOT / "training" / "configs" / "medicine.yaml", root / "training" / "configs")
+    shutil.copy(ROOT / "training" / "configs" / f"{spec}.yaml", root / "training" / "configs")
     shutil.copy(ROOT / "evals" / "suites.yaml", root / "evals")
-    runs = root / "training" / "runs" / "medicine"
+    runs = root / "training" / "runs" / spec
     adapter = runs / "adapter"
     adapter.mkdir(parents=True)
-    (runs / "run.json").write_text(json.dumps({"specialist": "medicine", "exit_code": 0, "git_commit": "abc1234",
-                                               "counts": {"train": 1000, "iters": TOTAL}}))
+    (runs / "run.json").write_text(json.dumps({"specialist": spec, "exit_code": 0, "git_commit": "abc1234",
+                                               "counts": {"train": 1000, "iters": TOTAL}, **(run_extra or {})}))
     (adapter / "adapter_config.json").write_text(json.dumps(
         {"fine_tune_type": "lora", "iters": TOTAL, "learning_rate": 1e-4,
          "lora_parameters": {"rank": RANK, "scale": SCALE, "dropout": 0.05, "keys": ["self_attn.q_proj"]}}, indent=4))
@@ -139,12 +174,16 @@ def world(tmp_path, monkeypatch):
     llama = tmp_path / "llama.cpp"
     llama.mkdir()
     (llama / "convert_lora_to_gguf.py").write_text("")
-    fake = Fake()
     monkeypatch.setattr(sweep, "ROOT", root)
     monkeypatch.setattr(sweep, "run", fake)
     w = SimpleNamespace(root=root, runs=runs, adapter=adapter, sweep=runs / "sweep", model=model, llama=llama, fake=fake)
-    w.go = lambda *extra: sweep.main(["medicine", "--llama-cpp", str(llama), "--model", str(model), *extra])
+    w.go = lambda *extra: sweep.main([spec, "--llama-cpp", str(llama), "--model", str(model), *extra])
     return w
+
+
+@pytest.fixture
+def world(tmp_path, monkeypatch):
+    return make_world(tmp_path, monkeypatch, "medicine", Fake())
 
 
 # ------------------------------------------------------------------------------------------- candidates
@@ -309,16 +348,15 @@ def test_the_rule_is_the_recipes_own_with_every_suite_renamed_to_select():
     assert check_acceptance(acceptance_only, rule, "a") == (False, ["suite 'medicine-select' was not evaluated for a"])
 
 
-def test_the_sweep_refuses_a_recipe_without_select_suites_or_without_an_exact_answer_rule():
+def test_the_sweep_refuses_a_recipe_without_select_suites_or_without_a_rule_it_can_apply():
     cfg = yaml.safe_load((ROOT / "training" / "configs" / "medicine.yaml").read_text(encoding="utf-8"))
     suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
     with pytest.raises(SystemExit, match="no suite medicine-select, general-select"):
         sweep.select_rule(cfg["acceptance"], {k: v for k, v in suites.items() if not k.endswith("-select")})
     with pytest.raises(SystemExit, match="no suite general-select"):
         sweep.select_rule(cfg["acceptance"], {k: v for k, v in suites.items() if k != "general-select"})
-    marketing = yaml.safe_load((ROOT / "training" / "configs" / "marketing.yaml").read_text(encoding="utf-8"))
-    with pytest.raises(SystemExit, match="not judged by exact-answer suites"):
-        sweep.select_rule(marketing["acceptance"], suites)
+    with pytest.raises(SystemExit, match="neither an exact-answer rule .* nor a pairwise one"):
+        sweep.select_rule({"primary": {"suite": "medicine"}}, suites)
     assert sweep.select_rule({"primary": cfg["acceptance"]["primary"]}, suites)["primary"]["suite"] == "medicine-select"
 
 
@@ -698,3 +736,200 @@ def test_a_scaled_candidate_converts_with_llama_cpp_and_the_gguf_carries_the_sca
         meta = read_gguf(tmp_path / "gguf" / f"{c.stem}.gguf").metadata
         assert meta["general.type"] == "adapter" and meta["adapter.lora.alpha"] == pytest.approx(SCALE * factor * RANK)
         assert json.loads((work / "export.json").read_text(encoding="utf-8"))["check"]["alpha"] == pytest.approx(SCALE * factor * RANK)
+
+
+# ------------------------------------------------------------------------- a pairwise recipe (marketing)
+def chat(user: str, answer: str = "an answer") -> dict:
+    return {"messages": [{"role": "system", "content": "marketing system prompt"}, {"role": "user", "content": user},
+                         {"role": "assistant", "content": answer}]}
+
+
+def digest(path: Path) -> str:
+    return sweep.file_hash(path)
+
+
+def write_rows(path: Path, rows: list[dict]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    return path
+
+
+def marketing_data(data: Path, n_valid_tasks: int = 10) -> dict:
+    """What distill.py and prepare.py leave for marketing: the teacher's file (with meta) and the split without meta.
+    Task 0 is in the valid split and, as a duplicate request, in train.jsonl too; G* are general (replay) chats."""
+    tasks = [f"Task {i}: plan a launch for shop {i}" for i in range(60)]
+    write_rows(data / "distilled.jsonl", [{**chat(t, "teacher answer"), "meta": {"task_id": f"mk-{i}", "source": "distill"}}
+                                          for i, t in enumerate(tasks)])
+    general = [chat(f"G{j}: a general question") for j in range(5)]
+    valid = []
+    for i, task in enumerate(tasks[:n_valid_tasks]):   # a general chat after every second task
+        valid += [chat(task)] + ([general.pop()] if i % 2 and general else [])
+    train = [chat(t) for t in tasks[n_valid_tasks:]] + [chat(tasks[0], "another answer")] + [chat("G9: general")]
+    write_rows(data / "valid.jsonl", valid + general)
+    write_rows(data / "train.jsonl", train)
+    files = {"train.jsonl": digest(data / "train.jsonl"), "valid.jsonl": digest(data / "valid.jsonl")}
+    (data / "manifest.json").write_text(json.dumps({"files": files, "sources": {
+        "distilled:distilled.jsonl": {"role": "train", "sha256": digest(data / "distilled.jsonl")}}}))
+    return files
+
+
+@pytest.fixture
+def mk(tmp_path, monkeypatch):
+    """The real marketing recipe and its acceptance prompts, prepared data and a finished run on it."""
+    files = marketing_data(tmp_path / "repo" / "training" / "data" / "marketing")
+    w = make_world(tmp_path, monkeypatch, "marketing", Fake(MK_SELECT, MK_FINAL), {"data_files_sha256": files})
+    (w.root / "evals" / "data").mkdir(parents=True)
+    shutil.copy(ROOT / "evals" / "data" / "marketing_eval.jsonl", w.root / "evals" / "data")
+    shutil.copy(ROOT / "evals" / "pairwise.py", w.root / "evals")
+    w.data = w.root / "training" / "data" / "marketing"
+    return w
+
+
+def test_a_pairwise_rule_is_the_recipes_own_with_the_select_suites_and_never_the_acceptance_prompts():
+    cfg = yaml.safe_load((ROOT / "training" / "configs" / "marketing.yaml").read_text(encoding="utf-8"))
+    suites = yaml.safe_load((ROOT / "evals" / "suites.yaml").read_text(encoding="utf-8"))["suites"]
+    assert cfg["acceptance"]["primary"]["prompts"] == "evals/data/marketing_eval.jsonl"
+    rule = sweep.select_rule(cfg["acceptance"], suites)
+    assert rule == {"primary": {"suite": "marketing-pairwise-select", "min_win_rate": 0.6},
+                    "regression": {"suite": "general-select", "max_drop_points": 1.5}}
+    assert cfg["acceptance"]["primary"]["prompts"] == "evals/data/marketing_eval.jsonl"   # the recipe is not edited
+    with pytest.raises(SystemExit, match="no suite general-select"):
+        sweep.select_rule(cfg["acceptance"], {k: v for k, v in suites.items() if k != "general-select"})
+
+
+def test_selection_prompts_are_the_teacher_tasks_of_the_valid_split_never_trained_on(mk, monkeypatch):
+    run_files = json.loads((mk.runs / "run.json").read_text())["data_files_sha256"]
+    distilled = mk.data / "distilled.jsonl"
+    prompts = sweep.selection_prompts(mk.data, distilled, run_files, 0)
+    # tasks 1..9 in valid order; task 0 is also in train.jsonl; the general chats are not the teacher's
+    assert [p["task_id"] for p in prompts] == [f"mk-{i}" for i in range(1, 10)]
+    assert all(p["prompt"].startswith("Task ") and p["id"].startswith("valid-") for p in prompts)
+    monkeypatch.setattr(sweep, "SELECT_PROMPTS", 4)
+    sample = sweep.selection_prompts(mk.data, distilled, run_files, 0)
+    assert len(sample) == 4 and sample == sweep.selection_prompts(mk.data, distilled, run_files, 0)   # seeded
+    assert [int(p["id"].split("-")[1]) for p in sample] == sorted(int(p["id"].split("-")[1]) for p in sample)
+    assert sample != sweep.selection_prompts(mk.data, distilled, run_files, 1)
+
+
+def test_selection_prompts_refuse_data_that_is_not_the_runs_or_a_teacher_file_prepare_did_not_read(mk):
+    run_files = json.loads((mk.runs / "run.json").read_text())["data_files_sha256"]
+    distilled = mk.data / "distilled.jsonl"
+    with pytest.raises(SystemExit, match="not the file the training run used"):
+        sweep.selection_prompts(mk.data, distilled, {**run_files, "valid.jsonl": "0" * 64}, 0)
+    with pytest.raises(SystemExit, match="no distilled:other.jsonl"):
+        sweep.selection_prompts(mk.data, shutil.copy(distilled, mk.data / "other.jsonl"), run_files, 0)
+    distilled.write_text(distilled.read_text() + "\n")
+    with pytest.raises(SystemExit, match="not the file prepare.py read"):
+        sweep.selection_prompts(mk.data, distilled, run_files, 0)
+    with pytest.raises(SystemExit, match="not found"):
+        sweep.selection_prompts(mk.data, mk.data / "missing.jsonl", run_files, 0)
+    files = marketing_data(mk.data, n_valid_tasks=0)                      # only general chats in the valid split
+    with pytest.raises(SystemExit, match="no teacher-written task"):
+        sweep.selection_prompts(mk.data, distilled, files, 0)
+
+
+def test_a_pairwise_sweep_answers_first_waits_for_the_judge_then_chooses_the_best_passing_win_rate(mk, capsys):
+    mk.fake.judge_down = True
+    assert mk.go() == 3                                                  # answers kept, nothing judged yet
+    assert mk.fake.scripts() == ["export_adapter.py"] * 3 + ["run_eval.py", "pairwise.py"]
+    assert "Start it (mlx_lm.server --model mlx-community/Qwen3.6-35B-A3B-4bit" in capsys.readouterr().out
+    assert not (mk.sweep / "summary.json").exists()
+    general_select, pairs = mk.fake.calls[3:]
+    mk.fake.judge_down = False
+    mk.fake.calls.clear()
+    assert mk.go() == 0
+    assert mk.fake.scripts() == ["pairwise.py", "run_eval.py", "pairwise.py"]   # exports and general-select reused
+    assert mk.fake.calls[0] == pairs                                     # the same command, now judged
+    gguf = mk.sweep / "gguf"
+    stems = ["spike-marketing-it200-s1", "spike-marketing-it400-s1", "spike-marketing-it1000-s0.5"]
+    _, general, final = mk.fake.calls
+    assert flag(general_select, "--suites") == "general-select" and "--acceptance" not in general_select
+    assert flags(general_select, "--adapter") == [str(gguf / f"{s}.gguf") for s in stems]
+    assert flag(pairs, "--prompts") == str(mk.sweep / "select-prompts.jsonl")
+    assert flags(pairs, "--adapter") == [str(gguf / f"{s}.gguf") for s in stems]
+    assert flag(pairs, "--out") == str(mk.sweep / "select-pairwise") and "--acceptance" not in pairs
+    assert flag(pairs, "--judge-url") == "http://127.0.0.1:8090/v1"
+    assert flag(pairs, "--judge-model") == "mlx-community/Qwen3.6-35B-A3B-4bit"
+    selected = [json.loads(line) for line in (mk.sweep / "select-prompts.jsonl").read_text().splitlines()]
+    assert [p["task_id"] for p in selected] == [f"mk-{i}" for i in range(1, 10)]
+    # it400 has the best win rate but forgets: it200 (0.70) beats it1000@0.5 (0.65)
+    assert flag(general, "--suites") == "general" and flags(general, "--adapter") == [str(gguf / f"{stems[0]}.gguf")]
+    assert "--acceptance" not in general and flag(general, "--out") == str(mk.sweep / "final-general")
+    assert flag(final, "--prompts") == str(mk.root / "evals" / "data" / "marketing_eval.jsonl")
+    assert flags(final, "--adapter") == [str(gguf / f"{stems[0]}.gguf")]
+    assert flag(final, "--acceptance") == str(mk.root / "training" / "configs" / "marketing.yaml")
+    assert flag(final, "--general-eval") == str(mk.sweep / "final-general")
+    assert flag(final, "--out") == str(mk.sweep / "final")
+
+    out = json.loads((mk.sweep / "summary.json").read_text(encoding="utf-8"))
+    assert out["chosen"] == stems[0] and out["exit_code"] == 0
+    assert out["select"]["suites"] == ["marketing-pairwise-select", "general-select"]
+    assert out["select"]["prompts"] == {"file": "training/runs/marketing/sweep/select-prompts.jsonl", "n": 9}
+    assert out["select"]["judge"] == "mlx-community/Qwen3.6-35B-A3B-4bit"
+    a, b, c = out["candidates"]
+    assert a["select"]["primary"] == {"suite": "marketing-pairwise-select", "n": 40, "wins": 0, "losses": 0, "ties": 0,
+                                      "win_rate": 0.70, "sign_test_p": 0.01}
+    assert a["select"]["regression"]["delta_points"] == -0.5
+    assert [r["passes"] for r in out["candidates"]] == [True, False, True]
+    assert "general-select: -3.00 pts (max drop 1.5)" in b["reasons"]
+    assert c["reasons"][0].startswith("marketing-pairwise-select: win rate 0.650 (need ≥ 0.6)")
+    assert out["final"] == {"suites": ["marketing-pairwise", "general"], "results": "training/runs/marketing/sweep/final",
+                            "accepted": True, "exit_code": 0, "reused": False, "reasons": [
+                                "marketing-pairwise: win rate 0.660 (need ≥ 0.6), sign test p = 0.02 (need ≤ 0.05)",
+                                "general: -1.00 pts (max drop 1.5)"]}
+    markdown = (mk.sweep / "summary.md").read_text(encoding="utf-8")
+    assert "win rate (sign test p)" in markdown and "| 0.700 (0.01) |" in markdown and "9 teacher-written tasks" in markdown
+    assert ("spike adapters install training/runs/marketing/sweep/gguf/spike-marketing-it200-s1.gguf --specialist "
+            "marketing --eval training/runs/marketing/sweep/final --config training/configs/marketing.yaml"
+            ) in capsys.readouterr().out
+    mk.fake.calls.clear()
+    assert mk.go() == 0                                                  # run again: the same, nothing new
+    assert json.loads((mk.sweep / "summary.json").read_text())["final"]["reused"] is True
+    assert mk.fake.scripts() == ["pairwise.py", "pairwise.py"]          # pairwise.py itself finds nothing missing
+
+
+def test_a_pairwise_sweep_waits_for_the_judge_at_the_verdict_too_and_a_rejection_exits_2(mk, capsys):
+    mk.fake.table["it200-s1"]["final-pairs"] = (0.55, 0.3)
+    assert mk.go("--no-final") == 0
+    mk.fake.judge_down = True
+    assert mk.go() == 3
+    assert mk.fake.scripts()[-2:] == ["run_eval.py", "pairwise.py"]     # the general suite ran, the judge is missing
+    mk.fake.judge_down = False
+    assert mk.go() == 2
+    out = json.loads((mk.sweep / "summary.json").read_text(encoding="utf-8"))
+    assert out["final"]["accepted"] is False and out["final"]["exit_code"] == 2 and out["exit_code"] == 2
+    assert "REJECTED" in capsys.readouterr().out
+
+
+def test_a_pairwise_verdict_runs_once_a_second_choice_does_not_get_another_look(mk):
+    assert mk.go() == 0
+    mk.fake.table["it1000-s0.5"]["pairs"] = (0.95, 0.0001)              # now it would be chosen
+    shutil.rmtree(mk.sweep / "select-pairwise")
+    with pytest.raises(SystemExit, match="has results for spike-marketing-it200-s1, which this run does not ask for"):
+        mk.go()
+    assert len([c for c in mk.fake.calls if "--acceptance" in c]) == 1
+
+
+def test_a_pairwise_sweep_needs_the_acceptance_prompts_and_pins_the_judge_and_the_data(mk):
+    recipe = mk.root / "training" / "configs" / "marketing.yaml"
+    text = recipe.read_text()
+    recipe.write_text(text.replace(", prompts: evals/data/marketing_eval.jsonl", ""))
+    with pytest.raises(SystemExit, match="acceptance.primary.prompts must name"):
+        mk.go()
+    recipe.write_text(text)
+    assert mk.go("--no-final") == 0
+    inputs = json.loads((mk.sweep / "inputs.json").read_text())["shared"]
+    assert inputs["settings"] == {"judge": "mlx-community/Qwen3.6-35B-A3B-4bit", "select_prompts": 48}
+    assert {"evals/pairwise.py", "valid", "train", "manifest", "distilled", "acceptance_prompts"} <= set(inputs["files"])
+    mk.fake.calls.clear()
+    with pytest.raises(SystemExit, match="provenance"):
+        mk.go("--no-final", "--judge-model", "another/judge")
+    assert mk.fake.calls == []
+
+
+def test_an_exact_answer_sweep_keeps_the_input_record_it_always_had(world):
+    """A sweep interrupted before this change (finance) must resume: nothing pairwise enters its record."""
+    assert world.go("--no-final") == 0
+    shared = json.loads((world.sweep / "inputs.json").read_text())["shared"]
+    assert set(shared) == {"files", "export_base"}
+    assert set(shared["files"]) == {"model", "recipe", "run", "adapter_config", "suites", "converter"}

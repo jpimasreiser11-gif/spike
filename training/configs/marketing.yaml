@@ -10,7 +10,7 @@ hypothesis: >
   specificity and actionability of the 4B model's marketing answers (pairwise judged win rate > 60 %)
   without degrading general knowledge.
 acceptance:
-  primary: {suite: marketing-pairwise, min_win_rate: 0.60}
+  primary: {suite: marketing-pairwise, min_win_rate: 0.60, prompts: evals/data/marketing_eval.jsonl}   # held-out, judged once
   regression: {suite: general, max_drop_points: 1.5}
 domain_sources: []
 distill:

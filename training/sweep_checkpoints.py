@@ -20,9 +20,19 @@ and 1@0.5. Two candidates with the same iteration and scale are one.
 4. Unless --no-final, the acceptance suites (medicine,general) run once, on the chosen candidate alone, with
    --acceptance training/configs/<id>.yaml: that verdict is the round's verdict.
 
+A recipe judged by a pairwise win rate (primary.min_win_rate, e.g. marketing) is chosen the same way, with its own
+selection suite: evals/pairwise.py compares every candidate with the base model on at most 48 teacher-written tasks of
+the run's own valid split (never trained on, decontaminated against the acceptance prompts, a seeded sample written to
+sweep/select-prompts.jsonl), judged in both orders by --judge-model at --judge-url, together with general-select. The
+chosen candidate is the passing one with the highest win rate (a tie: the earlier checkpoint, then the smaller scale).
+The final verdict is the general suite and evals/pairwise.py on the recipe's acceptance prompts (primary.prompts), once,
+on the chosen candidate. Answers come first and are kept: when the judge cannot be reached the sweep stops with exit
+code 3; start the judge and run the same command again.
+
 Exit code 0: accepted (with --no-final: a candidate was chosen); 2: rejected, or no candidate passed the selection;
-1: an error. Interrupted: run the same command again, it keeps every finished export and every finished group of
-answers. It prints the install command when accepted. Every number comes from the run_eval.py summaries.
+3: waiting for the judge (pairwise recipes); 1: an error. Interrupted: run the same command again, it keeps every
+finished export and every finished group of answers. It prints the install command when accepted. Every number comes
+from the run_eval.py and pairwise.py summaries.
 """
 
 from __future__ import annotations
@@ -31,6 +41,7 @@ import argparse
 import hashlib
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -45,9 +56,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "training"))
 sys.path.insert(0, str(ROOT))
 
-from spike_train.evaluation import check_acceptance, eval_args  # noqa: E402
+from spike_train.evaluation import check_acceptance, check_pairwise_acceptance, eval_args  # noqa: E402
 
 DEFAULT_CANDIDATES = ["0.125", "0.25", "0.5", "1@0.5"]
+SELECT_PROMPTS = 48  # teacher-written tasks of the valid split a pairwise recipe is chosen on
+WAITING_FOR_JUDGE = 3  # evals/pairwise.py: the answers are kept, the judge did not answer
 CHECKPOINT = re.compile(r"^(\d+)_adapters\.safetensors$")  # mlx-lm: f"{it:07d}_adapters.safetensors"
 
 
@@ -93,7 +106,8 @@ def save_inputs(sweep: Path, record: dict) -> None:
     os.replace(temporary, path)
 
 
-def pin_inputs(sweep: Path, candidates: list[Candidate], files: dict[str, Path], base: str | None) -> dict:
+def pin_inputs(sweep: Path, candidates: list[Candidate], files: dict[str, Path], base: str | None,
+               settings: dict | None = None) -> dict:
     """Bind cached work to its inputs before exporting or reusing predictions.
 
     New candidates may be added to an interrupted selection. Existing candidates and
@@ -102,6 +116,8 @@ def pin_inputs(sweep: Path, candidates: list[Candidate], files: dict[str, Path],
     receipt are retained but cannot be attributed to today's files retroactively.
     """
     shared = {"files": {key: file_hash(path) for key, path in files.items()}, "export_base": base}
+    if settings:  # pairwise recipes only: the judge (exact-answer sweeps keep the record they always had)
+        shared["settings"] = settings
     current = {c.stem: {"checkpoint_sha256": file_hash(c.checkpoint), "scale": str(c.scale)} for c in candidates}
     path = sweep / "inputs.json"
     record = {"format": "spike-sweep-inputs-v1", "shared": shared, "candidates": {}, "exports": {}}
@@ -219,20 +235,79 @@ def rule_suites(acceptance: dict) -> list[str]:
     return list(dict.fromkeys(acceptance[k]["suite"] for k in ("primary", "regression") if acceptance.get(k)))
 
 
+def is_pairwise(acceptance: dict) -> bool:
+    return "min_win_rate" in (acceptance.get("primary") or {})
+
+
 def select_rule(acceptance: dict, suites: dict) -> dict:
-    """The recipe's own acceptance rule with every suite renamed X -> X-select."""
-    if "min_gain_points" not in (acceptance.get("primary") or {}):
-        raise SystemExit("the recipe is not judged by exact-answer suites (primary.min_gain_points): "
-                         "the sweep cannot choose with it")
+    """The recipe's own acceptance rule with every suite renamed X -> X-select. A pairwise recipe's primary select
+    suite is not in evals/suites.yaml: it is made from the run's valid split (selection_prompts)."""
+    primary = acceptance.get("primary") or {}
+    pairwise = is_pairwise(acceptance)
+    if not pairwise and "min_gain_points" not in primary:
+        raise SystemExit("the recipe has neither an exact-answer rule (primary.min_gain_points) nor a pairwise one "
+                         "(primary.min_win_rate): the sweep cannot choose with it")
     mapped = dict(acceptance)
     for key in ("primary", "regression"):
         if acceptance.get(key):
             mapped[key] = {**acceptance[key], "suite": acceptance[key]["suite"] + "-select"}
-    missing = [name for name in rule_suites(mapped) if name not in suites]
+    if pairwise:
+        mapped["primary"].pop("prompts", None)  # the acceptance prompts are never used to choose
+    missing = [name for name in rule_suites(mapped) if name not in suites
+               and not (pairwise and name == mapped["primary"]["suite"])]
     if missing:
         raise SystemExit(f"evals/suites.yaml has no suite {', '.join(missing)}: choosing needs suites disjoint from "
                          "the acceptance samples (add them with `skip`, as general-select has)")
     return mapped
+
+
+def first_user(chat: dict) -> str | None:
+    return next((m.get("content") for m in chat.get("messages") or [] if m.get("role") == "user"), None)
+
+
+def jsonl(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def selection_prompts(data: Path, distilled: Path, run_files: dict, seed: int) -> list[dict]:
+    """The prompts a pairwise recipe is chosen on: at most SELECT_PROMPTS teacher-written tasks of the run's own valid
+    split, a seeded sample. A valid row is one when its request is a task of `distilled` (the teacher's file
+    prepare.py read, by its recorded hash) and not also in train.jsonl; prepare.py already dropped every row close to
+    the acceptance prompts (decontaminate_files)."""
+    valid, train, manifest_file = data / "valid.jsonl", data / "train.jsonl", data / "manifest.json"
+    for path in (valid, train, manifest_file, distilled):
+        if not path.is_file():
+            raise SystemExit(f"{shown(path)} not found: a pairwise recipe is chosen on the teacher-written tasks of the "
+                             "run's valid split (pass the teacher's file with --select-from)")
+    for name, path in (("valid.jsonl", valid), ("train.jsonl", train)):
+        if run_files.get(name) != file_hash(path):
+            raise SystemExit(f"{shown(path)} is not the file the training run used (run.json data_files_sha256): "
+                             "the selection prompts must come from the run's own valid split")
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    if (manifest.get("files") or {}).get("valid.jsonl") != run_files.get("valid.jsonl"):
+        raise SystemExit(f"{shown(manifest_file)} does not describe the run's data (its files differ from run.json)")
+    record = (manifest.get("sources") or {}).get(f"distilled:{distilled.name}")
+    if not record:
+        raise SystemExit(f"the run's data was not prepared from {distilled.name} (no distilled:{distilled.name} in "
+                         f"{shown(manifest_file)}): pass the teacher's file prepare.py read with --select-from")
+    if record.get("sha256") != file_hash(distilled):
+        raise SystemExit(f"{shown(distilled)} is not the file prepare.py read (its hash differs from the one in "
+                         f"{shown(manifest_file)}, or none was recorded): the teacher's tasks cannot be told apart")
+    tasks = {}
+    for chat in jsonl(distilled):
+        if text := first_user(chat):
+            tasks.setdefault(text, (chat.get("meta") or {}).get("task_id"))
+    trained = {first_user(chat) for chat in jsonl(train)}
+    rows, seen = [], set()
+    for n, chat in enumerate(jsonl(valid), 1):
+        text = first_user(chat)
+        if text in tasks and text not in trained and text not in seen:
+            seen.add(text)
+            rows.append({"id": f"valid-{n}", "prompt": text, **({"task_id": tasks[text]} if tasks[text] else {})})
+    if not rows:
+        raise SystemExit(f"{shown(valid)} has no teacher-written task to choose on")
+    picked = sorted(random.Random(seed).sample(range(len(rows)), min(SELECT_PROMPTS, len(rows))))
+    return [rows[i] for i in picked]
 
 
 def write_scaled_adapter(candidate: Candidate, adapter_dir: Path, dest: Path) -> None:
@@ -304,6 +379,29 @@ def evaluate(out: Path, adapters: list[Path], suites: list[str], model: Path, ex
     return json.loads(summary_file.read_text(encoding="utf-8")), code
 
 
+def compare(out: Path, adapters: list[Path], prompts: Path, model: Path, extra: list[str], args: argparse.Namespace,
+            acceptance: Path | None = None, general: Path | None = None) -> tuple[dict | None, int]:
+    """evals/pairwise.py: the base model against `adapters` on `prompts`, in `out`; it does only what is missing there.
+    Returns its summary and exit code, or None and WAITING_FOR_JUDGE when the judge cannot be reached (the answers
+    are kept)."""
+    cmd = [sys.executable, str(ROOT / "evals" / "pairwise.py"), "--specialist", args.specialist,
+           "--prompts", str(prompts), "--model", str(model)]
+    for adapter in adapters:
+        cmd += ["--adapter", str(adapter)]
+    cmd += ["--judge-url", args.judge_url, "--judge-model", args.judge_model, *extra, "--out", str(out)]
+    if acceptance:
+        cmd += ["--acceptance", str(acceptance)]
+        if general:
+            cmd += ["--general-eval", str(general)]
+    code = run(cmd)
+    if code == WAITING_FOR_JUDGE:
+        return None, code
+    if code not in ((0, 2) if acceptance else (0,)) or not (out / "summary.json").is_file():
+        raise SystemExit(f"evals/pairwise.py exited with {code} for {shown(out)}: fix the cause and run the same "
+                         "command again, the finished answers and judgments are kept")
+    return json.loads((out / "summary.json").read_text(encoding="utf-8")), code
+
+
 def comparison(summary: dict, suite: str, stem: str) -> dict | None:
     cmp = (summary["suites"].get(suite) or {}).get("vs_base", {}).get(stem)
     return None if cmp is None else {"suite": suite, "paired_n": cmp["paired_n"], "delta_points": cmp["delta_points"],
@@ -325,28 +423,64 @@ def judge(candidates: list[Candidate], summary: dict, rule: dict, sweep: Path) -
     return rows
 
 
+PAIRWISE_KEYS = ("n", "wins", "losses", "ties", "win_rate", "sign_test_p")
+
+
+def judge_pairwise(candidates: list[Candidate], pairs: dict, general: dict | None, rule: dict,
+                   sweep: Path) -> list[dict]:
+    """judge() for a pairwise recipe: each candidate's win rate on the selection prompts (evals/pairwise.py) and its
+    general-select comparison, under the recipe's rule renamed to the select suites."""
+    results = pairs["adapters"] if "adapters" in pairs else {pairs["adapter"]: pairs}  # one adapter: flat summary
+    regression = rule.get("regression")
+    rows = []
+    for c in candidates:
+        res = results.get(c.stem)
+        primary = {"suite": rule["primary"]["suite"], **{k: res[k] for k in PAIRWISE_KEYS}} if res else None
+        general_cmp = comparison(general, regression["suite"], c.stem) if regression and general else None
+        if res is None:
+            ok, reasons = False, [f"{rule['primary']['suite']} was not judged for {c.stem}"]
+        else:
+            ok, reasons = check_pairwise_acceptance(
+                {**res, "adapter": c.stem, **({"general": general_cmp} if general_cmp else {})}, rule)
+        rows.append({"asked": c.asked, "fraction": float(c.fraction), "iteration": c.iteration, "scale": float(c.scale),
+                     "stem": c.stem, "checkpoint": shown(c.checkpoint),
+                     "gguf": shown(sweep / "gguf" / f"{c.stem}.gguf"),
+                     "select": {"primary": primary, "regression": general_cmp},
+                     "passes": ok, "reasons": reasons})
+    return rows
+
+
 def choose(rows: list[dict]) -> dict | None:
-    """The passing candidate with the largest primary gain; a tie takes the earlier checkpoint, then the smaller
-    scale."""
+    """The passing candidate with the largest primary gain (a pairwise recipe: the highest win rate); a tie takes the
+    earlier checkpoint, then the smaller scale."""
+    def gain(r: dict) -> float:
+        primary = r["select"]["primary"]
+        return primary["win_rate"] if "win_rate" in primary else primary["delta_points"]
+
     passing = [r for r in rows if r["passes"]]
-    return max(passing, key=lambda r: (r["select"]["primary"]["delta_points"], -r["iteration"], -r["scale"]),
-               default=None)
+    return max(passing, key=lambda r: (gain(r), -r["iteration"], -r["scale"]), default=None)
 
 
 def render_markdown(summary: dict) -> str:
     primary = summary["select"]["rule"]["primary"]["suite"]
     regression = (summary["select"]["rule"].get("regression") or {}).get("suite")
     run_info = summary["run"]
+    pairwise = "min_win_rate" in summary["select"]["rule"]["primary"]
+    measure = "win rate (sign test p)" if pairwise else "Δ pts (p)"
     lines = [f"# Checkpoint sweep: {summary['specialist']}", "",
              f"Recipe `{summary['recipe']}`, trained at commit `{run_info['git_commit']}` for {run_info['iters']} "
              f"iterations. Chosen on `{', '.join(summary['select']['suites'])}` (the recipe's rule with the suites "
              f"renamed), measured against the base model in one run (`{summary['select']['results']}`).", "",
-             f"| candidate | asked | iteration | scale | {primary} Δ pts (p) | {regression or 'regression'} Δ pts "
+             *([f"Pairwise selection: {summary['select']['prompts']['n']} teacher-written tasks of the run's valid split "
+                f"(`{summary['select']['prompts']['file']}`), judged by `{summary['select']['judge']}` in both orders.",
+                ""] if pairwise else []),
+             f"| candidate | asked | iteration | scale | {primary} {measure} | {regression or 'regression'} Δ pts "
              "| passes |", "|---|---|---|---|---|---|---|"]
     for r in summary["candidates"]:
         p, g = r["select"]["primary"], r["select"]["regression"]
         lines.append(f"| {r['stem']} | {', '.join(r['asked'])} | {r['iteration']} | {r['scale']:g} | "
-                     + (f"{p['delta_points']:+.2f} ({p['p_value']:.4g})" if p else "not evaluated") + " | "
+                     + ("not evaluated" if not p else f"{p['win_rate']:.3f} ({p['sign_test_p']:.4g})" if pairwise
+                        else f"{p['delta_points']:+.2f} ({p['p_value']:.4g})") + " | "
                      + (f"{g['delta_points']:+.2f}" if g else "") + f" | {'yes' if r['passes'] else 'no'} |")
     lines += ["", f"Chosen: `{summary['chosen']}`" if summary["chosen"] else "Chosen: none, no candidate passed."]
     for r in summary["candidates"]:
@@ -359,6 +493,12 @@ def render_markdown(summary: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def waiting(folder: Path, args: argparse.Namespace) -> int:
+    print(f"the answers are kept in {shown(folder)}; the judge does not answer at {args.judge_url}. Start it "
+          f"(mlx_lm.server --model {args.judge_model} --port 8090) and run the same command again.")
+    return WAITING_FOR_JUDGE
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Choose between saved checkpoints and a smaller LoRA scale.")
     ap.add_argument("specialist")
@@ -369,6 +509,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base", help="HF repo id or local dir of the training base (default: the recipe's base_model)")
     ap.add_argument("--python", help="interpreter with the converter's requirements (export_adapter.py's default)")
     ap.add_argument("--no-final", action="store_true", help="choose only; do not run the acceptance suites")
+    ap.add_argument("--judge-url", default="http://127.0.0.1:8090/v1", help="pairwise recipes: the judge's endpoint")
+    ap.add_argument("--judge-model", default="mlx-community/Qwen3.6-35B-A3B-4bit", help="pairwise recipes: the judge")
+    ap.add_argument("--select-from", metavar="DISTILLED_JSONL",
+                    help="pairwise recipes: the teacher's file prepare.py read (default "
+                         "training/data/<specialist>/distilled.jsonl)")
     args = ap.parse_args(argv)
 
     spec = args.specialist
@@ -409,7 +554,21 @@ def main(argv: list[str] | None = None) -> int:
     if base and Path(base).expanduser().is_dir():
         for source in Path(base).expanduser().glob("*.json"):
             inputs[f"base_config/{source.name}"] = source
-    provenance = pin_inputs(sweep, candidates, inputs, base)
+    pairwise, settings = is_pairwise(cfg["acceptance"]), None
+    if pairwise:  # everything the selection and the verdict read, before hours of work
+        data = ROOT / "training" / "data" / spec
+        distilled = Path(args.select_from).expanduser() if args.select_from else data / "distilled.jsonl"
+        record = json.loads((runs / "run.json").read_text(encoding="utf-8"))
+        prompts = selection_prompts(data, distilled, record.get("data_files_sha256") or {}, cfg.get("seed", 0))
+        accept_prompts = ROOT / str(cfg["acceptance"]["primary"].get("prompts") or "")
+        if not cfg["acceptance"]["primary"].get("prompts") or not accept_prompts.is_file():
+            raise SystemExit(f"{recipe.name}: acceptance.primary.prompts must name the held-out prompts file of the "
+                             "final pairwise verdict (e.g. evals/data/marketing_eval.jsonl)")
+        inputs |= {"evals/pairwise.py": ROOT / "evals" / "pairwise.py", "valid": data / "valid.jsonl",
+                   "train": data / "train.jsonl", "manifest": data / "manifest.json", "distilled": distilled,
+                   "acceptance_prompts": accept_prompts}
+        settings = {"judge": args.judge_model, "select_prompts": SELECT_PROMPTS}
+    provenance = pin_inputs(sweep, candidates, inputs, base, settings)
     ggufs = []
     for candidate in candidates:
         gguf = export_candidate(candidate, sweep, adapter_dir, args, base,
@@ -423,14 +582,41 @@ def main(argv: list[str] | None = None) -> int:
         save_inputs(sweep, provenance)
         ggufs.append(gguf)
     select_suites = rule_suites(rule)
-    summary, _ = evaluate(sweep / "select", ggufs, select_suites, model, extra)
-    rows = judge(candidates, summary, rule, sweep)
+    select_record: dict = {"suites": select_suites, "rule": rule, "results": shown(sweep / "select")}
+    if pairwise:
+        regression = (rule.get("regression") or {}).get("suite")
+        general = evaluate(sweep / "select", ggufs, [regression], model, extra)[0] if regression else None
+        prompts_file = sweep / "select-prompts.jsonl"
+        prompts_file.write_text("".join(json.dumps(p, ensure_ascii=False) + "\n" for p in prompts), encoding="utf-8")
+        pairs, code = compare(sweep / "select-pairwise", ggufs, prompts_file, model, extra, args)
+        if pairs is None:
+            return waiting(sweep / "select-pairwise", args)
+        rows = judge_pairwise(candidates, pairs, general, rule, sweep)
+        select_record |= {"pairwise": shown(sweep / "select-pairwise"), "judge": args.judge_model,
+                          "prompts": {"file": shown(prompts_file), "n": len(prompts)}}
+    else:
+        summary, _ = evaluate(sweep / "select", ggufs, select_suites, model, extra)
+        rows = judge(candidates, summary, rule, sweep)
     for r in rows:
         print(f"{r['stem']}: {'passes' if r['passes'] else 'fails'} the select rule; " + "; ".join(r["reasons"]))
     best = choose(rows)
 
     final = None
-    if best and not args.no_final:
+    if best and not args.no_final and pairwise:
+        gguf = sweep / "gguf" / f"{best['stem']}.gguf"
+        final_suites = rule_suites(cfg["acceptance"])
+        regression = (cfg["acceptance"].get("regression") or {}).get("suite")
+        if regression:  # the general suite first: it needs no judge
+            evaluate(sweep / "final-general", [gguf], [regression], model, extra)
+        reused = "accepted" in (json.loads((sweep / "final" / "summary.json").read_text(encoding="utf-8"))
+                                if (sweep / "final" / "summary.json").is_file() else {})
+        results, code = compare(sweep / "final", [gguf], accept_prompts, model, extra, args, recipe,
+                                sweep / "final-general" if regression else None)
+        if results is None:
+            return waiting(sweep / "final", args)
+        final = {"suites": final_suites, "results": shown(sweep / "final"), "accepted": bool(results["accepted"]),
+                 "reasons": results["reasons"], "exit_code": code, "reused": reused}
+    elif best and not args.no_final:
         gguf = sweep / "gguf" / f"{best['stem']}.gguf"
         final_suites = rule_suites(cfg["acceptance"])
         results, code = evaluate(sweep / "final", [gguf], final_suites, model, extra, recipe)
@@ -442,7 +628,7 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 2 if best is None or (final and not final["accepted"]) else 0
 
     out = {"specialist": spec, "recipe": shown(recipe), "run": run_info, "model": str(model),
-           "select": {"suites": select_suites, "rule": rule, "results": shown(sweep / "select")},
+           "select": select_record,
            "candidates": rows, "chosen": best["stem"] if best else None, "final": final, "exit_code": exit_code}
     (sweep / "summary.json").write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
     (sweep / "summary.md").write_text(render_markdown(out), encoding="utf-8")

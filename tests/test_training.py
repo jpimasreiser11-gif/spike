@@ -713,8 +713,15 @@ def run_pairwise(tmp_path, monkeypatch, *flags: str, general: Path | None = None
     monkeypatch.setattr(pairwise, "Client", FakeClient)
     monkeypatch.setattr(pairwise, "Teacher", FakeJudge)
     monkeypatch.setattr("spike.runtime.llamacpp_server.LlamaServer", FakeServer)
-    argv = ["pairwise.py", "--specialist", "marketing", "--prompts", str(prompts), "--model", "base.gguf",
-            "--adapter", "spike-marketing.gguf", "--out", str(tmp_path / "out"), *flags]
+
+    async def judge_answers(url):
+        return True
+
+    monkeypatch.setattr(pairwise, "reachable", judge_answers)
+    for name in ("base.gguf", "spike-marketing.gguf"):   # hashed into the run's inputs record
+        (tmp_path / name).write_bytes(b"GGUF " + name.encode())
+    argv = ["pairwise.py", "--specialist", "marketing", "--prompts", str(prompts), "--model", str(tmp_path / "base.gguf"),
+            "--adapter", str(tmp_path / "spike-marketing.gguf"), "--out", str(tmp_path / "out"), *flags]
     if general:
         argv += ["--general-eval", str(general)]
     monkeypatch.setattr(sys, "argv", argv)
@@ -960,7 +967,9 @@ def test_prepare_records_the_real_teacher_license_of_distilled_data(tmp_path, mo
     record = manifest["sources"]["distilled:distilled.jsonl"]
     lic = {"license_hub": "apache-2.0", "license_recorded": "apache-2.0"}
     seeding_record = {"mode": "topics", "file": "training/topics/marketing.yaml", "sha256": "0" * 64}
-    assert record == {"role": "train", "teachers": {TEACHER: lic}, "kept": 40, "tasks_made_by": [seeding_record]}
+    digest = hashlib.sha256(distilled_file(tmp_path).read_bytes()).hexdigest()  # the sweep finds the teacher's tasks in valid.jsonl with it
+    assert record == {"role": "train", "sha256": digest, "teachers": {TEACHER: lic}, "kept": 40,
+                      "tasks_made_by": [seeding_record]}
     assert "Apache-2.0 teacher" not in json.dumps(manifest) and manifest["counts"]["domain"] == 40
     trained = [json.loads(line) for line in (out / "train.jsonl").read_text(encoding="utf-8").splitlines()]
     assert all("meta" not in chat for chat in trained)  # the provenance stays in the manifest

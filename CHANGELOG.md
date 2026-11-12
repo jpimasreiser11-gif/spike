@@ -12,6 +12,12 @@ profiles on the base model, marked β, until theirs pass.
 - Medicine adapter accepted (round 2): +35.07 points on MedMCQA, PubMedQA and MMLU-Pro health (2,318 questions),
   −0.62 on general knowledge (limit −1.5), after self-generated replay, sampling the domain to keep 30 % replay and
   LoRA scale 0.5 written into the GGUF. Round 1 had been rejected for forgetting (−7.62). Not published yet.
+- Marketing's checkpoint sweep can choose too: `sweep_checkpoints.py` judges each candidate pairwise against the base
+  model on up to 48 teacher-written tasks of the run's own valid split (never trained on, never the acceptance
+  prompts) plus general-select, picks the passing one with the highest win rate, and runs the 24 acceptance prompts
+  and the general suite once, on it. `evals/pairwise.py` keeps answers and judgments as they finish, continues an
+  interrupted run, compares several adapters on the same base answers, and waits for the judge (exit 3) instead of
+  needing it in memory while the 4B model answers. Tested with fakes; not run on real weights yet.
 - One Qwen3.5-4B (Q4_K_M, llama.cpp) shared by 13 specialists, each with its own LoRA adapter slot switched per
   request with explicit scales; external providers (OpenAI-compatible, Anthropic, Gemini, DeepSeek, Ollama,
   LM Studio and others) with the same instructions and tools. Paid providers stay blocked until allowed; keys in
