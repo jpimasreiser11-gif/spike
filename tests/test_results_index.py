@@ -43,6 +43,7 @@ def test_the_index_says_what_the_medicine_evidence_says():
         assert final["suites"][name]["base"]["accuracy"] == suite["accuracy"]["base"]["accuracy"]
     assert final["tasks"]["medmcqa-val"]["base"]["unparsed"] == 409       # the extractor gap stays visible
     assert final["protocol"]["model"] == "Qwen3.5-4B-Q4_K_M.gguf"          # a file name, not a path on a person's disk
+    assert final["rescored"] is None or final["rescored"]["rescored"]["git_commit"]
     assert data["specialists"]["finance"]["status"] == "base_profile"
     assert "core" not in data["specialists"]
 
@@ -72,6 +73,13 @@ def test_archived_unfinished_and_pairwise_rounds_and_topics(tmp_path, monkeypatc
             for i, (t, b, a) in enumerate([("table", 1, 1), ("table", 0, 1), ("text", 0, 0)])
             for v, c in (("base", b), ("a", a), ("other", 1))]
     fake_eval(fin / "round1/sweep/final", "a", rows, tasks)
+    again = json.loads(json.dumps(tasks))
+    again["tatqa"]["accuracy"]["base"].update(correct=2, accuracy=0.667)
+    again["tatqa"]["vs_base"]["a"]["delta_points"] = 0.0
+    fake_eval(fin / "round1/sweep/final-rescored", "a", rows, again)
+    summary = json.loads((fin / "round1/sweep/final-rescored/summary.json").read_text())
+    summary["meta"]["rescored"] = {"git_commit": "8e80e19", "parsed_changed": 1}
+    (fin / "round1/sweep/final-rescored/summary.json").write_text(json.dumps(summary))
     # round 2: two sweeps of one run, one chosen without its final yet
     (fin / "run.json").write_text(json.dumps({"run_started_utc": "2026-11-05T00:00:00Z"}))
     for name, chosen in (("sweep-default", None), ("sweep", "b")):
@@ -93,6 +101,9 @@ def test_archived_unfinished_and_pairwise_rounds_and_topics(tmp_path, monkeypatc
     assert r1["final"]["topics"] == {"tatqa": {"table": {"n": 2, "base_correct": 1, "adapter_correct": 2},
                                                "text": {"n": 1, "base_correct": 0, "adapter_correct": 0}}}
     assert r1["final"]["tasks"]["tatqa"]["delta_points"] == 33.3 and r1["final"]["protocol"]["model"] == "m.gguf"
+    again = r1["final"]["rescored"]                                 # shown beside the original, which stays the verdict
+    assert again["rescored"]["git_commit"] == "8e80e19" and again["tasks"]["tatqa"]["delta_points"] == 0.0
+    assert again["evidence"] == "training/runs/finance/round1/sweep/final-rescored/summary.json"
     assert {(r2a["round"], r2a["sweep"], r2a["verdict"]), (r2b["round"], r2b["sweep"], r2b["verdict"])} == {
         (2, "sweep", "chosen_not_final"), (2, "sweep-default", "rejected")}
     pair = data["specialists"]["marketing"]["rounds"][0]

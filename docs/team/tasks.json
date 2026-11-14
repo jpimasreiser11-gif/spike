@@ -824,7 +824,7 @@
     "tests for both patterns",
     "rescore table in STATUS"
    ],
-   "note": "2026-11-09: code and tests on branch claude/m14 (5d0898c: 'Answer Selection: X'; extract_option_text, used only when no letter is found and only when the text equals exactly one option). Merged after M3's final verdict. Then, on the Mac (light, no model run): copy each run directory first (rescore_run rewrites predictions.jsonl in place, and the accepted run is evidence), run evals/run_eval.py --rescore on the copies of medicine's and finance's final runs, report base and adapter side by side in STATUS, and check 20 newly parsed answers by hand (the option the answer states must be the parsed letter)."
+   "note": "2026-11-09: code and tests on branch claude/m14 (5d0898c: 'Answer Selection: X'; extract_option_text, used only when no letter is found and only when the text equals exactly one option). Merged after M3's final verdict. Then, on the Mac (light, no model run): copy each run directory first (rescore_run rewrites predictions.jsonl in place, and the accepted run is evidence), run evals/run_eval.py --rescore on the copies of medicine's and finance's final runs, report base and adapter side by side in STATUS, and check 20 newly parsed answers by hand (the option the answer states must be the parsed letter). 2026-11-14: merged to main now (8e80e19), before finance round 3 starts, so round 3's sweep and final are scored by one extractor; medicine's final and finance round 2's selection runs are re-scored on copies (M16) for the side-by-side table and the round-3 comparison. Asked from the Mando benchmark too: the +35.07 headline waits for it."
   },
   {
    "id": "M15",
@@ -856,11 +856,12 @@
     "training/runs/medicine/sweep/final/questions.jsonl",
     "training/runs/finance/"
    ],
-   "spec": "Light, no model run; fine while the marketing distillation runs (it only reads cached eval datasets, well under 1 GB). Pull main first. (1) `python evals/export_questions.py training/runs/medicine/sweep/final` (reads its predictions.jsonl; writes questions.jsonl and questions.json beside it). (2) Finance, as medicine's rounds were committed: training/runs/finance/round1/{run.json,sweep/summary.json,sweep/summary.md,sweep/select/summary.json} and round 2's training/runs/finance/{run.json,sweep-default/,sweep/} with the same files (summary.json, summary.md, select/summary.json, and final/summary.json + summary.md where a final ran), never predictions.jsonl, adapters, GGUFs or data; then export_questions.py on each committed select or final folder that has predictions.jsonl on the Mac. (3) `python scripts/results_index.py` and commit docs/results/specialists.json with them. Push mac/m16; Claude reviews and merges.",
+   "spec": "Light, no model run; fine while the marketing distillation runs (it only reads cached eval datasets, well under 1 GB). Pull main first. (1) `python evals/export_questions.py training/runs/medicine/sweep/final` (reads its predictions.jsonl; writes questions.jsonl and questions.json beside it). (2) Finance, as medicine's rounds were committed: training/runs/finance/round1/{run.json,sweep/summary.json,sweep/summary.md,sweep/select/summary.json} and round 2's training/runs/finance/{run.json,sweep-default/,sweep/} with the same files (summary.json, summary.md, select/summary.json, and final/summary.json + summary.md where a final ran), never predictions.jsonl, adapters, GGUFs or data; then export_questions.py on each committed select or final folder that has predictions.jsonl on the Mac. (2b) Re-score with M14's extractor (on main since 8e80e19), on copies only (rescore rewrites predictions.jsonl in place and the originals are evidence): `cp -R training/runs/medicine/sweep/final training/runs/medicine/sweep/final-rescored && python evals/run_eval.py --rescore training/runs/medicine/sweep/final-rescored --acceptance training/configs/medicine.yaml`, the same for finance round 2's selection runs as `<sweep>/select-rescored` (no --acceptance), then export_questions.py on each copy; check 20 newly parsed answers by hand (the option the answer states must be the parsed letter) and list them in the report; commit the copies' summary.json, summary.md and questions files, never predictions.jsonl. (3) `python scripts/results_index.py` and commit docs/results/specialists.json with them. Push mac/m16; Claude reviews and merges.",
    "accept": [
     "scripts/results_index.py --check passes",
     "finance rounds 1 and 2 listed with the numbers of docs/STATUS.md",
-    "medicine final has topics per task"
+    "medicine final has topics per task",
+    "medicine final-rescored committed: base and adapter side by side; 20 newly parsed answers checked by hand"
    ],
    "note": "2026-11-14: asked for the Mando Benchmark tab, which reads docs/results/specialists.json read-only from main. The index, its schema and the exporter are on main (Claude, tested). The 409 unparsed base answers on MedMCQA stay visible in the file until M14 rescoring."
   },
@@ -1381,7 +1382,7 @@
    "accept": [
     "checklist all ticked with evidence"
    ],
-   "note": "2026-11-02: review, 4 medium + 7 low fixes, licenses in the bundle (Native installers run 41501251258 counted 199/198/194 files), llama.cpp b11709 vendored and embedded-UI npm notices. Waits on: L1 demo, M2 adapter, founder decision on libfuse LGPL, final release notes."
+   "note": "2026-11-02: review, 4 medium + 7 low fixes, licenses in the bundle (Native installers run 41501251258 counted 199/198/194 files), llama.cpp b11709 vendored and embedded-UI npm notices. Waits on: L1 demo, M2 adapter, founder decision on libfuse LGPL, final release notes. 2026-11-14: before release, medicine's numbers in README, catalog, guides, model card and release notes are updated to the re-scored ones (M14/M16) with the original verdict kept."
   },
   {
    "id": "L3",

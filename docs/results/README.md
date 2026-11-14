@@ -15,10 +15,13 @@ evidence committed here (CI fails when it is out of date; schema:
   `evals/export_questions.py` has been run, `questions` (one line per answer: item id, variant, topic, gold, parsed,
   correct, truncated) and `topics` (per task and topic: `n`, `base_correct`, `adapter_correct`). A pairwise round
   (marketing) has `pairwise` instead: wins, losses, ties, win rate and sign test against the base model.
+- `rounds[].final.rescored`: the same saved answers re-read by a later answer extractor (`run_eval.py --rescore` on a
+  copy named `<final>-rescored`), with the same fields; `null` until that copy is committed. The verdict stays the
+  original run's.
 
 **Reading it next to other models.** Each number is a seeded sample of a public test, answered zero-shot with greedy
 decoding and SPIKE's own answer extractor; `unparsed` answers count as wrong (for example 409 of 1000 base answers on
-MedMCQA, which lowers the base score; see M14 in docs/team/tasks.json). A published score of another model is
+MedMCQA, which lowers the base score; `rescored` shows the numbers with the extractor of M14). A published score of another model is
 comparable only on the same dataset, split, subset and metric, and its protocol (shots, chain of thought) should be
 named next to it with its link and date; anything else is "no comparable data", not a comparison.
 

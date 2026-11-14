@@ -82,8 +82,15 @@
             {"type": "object", "required": ["evidence", "pairwise"]},
             {
               "type": "object",
-              "required": ["evidence", "protocol", "suites", "tasks", "questions", "topics"],
+              "required": ["evidence", "protocol", "suites", "tasks", "questions", "topics", "rescored"],
               "properties": {
+                "rescored": {
+                  "description": "the same saved answers re-read by a later answer extractor (run_eval.py --rescore on a copy); the verdict stays the original run's",
+                  "oneOf": [
+                    {"type": "null"},
+                    {"type": "object", "required": ["rescored", "evidence", "suites", "tasks", "questions", "topics"]}
+                  ]
+                },
                 "suites": {"type": "object", "additionalProperties": {"$ref": "#/$defs/comparison"}},
                 "tasks": {"type": "object", "additionalProperties": {"$ref": "#/$defs/comparison"}},
                 "questions": {"type": ["string", "null"], "description": "questions.jsonl from evals/export_questions.py"},

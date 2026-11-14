@@ -111,6 +111,18 @@ def final_result(sweep: dict, chosen: str, sweep_dir: Path) -> dict | None:
     if "win_rate" in summary:  # evals/pairwise.py: judged against the base model, not scored against a key
         keys = ("n", "wins", "losses", "ties", "win_rate", "sign_test_p", "judge", "caveat", "prompts", "general")
         return {"evidence": rel(run_dir / "summary.json"), "pairwise": {k: summary.get(k) for k in keys}}
+    result = scored(run_dir, summary, chosen)
+    # the same saved answers re-read by a later extractor (run_eval.py --rescore on a copy, M14): the verdict stays
+    # the original run's, the rescored numbers are shown beside it
+    copy = run_dir.with_name(run_dir.name + "-rescored")
+    if (copy / "summary.json").is_file() and (again := load(copy / "summary.json")).get("meta", {}).get("rescored"):
+        result["rescored"] = {"rescored": again["meta"]["rescored"], **scored(copy, again, chosen)}
+    else:
+        result["rescored"] = None
+    return result
+
+
+def scored(run_dir: Path, summary: dict, chosen: str) -> dict:
     tasks = {}
     for name, task in summary.get("tasks", {}).items():
         acc, vs = task.get("accuracy", {}), task.get("vs_base", {}).get(chosen, {})

@@ -267,7 +267,9 @@ bytes, SHA-256 `21caa0a0b24bdd4d5badb5bc1f336d2eb3061a635400a85a15f4cf52f9d40a34
 on 2026-11-06 (the rejected round-1 file moved aside). It is not published (needs joan's OK); without it installed,
 Medicine runs as the β profile. Of the base model's unparsed answers (`unparsed_base.json`, a heuristic reading),
 114 of 409 on MedMCQA and 40 of 241 on health state an option's text instead of its letter (54 and 17 of them the
-right one); most of the rest end with a medical disclaimer and no answer.
+right one); most of the rest end with a medical disclaimer and no answer. The extractor that reads such answers
+(M14) is on `main` since 2026-11-14; the same saved answers re-scored with it, base and adapter side by side, come
+before any publication of these numbers (M16), and the verdict stays the one above.
 
 **Finance adapter, round 1 (768-token window): REJECTED (2026-11-09).** Same recipe and gate as medicine (finance
 +3.0 points at p ≤ 0.05, general drop at most 1.5). Selection suites, best candidates: the final checkpoint at scale 0.5

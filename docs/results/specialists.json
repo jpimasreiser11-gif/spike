@@ -905,7 +905,8 @@
        }
       },
       "questions": null,
-      "topics": {}
+      "topics": {},
+      "rescored": null
      }
     }
    ]
