@@ -846,6 +846,25 @@
    "note": "2026-11-09: card built (mac/m15 de128dd, merged; model_card.py --export). Review found two fixes, now in the generator: the Use line must name ~/.spike/adapters/spike-medicine.gguf (the name SPIKE loads), and the card states the base model's unreadable answers (650 of 2,318) with accuracy among readable ones. Left: rebuild the card on the Mac with the same command (light, can run during M3) and push mac/m15-2."
   },
   {
+   "id": "M16",
+   "owner": "mac",
+   "status": "todo",
+   "phase": "modelos",
+   "title": "Resultados por pregunta y rondas de finanzas en main (para el benchmark de Mando)",
+   "depends": [],
+   "paths": [
+    "training/runs/medicine/sweep/final/questions.jsonl",
+    "training/runs/finance/"
+   ],
+   "spec": "Light, no model run; fine while the marketing distillation runs (it only reads cached eval datasets, well under 1 GB). Pull main first. (1) `python evals/export_questions.py training/runs/medicine/sweep/final` (reads its predictions.jsonl; writes questions.jsonl and questions.json beside it). (2) Finance, as medicine's rounds were committed: training/runs/finance/round1/{run.json,sweep/summary.json,sweep/summary.md,sweep/select/summary.json} and round 2's training/runs/finance/{run.json,sweep-default/,sweep/} with the same files (summary.json, summary.md, select/summary.json, and final/summary.json + summary.md where a final ran), never predictions.jsonl, adapters, GGUFs or data; then export_questions.py on each committed select or final folder that has predictions.jsonl on the Mac. (3) `python scripts/results_index.py` and commit docs/results/specialists.json with them. Push mac/m16; Claude reviews and merges.",
+   "accept": [
+    "scripts/results_index.py --check passes",
+    "finance rounds 1 and 2 listed with the numbers of docs/STATUS.md",
+    "medicine final has topics per task"
+   ],
+   "note": "2026-11-14: asked for the Mando Benchmark tab, which reads docs/results/specialists.json read-only from main. The index, its schema and the exporter are on main (Claude, tested). The 409 unparsed base answers on MedMCQA stay visible in the file until M14 rescoring."
+  },
+  {
    "id": "G18",
    "owner": "gemini",
    "status": "done",

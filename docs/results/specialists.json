@@ -1,0 +1,959 @@
+{
+ "format": "spike-specialist-results-v1",
+ "about": "Measured results only, from files committed in this repository; regenerate with scripts/results_index.py. delta_points = adapter minus base on the same questions; unparsed = answers the extractor could not read (scored wrong).",
+ "base_model": "Qwen3.5-4B Q4_K_M (llama.cpp)",
+ "benchmarks": {
+  "medmcqa-val": {
+   "suite": "medicine",
+   "dataset": "openlifescienceai/medmcqa",
+   "config": null,
+   "split": "validation",
+   "license": "apache-2.0",
+   "categories": null,
+   "sample": 1000,
+   "skip": 0
+  },
+  "pubmedqa-labeled": {
+   "suite": "medicine",
+   "dataset": "qiaojin/PubMedQA",
+   "config": "pqa_labeled",
+   "split": "train",
+   "license": "mit",
+   "categories": null,
+   "sample": 500,
+   "skip": 0
+  },
+  "mmlu-pro-health": {
+   "suite": "medicine",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "health"
+   ],
+   "sample": null,
+   "skip": 0
+  },
+  "mmlu-pro-business": {
+   "suite": "finance",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "business"
+   ],
+   "sample": null,
+   "skip": 0
+  },
+  "mmlu-pro-economics": {
+   "suite": "finance",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "economics"
+   ],
+   "sample": null,
+   "skip": 0
+  },
+  "finqa-test": {
+   "suite": "finance",
+   "dataset": "finqa-test",
+   "config": null,
+   "split": null,
+   "license": "mit",
+   "categories": null,
+   "sample": 600,
+   "skip": 0
+  },
+  "tatqa-test": {
+   "suite": "finance",
+   "dataset": "tatqa-test",
+   "config": null,
+   "split": null,
+   "license": "mit",
+   "categories": null,
+   "sample": 600,
+   "skip": 0
+  },
+  "casehold-test": {
+   "suite": "law",
+   "dataset": "coastalcph/lex_glue",
+   "config": "case_hold",
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 600,
+   "skip": 0
+  },
+  "mmlu-pro-law": {
+   "suite": "law",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "law"
+   ],
+   "sample": 600,
+   "skip": 0
+  },
+  "gsm8k": {
+   "suite": "math",
+   "dataset": "openai/gsm8k",
+   "config": "main",
+   "split": "test",
+   "license": "mit",
+   "categories": null,
+   "sample": 500,
+   "skip": 0
+  },
+  "mmlu-pro-math": {
+   "suite": "math",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "math"
+   ],
+   "sample": 600,
+   "skip": 0
+  },
+  "mmlu-pro-physics": {
+   "suite": "science",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "physics"
+   ],
+   "sample": 400,
+   "skip": 0
+  },
+  "mmlu-pro-chemistry": {
+   "suite": "science",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "chemistry"
+   ],
+   "sample": 400,
+   "skip": 0
+  },
+  "mmlu-pro-biology": {
+   "suite": "science",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "biology"
+   ],
+   "sample": 400,
+   "skip": 0
+  },
+  "mbpp-test": {
+   "suite": "code",
+   "dataset": "google-research-datasets/mbpp",
+   "config": "full",
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 300,
+   "skip": 0
+  },
+  "mmlu-pro-cs": {
+   "suite": "code",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "computer science"
+   ],
+   "sample": null,
+   "skip": 0
+  },
+  "mmlu-pro-general": {
+   "suite": "general",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "history",
+    "philosophy",
+    "psychology",
+    "other"
+   ],
+   "sample": 800,
+   "skip": 0
+  },
+  "mmlu-pro-general-select": {
+   "suite": "general-select",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "history",
+    "philosophy",
+    "psychology",
+    "other"
+   ],
+   "sample": 400,
+   "skip": 800
+  },
+  "medmcqa-val-select": {
+   "suite": "medicine-select",
+   "dataset": "openlifescienceai/medmcqa",
+   "config": null,
+   "split": "validation",
+   "license": "apache-2.0",
+   "categories": null,
+   "sample": 400,
+   "skip": 1000
+  },
+  "pubmedqa-labeled-select": {
+   "suite": "medicine-select",
+   "dataset": "qiaojin/PubMedQA",
+   "config": "pqa_labeled",
+   "split": "train",
+   "license": "mit",
+   "categories": null,
+   "sample": 200,
+   "skip": 500
+  },
+  "finqa-test-select": {
+   "suite": "finance-select",
+   "dataset": "finqa-test",
+   "config": null,
+   "split": null,
+   "license": "mit",
+   "categories": null,
+   "sample": 300,
+   "skip": 600
+  },
+  "tatqa-test-select": {
+   "suite": "finance-select",
+   "dataset": "tatqa-test",
+   "config": null,
+   "split": null,
+   "license": "mit",
+   "categories": null,
+   "sample": 300,
+   "skip": 600
+  },
+  "casehold-test-select": {
+   "suite": "law-select",
+   "dataset": "coastalcph/lex_glue",
+   "config": "case_hold",
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 300,
+   "skip": 600
+  },
+  "mmlu-pro-physics-select": {
+   "suite": "science-select",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "physics"
+   ],
+   "sample": 200,
+   "skip": 400
+  },
+  "mmlu-pro-chemistry-select": {
+   "suite": "science-select",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "chemistry"
+   ],
+   "sample": 200,
+   "skip": 400
+  },
+  "mmlu-pro-biology-select": {
+   "suite": "science-select",
+   "dataset": "TIGER-Lab/MMLU-Pro",
+   "config": null,
+   "split": "test",
+   "license": "mit",
+   "categories": [
+    "biology"
+   ],
+   "sample": 200,
+   "skip": 400
+  },
+  "gsm8k-select": {
+   "suite": "math-select",
+   "dataset": "openai/gsm8k",
+   "config": "main",
+   "split": "test",
+   "license": "mit",
+   "categories": null,
+   "sample": 300,
+   "skip": 500
+  },
+  "mbpp-test-select": {
+   "suite": "code-select",
+   "dataset": "google-research-datasets/mbpp",
+   "config": "full",
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 150,
+   "skip": 300
+  },
+  "science-local": {
+   "suite": "science-local",
+   "dataset": "evals/data/science_eval.jsonl",
+   "config": null,
+   "split": null,
+   "license": "apache-2.0",
+   "categories": null,
+   "sample": null,
+   "skip": 0
+  },
+  "data-sql-exec": {
+   "suite": "data",
+   "dataset": "evals/data/data_eval.jsonl",
+   "config": null,
+   "split": null,
+   "license": "apache-2.0",
+   "categories": null,
+   "sample": 40,
+   "skip": 0
+  },
+  "data-sql-exec-select": {
+   "suite": "data-select",
+   "dataset": "evals/data/data_eval.jsonl",
+   "config": null,
+   "split": null,
+   "license": "apache-2.0",
+   "categories": null,
+   "sample": 20,
+   "skip": 40
+  },
+  "qasc-eval": {
+   "suite": "education",
+   "dataset": "allenai/qasc",
+   "config": null,
+   "split": "validation",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 600,
+   "skip": 0
+  },
+  "qasc-select": {
+   "suite": "education-select",
+   "dataset": "allenai/qasc",
+   "config": null,
+   "split": "validation",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 250,
+   "skip": 600
+  },
+  "commonsenseqa-eval": {
+   "suite": "core",
+   "dataset": "tau/commonsense_qa",
+   "config": null,
+   "split": "validation",
+   "license": "mit",
+   "categories": null,
+   "sample": 800,
+   "skip": 0
+  },
+  "commonsenseqa-select": {
+   "suite": "core-select",
+   "dataset": "tau/commonsense_qa",
+   "config": null,
+   "split": "validation",
+   "license": "mit",
+   "categories": null,
+   "sample": 300,
+   "skip": 800
+  },
+  "banking77-eval": {
+   "suite": "business",
+   "dataset": "PolyAI/banking77",
+   "config": null,
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 1200,
+   "skip": 0
+  },
+  "banking77-select": {
+   "suite": "business-select",
+   "dataset": "PolyAI/banking77",
+   "config": null,
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 600,
+   "skip": 1200
+  },
+  "phishing-url-eval": {
+   "suite": "security",
+   "dataset": "pirocheto/phishing-url",
+   "config": null,
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 1200,
+   "skip": 0
+  },
+  "phishing-url-select": {
+   "suite": "security-select",
+   "dataset": "pirocheto/phishing-url",
+   "config": null,
+   "split": "test",
+   "license": "cc-by-4.0",
+   "categories": null,
+   "sample": 600,
+   "skip": 1200
+  },
+  "billsum-eval": {
+   "suite": "writing",
+   "dataset": "FiscalNote/billsum",
+   "config": null,
+   "split": "test",
+   "license": "cc0-1.0",
+   "categories": null,
+   "sample": 600,
+   "skip": 0
+  },
+  "billsum-select": {
+   "suite": "writing-select",
+   "dataset": "FiscalNote/billsum",
+   "config": null,
+   "split": "test",
+   "license": "cc0-1.0",
+   "categories": null,
+   "sample": 300,
+   "skip": 600
+  }
+ },
+ "specialists": {
+  "code": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "finance": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "medicine": {
+   "status": "adapter_accepted",
+   "accepted": {
+    "evaluated_as": "spike-medicine-it13270-s0.5",
+    "date": "2026-11-05",
+    "file": "spike-medicine-it13270-s0.5.gguf",
+    "sha256": "21caa0a0b24bdd4d5badb5bc1f336d2eb3061a635400a85a15f4cf52f9d40a34",
+    "reasons": [
+     "medicine: +35.07 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+     "general: -0.62 pts (max drop 1.5)"
+    ],
+    "evidence": "training/runs/medicine/sweep/final/summary.json"
+   },
+   "rounds": [
+    {
+     "round": 1,
+     "sweep": "round1/sweep",
+     "evidence": "training/runs/medicine/round1/sweep/summary.json",
+     "trained_utc": {
+      "started": "2026-10-20T08:40:23Z",
+      "finished": "2026-10-20T18:24:24Z"
+     },
+     "git_commit": "a1dc5beec0b4060af91103275557e64cf0883266",
+     "data": {
+      "train": 25469,
+      "valid": 519,
+      "replay_ratio_actual": 0.3
+     },
+     "rule": {
+      "primary": {
+       "suite": "medicine-select",
+       "min_gain_points": 3.0,
+       "max_p_value": 0.05
+      },
+      "regression": {
+       "suite": "general-select",
+       "max_drop_points": 1.5
+      }
+     },
+     "candidates": [
+      {
+       "name": "spike-medicine-it3200-s1",
+       "iteration": 3200,
+       "scale": 1.0,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 26.17,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -5.5,
+         "p_value": 0.01544
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +26.17 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -5.50 pts (max drop 1.5)"
+       ]
+      },
+      {
+       "name": "spike-medicine-it6400-s1",
+       "iteration": 6400,
+       "scale": 1.0,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 29.33,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -7.75,
+         "p_value": 0.001169
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +29.33 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -7.75 pts (max drop 1.5)"
+       ]
+      },
+      {
+       "name": "spike-medicine-it12800-s1",
+       "iteration": 12800,
+       "scale": 1.0,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 31.5,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -8.25,
+         "p_value": 0.000705
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +31.50 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -8.25 pts (max drop 1.5)"
+       ]
+      },
+      {
+       "name": "spike-medicine-it25469-s0.5",
+       "iteration": 25469,
+       "scale": 0.5,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 31.33,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -7.25,
+         "p_value": 0.002479
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +31.33 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -7.25 pts (max drop 1.5)"
+       ]
+      }
+     ],
+     "chosen": null,
+     "verdict": "rejected",
+     "reasons": [
+      "no candidate passed the selection"
+     ],
+     "final": null
+    },
+    {
+     "round": 2,
+     "sweep": "sweep",
+     "evidence": "training/runs/medicine/sweep/summary.json",
+     "trained_utc": {
+      "started": "2026-11-02T12:31:33Z",
+      "finished": "2026-11-02T17:57:01Z"
+     },
+     "git_commit": "00a00906402efc01114c996c5578bedd6f2abf3a",
+     "data": {
+      "train": 13270,
+      "valid": 270,
+      "replay_ratio_actual": 0.3
+     },
+     "rule": {
+      "primary": {
+       "suite": "medicine-select",
+       "min_gain_points": 3.0,
+       "max_p_value": 0.05
+      },
+      "regression": {
+       "suite": "general-select",
+       "max_drop_points": 1.5
+      }
+     },
+     "candidates": [
+      {
+       "name": "spike-medicine-it1600-s1",
+       "iteration": 1600,
+       "scale": 1.0,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 23.83,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -11.75,
+         "p_value": 4e-06
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +23.83 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -11.75 pts (max drop 1.5)"
+       ]
+      },
+      {
+       "name": "spike-medicine-it3400-s1",
+       "iteration": 3400,
+       "scale": 1.0,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 31.0,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -8.0,
+         "p_value": 0.001601
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +31.00 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -8.00 pts (max drop 1.5)"
+       ]
+      },
+      {
+       "name": "spike-medicine-it6600-s1",
+       "iteration": 6600,
+       "scale": 1.0,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 28.0,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": -7.25,
+         "p_value": 0.004226
+        }
+       },
+       "passes": false,
+       "reasons": [
+        "medicine-select: +28.00 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: -7.25 pts (max drop 1.5)"
+       ]
+      },
+      {
+       "name": "spike-medicine-it13270-s0.5",
+       "iteration": 13270,
+       "scale": 0.5,
+       "select": {
+        "primary": {
+         "suite": "medicine-select",
+         "paired_n": 600,
+         "delta_points": 33.83,
+         "p_value": 0.0
+        },
+        "regression": {
+         "suite": "general-select",
+         "paired_n": 400,
+         "delta_points": 0.0,
+         "p_value": 1.0
+        }
+       },
+       "passes": true,
+       "reasons": [
+        "medicine-select: +33.83 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+        "general-select: +0.00 pts (max drop 1.5)"
+       ]
+      }
+     ],
+     "chosen": "spike-medicine-it13270-s0.5",
+     "verdict": "accepted",
+     "reasons": [
+      "medicine: +35.07 pts (need ≥ 3.0), p = 0 (need ≤ 0.05)",
+      "general: -0.62 pts (max drop 1.5)"
+     ],
+     "final": {
+      "evidence": "training/runs/medicine/sweep/final/summary.json",
+      "protocol": {
+       "model": "Qwen3.5-4B-Q4_K_M.gguf",
+       "llama_cpp": "b11669-620d2225c",
+       "decoding": "greedy",
+       "thinking": false,
+       "max_tokens": 2048,
+       "seed": 0,
+       "kv_cache_type": "q8_0",
+       "prompt": "the specialist's system prompt; zero-shot (question, options, answer-format instruction)"
+      },
+      "suites": {
+       "general": {
+        "base": {
+         "n": 800,
+         "correct": 510,
+         "accuracy": 0.6375,
+         "ci95": [
+          0.6036,
+          0.6701
+         ],
+         "unparsed": 10,
+         "truncated": 37
+        },
+        "adapter": {
+         "n": 800,
+         "correct": 505,
+         "accuracy": 0.6312,
+         "ci95": [
+          0.5973,
+          0.664
+         ],
+         "unparsed": 1,
+         "truncated": 26
+        },
+        "delta_points": -0.62,
+        "p_value": 0.743269
+       },
+       "medicine": {
+        "base": {
+         "n": 2318,
+         "correct": 740,
+         "accuracy": 0.3192,
+         "ci95": [
+          0.3006,
+          0.3385
+         ],
+         "unparsed": 650,
+         "truncated": 52
+        },
+        "adapter": {
+         "n": 2318,
+         "correct": 1553,
+         "accuracy": 0.67,
+         "ci95": [
+          0.6506,
+          0.6888
+         ],
+         "unparsed": 43,
+         "truncated": 66
+        },
+        "delta_points": 35.07,
+        "p_value": 0.0
+       }
+      },
+      "tasks": {
+       "medmcqa-val": {
+        "base": {
+         "n": 1000,
+         "correct": 276,
+         "accuracy": 0.276,
+         "ci95": [
+          0.2492,
+          0.3045
+         ],
+         "unparsed": 409,
+         "truncated": 24
+        },
+        "adapter": {
+         "n": 1000,
+         "correct": 643,
+         "accuracy": 0.643,
+         "ci95": [
+          0.6128,
+          0.6721
+         ],
+         "unparsed": 26,
+         "truncated": 34
+        },
+        "delta_points": 36.7,
+        "p_value": 0.0
+       },
+       "mmlu-pro-general": {
+        "base": {
+         "n": 800,
+         "correct": 510,
+         "accuracy": 0.6375,
+         "ci95": [
+          0.6036,
+          0.6701
+         ],
+         "unparsed": 10,
+         "truncated": 37
+        },
+        "adapter": {
+         "n": 800,
+         "correct": 505,
+         "accuracy": 0.6312,
+         "ci95": [
+          0.5973,
+          0.664
+         ],
+         "unparsed": 1,
+         "truncated": 26
+        },
+        "delta_points": -0.62,
+        "p_value": 0.743269
+       },
+       "mmlu-pro-health": {
+        "base": {
+         "n": 818,
+         "correct": 253,
+         "accuracy": 0.3093,
+         "ci95": [
+          0.2786,
+          0.3418
+         ],
+         "unparsed": 241,
+         "truncated": 27
+        },
+        "adapter": {
+         "n": 818,
+         "correct": 508,
+         "accuracy": 0.621,
+         "ci95": [
+          0.5873,
+          0.6536
+         ],
+         "unparsed": 16,
+         "truncated": 31
+        },
+        "delta_points": 31.17,
+        "p_value": 0.0
+       },
+       "pubmedqa-labeled": {
+        "base": {
+         "n": 500,
+         "correct": 211,
+         "accuracy": 0.422,
+         "ci95": [
+          0.3795,
+          0.4657
+         ],
+         "unparsed": 0,
+         "truncated": 1
+        },
+        "adapter": {
+         "n": 500,
+         "correct": 402,
+         "accuracy": 0.804,
+         "ci95": [
+          0.7669,
+          0.8364
+         ],
+         "unparsed": 1,
+         "truncated": 1
+        },
+        "delta_points": 38.2,
+        "p_value": 0.0
+       }
+      },
+      "questions": null,
+      "topics": {}
+     }
+    }
+   ]
+  },
+  "law": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "marketing": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "science": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "data": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "math": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "education": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "writing": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "business": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  },
+  "security": {
+   "status": "base_profile",
+   "accepted": null,
+   "rounds": []
+  }
+ }
+}

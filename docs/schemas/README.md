@@ -10,6 +10,7 @@ Los `$id` son identificadores versionados, no servicios de red. La validación e
 | project-export.schema.json | `project.json` inside the project zip / dentro del zip del proyecto |
 | proof-package.schema.json | `manifest.json` inside the proof zip / dentro del zip de prueba |
 | bench-share.schema.json | `spike bench --model <GGUF> --share` |
+| specialist-results.schema.json | `docs/results/specialists.json` from `scripts/results_index.py` / de `scripts/results_index.py` |
 
 `--share` prints and saves anonymous JSON to `bench-share.json` (or `--out`), without uploading anything.
 It keeps rounded RAM, CPU class, cores, numeric OS version, SPIKE version, known llama.cpp commit, known model

@@ -18,6 +18,10 @@ profiles on the base model, marked β, until theirs pass.
   and the general suite once, on it. `evals/pairwise.py` keeps answers and judgments as they finish, continues an
   interrupted run, compares several adapters on the same base answers, and waits for the judge (exit 3) instead of
   needing it in memory while the 4B model answers. Tested with fakes; not run on real weights yet.
+- `docs/results/specialists.json`: every specialist's measured results in one machine-readable file (each round's
+  candidates, verdict, base and adapter per suite and task, protocol), built from the committed evidence by
+  `scripts/results_index.py` and checked in CI; `evals/export_questions.py` adds one line per answer with the dataset's
+  own topic, so results can be read per topic.
 - One Qwen3.5-4B (Q4_K_M, llama.cpp) shared by 13 specialists, each with its own LoRA adapter slot switched per
   request with explicit scales; external providers (OpenAI-compatible, Anthropic, Gemini, DeepSeek, Ollama,
   LM Studio and others) with the same instructions and tools. Paid providers stay blocked until allowed; keys in

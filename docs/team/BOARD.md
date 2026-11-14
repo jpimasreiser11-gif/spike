@@ -10,9 +10,9 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | Codex | 0 | 0 | 0 | 0 | 16 | 0 | 16 |
 | Gemini | 0 | 0 | 0 | 0 | 17 | 0 | 17 |
 | Opus | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Mac | 2 | 3 | 0 | 0 | 4 | 0 | 9 |
+| Mac | 3 | 3 | 0 | 0 | 4 | 0 | 10 |
 | joan | 3 | 0 | 0 | 0 | 0 | 0 | 3 |
-| **Total** | **6** | **6** | **0** | **0** | **79** | **0** | **91** |
+| **Total** | **7** | **6** | **0** | **0** | **79** | **0** | **92** |
 
 ## Fase: equipo
 
@@ -104,6 +104,7 @@ Generado desde `docs/team/tasks.json` con `python scripts/team/board.py render`;
 | M13 | Claude | hecha | Integrar la procedencia de evaluaciones (PR #2, rama gemini/G12-2) | - |
 | M14 | Claude | en curso | Lector de respuestas: '**Final Answer Selection:** E' y el texto de la opción | M3 |
 | M15 | Mac | en curso | Medicina: ficha de Hugging Face del adaptador aceptado (sin publicar) | M11 |
+| M16 | Mac | pendiente | Resultados por pregunta y rondas de finanzas en main (para el benchmark de Mando) | - |
 
 ## Fase: models
 

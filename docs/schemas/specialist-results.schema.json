@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spike.local/schemas/v1/specialist-results.schema.json",
+  "title": "SPIKE specialist results (docs/results/specialists.json)",
+  "type": "object",
+  "required": ["format", "about", "base_model", "benchmarks", "specialists"],
+  "properties": {
+    "format": {"const": "spike-specialist-results-v1"},
+    "about": {"type": "string"},
+    "base_model": {"type": "string"},
+    "benchmarks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["suite", "dataset", "split", "license", "sample", "skip"],
+        "properties": {
+          "suite": {"type": "string"},
+          "dataset": {"type": ["string", "null"]},
+          "config": {"type": ["string", "null"]},
+          "split": {"type": ["string", "null"]},
+          "license": {"type": ["string", "null"]},
+          "categories": {"type": ["array", "null"], "items": {"type": "string"}},
+          "sample": {"type": ["integer", "null"], "description": "seeded sample size; null = every item"},
+          "skip": {"type": "integer"}
+        }
+      }
+    },
+    "specialists": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "accepted", "rounds"],
+        "properties": {
+          "status": {"enum": ["adapter_accepted", "base_profile"]},
+          "accepted": {"type": ["object", "null"]},
+          "rounds": {"type": "array", "items": {"$ref": "#/$defs/round"}}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "score": {
+      "type": "object",
+      "required": ["n", "correct", "accuracy"],
+      "properties": {
+        "n": {"type": ["integer", "null"]},
+        "correct": {"type": ["integer", "null"]},
+        "accuracy": {"type": ["number", "null"]},
+        "ci95": {"type": ["array", "null"], "items": {"type": "number"}},
+        "unparsed": {"type": ["integer", "null"]},
+        "truncated": {"type": ["integer", "null"]}
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "required": ["base", "adapter", "delta_points", "p_value"],
+      "properties": {
+        "base": {"$ref": "#/$defs/score"},
+        "adapter": {"$ref": "#/$defs/score"},
+        "delta_points": {"type": ["number", "null"]},
+        "p_value": {"type": ["number", "null"]}
+      }
+    },
+    "round": {
+      "type": "object",
+      "required": ["round", "sweep", "evidence", "trained_utc", "candidates", "chosen", "verdict", "reasons", "final"],
+      "properties": {
+        "round": {"type": "integer", "minimum": 1},
+        "sweep": {"type": "string"},
+        "evidence": {"type": "string"},
+        "trained_utc": {"type": "object"},
+        "git_commit": {"type": ["string", "null"]},
+        "data": {"type": ["object", "null"]},
+        "rule": {"type": ["object", "null"]},
+        "candidates": {"type": "array", "items": {"type": "object", "required": ["name", "passes", "reasons"]}},
+        "chosen": {"type": ["string", "null"]},
+        "verdict": {"enum": ["accepted", "rejected", "chosen_not_final"]},
+        "reasons": {"type": "array", "items": {"type": "string"}},
+        "final": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "object", "required": ["evidence", "pairwise"]},
+            {
+              "type": "object",
+              "required": ["evidence", "protocol", "suites", "tasks", "questions", "topics"],
+              "properties": {
+                "suites": {"type": "object", "additionalProperties": {"$ref": "#/$defs/comparison"}},
+                "tasks": {"type": "object", "additionalProperties": {"$ref": "#/$defs/comparison"}},
+                "questions": {"type": ["string", "null"], "description": "questions.jsonl from evals/export_questions.py"},
+                "topics": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object",
+                      "required": ["n", "base_correct", "adapter_correct"],
+                      "properties": {
+                        "n": {"type": "integer"},
+                        "base_correct": {"type": "integer"},
+                        "adapter_correct": {"type": "integer"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
